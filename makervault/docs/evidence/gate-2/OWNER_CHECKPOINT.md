@@ -1,6 +1,8 @@
 # Gate 2 Owner Checkpoint — Bounded Preview Experience
 
-**Status:** Decision required
+**Status:** Approved
+
+**Approved:** 2026-08-14
 
 **Evidence:** [BASELINE.md](BASELINE.md)
 
@@ -108,3 +110,10 @@ Approve or revise:
 3. the proposed automatic/detail numeric defaults; and
 4. the rule that STEP/STP receives no automatic card parse in v5.1 unless an
    isolated CSP-compatible implementation is proven.
+
+## Owner decision
+
+The owner approved the proposed observable states, detail-only override, numeric
+defaults, and STEP/STP automatic-preview restriction on 2026-08-14. Implementation
+may proceed without weakening the accepted Gate 1 CSP, adding manual thumbnail
+uploads, or applying preview limits as upload limits.
