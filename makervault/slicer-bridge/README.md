@@ -26,7 +26,7 @@ If your Linux file manager blocks execution, mark the file as executable and run
 
 ## Build
 
-You need Go installed (1.21+ recommended).
+You need Go 1.26 or newer installed.
 
 Windows (PowerShell):
 ```powershell

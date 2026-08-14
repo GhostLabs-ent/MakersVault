@@ -37,7 +37,7 @@ or machine control.
 | Slice | Scope | Primary findings | Entry dependency |
 |---|---|---|---|
 | 1A | Fail-closed production authentication configuration and deployment posture | MV-SEC-002 | Owner checkpoint below |
-| 1B | Compatible Python, web-build, and Go toolchain upgrades with fresh scans | MV-SEC-004, MV-SEC-005 | 1A independently verified |
+| 1B | Compatible Python, web-build, and Go toolchain upgrades with fresh scans | MV-SEC-004, MV-SEC-005 | Locally verified; evidence recorded |
 | 1C | Upload, image, archive, model, time, and storage budgets; ZIP path safety; mounted symlink containment | MV-SEC-006, MV-SEC-011, MV-SEC-013 | Budget values documented before enforcement |
 | 1D | Redirect- and connection-aware remote-import SSRF controls | MV-SEC-003 | Adversarial network test harness |
 | 1E | Short-lived file-scoped handoff grants and a bridge allowlist contract | MV-SEC-001, MV-SEC-007 | Grant and origin contract accepted |

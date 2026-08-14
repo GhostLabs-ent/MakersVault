@@ -12,7 +12,7 @@ verify-web:
 verify-bridge:
 	docker run --rm \
 		-v "$(CURDIR)/makervault/slicer-bridge:/src" \
-		-w /src golang:1.21.13 \
+		-w /src golang:1.26.6 \
 		sh -c 'go test ./... && go build -o /tmp/makersvault-bridge ./cmd/slicer-bridge'
 
 verify-compose:

@@ -28,7 +28,7 @@ This performs:
 1. API migration tests under Python 3.11.
 2. Web TypeScript checking, Vitest tests, and the production Vite build under
    Node 20.
-3. Bridge tests and compilation under Go 1.21.13.
+3. Bridge tests and compilation under Go 1.26.6.
 4. Validation of the local, canonical production, historical alias, and smoke
    Compose configurations.
 5. A clean container smoke test with temporary named volumes, HTTP health checks,

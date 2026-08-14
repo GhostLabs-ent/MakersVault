@@ -2,7 +2,7 @@
 
 **Status:** Gate 0 record; updated by Gate 1 evidence
 
-**Revalidated:** 2026-08-13; MV-SEC-002 candidate updated 2026-08-14
+**Revalidated:** 2026-08-13; Gate 1 candidate updates recorded 2026-08-14
 
 **Committed anchor:** `80ddc5bb8849c0532ecf4de91010e450df28b940`
 
@@ -21,8 +21,8 @@ suite to remain green before release.
 | MV-SEC-001 | `CONFIRMED` | The bridge accepts any HTTP(S) `url`, downloads it, and can fall back to the OS default opener. Gate 0 tests only establish its current parser boundary. | Gate 1: scoped, short-lived handoff grants; origin, role, size, redirect, and opener restrictions. |
 | MV-SEC-002 | `RESOLVED IN GATE 1 SLICE 1A CANDIDATE` | Production Compose requires explicit password/signing-secret values; API startup rejects missing, published, short, or reused secrets; the setup helper generates deployment-specific values without overwriting an existing `.env`. | Gate 1 slice 1A verification and local commit. |
 | MV-SEC-003 | `CONFIRMED` | Initial and final URL strings are validated, but `urllib` resolves/connects and follows redirects before final validation. DNS/redirect TOCTOU remains unproven. | Gate 1: controlled redirect/connection implementation and adversarial tests. |
-| MV-SEC-004 | `CONFIRMED` | `python-multipart==0.0.9` remains pinned. Current `pip-audit` reports multiple records with fixes in newer releases. | Gate 1: compatible dependency upgrade plus upload regression tests. |
-| MV-SEC-005 | `CONFIRMED` | `Pillow==10.4.0` remains pinned and processes user-controlled images. Current `pip-audit` reports multiple fixed advisories. | Gate 1: upgrade and malicious/oversized-image tests. |
+| MV-SEC-004 | `RESOLVED IN GATE 1 SLICE 1B CANDIDATE` | `python-multipart==0.0.32` and the compatible FastAPI/Starlette set pass API/upload smoke tests; the resolved runtime lock audits clean. | Gate 1 slice 1B verification; slice 1C still owns explicit request and parser budgets. |
+| MV-SEC-005 | `RESOLVED IN GATE 1 SLICE 1B CANDIDATE` | `Pillow==12.3.0` passes existing image/thumbnail behavior and the resolved runtime lock audits clean. | Gate 1 slice 1B verification; slice 1C still owns malicious/oversized-image bounds. |
 | MV-SEC-006 | `CONFIRMED` | Remote imports and generated thumbnails have some per-file bounds, but direct primary/supporting uploads and total ZIP expansion are not consistently bounded. | Gate 1 for server limits; Gate 2 for browser preview budgets. |
 | MV-SEC-007 | `CONFIRMED` | The API accepts `?token=` and the web client appends the primary JWT to file URLs and bridge handoffs. | Gate 1: narrow signed file/handoff grants. |
 | MV-SEC-008 | `CONFIRMED` | The primary JWT is stored in browser `localStorage`. | Gate 1 risk decision; final session architecture in Gate 11. |
@@ -80,3 +80,17 @@ Gate 0 may pass with confirmed product vulnerabilities because its purpose is to
 make those facts reproducible and assign them. Gate 1 may not pass until all
 confirmed P0 findings have regression evidence or an explicit, owned compensating
 control. No current result supports unrestricted Internet exposure.
+
+## Gate 1 slice 1B update — 2026-08-14
+
+The isolated dependency candidate upgrades FastAPI/Starlette,
+python-multipart, Pillow, and PyJWT as one resolver-compatible Python 3.11 set.
+The runtime and verification locks audit with zero known vulnerabilities. The
+first candidate exposed Starlette's deprecation of the legacy test-only HTTPX
+adapter; switching the verification lock to HTTPX2 removed that warning.
+
+Vite and Vitest were upgraded as one build-tool set. The complete npm audit now
+reports zero production or development findings, and the production bundle and
+web tests pass. The bridge builds and tests under Go 1.26.6, and `govulncheck`
+reports no vulnerabilities. Exact versions and commands are recorded in
+[SLICE_1B_RESULTS.md](../evidence/gate-1/SLICE_1B_RESULTS.md).
