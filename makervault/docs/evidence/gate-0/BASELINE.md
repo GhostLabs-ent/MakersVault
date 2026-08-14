@@ -1,6 +1,6 @@
 # Gate 0 Baseline Record
 
-**Gate status:** Evidence review; remote CI pending
+**Gate status:** Accepted 2026-08-14
 
 **Captured:** 2026-08-13; immutable baseline established 2026-08-14
 
@@ -9,6 +9,8 @@
 **Starting anchor:** `80ddc5bb8849c0532ecf4de91010e450df28b940`
 
 **Immutable source baseline:** `1231565642b8541a7ad36ba4ffdeb2da9527ef89`
+
+**Verified closeout:** `63ade54cad7b1681cf2a33f62c0512d6d80bc45c`
 
 ## Qualification
 
@@ -83,5 +85,7 @@ The complete `make verify` target passed against
 tree was clean after verification, no smoke-test containers remained, and
 `git ls-files -ci --exclude-standard` reported zero tracked ignored paths.
 
-This hash is the Gate 0 source anchor even if evidence-only documentation is
-committed afterward. Remote CI observation remains the final Gate 0 exit item.
+This hash is the Gate 0 source anchor even though evidence-only documentation was
+committed afterward. GitHub Actions run 31802094344 passed all four jobs against
+closeout commit `63ade54cad7b1681cf2a33f62c0512d6d80bc45c`, satisfying the final
+Gate 0 exit item.

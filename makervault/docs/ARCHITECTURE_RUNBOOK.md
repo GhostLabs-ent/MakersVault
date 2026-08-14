@@ -4,7 +4,9 @@
 
 **Baseline date:** 2026-08-14
 
-**Committed baseline:** `main` at `1231565642b8541a7ad36ba4ffdeb2da9527ef89`
+**Committed baseline:** `main` at `63ade54cad7b1681cf2a33f62c0512d6d80bc45c`
+
+**Immutable source baseline:** `1231565642b8541a7ad36ba4ffdeb2da9527ef89`
 
 **Target:** v5.1 and the strategic roadmap that follows it
 
@@ -154,7 +156,8 @@ baseline. It preserves the authorized v5.1 UI, metadata, storage, preview, and
 model-bundle work together with the Gate 0 safety foundation. Generated and
 runtime artifacts are excluded from source ownership. The complete local
 `make verify` target passed against this exact commit and left a clean working
-tree; remote CI observation remains pending.
+tree. GitHub Actions run 31802094344 then passed all four verification jobs
+against evidence closeout commit `63ade54cad7b1681cf2a33f62c0512d6d80bc45c`.
 
 ### 5.2 Current component map
 
@@ -362,10 +365,10 @@ Unless a gate explicitly proves an item irrelevant, completion requires:
 
 ### Gate 0 — Establish the reproducible baseline and safety harness
 
-**Current execution:** `EVIDENCE REVIEW` as of 2026-08-14. Local evidence is in
+**Current execution:** `ACCEPTED` as of 2026-08-14. Local evidence is in
 [evidence/gate-0/RESULTS.md](evidence/gate-0/RESULTS.md). Both ADRs are accepted,
-and immutable baseline `1231565642b8541a7ad36ba4ffdeb2da9527ef89` passed the
-complete local harness. Its remote CI result remains before `ACCEPTED`.
+immutable baseline `1231565642b8541a7ad36ba4ffdeb2da9527ef89` passed the complete
+local harness, and GitHub Actions run 31802094344 passed all remote jobs.
 
 **Objective:** Turn the current working version into a named, reproducible
 baseline that can be changed without guessing.
@@ -409,6 +412,10 @@ ADR.
 policy can be reverted while the preserved working snapshot remains recoverable.
 
 ### Gate 1 — Harden v5.1 trust boundaries and deployment
+
+**Current execution:** `READY` as of 2026-08-14. Gate 0 is accepted. Begin with
+secure first-run configuration and bridge handoff design, preserving each
+security finding as an explicit evidence-backed work item.
 
 **Objective:** Make a fresh v5.1 deployment safe by default for its stated
 single-admin, self-hosted scope.
@@ -947,7 +954,7 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Push the immutable Gate 0 baseline when the owner authorizes that external
-action, observe the GitHub Actions result, and reconcile any discrepancy. If the
-remote run passes, record Gate 0 as `ACCEPTED` and begin Gate 1. If it does not,
-keep Gate 0 in `REWORK` until the same harness passes locally and remotely.
+Begin Gate 1 by freezing its entry evidence and mapping each accepted security
+finding to a testable change, migration/rollback impact, and operator-facing
+behavior. Present any trust-boundary or secret-management choice that materially
+changes deployment behavior at the owner checkpoint before implementation.
