@@ -12,11 +12,12 @@ from PIL import Image
 from sqlmodel import Session, select
 
 from archive_limits import ArchiveLimitError, bounded_archive_infos, validate_archive_member
-from config import ARCHIVE_METADATA_MAX_BYTES, FILE_MAX_BYTES, IMAGE_MAX_PIXELS
+from config import ARCHIVE_METADATA_MAX_BYTES, FILE_MAX_BYTES, IMAGE_MAX_PIXELS, PREVIEW_POLICY_VERSION
 from db import STORAGE, THUMBS, engine
 from file_utils import build_import_filename, mime_from_content_type, sanitize_filename
 from models import Asset, Folder
 from prepared_print import inspect_prepared_print
+from preview_policy import apply_automatic_preview_disposition
 from resource_limits import reject_declared_size, stream_reader_to_file
 from schemas import ImportRequest
 from settings_service import DEFAULT_STORAGE_TEMPLATE, get_storage_template
@@ -304,14 +305,27 @@ def inspect_asset_prepared_print(asset: Asset, src: Optional[Path] = None) -> Op
 
 def backfill_embedded_thumbnails() -> None:
     with Session(engine) as session:
-        assets = list(session.exec(select(Asset).where(Asset.filename.like("%.3mf"))))
+        assets = list(session.exec(select(Asset)))
     for asset in assets:
-        if (THUMBS / f"{asset.id}.jpg").exists():
-            continue
-        src = managed_asset_path(asset)
-        if not src.exists() and asset.source_path:
-            src = Path(asset.source_path)
-        ensure_model_thumbnail(asset.id, src)
+        thumb = THUMBS / f"{asset.id}.jpg"
+        if not thumb.exists() and (asset.filename or "").lower().endswith(".3mf"):
+            src = managed_asset_path(asset)
+            if not src.exists() and asset.source_path:
+                src = Path(asset.source_path)
+            ensure_model_thumbnail(asset.id, src)
+        with Session(engine) as session:
+            current = session.get(Asset, asset.id)
+            if current:
+                should_refresh = (
+                    thumb.exists()
+                    or not current.preview_updated_at
+                    or current.preview_policy_version != PREVIEW_POLICY_VERSION
+                    or current.preview_status == "ready"
+                )
+                if should_refresh:
+                    apply_automatic_preview_disposition(current, thumb.exists())
+                    session.add(current)
+                    session.commit()
 
 
 def create_asset_record(
@@ -354,6 +368,10 @@ def finalize_asset_record(asset_id: str, size: int, mime: Optional[str] = None) 
         prepared = inspect_asset_prepared_print(db_a)
         if prepared:
             db_a.prepared_metadata_json = json.dumps(prepared)
+        apply_automatic_preview_disposition(
+            db_a,
+            (THUMBS / f"{asset_id}.jpg").exists(),
+        )
         s.add(db_a)
         s.commit()
         s.refresh(db_a)

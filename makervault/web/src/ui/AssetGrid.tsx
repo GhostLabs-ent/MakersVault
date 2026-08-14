@@ -130,10 +130,10 @@ export default function AssetGrid({
     return false;
   };
 
-  const replaceAsset = (updated: Asset) => {
+  const replaceAsset = React.useCallback((updated: Asset) => {
     setItems(current => current.map(item => item.id === updated.id ? updated : item));
     setPreviewItem(current => current?.id === updated.id ? updated : current);
-  };
+  }, []);
 
   const refresh = async (opts: RefreshOpts = {}) => {
     setLoading(true);
@@ -1115,11 +1115,12 @@ function AssetCard({
     <div className="rounded-lg border border-panel overflow-hidden bg-panel-soft">
       <div
         className="h-40 relative cursor-pointer"
+        data-asset-id={item.id}
         onDoubleClick={() => onPreview(item)}
         title="Double-click to open large preview"
         onClick={e => e.stopPropagation()}
       >
-        {renderPreviewContent(item, "card", theme, previewMode)}
+        {renderPreviewContent(item, "card", theme, previewMode, onAssetChanged)}
       </div>
       <div className="p-3 flex flex-col gap-2">
         {item.prepared_print && (
@@ -1449,7 +1450,8 @@ function renderPreviewContent(
   asset: Asset,
   variant: PreviewVariant,
   theme: ResolvedTheme,
-  previewMode: PreviewSettings["mode"] = "automatic"
+  previewMode: PreviewSettings["mode"] = "automatic",
+  onAssetChanged?: (asset: Asset) => void,
 ) {
   const ext = extOf(asset.filename);
   const assetUrl = fileUrl(asset.url);
@@ -1472,15 +1474,34 @@ function renderPreviewContent(
       if (previewMode === "disabled") {
         return <div className="flex h-full w-full items-center justify-center text-xs text-muted">Preview generation disabled</div>;
       }
-      return <ModelSnapshot url={assetUrl} ext={ext} assetId={asset.id} theme={theme} mode={previewMode} />;
+      return (
+        <ModelSnapshot
+          url={assetUrl}
+          ext={ext}
+          assetId={asset.id}
+          theme={theme}
+          mode={previewMode}
+          previewStatus={asset.preview_status || "pending"}
+          previewReason={asset.preview_reason}
+          onAssetChanged={onAssetChanged}
+        />
+      );
     }
     if (isLightBurn) {
+      if (previewMode === "disabled") {
+        return <div className="flex h-full w-full items-center justify-center text-xs text-muted">Preview generation disabled</div>;
+      }
       return (
         <LightBurnPreview
           url={assetUrl}
           assetId={asset.id}
+          byteSize={asset.size}
           filename={asset.filename}
           imgClass={imgClass}
+          mode={previewMode}
+          previewStatus={asset.preview_status}
+          previewReason={asset.preview_reason}
+          onAssetChanged={onAssetChanged}
         />
       );
     }
@@ -1492,7 +1513,17 @@ function renderPreviewContent(
   }
 
   if (is3d) {
-    return <ModelViewer key={`${variant}-${asset.id}`} url={assetUrl} ext={ext} assetId={asset.id} theme={theme} />;
+    return (
+      <ModelViewer
+        key={`${variant}-${asset.id}`}
+        url={assetUrl}
+        ext={ext}
+        assetId={asset.id}
+        assetSize={asset.size}
+        requireConfirmation={asset.preview_status === "skipped_policy"}
+        theme={theme}
+      />
+    );
   }
   if (thumbUrl || ext === "svg") {
     const src = thumbUrl || assetUrl;
@@ -1503,8 +1534,12 @@ function renderPreviewContent(
       <LightBurnPreview
         url={assetUrl}
         assetId={asset.id}
+        byteSize={asset.size}
         filename={asset.filename}
         imgClass={imgClass}
+        previewStatus={asset.preview_status}
+        previewReason={asset.preview_reason}
+        onAssetChanged={onAssetChanged}
       />
     );
   }

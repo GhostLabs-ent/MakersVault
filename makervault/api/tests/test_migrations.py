@@ -94,6 +94,12 @@ def test_pre_v5_1_fixture_migrates_and_is_idempotent(tmp_path: Path) -> None:
         "supporting_file_count",
         "prepared_file_id",
         "prepared_metadata_json",
+        "preview_status",
+        "preview_reason",
+        "preview_attempts",
+        "preview_policy_version",
+        "preview_updated_at",
+        "preview_source",
     }.issubset(table_columns(database_engine, "asset"))
     assert "parent_id" in table_columns(database_engine, "folder")
 

@@ -1,11 +1,28 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import occtWasmUrl from "occt-import-js/dist/occt-import-js.wasm?url";
-import occtWorkerUrl from "occt-import-js/dist/occt-import-js-worker.js?url";
-import { uploadGeneratedThumbnail } from "../lib/api";
+import {
+  Asset,
+  requestPreviewRetry,
+  updatePreviewState,
+  uploadGeneratedThumbnail,
+} from "../lib/api";
+import {
+  PreviewJobError,
+  PreviewQueueFullError,
+  createPreviewJob,
+  type PreviewGeometry,
+  type PreviewJobHandle,
+} from "../lib/previewJobs";
 import { ResolvedTheme } from "../lib/settings";
 
-type ModelViewerProps = { url: string; ext: string; assetId?: string; theme: ResolvedTheme };
+type ModelViewerProps = {
+  url: string;
+  ext: string;
+  assetId?: string;
+  assetSize?: number;
+  requireConfirmation?: boolean;
+  theme: ResolvedTheme;
+};
 
 type ModelPalette = {
   color: THREE.Color;
@@ -74,39 +91,44 @@ function applyThemeToObject(obj: THREE.Object3D, palette: ModelPalette) {
   });
 }
 
-export default function ModelViewer({ url, ext, assetId, theme }: ModelViewerProps) {
+export default function ModelViewer({
+  url,
+  ext,
+  assetId,
+  assetSize,
+  requireConfirmation = false,
+  theme,
+}: ModelViewerProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
+  const activeDetailJobRef = useRef<PreviewJobHandle<PreviewGeometry> | null>(null);
+  const detailCancelledRef = useRef(false);
   const [viewError, setViewError] = useState<string | null>(null);
+  const [confirmed, setConfirmed] = useState(!requireConfirmation);
+  const [loading, setLoading] = useState(!requireConfirmation);
+  const [retryable, setRetryable] = useState(false);
+  const [retryAttempt, setRetryAttempt] = useState(0);
 
   useEffect(() => {
     let disposed = false;
     let activeObject: THREE.Object3D | null = null;
-    const mount = mountRef.current; 
-    if (!mount) return;
+    let detailJob: PreviewJobHandle<PreviewGeometry> | null = null;
+    const mount = mountRef.current;
+    if (!mount || !confirmed) return;
     const palette = paletteForTheme(theme);
+    detailCancelledRef.current = false;
     setViewError(null);
+    setRetryable(false);
+    setLoading(true);
     const reportError = (message: string) => {
       if (!disposed) {
         setViewError(message);
+        setLoading(false);
       }
     };
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setSize(mount.clientWidth || 300, mount.clientHeight || 300);
-    mount.appendChild(renderer.domElement);
-
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.6));
-    scene.add(new THREE.AmbientLight(0xffffff, 0.9));
-    const dir1 = new THREE.DirectionalLight(0xffffff, 1.4);
-    dir1.position.set(3, 6, 2);
-    const dir2 = new THREE.DirectionalLight(0xffffff, 1.2);
-    dir2.position.set(-4, -2, 3);
-    scene.add(dir1);
-    scene.add(dir2);
-    camera.position.set(1, 1, 3);
+    let renderer: THREE.WebGLRenderer | null = null;
 
     let controls: any;
     let teardown: (() => void) | undefined;
@@ -139,16 +161,47 @@ export default function ModelViewer({ url, ext, assetId, theme }: ModelViewerPro
         window.localStorage.setItem(storageKey, JSON.stringify(payload));
       } catch {}
     };
+    const renderAndSaveView = () => {
+      saveView();
+      renderer?.render(scene, camera);
+    };
 
     (async () => {
       try {
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+        if (disposed) return;
+        renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: "low-power" });
+        renderer.setPixelRatio(1);
+        renderer.setSize(
+          Math.min(mount.clientWidth || 300, 640),
+          Math.min(mount.clientHeight || 300, 480),
+          false,
+        );
+        renderer.domElement.style.width = "100%";
+        renderer.domElement.style.height = "100%";
+        mount.appendChild(renderer.domElement);
+
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+        if (disposed || !renderer) return;
+
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.6));
+        scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+        const dir1 = new THREE.DirectionalLight(0xffffff, 1.4);
+        dir1.position.set(3, 6, 2);
+        const dir2 = new THREE.DirectionalLight(0xffffff, 1.2);
+        dir2.position.set(-4, -2, 3);
+        scene.add(dir1);
+        scene.add(dir2);
+        camera.position.set(1, 1, 3);
+
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+        if (disposed || !renderer) return;
         const { OrbitControls } = await import("three/examples/jsm/controls/OrbitControls.js");
         controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
+        controls.enableDamping = false;
         controls.enablePan = true;
         controls.target.set(0, 0, 0);
-        controls.addEventListener("change", saveView);
+        controls.addEventListener("change", renderAndSaveView);
 
         const centerSceneOn = (box: THREE.Box3) => {
           const size = box.getSize(new THREE.Vector3());
@@ -165,138 +218,240 @@ export default function ModelViewer({ url, ext, assetId, theme }: ModelViewerPro
         const e = (ext || "").toLowerCase();
 
         try {
-          const obj = await loadObjectFromAsset(e, url);
-          if (!obj) {
-            reportError("Preview unsupported for this file type.");
-            return;
-          }
-          if (disposed) {
-            disposeObject3D(obj);
-            return;
-          }
-          applyThemeToObject(obj, palette);
-          activeObject = obj;
-          scene.add(obj);
-          const box = new THREE.Box3().setFromObject(obj);
-          if (!box.isEmpty()) {
-            centerSceneOn(box);
+          if (e === "step" || e === "stp") {
+            reportError("Interactive STEP preview is not available in this browser. Download the model to inspect it in your CAD or slicer application.");
+          } else {
+            const rect = mount.getBoundingClientRect();
+            const createdJob = await createPreviewJob({
+              url,
+              ext: e,
+              width: Math.max(300, Math.floor(rect.width || 900)),
+              height: Math.max(300, Math.floor(rect.height || 600)),
+              mode: "geometry",
+              detail: true,
+              byteSize: assetSize,
+            });
+            detailJob = createdJob;
+            activeDetailJobRef.current = createdJob;
+            if (detailCancelledRef.current) {
+              createdJob.cancel();
+              return;
+            }
+            if (disposed) {
+              createdJob.cancel();
+              return;
+            }
+            const previewGeometry = await createdJob.promise;
+            if (activeDetailJobRef.current === createdJob) activeDetailJobRef.current = null;
+            if (disposed) return;
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute("position", new THREE.BufferAttribute(previewGeometry.positions, 3));
+            geometry.setAttribute("normal", new THREE.BufferAttribute(previewGeometry.normals, 3));
+            geometry.setIndex(new THREE.BufferAttribute(previewGeometry.indices, 1));
+            geometry.computeBoundingSphere();
+            const obj = new THREE.Mesh(
+              geometry,
+              new THREE.MeshLambertMaterial({ color: 0xdddddd }),
+            );
+            applyThemeToObject(obj, palette);
+            activeObject = obj;
+            scene.add(obj);
+            const box = new THREE.Box3().setFromObject(obj);
+            if (!box.isEmpty()) centerSceneOn(box);
           }
         } catch (err) {
+          activeDetailJobRef.current = null;
           console.error("Viewer asset load failed:", err);
-          reportError("Preview failed to load.");
+          if (err instanceof PreviewJobError) {
+            if (err.reason === "cancelled") return;
+            setRetryable(err.reason === "timeout" || err.reason === "invalid_geometry");
+            reportError(previewReasonLabel(err.reason).replace("automatic preview", "interactive preview"));
+          } else if (err instanceof PreviewQueueFullError) {
+            setRetryable(true);
+            reportError("Preview work is busy. Try the interactive preview again in a moment.");
+          } else {
+            setRetryable(true);
+            reportError("Preview failed to load.");
+          }
         }
       } catch (err) {
         console.error("Viewer init failed:", err);
+        setRetryable(true);
+        reportError("The interactive viewer could not start.");
       }
 
       const onResize = () => {
-        if (!mount) return;
+        if (!mount || !renderer) return;
         const w = mount.clientWidth || 300;
         const h = mount.clientHeight || 300;
-        renderer.setSize(w, h);
+        renderer.setSize(Math.min(w, 640), Math.min(h, 480), false);
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
+        renderer.render(scene, camera);
       };
       window.addEventListener("resize", onResize);
       teardown = () => window.removeEventListener("resize", onResize);
 
-      const animate = () => {
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      if (disposed || !renderer) return;
+      renderer.render(scene, camera);
+      requestAnimationFrame(() => {
         if (disposed) return;
-        renderer.render(scene, camera);
-        requestAnimationFrame(animate);
-      };
-      animate();
+        setLoading(false);
+      });
     })();
 
   return () => {
     disposed = true;
+    detailJob?.cancel();
+    activeDetailJobRef.current = null;
     try {
       teardown?.();
-      mount.removeChild(renderer.domElement);
+      if (renderer) mount.removeChild(renderer.domElement);
     } catch {}
     if (activeObject) {
       disposeObject3D(activeObject);
     }
     try {
-      controls?.removeEventListener("change", saveView);
+      controls?.removeEventListener("change", renderAndSaveView);
       controls?.dispose();
     } catch {}
     try {
-      renderer.forceContextLoss?.();
+      renderer?.forceContextLoss?.();
     } catch {}
-    renderer.dispose();
+    renderer?.dispose();
   };
-}, [url, ext, assetId, theme]);
+}, [url, ext, assetId, assetSize, confirmed, retryAttempt, theme]);
+
+  if (!confirmed) {
+    return (
+      <div className="w-full h-full bg-panel-soft rounded-md flex items-center justify-center px-6 text-center">
+        <div>
+          <div className="text-sm font-semibold text-primary">Interactive preview paused</div>
+          <div className="mt-1 text-xs text-muted">This model exceeds the automatic preview policy. Opening it uses the larger, bounded detail-view budget.</div>
+          <button
+            type="button"
+            className="mt-3 rounded-md border border-panel-strong px-3 py-2 text-xs font-medium hover:bg-panel-strong"
+            onClick={() => setConfirmed(true)}
+          >
+            Try interactive preview
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
       ref={mountRef}
+      data-detail-preview-state={viewError ? "error" : loading ? "loading" : "ready"}
       className="w-full h-full bg-panel-soft rounded-md overflow-hidden relative"
     >
+      {loading && !viewError && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-muted bg-panel-overlay">
+          <div className="text-center">
+            <div>Preparing interactive preview...</div>
+            <button
+              type="button"
+              className="mt-3 rounded-md border border-panel-strong px-3 py-2 text-xs font-medium hover:bg-panel-strong"
+              onClick={() => {
+                detailCancelledRef.current = true;
+                activeDetailJobRef.current?.cancel();
+                activeDetailJobRef.current = null;
+                setLoading(false);
+                setRetryable(true);
+                setViewError("Interactive preview cancelled.");
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
       {viewError && (
-        <div className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-medium text-red-700 dark:text-red-300 bg-panel-overlay">
-          {viewError}
+        <div className="absolute inset-0 z-10 flex items-center justify-center px-4 text-center text-sm font-medium text-red-700 dark:text-red-300 bg-panel-overlay">
+          <div>
+            <div>{viewError}</div>
+            {retryable && (
+              <button
+                type="button"
+                className="mt-3 rounded-md border border-current px-3 py-2 text-xs"
+                onClick={() => setRetryAttempt(value => value + 1)}
+              >
+                Try again
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-type SnapshotState = "idle" | "loading" | "error";
-type ModelSnapshotProps = ModelViewerProps & { mode?: "automatic" | "on-demand" };
+type SnapshotState = "idle" | "queued" | "loading" | "failed" | "skipped";
+type ModelSnapshotProps = ModelViewerProps & {
+  mode?: "automatic" | "on-demand";
+  previewStatus: Asset["preview_status"];
+  previewReason?: string | null;
+  onAssetChanged?: (asset: Asset) => void;
+};
 
 const snapshotCache = new Map<string, string>();
-let snapshotRenderer: THREE.WebGLRenderer | null = null;
-let snapshotLock: Promise<void> = Promise.resolve();
-let snapshotJobQueue: Promise<void> = Promise.resolve();
 
-function queueSnapshotJob<T>(job: () => Promise<T>): Promise<T> {
-  const result = snapshotJobQueue.then(job, job);
-  snapshotJobQueue = result.then(() => undefined, () => undefined);
-  return result;
-}
+const previewReasonLabel = (reason?: string | null) => {
+  switch (reason) {
+    case "file_too_large": return "This model is too large for an automatic preview.";
+    case "too_many_triangles": return "This model is too complex for an automatic preview.";
+    case "archive_entries":
+    case "archive_expanded": return "This 3MF is too complex for an automatic preview.";
+    case "step_manual_only": return "STEP previews are available from model details.";
+    case "timeout": return "Preview generation timed out.";
+    case "malformed_stl": return "MakersVault could not read this STL preview.";
+    case "malformed_obj": return "MakersVault could not read this OBJ preview.";
+    case "malformed_3mf": return "MakersVault could not read this 3MF preview.";
+    default: return "MakersVault could not read this model preview.";
+  }
+};
 
-function createSnapshotRenderer() {
-  const renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    alpha: true,
-    preserveDrawingBuffer: true,
-  });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  return renderer;
-}
-
-async function acquireSnapshotRenderer() {
-  let release!: () => void;
-  const wait = snapshotLock;
-  snapshotLock = snapshotLock.then(() => new Promise<void>(resolve => (release = resolve)));
-  await wait;
-  snapshotRenderer = createSnapshotRenderer();
-  const renderer = snapshotRenderer;
-  const unlock = () => {
-    try {
-      renderer.forceContextLoss?.();
-      renderer.dispose();
-    } catch {}
-    snapshotRenderer = null;
-    release();
-  };
-  return { renderer, release: unlock };
-}
-
-export function ModelSnapshot({ url, ext, assetId, mode = "automatic" }: ModelSnapshotProps) {
+export function ModelSnapshot({
+  url,
+  ext,
+  assetId,
+  mode = "automatic",
+  previewStatus,
+  previewReason,
+  onAssetChanged,
+}: ModelSnapshotProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [snapshot, setSnapshot] = useState<string | null>(null);
-  const [state, setState] = useState<SnapshotState>("idle");
-  const [requested, setRequested] = useState(mode === "automatic");
+  const effectiveStatus = previewStatus === "ready" ? "pending" : previewStatus;
+  const [state, setState] = useState<SnapshotState>(
+    effectiveStatus === "failed" ? "failed" : effectiveStatus === "skipped_policy" ? "skipped" : "idle",
+  );
+  const [reason, setReason] = useState(previewReason || null);
+  const [requested, setRequested] = useState(
+    effectiveStatus === "retry_requested" || (mode === "automatic" && effectiveStatus === "pending"),
+  );
+  const [queueAttempt, setQueueAttempt] = useState(0);
 
   useEffect(() => {
-    if (mode === "automatic") setRequested(true);
-  }, [mode]);
+    const status = previewStatus === "ready" ? "pending" : previewStatus;
+    setReason(previewReason || null);
+    if (status === "failed") {
+      setState("failed");
+      setRequested(false);
+    } else if (status === "skipped_policy") {
+      setState("skipped");
+      setRequested(false);
+    }
+    else if (status === "retry_requested" || (mode === "automatic" && status === "pending")) setRequested(true);
+  }, [mode, previewStatus, previewReason]);
 
   useEffect(() => {
     let disposed = false;
     let observer: IntersectionObserver | null = null;
+    let retryTimer = 0;
+    let jobHandle: PreviewJobHandle<Blob> | null = null;
     const cacheKey = assetId ? `asset:${assetId}` : url;
     if (snapshotCache.has(cacheKey)) {
       setSnapshot(snapshotCache.get(cacheKey)!);
@@ -304,36 +459,81 @@ export function ModelSnapshot({ url, ext, assetId, mode = "automatic" }: ModelSn
     }
     const load = async () => {
       if (!containerRef.current) return;
-      setState("loading");
+      setState("queued");
       try {
         const rect = containerRef.current.getBoundingClientRect();
         const width = Math.max(120, Math.floor(rect.width || 240));
         const height = Math.max(120, Math.floor(rect.height || 180));
-        const image = await queueSnapshotJob(async () => {
-          if (disposed) return null;
-          return generateModelSnapshot(url, ext, width, height, "light");
+        jobHandle = await createPreviewJob({
+          url,
+          ext,
+          width,
+          height,
+          mode: "thumbnail",
+          onStart: async () => {
+            if (disposed) return;
+            setState("loading");
+            if (assetId) {
+              try {
+                onAssetChanged?.(await updatePreviewState(assetId, { status: "pending" }));
+              } catch (error) {
+                console.warn("Preview start state could not be persisted:", error);
+              }
+            }
+          },
         });
-        if (disposed || !image) return;
-        snapshotCache.set(cacheKey, image);
-        setSnapshot(image);
+        if (disposed) {
+          jobHandle.cancel();
+          return;
+        }
+        const blob = await jobHandle.promise;
+        if (disposed) return;
+        const objectUrl = URL.createObjectURL(blob);
+        snapshotCache.set(cacheKey, objectUrl);
+        setSnapshot(objectUrl);
         setState("idle");
+        setReason(null);
         if (assetId) {
           try {
-            const imageBlob = await fetch(image).then(response => response.blob());
-            await uploadGeneratedThumbnail(assetId, imageBlob);
+            onAssetChanged?.(await uploadGeneratedThumbnail(assetId, blob));
           } catch (err) {
             console.warn("Generated preview could not be persisted:", err);
           }
         }
       } catch (err) {
-        console.warn("Snapshot generation failed:", err);
-        if (!disposed) {
-          setState("error");
+        if (disposed) return;
+        if (err instanceof PreviewQueueFullError) {
+          setState("queued");
+          retryTimer = window.setTimeout(() => setQueueAttempt(value => value + 1), 350);
+          return;
+        }
+        if (err instanceof PreviewJobError && err.reason === "cancelled") return;
+        if (!(err instanceof PreviewJobError)) {
+          console.warn("Snapshot generation failed:", err);
+        }
+        const jobError = err instanceof PreviewJobError
+          ? err
+          : new PreviewJobError("invalid_geometry", "Preview generation failed");
+        const nextState = jobError.skipped ? "skipped" : "failed";
+        setState(nextState);
+        setReason(jobError.reason);
+        if (assetId) {
+          try {
+            const updated = await updatePreviewState(assetId, {
+              status: jobError.skipped ? "skipped_policy" : "failed",
+              reason: jobError.reason,
+            });
+            onAssetChanged?.(updated);
+          } catch (stateError) {
+            console.warn("Preview state could not be persisted:", stateError);
+          }
         }
       }
     };
-    if (!requested) {
-      setState("idle");
+    if (!requested || previewStatus === "failed" || previewStatus === "skipped_policy") {
+      if (previewStatus === "failed") setState("failed");
+      else if (previewStatus === "skipped_policy") setState("skipped");
+      else setState("idle");
       return () => { disposed = true; };
     }
     if (mode === "automatic" && typeof IntersectionObserver !== "undefined") {
@@ -349,18 +549,50 @@ export function ModelSnapshot({ url, ext, assetId, mode = "automatic" }: ModelSn
     return () => {
       disposed = true;
       observer?.disconnect();
+      window.clearTimeout(retryTimer);
+      jobHandle?.cancel();
     };
-  }, [url, ext, assetId, mode, requested]);
+  }, [url, ext, assetId, mode, requested, queueAttempt, onAssetChanged, previewStatus]);
+
+  const retry = async (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (assetId) {
+      try {
+        onAssetChanged?.(await requestPreviewRetry(assetId));
+      } catch (error) {
+        console.warn("Preview retry could not be requested:", error);
+        return;
+      }
+    }
+    setReason(null);
+    setState("idle");
+    setRequested(true);
+    setQueueAttempt(value => value + 1);
+  };
 
   return (
     <div
       ref={containerRef}
+      data-preview-state={snapshot ? "ready" : state}
       className="w-full h-full bg-panel-soft flex items-center justify-center rounded-md overflow-hidden"
     >
       {snapshot ? (
         <img src={snapshot} alt="Preview" className="w-full h-full object-cover" />
       ) : state === "loading" ? (
         <span className="text-xs text-muted">Generating preview...</span>
+      ) : state === "queued" ? (
+        <span className="text-xs text-muted">Preview queued</span>
+      ) : state === "skipped" ? (
+        <div className="px-4 text-center text-xs text-muted">
+          <div className="font-semibold text-primary">Preview paused</div>
+          <div className="mt-1">{previewReasonLabel(reason)}</div>
+        </div>
+      ) : state === "failed" ? (
+        <div className="px-4 text-center text-xs text-muted">
+          <div className="font-semibold text-primary">Preview unavailable</div>
+          <div className="mt-1">{previewReasonLabel(reason)}</div>
+          <button type="button" className="mt-2 underline underline-offset-2" onClick={retry}>Retry preview</button>
+        </div>
       ) : mode === "on-demand" && !requested ? (
         <button
           type="button"
@@ -370,7 +602,7 @@ export function ModelSnapshot({ url, ext, assetId, mode = "automatic" }: ModelSn
           Generate preview
         </button>
       ) : (
-        <span className="text-xs text-muted">Waiting to generate preview...</span>
+        <span className="text-xs text-muted">Preview queued</span>
       )}
     </div>
   );
@@ -718,49 +950,6 @@ function findFirstElement(node: Document | Element, localName: string) {
   return findElements(node, localName)[0] ?? null;
 }
 
-async function generateModelSnapshot(
-  url: string,
-  ext: string,
-  width: number,
-  height: number,
-  theme: ResolvedTheme
-) {
-  const normalized = (ext || "").toLowerCase();
-  const object = await loadObjectFromAsset(normalized, url);
-  if (!object) {
-    throw new Error(`Unsupported snapshot extension: ${ext}`);
-  }
-  applyThemeToObject(object, paletteForTheme(theme));
-  const scene = new THREE.Scene();
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
-  scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-  const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-  const { renderer, release } = await acquireSnapshotRenderer();
-  renderer.setSize(width, height, false);
-  scene.add(object);
-
-  const box = new THREE.Box3().setFromObject(object);
-  if (!box.isEmpty()) {
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    const radius = Math.max(size.x, size.y, size.z) || 1;
-    camera.position.copy(center).add(new THREE.Vector3(radius * 1.8, radius * 1.3, radius * 1.6));
-    camera.lookAt(center);
-  } else {
-    camera.position.set(1, 1, 3);
-    camera.lookAt(new THREE.Vector3(0, 0, 0));
-  }
-
-  try {
-    renderer.render(scene, camera);
-    const dataUrl = renderer.domElement.toDataURL("image/png");
-    disposeObject3D(object);
-    return dataUrl;
-  } finally {
-    release();
-  }
-}
-
 async function loadObjectFromAsset(ext: string, url: string): Promise<THREE.Object3D | null> {
   if (ext === "stl") {
     const { STLLoader } = await import("three/examples/jsm/loaders/STLLoader.js");
@@ -786,73 +975,7 @@ async function loadObjectFromAsset(ext: string, url: string): Promise<THREE.Obje
       new OBJLoader().load(url, resolve, undefined, reject);
     });
   }
-  if (ext === "step" || ext === "stp") {
-    return await loadStepGroup(url);
-  }
   return null;
-}
-
-async function loadStepGroup(url: string) {
-  type OcctMesh = {
-    color?: [number, number, number];
-    attributes: {
-      position?: { array: ArrayLike<number> };
-      normal?: { array: ArrayLike<number> };
-    };
-    index?: { array: ArrayLike<number> };
-  };
-
-  const initOcct = (await import("occt-import-js")).default;
-  const resp = await fetch(url);
-  const buf = new Uint8Array(await resp.arrayBuffer());
-  const occt = await initOcct({
-    locateFile: (file: string) => {
-      if (file.endsWith(".wasm")) return occtWasmUrl;
-      if (file.endsWith(".worker.js")) return occtWorkerUrl;
-      return file;
-    },
-  });
-  const res = await occt.ReadStepFile(buf, null);
-
-  const group = new THREE.Group();
-  for (const m of res.meshes as OcctMesh[]) {
-    const pos = m.attributes?.position?.array;
-    if (!pos || !pos.length) continue;
-
-    const geom = new THREE.BufferGeometry();
-    const toFloat32 = (data: ArrayLike<number>) => Float32Array.from(data);
-
-    geom.setAttribute("position", new THREE.Float32BufferAttribute(toFloat32(pos), 3));
-
-    const normals = m.attributes?.normal?.array;
-    if (normals && normals.length) {
-      geom.setAttribute("normal", new THREE.Float32BufferAttribute(toFloat32(normals), 3));
-    }
-
-    const indices = m.index?.array;
-    if (indices && indices.length) {
-      geom.setIndex(
-        Array.isArray(indices) ? indices : Array.from(indices as ArrayLike<number>)
-      );
-    } else {
-      geom.computeVertexNormals();
-    }
-    geom.computeBoundingSphere();
-
-    const color = m.color
-      ? new THREE.Color(m.color[0] / 255, m.color[1] / 255, m.color[2] / 255)
-      : new THREE.Color(0xf1f5f9);
-    const mesh = new THREE.Mesh(
-      geom,
-      new THREE.MeshStandardMaterial({ color, metalness: 0.2, roughness: 0.8 })
-    );
-    group.add(mesh);
-  }
-
-  if (!group.children.length) {
-    throw new Error("STEP preview produced no meshes");
-  }
-  return group;
 }
 
 async function load3MFObject(url: string) {

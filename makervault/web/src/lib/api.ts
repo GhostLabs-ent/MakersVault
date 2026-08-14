@@ -57,6 +57,12 @@ export type Asset = {
   prepared_print?: PreparedPrint | null;
   slicer_url?: string | null;
   slicer_filename?: string | null;
+  preview_status: "pending" | "ready" | "failed" | "skipped_policy" | "retry_requested";
+  preview_reason?: string | null;
+  preview_attempts: number;
+  preview_policy_version: number;
+  preview_updated_at?: string | null;
+  preview_source?: string | null;
 };
 
 export type PreparedPrint = {
@@ -113,6 +119,27 @@ export type StorageSettings = {
   moved: number;
   skipped: number;
 };
+
+export type PreviewPolicy = {
+  version: number;
+  active_jobs: number;
+  queue_limit: number;
+  automatic_max_bytes: number;
+  automatic_max_triangles: number;
+  automatic_3mf_expanded_bytes: number;
+  automatic_3mf_entries: number;
+  automatic_memory_bytes: number;
+  automatic_timeout_seconds: number;
+  detail_max_bytes: number;
+  detail_max_triangles: number;
+  detail_3mf_expanded_bytes: number;
+  detail_3mf_entries: number;
+  detail_memory_bytes: number;
+  detail_timeout_seconds: number;
+  automatic_step_enabled: boolean;
+};
+
+let previewPolicyPromise: Promise<PreviewPolicy> | null = null;
 
 function normalizePublicUrl(raw: string): string | null {
   const trimmed = (raw || "").trim();
@@ -385,6 +412,43 @@ export async function uploadGeneratedThumbnail(id: string, image: Blob): Promise
     throw new Error(await readErrorMessage(res, "Failed to save generated thumbnail"));
   }
   return res.json();
+}
+
+export function getPreviewPolicy(): Promise<PreviewPolicy> {
+  if (!previewPolicyPromise) {
+    previewPolicyPromise = fetch(`${apiBase()}/settings/preview-policy`, { headers: authHeaders() })
+      .then(response => {
+        assertOk(response, "Failed to load preview policy");
+        return response.json() as Promise<PreviewPolicy>;
+      })
+      .catch(error => {
+        previewPolicyPromise = null;
+        throw error;
+      });
+  }
+  return previewPolicyPromise;
+}
+
+export async function updatePreviewState(
+  id: string,
+  payload: { status: "pending" | "failed" | "skipped_policy"; reason?: string | null },
+): Promise<Asset> {
+  const response = await fetch(`${apiBase()}/asset/${id}/preview-state`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload),
+  });
+  assertOk(response, "Failed to update preview state");
+  return response.json();
+}
+
+export async function requestPreviewRetry(id: string): Promise<Asset> {
+  const response = await fetch(`${apiBase()}/asset/${id}/preview-retry`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  assertOk(response, "Failed to retry preview");
+  return response.json();
 }
 
 export async function listAssetFiles(id: string): Promise<AssetFile[]> {

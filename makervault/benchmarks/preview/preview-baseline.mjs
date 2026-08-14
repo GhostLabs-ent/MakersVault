@@ -52,9 +52,9 @@ function requestKind(request) {
 
 function createNetworkTracker(page) {
   let phase = "cold";
-  const phases = { cold: [], warm: [] };
-  const active = { cold: 0, warm: 0 };
-  const maxActive = { cold: 0, warm: 0 };
+  const phases = { cold: [], warm: [], detail: [], lightburn: [], lightburnWarm: [] };
+  const active = { cold: 0, warm: 0, detail: 0, lightburn: 0, lightburnWarm: 0 };
+  const maxActive = { cold: 0, warm: 0, detail: 0, lightburn: 0, lightburnWarm: 0 };
   const requestPhase = new WeakMap();
   page.on("request", request => {
     const kind = requestKind(request);
@@ -140,8 +140,8 @@ async function waitForExpectedFiles(page, tracker, phase, expectedMinimum) {
       stableSince = Date.now();
       lastCount = count;
     }
-    const generating = await page.getByText("Generating preview...", { exact: true }).count();
-    if (count >= expectedMinimum && generating === 0 && Date.now() - stableSince >= 2_000) return false;
+    const activeStates = await page.locator('[data-preview-state="loading"], [data-preview-state="queued"]').count();
+    if (count >= expectedMinimum && activeStates === 0 && Date.now() - stableSince >= 2_000) return false;
     await page.waitForTimeout(250);
   }
   return true;
@@ -153,6 +153,11 @@ async function collectPhase(page, tracker, phase, timing, samples, timedOut) {
     const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
     const debug = gl?.getExtension("WEBGL_debug_renderer_info");
     const metrics = window.__mvBenchmark || { longTasks: [], drifts: [] };
+    const previewStates = {};
+    for (const node of document.querySelectorAll("[data-preview-state]")) {
+      const state = node.getAttribute("data-preview-state") || "unknown";
+      previewStates[state] = (previewStates[state] || 0) + 1;
+    }
     return {
       userAgent: navigator.userAgent,
       hardwareConcurrency: navigator.hardwareConcurrency,
@@ -162,9 +167,7 @@ async function collectPhase(page, tracker, phase, timing, samples, timedOut) {
       longTasks: metrics.longTasks,
       drifts: metrics.drifts,
       images: document.querySelectorAll('[title="Double-click to open large preview"] img').length,
-      generating: Array.from(document.querySelectorAll("span")).filter(node => node.textContent === "Generating preview...").length,
-      waiting: Array.from(document.querySelectorAll("span")).filter(node => node.textContent === "Waiting to generate preview...").length,
-      unavailable: Array.from(document.querySelectorAll("span")).filter(node => node.textContent === "Preview unavailable").length,
+      previewStates,
     };
   });
   const network = tracker.data(phase);
@@ -205,9 +208,7 @@ async function collectPhase(page, tracker, phase, timing, samples, timedOut) {
     },
     visiblePreviewState: {
       images: browser.images,
-      generating: browser.generating,
-      waiting: browser.waiting,
-      unavailable: browser.unavailable,
+      ...browser.previewStates,
     },
     browser: {
       userAgent: browser.userAgent,
@@ -240,19 +241,111 @@ async function runPhase(page, tracker, phase, action, expectedMinimum) {
   return collectPhase(page, tracker, phase, { cardsReadyMs, settledMs }, samples, timedOut);
 }
 
+async function runDetailProbe(page, tracker, asset) {
+  tracker.setPhase("detail");
+  await page.evaluate(() => {
+    if (window.__mvBenchmark) window.__mvBenchmark.longTasks = [];
+  });
+  const started = performance.now();
+  const card = page.locator(`[title="Double-click to open large preview"][data-asset-id="${asset.id}"]`);
+  await card.dblclick();
+  const viewer = page.locator("[data-detail-preview-state]").first();
+  await viewer.waitFor({ timeout: 10_000 });
+  await page.waitForFunction(() => {
+    const node = document.querySelector("[data-detail-preview-state]");
+    return node?.getAttribute("data-detail-preview-state") !== "loading";
+  }, undefined, { timeout: 30_000 });
+  const state = await viewer.getAttribute("data-detail-preview-state");
+  const loadMs = performance.now() - started;
+  const longTasks = await page.evaluate(() => window.__mvBenchmark?.longTasks || []);
+  const network = tracker.data("detail");
+  await page.getByRole("button", { name: "Close" }).first().click();
+  return {
+    modelName: asset.name,
+    state,
+    loadMs,
+    originalFileRequests: network.requests.filter(request => request.kind === "file").length,
+    maxActiveFileRequests: network.maxActiveFileRequests,
+    longTasks: {
+      count: longTasks.length,
+      maxMs: Math.max(0, ...longTasks.map(task => task.duration)),
+    },
+  };
+}
+
+async function runLightBurnProbe(page, tracker, token) {
+  const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+  const data = new FormData();
+  data.set("file", new Blob([`<LightBurnProject><Preview>data:image/png;base64,${png}</Preview></LightBurnProject>`], { type: "application/xml" }), "lightburn-preview-probe.lbrn2");
+  data.set("tags", "gate-2,lightburn-probe");
+  const upload = await fetch(`${apiUrl}/upload`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: data,
+  });
+  if (!upload.ok) throw new Error(`LightBurn probe upload failed: ${upload.status} ${await upload.text()}`);
+  const asset = await upload.json();
+
+  tracker.setPhase("lightburn");
+  await page.evaluate(() => {
+    if (window.__mvBenchmark) window.__mvBenchmark.longTasks = [];
+  });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  const card = page.locator(`[title="Double-click to open large preview"][data-asset-id="${asset.id}"]`);
+  await card.waitFor({ timeout: 30_000 });
+  await card.scrollIntoViewIfNeeded();
+  await card.locator("img").waitFor({ timeout: 30_000 });
+  const persistenceStarted = Date.now();
+  let persisted = null;
+  while (Date.now() - persistenceStarted < 10_000) {
+    const response = await fetch(`${apiUrl}/assets?limit=1000`, { headers: { Authorization: `Bearer ${token}` } });
+    const assets = await response.json();
+    persisted = assets.find(item => item.id === asset.id);
+    if (persisted?.preview_status === "ready" && persisted?.thumb_url) break;
+    await new Promise(resolveDelay => setTimeout(resolveDelay, 100));
+  }
+  if (!persisted?.thumb_url) throw new Error("LightBurn probe thumbnail did not persist");
+  const coldNetwork = tracker.data("lightburn");
+  const longTasks = await page.evaluate(() => window.__mvBenchmark?.longTasks || []);
+
+  tracker.setPhase("lightburnWarm");
+  await page.reload({ waitUntil: "domcontentloaded" });
+  const warmCard = page.locator(`[title="Double-click to open large preview"][data-asset-id="${asset.id}"]`);
+  await warmCard.waitFor({ timeout: 30_000 });
+  await warmCard.scrollIntoViewIfNeeded();
+  await warmCard.locator("img").waitFor({ timeout: 30_000 });
+  await page.waitForTimeout(500);
+  const warmNetwork = tracker.data("lightburnWarm");
+  return {
+    state: persisted.preview_status,
+    coldOriginalFileRequests: coldNetwork.requests.filter(request => request.kind === "file").length,
+    generatedThumbnailUploads: coldNetwork.requests.filter(request => request.kind === "thumbnail-upload").length,
+    warmOriginalFileRequests: warmNetwork.requests.filter(request => request.kind === "file").length,
+    longTasks: {
+      count: longTasks.length,
+      maxMs: Math.max(0, ...longTasks.map(task => task.duration)),
+    },
+  };
+}
+
 async function main() {
   const manifest = JSON.parse(await readFile(resolve(corpusDir, "manifest.json"), "utf8"));
   const uploaded = await seedCorpus(manifest);
-  const expectedColdFiles = uploaded.filter(asset => !asset.thumb_url).length;
+  const expectedColdFiles = uploaded.filter(asset => asset.preview_status === "pending" && !asset.thumb_url).length;
   const browser = await chromium.launch({ headless: true, args: ["--enable-precise-memory-info"] });
   activeBrowser = browser;
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
   const tracker = createNetworkTracker(page);
   const consoleErrors = [];
+  const browserDiagnostics = [];
   page.on("console", message => {
     if (["error", "warning"].includes(message.type())) {
       const raw = message.text();
+      if (raw.includes("GL Driver Message")) {
+        browserDiagnostics.push({ type: message.type(), text: raw });
+        return;
+      }
       const sanitized = raw.includes("data:image/")
         ? "Generated thumbnail Blob conversion was blocked by the document CSP"
         : raw;
@@ -278,17 +371,25 @@ async function main() {
   const { token } = await listResponse.json();
   const assetsResponse = await fetch(`${apiUrl}/assets?limit=1000`, { headers: { Authorization: `Bearer ${token}` } });
   const persistedAssets = await assetsResponse.json();
-  const expectedWarmFiles = persistedAssets.filter(asset => !asset.thumb_url).length;
+  const expectedWarmFiles = persistedAssets.filter(
+    asset => ["pending", "retry_requested"].includes(asset.preview_status) && !asset.thumb_url,
+  ).length;
 
   const warm = await runPhase(page, tracker, "warm", async () => {
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator('[title="Double-click to open large preview"]').nth(manifest.fixture_count - 1).waitFor({ timeout: 30_000 });
   }, expectedWarmFiles);
 
+  const detailAsset = uploaded.find(asset => asset.filename.endsWith("01-small-ascii.stl"));
+  if (!detailAsset) throw new Error("Detail-view benchmark asset is missing");
+  const detail = await runDetailProbe(page, tracker, detailAsset);
+  if (detail.state !== "ready") throw new Error(`Interactive detail preview ended in state: ${detail.state}`);
+  const lightburn = await runLightBurnProbe(page, tracker, token);
+
   await browser.close();
   activeBrowser = null;
   const result = {
-    schema: 1,
+    schema: 2,
     capturedAt: new Date().toISOString(),
     corpus: {
       fixtureCount: manifest.fixture_count,
@@ -299,12 +400,15 @@ async function main() {
     },
     cold,
     warm,
+    detail,
+    lightburn,
     consoleErrors,
+    browserDiagnostics,
   };
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, `${JSON.stringify(result, null, 2)}\n`, "utf8");
   console.log(`Preview baseline written to ${outputPath}`);
-  console.log(JSON.stringify({ corpus: result.corpus, cold: result.cold, warm: result.warm }, null, 2));
+  console.log(JSON.stringify({ corpus: result.corpus, cold: result.cold, warm: result.warm, detail: result.detail, lightburn: result.lightburn }, null, 2));
 }
 
 main().catch(error => {

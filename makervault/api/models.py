@@ -27,6 +27,12 @@ class Asset(SQLModel, table=True):
   supporting_file_count: int = Field(default=0)
   prepared_file_id: Optional[str] = None
   prepared_metadata_json: Optional[str] = None
+  preview_status: str = Field(default="pending", index=True)
+  preview_reason: Optional[str] = None
+  preview_attempts: int = Field(default=0)
+  preview_policy_version: int = Field(default=1)
+  preview_updated_at: Optional[str] = None
+  preview_source: Optional[str] = None
 
 
 class AssetFile(SQLModel, table=True):

@@ -57,6 +57,35 @@ new variable is absent. Set `FILE_MAX_MB` for new installations. Raising it
 also requires an equal or higher request-body limit at any external reverse
 proxy.
 
+## Preview work settings
+
+Preview budgets never reject or delete an uploaded original. They govern only
+automatic card work and explicit interactive detail work. Raise them cautiously:
+client parsing is intentionally isolated and terminated at the configured wall
+time, but larger geometry can still increase browser memory.
+
+| Variable | Default | Effect |
+|---|---:|---|
+| `PREVIEW_POLICY_VERSION` | `1` | Bump when a policy change should reconsider persistently skipped previews. |
+| `PREVIEW_AUTO_MAX_MB` | `16` | Maximum original model or LightBurn bytes for automatic card generation. |
+| `PREVIEW_AUTO_MAX_TRIANGLES` | `100000` | Maximum STL facets, OBJ faces, or 3MF triangles for automatic generation. |
+| `PREVIEW_AUTO_3MF_EXPANDED_MB` | `64` | Maximum expanded 3MF or LightBurn ZIP data inspected by an automatic job. |
+| `PREVIEW_AUTO_3MF_ENTRIES` | `256` | Maximum 3MF or LightBurn ZIP entries examined automatically. |
+| `PREVIEW_AUTO_MEMORY_MB` | `128` | Maximum estimated geometry/output memory for an automatic job. |
+| `PREVIEW_AUTO_TIMEOUT_SECONDS` | `10` | Terminates an automatic worker that exceeds its wall time. |
+| `PREVIEW_AUTO_QUEUE` | `8` | Maximum near-viewport jobs waiting behind the one active worker. |
+| `PREVIEW_DETAIL_MAX_MB` | `64` | Original-byte ceiling for explicit detail preview. |
+| `PREVIEW_DETAIL_MAX_TRIANGLES` | `500000` | Geometry ceiling for explicit detail preview. |
+| `PREVIEW_DETAIL_3MF_EXPANDED_MB` | `256` | Expanded 3MF ceiling for explicit detail preview. |
+| `PREVIEW_DETAIL_3MF_ENTRIES` | `1000` | 3MF entry ceiling for explicit detail preview. |
+| `PREVIEW_DETAIL_MEMORY_MB` | `256` | Estimated geometry/output memory ceiling for explicit detail preview. |
+| `PREVIEW_DETAIL_TIMEOUT_SECONDS` | `30` | Terminates explicit detail parsing after this wall time. |
+
+STEP/STP automatic card parsing remains disabled in v5.1. It requires an explicit,
+CSP-compatible detail path; broad `unsafe-eval` is not an accepted workaround.
+LightBurn embedded-image extraction shares the automatic byte, archive, memory,
+queue, and timeout limits and persists a static thumbnail on success.
+
 ## Remote import settings
 
 | Variable | Current default | Effect |

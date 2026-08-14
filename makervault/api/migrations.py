@@ -149,10 +149,27 @@ def _migration_003_asset_metadata_and_bundles(conn: Connection) -> None:
     )
 
 
+def _migration_004_preview_state(conn: Connection) -> None:
+    additions = {
+        "preview_status": "TEXT NOT NULL DEFAULT 'pending'",
+        "preview_reason": "TEXT",
+        "preview_attempts": "INTEGER NOT NULL DEFAULT 0",
+        "preview_policy_version": "INTEGER NOT NULL DEFAULT 1",
+        "preview_updated_at": "TEXT",
+        "preview_source": "TEXT",
+    }
+    for column, sql_type in additions.items():
+        _add_column(conn, "asset", column, sql_type)
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_asset_preview_status ON asset(preview_status)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
     Migration(3, "asset_metadata_and_bundles", _migration_003_asset_metadata_and_bundles),
+    Migration(4, "persistent_preview_state", _migration_004_preview_state),
 )
 
 

@@ -76,6 +76,12 @@ from mount_import import resolve_safe_mount_file, scan_mount_imports
 from models import Asset, AssetFile, Folder
 from migrations import run_migrations
 from prepared_print import prepared_filename
+from preview_policy import (
+    PREVIEW_POLICY_VERSION,
+    preview_policy_payload,
+    preview_timestamp,
+    validate_preview_state,
+)
 from resource_limits import ensure_storage_reserve, stream_upload_to_file
 from settings_service import (
     DEFAULT_STORAGE_TEMPLATE,
@@ -110,6 +116,8 @@ from schemas import (
     MountImportSettingsOut,
     StorageSettings,
     StorageSettingsOut,
+    PreviewPolicyOut,
+    PreviewStateUpdate,
 )
 from zip_service import extract_zip_entries_to_assets, list_zip_entries
 from url_utils import normalize_import_url
@@ -254,6 +262,12 @@ def to_out(a: Asset) -> AssetOut:
         prepared_print=prepared,
         slicer_url=slicer_url,
         slicer_filename=(prepared_filename(a.name, prepared) if a.prepared_file_id else a.filename),
+        preview_status=("ready" if (THUMBS / f"{a.id}.jpg").exists() else a.preview_status),
+        preview_reason=(None if (THUMBS / f"{a.id}.jpg").exists() else a.preview_reason),
+        preview_attempts=a.preview_attempts,
+        preview_policy_version=a.preview_policy_version,
+        preview_updated_at=a.preview_updated_at,
+        preview_source=a.preview_source,
     )
 
 
@@ -368,6 +382,11 @@ def storage_settings_out(template: str, moved: int = 0, skipped: int = 0) -> Sto
 def get_storage_settings(_: Optional[str] = Depends(require_auth)):
     template = validate_storage_template(get_storage_template())
     return storage_settings_out(template)
+
+
+@app.get("/settings/preview-policy", response_model=PreviewPolicyOut)
+def get_preview_policy(_: Optional[str] = Depends(require_auth)):
+    return PreviewPolicyOut(**preview_policy_payload())
 
 
 @app.post("/settings/storage", response_model=StorageSettingsOut)
@@ -749,7 +768,64 @@ async def save_generated_thumbnail(
             raise HTTPException(404)
         if not save_thumb_bytes(asset_id, data):
             raise HTTPException(status_code=400, detail="Invalid thumbnail image")
+        asset.preview_status = "ready"
+        asset.preview_reason = None
+        asset.preview_policy_version = PREVIEW_POLICY_VERSION
+        asset.preview_updated_at = preview_timestamp()
+        asset.preview_source = "generated"
+        asset.preview_attempts = max(1, asset.preview_attempts)
+        s.add(asset)
+        s.commit()
         s.refresh(asset)
+        return to_out(asset)
+
+
+@app.post("/asset/{asset_id}/preview-state", response_model=AssetOut)
+def update_preview_state(
+    asset_id: str,
+    body: PreviewStateUpdate,
+    _: Optional[str] = Depends(require_auth),
+):
+    try:
+        status, reason = validate_preview_state(body.status, body.reason)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    with Session(engine) as session:
+        asset = session.get(Asset, asset_id)
+        if not asset:
+            raise HTTPException(404)
+        if (THUMBS / f"{asset_id}.jpg").exists():
+            asset.preview_status = "ready"
+            asset.preview_reason = None
+        else:
+            asset.preview_status = status
+            asset.preview_reason = reason
+            if status == "pending":
+                asset.preview_attempts += 1
+        asset.preview_policy_version = PREVIEW_POLICY_VERSION
+        asset.preview_updated_at = preview_timestamp()
+        session.add(asset)
+        session.commit()
+        session.refresh(asset)
+        return to_out(asset)
+
+
+@app.post("/asset/{asset_id}/preview-retry", response_model=AssetOut)
+def request_preview_retry(asset_id: str, _: Optional[str] = Depends(require_auth)):
+    with Session(engine) as session:
+        asset = session.get(Asset, asset_id)
+        if not asset:
+            raise HTTPException(404)
+        if (THUMBS / f"{asset_id}.jpg").exists():
+            asset.preview_status = "ready"
+        else:
+            asset.preview_status = "retry_requested"
+        asset.preview_reason = None
+        asset.preview_policy_version = PREVIEW_POLICY_VERSION
+        asset.preview_updated_at = preview_timestamp()
+        session.add(asset)
+        session.commit()
+        session.refresh(asset)
         return to_out(asset)
 
 

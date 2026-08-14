@@ -80,6 +80,36 @@ class AssetOut(BaseModel):
   prepared_print: Optional[PreparedPrintOut] = None
   slicer_url: Optional[str] = None
   slicer_filename: Optional[str] = None
+  preview_status: Literal["pending", "ready", "failed", "skipped_policy", "retry_requested"] = "pending"
+  preview_reason: Optional[str] = None
+  preview_attempts: int = 0
+  preview_policy_version: int = 1
+  preview_updated_at: Optional[str] = None
+  preview_source: Optional[str] = None
+
+
+class PreviewStateUpdate(BaseModel):
+  status: Literal["pending", "failed", "skipped_policy"]
+  reason: Optional[str] = Field(default=None, max_length=64)
+
+
+class PreviewPolicyOut(BaseModel):
+  version: int
+  active_jobs: int
+  queue_limit: int
+  automatic_max_bytes: int
+  automatic_max_triangles: int
+  automatic_3mf_expanded_bytes: int
+  automatic_3mf_entries: int
+  automatic_memory_bytes: int
+  automatic_timeout_seconds: int
+  detail_max_bytes: int
+  detail_max_triangles: int
+  detail_3mf_expanded_bytes: int
+  detail_3mf_entries: int
+  detail_memory_bytes: int
+  detail_timeout_seconds: int
+  automatic_step_enabled: bool
 
 
 class ImportZipResult(BaseModel):
