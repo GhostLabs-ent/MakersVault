@@ -4,6 +4,7 @@ import jwt
 import pytest
 
 import auth
+from db import THUMBS
 from main import app
 
 
@@ -32,6 +33,10 @@ def test_file_scoped_grant_redeems_but_cannot_authenticate_api() -> None:
     with client:
         asset = upload_asset(client, headers, "handoff-model.stl", b"solid handoff")
         try:
+            primary = client.get(asset["url"], headers=headers)
+            assert primary.status_code == 200
+            assert primary.headers["cache-control"] == "private, no-store"
+
             issued = client.post(
                 f"/asset/{asset['id']}/handoff",
                 headers=headers,
@@ -93,6 +98,13 @@ def test_slicer_handoff_prefers_attached_prepared_file() -> None:
                 files={"file": ("plate.gcode", b"G1 X10 Y10", "text/plain")},
             )
             assert attached.status_code == 200
+
+            prepared_download = client.get(
+                f"/asset/{asset['id']}/prepared-print",
+                headers=headers,
+            )
+            assert prepared_download.status_code == 200
+            assert prepared_download.headers["cache-control"] == "private, no-store"
 
             issued = client.post(
                 f"/asset/{asset['id']}/handoff",
@@ -156,3 +168,30 @@ def test_grant_for_unknown_file_cannot_redeem() -> None:
             },
         )
     assert response.status_code == 404
+
+
+def test_thumbnail_and_supporting_files_are_private_no_store() -> None:
+    client, headers = authenticated_client()
+    with client:
+        asset = upload_asset(client, headers, "documented-model.stl", b"solid model")
+        thumb_path = THUMBS / f"{asset['id']}.jpg"
+        try:
+            THUMBS.mkdir(parents=True, exist_ok=True)
+            thumb_path.write_bytes(b"thumbnail")
+            thumbnail = client.get(f"/thumb/{asset['id']}.jpg", headers=headers)
+            assert thumbnail.status_code == 200
+            assert thumbnail.headers["cache-control"] == "private, no-store"
+
+            attached = client.post(
+                f"/asset/{asset['id']}/files",
+                headers=headers,
+                files={"file": ("assembly.pdf", b"supporting document", "application/pdf")},
+            )
+            assert attached.status_code == 200
+            files = client.get(f"/asset/{asset['id']}/files", headers=headers).json()
+            assert len(files) == 1
+            supporting = client.get(files[0]["url"], headers=headers)
+            assert supporting.status_code == 200
+            assert supporting.headers["cache-control"] == "private, no-store"
+        finally:
+            client.delete(f"/asset/{asset['id']}", headers=headers)

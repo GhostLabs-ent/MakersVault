@@ -24,6 +24,7 @@ services:
       - DB_URL=sqlite:////app/data/app.db
       - PUBLIC_URL=${PUBLIC_URL:-}
       - CORS_ORIGINS=${CORS_ORIGINS:-}
+      - TRUSTED_HOSTS=${TRUSTED_HOSTS:-}
       - IMPORT_MOUNT_PATH=${IMPORT_MOUNT_PATH:-}
       - IMPORT_MOUNT_EXTS=${IMPORT_MOUNT_EXTS:-stl,3mf,step,stp,obj,svg,png,jpg,jpeg,webp,bmp,lbrn,lbrn2,zip}
       - IMPORT_MOUNT_INCLUDE_HIDDEN=${IMPORT_MOUNT_INCLUDE_HIDDEN:-false}

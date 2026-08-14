@@ -23,7 +23,9 @@ services:
       - IMPORT_MAX_REDIRECTS=${IMPORT_MAX_REDIRECTS:-5}
       - FILE_STORAGE=/app/storage
       - DB_URL=sqlite:////app/data/app.db
+      - PUBLIC_URL=${PUBLIC_URL:-}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173}
+      - TRUSTED_HOSTS=${TRUSTED_HOSTS:-}
     volumes:
       - ./data/storage:/app/storage
       - ./data/db:/app/data

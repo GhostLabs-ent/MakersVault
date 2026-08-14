@@ -2,7 +2,7 @@
 
 **Gate:** 1 — Harden v5.1 trust boundaries and deployment
 
-**Status:** In progress; owner checkpoint accepted
+**Status:** Implementation complete; owner closeout pending
 
 **Opened:** 2026-08-14
 

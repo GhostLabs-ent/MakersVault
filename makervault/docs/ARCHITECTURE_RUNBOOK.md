@@ -413,7 +413,8 @@ policy can be reverted while the preserved working snapshot remains recoverable.
 
 ### Gate 1 — Harden v5.1 trust boundaries and deployment
 
-**Current execution:** `IN PROGRESS` as of 2026-08-14. Entry evidence and the
+**Current execution:** `IMPLEMENTATION COMPLETE; OWNER CLOSEOUT PENDING` as of
+2026-08-14. Entry evidence and the
 first owner checkpoint are recorded in
 [evidence/gate-1/BASELINE.md](evidence/gate-1/BASELINE.md). Both owner decisions
 are accepted. Fail-closed production configuration is implemented and locally
@@ -429,9 +430,12 @@ locally verified in [slice 1D evidence](evidence/gate-1/SLICE_1D_RESULTS.md).
 The immediate next action is the slice 1E owner checkpoint: accept the scoped
 handoff grant and bridge-origin contract before implementation. That contract is
 now owner-approved and locally verified in
-[slice 1E evidence](evidence/gate-1/SLICE_1E_RESULTS.md). The immediate next
-action is slice 1F: single-admin login/session residual risk, security headers,
-host policy, and final Gate 1 deployment guidance.
+[slice 1E evidence](evidence/gate-1/SLICE_1E_RESULTS.md). The owner-approved
+single-admin login/session residual-risk contract, security headers, host policy,
+and final deployment guidance are now locally verified in
+[slice 1F evidence](evidence/gate-1/SLICE_1F_RESULTS.md). All Gate 1 slices are
+implemented and locally verified. The immediate next action is the owner Gate 1
+closeout checkpoint before Gate 2 begins.
 
 **Objective:** Make a fresh v5.1 deployment safe by default for its stated
 single-admin, self-hosted scope.

@@ -66,4 +66,32 @@ if ! compose exec -T web grep -q "client_max_body_size 513m;" /etc/nginx/conf.d/
   exit 1
 fi
 
-echo "Container smoke test passed (direct and same-origin API, 512 MiB file policy, API UID $api_uid, web UID $web_uid, schema 3)."
+web_headers=$(curl --fail --silent --show-error --head "http://localhost:$web_port/")
+for expected_header in \
+  "content-security-policy: default-src 'self'" \
+  "script-src 'self' 'wasm-unsafe-eval'" \
+  "connect-src 'self' http://localhost:$api_port" \
+  "worker-src 'self' blob:" \
+  "x-content-type-options: nosniff" \
+  "referrer-policy: no-referrer" \
+  "permissions-policy: camera=()" \
+  "x-frame-options: DENY"; do
+  if ! printf '%s\n' "$web_headers" | grep -Fqi "$expected_header"; then
+    echo "Smoke test failed: web response omitted security header: $expected_header" >&2
+    exit 1
+  fi
+done
+
+api_headers=$(curl --fail --silent --show-error --dump-header - --output /dev/null "http://localhost:$api_port/health")
+for expected_header in \
+  "x-content-type-options: nosniff" \
+  "referrer-policy: no-referrer" \
+  "permissions-policy: camera=()" \
+  "x-frame-options: DENY"; do
+  if ! printf '%s\n' "$api_headers" | grep -Fqi "$expected_header"; then
+    echo "Smoke test failed: API response omitted security header: $expected_header" >&2
+    exit 1
+  fi
+done
+
+echo "Container smoke test passed (direct and same-origin API, security headers, 512 MiB file policy, API UID $api_uid, web UID $web_uid, schema 3)."

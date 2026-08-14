@@ -1,6 +1,6 @@
 # MakersVault Configuration Inventory
 
-**Baseline:** Gate 1 slice 1E candidate, 2026-08-14
+**Baseline:** Gate 1 slice 1F candidate, 2026-08-14
 
 This inventory records configuration ownership. It does not replace the secure
 deployment guidance required by Gate 1.
@@ -29,6 +29,7 @@ deployment guidance required by Gate 1.
 | `AUTH_TOKEN_TTL` | `43200` seconds | JWT lifetime. |
 | `PUBLIC_URL` | empty | Public browser origin; also allows web runtime API derivation. |
 | `CORS_ORIGINS` | derived or localhost | Comma-separated browser origins accepted by API CORS middleware. |
+| `TRUSTED_HOSTS` | derived from `PUBLIC_URL`, otherwise permissive | Comma-separated API hostnames. Explicit values override derivation; loopback remains allowed for health checks. |
 | `API_PORT` | `8000` | Published API port. |
 | `WEB_PORT` | `5173` | Published web port. |
 
@@ -82,7 +83,7 @@ proxy.
 
 | Variable | Current default | Effect |
 |---|---|---|
-| `VITE_API_URL` | empty in production | Browser-reachable API URL written to `runtime-config.js`; source build defaults to localhost. |
+| `VITE_API_URL` | empty in production | Browser-reachable API URL written to `runtime-config.js`; source build defaults to localhost. Its origin is added to the web CSP. |
 | `VITE_ALLOWED_HOSTS` | empty | Vite-only host policy during source development/preview. It does not configure Nginx. |
 | `PUBLIC_URL` | empty | When set and `VITE_API_URL` is empty, runtime API URL becomes `<PUBLIC_URL>/api`. |
 
@@ -94,8 +95,8 @@ Node development entrypoint is not part of the production image.
 
 The browser stores theme, preview mode, selected slicer/engraver, optional source-
 site cookies, and a network override in local storage. These are per-browser and
-are not server `AppConfig` values. Gate 1 re-evaluates authentication-token
-storage separately.
+are not server `AppConfig` values. The administrator token is stored separately
+in session storage; a legacy local-storage token migrates once and is removed.
 
 ## Server `AppConfig` settings
 

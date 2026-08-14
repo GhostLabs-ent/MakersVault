@@ -24,15 +24,15 @@ suite to remain green before release.
 | MV-SEC-004 | `RESOLVED IN GATE 1 SLICE 1B CANDIDATE` | `python-multipart==0.0.32` and the compatible FastAPI/Starlette set pass API/upload smoke tests; the resolved runtime lock audits clean. | Gate 1 slice 1B verification; slice 1C still owns explicit request and parser budgets. |
 | MV-SEC-005 | `RESOLVED IN GATE 1 SLICE 1B CANDIDATE` | `Pillow==12.3.0` passes existing image/thumbnail behavior and the resolved runtime lock audits clean. | Gate 1 slice 1B verification; slice 1C still owns malicious/oversized-image bounds. |
 | MV-SEC-006 | `RESOLVED IN GATE 1 SLICE 1C CANDIDATE` | Direct, supporting, remote, mounted, and extracted files share a streamed per-file ceiling and free-space reserve; ZIP enumeration, selection, expansion, ratio, 3MF metadata, and image decode work have explicit budgets. Ordinary multi-file imports retain unlimited batch count. | Gate 1 slice 1C verification; Gate 2 still owns browser preview time/complexity budgets. |
-| MV-SEC-007 | `PARTIALLY RESOLVED IN GATE 1 SLICE 1E CANDIDATE` | Bridge handoff now uses a derived-key, file/role-scoped 90-second grant in a header and never receives the administrator JWT. Browser previews/file URLs still retain the query-token compatibility path. | Gate 1 slice 1F residual-risk decision; final session/file-delivery architecture in Gate 11. |
-| MV-SEC-008 | `CONFIRMED` | The primary JWT is stored in browser `localStorage`. | Gate 1 risk decision; final session architecture in Gate 11. |
-| MV-SEC-009 | `CONFIRMED` | Login has no throttle and JWT sessions have no identifier or revocation store. | Gate 1 for single-admin abuse controls; Gate 11 for full session lifecycle. |
+| MV-SEC-007 | `PARTIALLY RESOLVED; V5.1 RESIDUAL ACCEPTED IN SLICE 1F` | Bridge handoff uses a derived-key exact-file grant and never receives the administrator JWT. Browser previews/file URLs retain query-token compatibility with remote HTTPS, no-referrer, private/no-store, session-only persistence, and CSP as compensating controls. | Gate 2 measured preview delivery and final Gate 11 session/file-delivery architecture. |
+| MV-SEC-008 | `PARTIALLY MITIGATED IN GATE 1 SLICE 1F CANDIDATE` | The primary JWT migrates from persistent local storage to session storage; CSP narrows script execution. Active-page XSS can still read it. | Gate 11 HttpOnly/session architecture and revocation. |
+| MV-SEC-009 | `LOGIN ABUSE RESOLVED; SESSION LIFECYCLE DEFERRED` | Bounded progressive source/identity cooldowns, constant-time checks, generic responses, and secret-free audit events protect the single-process login. JWTs still have no durable revocation store. | Gate 1 slice 1F for login abuse; Gate 11 for durable session lifecycle. |
 | MV-SEC-010 | `RESOLVED IN CANDIDATE` | The current multi-stage web image builds with Vite and serves only static output through `nginxinc/nginx-unprivileged`; the container smoke test observes web PID 1 as UID 101. | Gate 0 verification; Gate 1 still owns headers and host policy. |
 | MV-SEC-011 | `RESOLVED IN GATE 1 SLICE 1C CANDIDATE` | Mounted candidates reject symlinks in every path component; copy and no-copy inspection open the source with `O_NOFOLLOW`, require a regular descriptor beneath the configured root, and copy from that verified descriptor. | Gate 1 slice 1C verification. |
 | MV-SEC-012 | `DEFERRED BY PRODUCT DECISION` | The current global single-admin model has no authorization entities. Multi-user/MFA/SSO is explicitly not a v5.1 feature. | Gate 11; it becomes a release blocker before any multi-user feature ships. |
 | MV-SEC-013 | `RESOLVED IN GATE 1 SLICE 1C CANDIDATE` | ZIP downloads sanitize every folder, model, primary-file, and supporting-file path component; ZIP imports reject traversal and normalized duplicate paths. | Gate 1 slice 1C verification. |
 | MV-SEC-014 | `PARTIALLY MITIGATED` | Lazy/cached preview work reduces normal load, but synchronous browser decompression and parser work still lacks complete size/time/complexity budgets. | Gate 2. |
-| MV-SEC-015 | `CONFIRMED` | Nginx sets cache policy but no complete CSP, nosniff, referrer, permissions, frame, or trusted-host baseline. | Gate 1, validated against WASM/workers/blob and proxy modes. |
+| MV-SEC-015 | `RESOLVED IN GATE 1 SLICE 1F CANDIDATE` | Generated Nginx responses carry a tested CSP plus nosniff, no-referrer, permissions, and frame denial; direct API responses carry the non-CSP baseline; `PUBLIC_URL` or `TRUSTED_HOSTS` enables API host enforcement. | Gate 1 slice 1F verification and external-proxy HSTS guidance. |
 | MV-SEC-016 | `PARTIALLY RESOLVED IN CANDIDATE` | 8,311 generated/runtime paths were removed from Git tracking without deleting local files; root ignore policy, source-owned verification, CI, and Dependabot now exist. Checksums, SBOMs, signing, and release provenance remain. | Gate 0 for source hygiene; Gate 5 for release artifacts. |
 
 ## Dependency scan evidence
@@ -136,3 +136,18 @@ prepared-file selection, protocol contents, origin confirmation/cancellation,
 redirects, size cleanup, role mismatch, missing applications, and grant
 redaction. Exact evidence is recorded in
 [SLICE_1E_RESULTS.md](../evidence/gate-1/SLICE_1E_RESULTS.md).
+
+## Gate 1 slice 1F update — 2026-08-14
+
+The local candidate adds bounded, progressive, process-local login cooldowns,
+constant-time credential checks, and outcome/source-only audit events. Browser
+authentication migrates once from persistent local storage to session storage.
+Protected file responses are private/no-store, and the browser query-token path
+is retained as an explicit v5.1 residual rather than incorrectly marked fixed.
+
+The generated web gateway now carries the tested CSP and common browser-security
+headers. Direct API responses carry the non-CSP baseline. `PUBLIC_URL` derives
+the recommended host policy; `TRUSTED_HOSTS` handles separate API or combined
+public/LAN hostnames. HSTS remains at the operator-managed TLS proxy. Exact
+evidence is recorded in
+[SLICE_1F_RESULTS.md](../evidence/gate-1/SLICE_1F_RESULTS.md).

@@ -84,12 +84,14 @@ docker compose -f docker-compose.deploy.yml up -d
   <li>Set <code>PUBLIC_URL</code> to your public domain URL.</li>
   <li>Leave <code>VITE_API_URL</code> empty unless you intentionally want a non-default API target.</li>
   <li>Set <code>CORS_ORIGINS</code> as needed for direct/LAN access or additional origins.</li>
+  <li>For a separate public API hostname, set <code>TRUSTED_HOSTS</code> to that API hostname.</li>
 </ul>
 <p>Example:</p>
 
 ```yaml
 PUBLIC_URL=https://makersvault.example.com
 CORS_ORIGINS=https://makersvault.example.com,http://10.0.0.160:5173
+TRUSTED_HOSTS=makersvault.example.com,10.0.0.160
 VITE_API_URL=
 VITE_ALLOWED_HOSTS=
 ```

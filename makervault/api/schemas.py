@@ -1,5 +1,5 @@
 from typing import List, Literal, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AssetCreate(BaseModel):
@@ -101,8 +101,8 @@ class FolderOut(BaseModel):
 
 
 class LoginRequest(BaseModel):
-  username: str
-  password: str
+  username: str = Field(min_length=1, max_length=256)
+  password: str = Field(min_length=1, max_length=4096)
 
 
 class LoginResponse(BaseModel):

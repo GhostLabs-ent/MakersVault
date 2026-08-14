@@ -1,30 +1,36 @@
 const TOKEN_KEY = "makersvault_auth_token";
 
-function getStorage(): Storage | null {
+function getStorage(kind: "session" | "local"): Storage | null {
   if (typeof window === "undefined") return null;
   try {
-    return window.localStorage;
+    return kind === "session" ? window.sessionStorage : window.localStorage;
   } catch {
     return null;
   }
 }
 
 export function readToken(): string | null {
-  const storage = getStorage();
-  if (!storage) return null;
-  return storage.getItem(TOKEN_KEY);
+  const session = getStorage("session");
+  const current = session?.getItem(TOKEN_KEY) || null;
+  if (current) return current;
+
+  const persistent = getStorage("local");
+  const legacy = persistent?.getItem(TOKEN_KEY) || null;
+  if (!legacy) return null;
+  persistent?.removeItem(TOKEN_KEY);
+  if (!session) return null;
+  session.setItem(TOKEN_KEY, legacy);
+  return legacy;
 }
 
 export function storeToken(token: string) {
-  const storage = getStorage();
-  if (!storage) return;
-  storage.setItem(TOKEN_KEY, token);
+  getStorage("local")?.removeItem(TOKEN_KEY);
+  getStorage("session")?.setItem(TOKEN_KEY, token);
 }
 
 export function clearToken() {
-  const storage = getStorage();
-  if (!storage) return;
-  storage.removeItem(TOKEN_KEY);
+  getStorage("session")?.removeItem(TOKEN_KEY);
+  getStorage("local")?.removeItem(TOKEN_KEY);
 }
 
 export function authHeaders(init?: HeadersInit): Headers {

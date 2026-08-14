@@ -51,6 +51,7 @@ It requires explicit browser-visible API and CORS configuration:
 PUBLIC_URL=https://makersvault.example
 VITE_API_URL=https://makersvaultapi.example
 CORS_ORIGINS=https://makersvault.example
+TRUSTED_HOSTS=makersvaultapi.example
 ```
 
 This topology has two certificates/routes and a cross-origin browser boundary. It
@@ -69,3 +70,8 @@ same-origin gateway itself.
 - Remote access requires HTTPS at the reverse proxy or equivalent protection from
   a private network/VPN. Direct public exposure of MakersVault ports is
   unsupported for v5.1.
+- Preserve the browser-visible `Host` header. `PUBLIC_URL` enables the matching
+  API host policy automatically in the recommended one-host topology; configure
+  `TRUSTED_HOSTS` for a separate API hostname.
+- Add HSTS at the external proxy only after confirming the hostname will remain
+  HTTPS-only. The bundled gateway intentionally also supports trusted-LAN HTTP.

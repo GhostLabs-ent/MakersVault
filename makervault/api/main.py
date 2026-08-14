@@ -1,4 +1,4 @@
-from fastapi import BackgroundTasks, Depends, FastAPI, Header, UploadFile, File, Form, HTTPException, Query, Response
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, Request, UploadFile, File, Form, HTTPException, Query, Response
 from fastapi.responses import FileResponse
 from starlette.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
@@ -9,7 +9,9 @@ from contextlib import asynccontextmanager
 import tempfile
 import threading
 from urllib.parse import quote, urlparse
+import hmac
 import json
+import logging
 import os
 import jwt
 from jwt import PyJWTError
@@ -67,7 +69,9 @@ from config import (
 from db import THUMBS, engine
 from file_utils import build_import_filename, mime_from_content_type, sanitize_filename
 from folder_service import validate_parent_folder
+from http_security import HostPolicyMiddleware, SecurityHeadersMiddleware, resolve_trusted_hosts
 from import_service import download_import_to_temp, import_asset_from_url, open_import_response
+from login_security import LoginAttemptLimiter
 from mount_import import resolve_safe_mount_file, scan_mount_imports
 from models import Asset, AssetFile, Folder
 from migrations import run_migrations
@@ -123,11 +127,22 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="MakerVault API", lifespan=lifespan)
+app.add_middleware(
+    HostPolicyMiddleware,
+    allowed_hosts=resolve_trusted_hosts(os.environ),
+)
+
+security_logger = logging.getLogger("makersvault.security")
+login_limiter = LoginAttemptLimiter()
 
 SLICER_HANDOFF_EXTS = {".stl", ".3mf", ".step", ".stp", ".obj", ".gcode", ".gco", ".bgcode"}
 ENGRAVER_HANDOFF_EXTS = {
     ".svg", ".dxf", ".ai", ".eps", ".pdf", ".plt", ".hpgl", ".png", ".jpg",
     ".jpeg", ".webp", ".bmp", ".gif", ".tif", ".tiff", ".lbrn", ".lbrn2", ".ezd",
+}
+PROTECTED_FILE_HEADERS = {
+    "Cache-Control": "private, no-store",
+    "Pragma": "no-cache",
 }
 
 
@@ -169,6 +184,7 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["X-Has-More", "X-Next-Offset"],
 )
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 # Utilities ------------------------------------------------------
@@ -301,7 +317,12 @@ def zip_assets_response(assets: List[Asset], download_name: str, background: Bac
         raise
 
     background.add_task(lambda p=tmp_path: p.unlink(missing_ok=True))
-    return FileResponse(tmp_path, media_type="application/zip", filename=download_name)
+    return FileResponse(
+        tmp_path,
+        media_type="application/zip",
+        filename=download_name,
+        headers=PROTECTED_FILE_HEADERS,
+    )
 
 
 # Routes ---------------------------------------------------------
@@ -358,11 +379,32 @@ def update_storage_settings(body: StorageSettings, _: Optional[str] = Depends(re
 
 
 @app.post("/login", response_model=LoginResponse)
-def login(body: LoginRequest):
+def login(body: LoginRequest, request: Request):
     if not AUTH_ENABLED:
         raise HTTPException(status_code=503, detail="Authentication is not configured on the server")
-    if body.username != AUTH_USERNAME or body.password != AUTH_PASSWORD:
+    source = request.client.host if request.client else "unknown"
+    retry_after = login_limiter.retry_after(source, body.username)
+    if retry_after:
+        security_logger.warning("login_throttled source=%s", source)
+        raise HTTPException(
+            status_code=429,
+            detail="Too many login attempts; try again later",
+            headers={"Retry-After": str(retry_after)},
+        )
+    username_matches = hmac.compare_digest(
+        body.username.encode("utf-8"),
+        AUTH_USERNAME.encode("utf-8"),
+    )
+    password_matches = hmac.compare_digest(
+        body.password.encode("utf-8"),
+        AUTH_PASSWORD.encode("utf-8"),
+    )
+    if not username_matches or not password_matches:
+        login_limiter.record_failure(source, body.username)
+        security_logger.warning("login_failed source=%s", source)
         raise HTTPException(status_code=401, detail="Invalid username or password")
+    login_limiter.record_success(source, body.username)
+    security_logger.info("login_succeeded source=%s", source)
     token = create_token(body.username)
     return LoginResponse(token=token, expires_in=AUTH_TOKEN_TTL)
 
@@ -487,7 +529,7 @@ def get_file(asset_id: str, name: str, _: Optional[str] = Depends(require_auth))
         p,
         media_type=media_type or "application/octet-stream",
         filename=name,
-        headers={"Cache-Control": "private, max-age=86400"},
+        headers=PROTECTED_FILE_HEADERS,
     )
 
 
@@ -520,7 +562,12 @@ def download_supporting_file(asset_id: str, file_id: str, _: Optional[str] = Dep
         filename = record.filename
     if not path.exists():
         raise HTTPException(404)
-    return FileResponse(path, media_type=mime or "application/octet-stream", filename=filename)
+    return FileResponse(
+        path,
+        media_type=mime or "application/octet-stream",
+        filename=filename,
+        headers=PROTECTED_FILE_HEADERS,
+    )
 
 
 @app.delete("/asset/{asset_id}/files/{file_id}", response_model=AssetOut)
@@ -542,7 +589,12 @@ def get_prepared_print(asset_id: str, _: Optional[str] = Depends(require_auth)):
         filename = record.filename
     if not path.exists():
         raise HTTPException(404)
-    return FileResponse(path, media_type=mime or "application/octet-stream", filename=filename)
+    return FileResponse(
+        path,
+        media_type=mime or "application/octet-stream",
+        filename=filename,
+        headers=PROTECTED_FILE_HEADERS,
+    )
 
 
 @app.post("/asset/{asset_id}/handoff", response_model=HandoffGrantOut)
@@ -673,7 +725,7 @@ def get_thumb(asset_id: str, _: Optional[str] = Depends(require_auth)):
     return FileResponse(
         p,
         media_type="image/jpeg",
-        headers={"Cache-Control": "private, max-age=31536000, immutable"},
+        headers=PROTECTED_FILE_HEADERS,
     )
 
 

@@ -114,6 +114,49 @@ redirects or invoke the OS default file opener, and it removes partial downloads
 that exceed its default 512 MiB ceiling. Select an installed built-in application
 or define a trusted custom command in the local bridge config.
 
+## Login and browser sessions
+
+Failed logins receive a short progressive cooldown beginning after the third
+failure and capped at 60 seconds. The control is bounded, process-local, and
+matches the supported single API process; restarting the API clears its attempt
+history. Audit events include the immediate client address and outcome but never
+the supplied password or issued token.
+
+v5.1 stores the administrator token in browser `sessionStorage`, not persistent
+`localStorage`. An existing v5.0 token migrates automatically in the tab that
+first loads v5.1. Reloading that tab remains seamless, but closing the browser
+session requires signing in again.
+
+The current browser preview and direct-download compatibility path still places
+the token in protected file query strings. Remote HTTPS, no-referrer/no-store
+responses, the web CSP, and removal of the token from bridge handoffs reduce its
+exposure. Do not copy or share authenticated file URLs. HttpOnly cookies, CSRF
+protection, and durable token revocation remain part of the later session
+architecture rather than being represented as complete in v5.1.
+
+## Browser headers and host policy
+
+The bundled web gateway sets CSP, `nosniff`, no-referrer, permissions, and frame
+denial headers. Its CSP derives the separately configured API origin and declared
+HTTP(S) `CORS_ORIGINS` when present, retaining the blob/WASM/worker capabilities
+required by model previews. Direct API responses carry the matching non-CSP
+baseline.
+
+When `PUBLIC_URL` is configured, the API accepts that hostname plus loopback
+health checks. Set `TRUSTED_HOSTS` explicitly as a comma-separated list when the
+public API uses a different hostname. If neither value is configured, host
+filtering stays permissive for direct IP or mDNS access on a trusted LAN; that
+mode must not be exposed to the public Internet.
+
+If one installation is intentionally reached through both `PUBLIC_URL` and a LAN
+IP/name, list both API hosts in `TRUSTED_HOSTS` and both browser origins in
+`CORS_ORIGINS`. An explicit trusted-host list replaces automatic derivation.
+
+The external HTTPS reverse proxy should preserve `Host` and, only after the
+operator confirms the hostname will remain HTTPS-only, add an appropriate HSTS
+policy. MakersVault does not emit HSTS itself because the same container supports
+intentional HTTP on trusted LANs and cannot make that permanence decision.
+
 ## Supported network posture
 
 - Localhost and a genuinely trusted LAN may use direct access. Plain HTTP does
