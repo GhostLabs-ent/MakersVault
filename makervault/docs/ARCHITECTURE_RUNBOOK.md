@@ -189,14 +189,14 @@ be made explicit before deployment boundaries are multiplied.
 | ID | State | Current truth | Primary evidence | Consequence |
 |---|---|---|---|---|
 | T-001 | `VERIFIED` | The API is Python 3.11, FastAPI, SQLModel, and SQLite by default. | `api/requirements.txt`, `api/db.py` | SQLite-safe migrations and recovery are release requirements. |
-| T-002 | `VERIFIED` | The web client is React/Vite and performs substantial preview work in the browser. | `web/package.json`, `web/src/ui/ModelViewer.tsx`, `AssetGrid.tsx` | Preview work needs hard budgets and persisted outcomes. |
+| T-002 | `VERIFIED` | The React/Vite client keeps card parsing, decompression, normal calculation, rendering, and LightBurn extraction in terminable workers behind one shared bounded queue; successful cards become persisted static thumbnails. | `web/src/lib/previewJobs.ts`, preview workers, Gate 2 candidate evidence | New preview formats must join the bounded queue and persistence contract rather than add main-thread card parsers. |
 | T-003 | `VERIFIED` | Production web packaging is a static build served by unprivileged Nginx with runtime API configuration. | `web/Dockerfile`, `web/nginx.conf`, `web/40-runtime-config.sh` | The former production Vite-server finding is resolved in the Gate 0 baseline. |
 | T-004 | `VERIFIED` | Production deployment separates `/app/data` and `/app/storage`; development layout differs. | Docker Compose files | Backup instructions must distinguish production and development. |
 | T-005 | `VERIFIED` | Production Compose requires explicit credentials, and API startup independently rejects missing, published, short, or reused secrets. Development fixtures require an explicit non-production mode. | `api/security_config.py`, Compose manifests, Gate 1 slice 1A evidence | Authentication configuration is fail-closed; later Gate 1 slices still govern network, token, and bridge exposure. |
 | T-006 | `VERIFIED` | Auth is one environment-configured administrator with 12-hour HS256 JWTs. There is no user, role, revocation, or MFA model. | `api/auth.py`, models | Multi-user security is a later dedicated architecture gate. |
 | T-007 | `VERIFIED` | Some file handoffs place bearer material in URLs, including custom-protocol handoff. | API schemas/routes and bridge code | Replace broad reusable bearer URLs with narrow, short-lived grants. |
 | T-008 | `VERIFIED` | The bridge accepts custom protocol input, downloads a URL, caches the result, and launches a local application. | `slicer-bridge` source | The bridge is a workstation trust boundary and needs protocol hardening. |
-| T-009 | `VERIFIED` | Startup uses an ordered, immutable SQLite migration ledger at schema version 3, with dependency locking and fail-closed version/name checks. | `api/migrations.py`, `api/db.py`, API migration tests | Larger model changes must extend this migration mechanism and retain old-database fixtures. |
+| T-009 | `VERIFIED` | Startup uses an ordered, immutable SQLite migration ledger at schema version 4, with dependency locking and fail-closed version/name checks. Migration 4 adds persistent preview outcomes. | `api/migrations.py`, `api/db.py`, API migration tests | Larger model changes must extend this migration mechanism and retain old-database fixtures. |
 | T-010 | `VERIFIED` | Metadata is split between SQLite and filesystem content; updates are not one atomic transaction. | API storage and asset services | File mutations require staging, compensation, and reconciliation. |
 | T-011 | `VERIFIED` | Current records are `Folder`, `Asset`, `AssetFile`, and `AppConfig`; several JSON structures are stored as text. | `api/models.py` | Project/revision work must migrate rather than replace data in place. |
 | T-012 | `VERIFIED` | Managed primary files, thumbnails, and bundles use different storage layouts; no-copy records reference external paths. | asset/file services | Backup completeness and storage invariants must be explicit. |
@@ -479,10 +479,11 @@ to known credentials. File-format changes are not allowed in this gate.
 
 ### Gate 2 — Bound preview work and prove library responsiveness
 
-**Current execution:** `IN PROGRESS`. Gates 0 and 1 are accepted. Gate 2 opened on
-2026-08-14 with a synthetic benchmark-corpus contract and disposable measurement
-harness. Preview budgets and observable skip behavior remain unselected pending
-baseline evidence and the owner checkpoint.
+**Current execution:** `IN PROGRESS — AWAITING OWNER CLOSEOUT`. Gates 0 and 1 are
+accepted. The Gate 2 baseline and owner checkpoint were completed on 2026-08-14;
+the approved contract is implemented at local commit `af57da3`. The complete
+repository harness and cold/warm/detail/LightBurn browser evidence pass. See
+[Gate 2 results](evidence/gate-2/RESULTS.md). Gate 3 has not started.
 
 **Objective:** Ensure no single model can freeze the library and cached libraries
 remain fast.

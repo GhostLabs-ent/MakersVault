@@ -131,3 +131,9 @@ again.
 The baseline is captured. The owner decision is now requested in
 [OWNER_CHECKPOINT.md](OWNER_CHECKPOINT.md). Preview behavior remains unchanged
 until the observable skip/retry/detail experience is approved.
+
+## Historical record disposition
+
+The checkpoint was subsequently approved in [OWNER_CHECKPOINT.md](OWNER_CHECKPOINT.md),
+and the verified implementation comparison is recorded in [RESULTS.md](RESULTS.md).
+This file remains the unchanged-before-implementation measurement record.

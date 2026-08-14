@@ -1,8 +1,8 @@
 # Gate 0 Security Finding Revalidation
 
-**Status:** Gate 0 record; reconciled through accepted Gate 1 evidence
+**Status:** Gate 0 record; reconciled through accepted Gate 1 and verified Gate 2 candidate evidence
 
-**Revalidated:** 2026-08-13; Gate 1 accepted updates recorded 2026-08-14
+**Revalidated:** 2026-08-13; Gate 1 accepted and Gate 2 candidate updates recorded 2026-08-14
 
 **Committed anchor:** `80ddc5bb8849c0532ecf4de91010e450df28b940`
 
@@ -31,7 +31,7 @@ suite to remain green before release.
 | MV-SEC-011 | `RESOLVED IN ACCEPTED GATE 1` | Mounted candidates reject symlinks in every path component; copy and no-copy inspection open the source with `O_NOFOLLOW`, require a regular descriptor beneath the configured root, and copy from that verified descriptor. | Gate 1 slice 1C verification. |
 | MV-SEC-012 | `DEFERRED BY PRODUCT DECISION` | The current global single-admin model has no authorization entities. Multi-user/MFA/SSO is explicitly not a v5.1 feature. | Gate 11; it becomes a release blocker before any multi-user feature ships. |
 | MV-SEC-013 | `RESOLVED IN ACCEPTED GATE 1` | ZIP downloads sanitize every folder, model, primary-file, and supporting-file path component; ZIP imports reject traversal and normalized duplicate paths. | Gate 1 slice 1C verification. |
-| MV-SEC-014 | `PARTIALLY MITIGATED` | Lazy/cached preview work reduces normal load, but synchronous browser decompression and parser work still lacks complete size/time/complexity budgets. | Gate 2. |
+| MV-SEC-014 | `RESOLVED IN VERIFIED GATE 2 CANDIDATE` | Model and LightBurn card parsing/decompression/rendering run in terminable workers behind one shared active job and eight queued jobs, with byte, triangle/archive, estimated-memory, and wall-time limits. Outcomes persist; warm reload uses static thumbnails; measured cold/warm/detail/LightBurn phases have zero long tasks. STEP automatic parsing remains off rather than weakening CSP. | Gate 2 candidate evidence and ADR 0005; owner closeout pending. |
 | MV-SEC-015 | `RESOLVED IN ACCEPTED GATE 1` | Generated Nginx responses carry a tested CSP plus nosniff, no-referrer, permissions, and frame denial; direct API responses carry the non-CSP baseline; `PUBLIC_URL` or `TRUSTED_HOSTS` enables API host enforcement. | Gate 1 slice 1F verification and external-proxy HSTS guidance. |
 | MV-SEC-016 | `PARTIALLY RESOLVED IN ACCEPTED GATE 0` | 8,311 generated/runtime paths were removed from Git tracking without deleting local files; root ignore policy, source-owned verification, CI, and Dependabot now exist. Checksums, SBOMs, signing, and release provenance remain. | Gate 0 for source hygiene; Gate 5 for release artifacts. |
 
