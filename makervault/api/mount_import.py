@@ -1,6 +1,7 @@
 import os
 import re
-import shutil
+import stat
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
@@ -20,6 +21,51 @@ from file_utils import guess_mime_from_path, sanitize_filename
 from models import Asset
 from settings_service import get_mount_import_copy
 from zip_service import resolve_zip_folder_id
+from resource_limits import reject_declared_size, stream_reader_to_file
+
+
+def resolve_safe_mount_file(root: Path, candidate: Path) -> Path:
+    root_resolved = root.resolve(strict=True)
+    candidate_absolute = candidate.absolute()
+    try:
+        relative = candidate_absolute.relative_to(root_resolved)
+    except ValueError as exc:
+        raise ValueError("Mounted source is outside the configured root") from exc
+
+    current = root_resolved
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            raise ValueError("Mounted source contains a symbolic link")
+
+    resolved = candidate.resolve(strict=True)
+    if resolved == root_resolved or root_resolved not in resolved.parents:
+        raise ValueError("Mounted source resolved outside the configured root")
+    if not resolved.is_file():
+        raise ValueError("Mounted source is not a regular file")
+    return resolved
+
+
+@contextmanager
+def open_safe_mount_file(root: Path, candidate: Path):
+    expected = resolve_safe_mount_file(root, candidate)
+    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(candidate, flags)
+    try:
+        opened_stat = os.fstat(descriptor)
+        if not stat.S_ISREG(opened_stat.st_mode):
+            raise ValueError("Mounted source is not a regular file")
+        proc_path = Path(f"/proc/self/fd/{descriptor}")
+        opened_path = proc_path.resolve() if proc_path.exists() else candidate.resolve(strict=True)
+        root_resolved = root.resolve(strict=True)
+        if opened_path != expected or root_resolved not in opened_path.parents:
+            raise ValueError("Mounted source changed while it was being opened")
+        with os.fdopen(descriptor, "rb") as source:
+            descriptor = -1
+            yield source, opened_stat.st_size, opened_path
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
 
 
 def parse_mount_import_exts(raw: str) -> Optional[set]:
@@ -91,23 +137,28 @@ def scan_mount_imports() -> None:
                 if should_skip_mount_entry(filename):
                     continue
                 path = Path(dirpath) / filename
-                if not path.is_file():
+                try:
+                    resolved_path = resolve_safe_mount_file(root_abs, path)
+                except (OSError, ValueError):
+                    failed += 1
                     continue
                 ext = path.suffix.lower()
                 if allowed_exts is not None and ext not in allowed_exts:
                     continue
 
                 rel_path = (rel_dir / filename).as_posix() if rel_dir != Path(".") else filename
-                source_path = (root_abs / rel_path).as_posix()
+                source_path = resolved_path.as_posix()
                 if source_path in existing_sources:
                     skipped += 1
                     continue
                 try:
-                    size = path.stat().st_size
+                    size = resolved_path.stat().st_size
                 except OSError:
                     failed += 1
                     continue
-                if size > IMPORT_MAX_BYTES:
+                try:
+                    reject_declared_size(size, "Mounted file", IMPORT_MAX_BYTES)
+                except Exception:
                     failed += 1
                     continue
 
@@ -126,17 +177,31 @@ def scan_mount_imports() -> None:
                 try:
                     if copy_files:
                         dest = managed_asset_path(asset)
-                        dest.parent.mkdir(parents=True, exist_ok=True)
-                        shutil.copyfile(path, dest)
+                        with open_safe_mount_file(root_abs, path) as (source, opened_size, _):
+                            reject_declared_size(opened_size, "Mounted file", IMPORT_MAX_BYTES)
+                            copied_size = stream_reader_to_file(
+                                source,
+                                dest,
+                                "Mounted file",
+                                IMPORT_MAX_BYTES,
+                            )
+                        if copied_size != opened_size:
+                            raise ValueError("Mounted source changed while it was copied")
                         if (mime or "").startswith("image/") and dest.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}:
                             save_thumb(asset.id, dest)
                         elif dest.suffix.lower() == ".3mf":
                             ensure_model_thumbnail(asset.id, dest)
                     else:
-                        if (mime or "").startswith("image/") and path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}:
-                            save_thumb(asset.id, path)
-                        elif path.suffix.lower() == ".3mf":
-                            ensure_model_thumbnail(asset.id, path)
+                        with open_safe_mount_file(root_abs, path) as (source, opened_size, opened_path):
+                            reject_declared_size(opened_size, "Mounted file", IMPORT_MAX_BYTES)
+                            descriptor_path = Path(f"/proc/self/fd/{source.fileno()}")
+                            preview_path = descriptor_path if descriptor_path.exists() else opened_path
+                            if (mime or "").startswith("image/") and opened_path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}:
+                                save_thumb(asset.id, preview_path)
+                            elif opened_path.suffix.lower() == ".3mf":
+                                ensure_model_thumbnail(asset.id, preview_path, opened_path.name)
+                        if opened_size != size:
+                            raise ValueError("Mounted source changed while it was indexed")
                     finalize_asset_record(asset.id, size, mime)
                     imported += 1
                     existing_sources.add(source_path)

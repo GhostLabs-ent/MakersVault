@@ -29,6 +29,7 @@ from asset_service import (
     STORAGE_TEMPLATE_TOKENS,
     available_model_name,
     backfill_embedded_thumbnails,
+    cleanup_asset,
     create_asset_record,
     filename_for_model_name,
     ensure_model_thumbnail,
@@ -37,6 +38,7 @@ from asset_service import (
     prune_empty_storage_dirs,
     relocate_asset,
     reorganize_managed_assets,
+    sanitize_path_segment,
     sample_storage_path,
     save_thumb,
     save_thumb_bytes,
@@ -52,15 +54,22 @@ from asset_file_service import (
     managed_asset_file_path,
     save_asset_file,
 )
-from config import MOUNT_IMPORT_ENABLED, MOUNT_IMPORT_PATH, MOUNT_IMPORT_COPY
+from config import (
+    GENERATED_THUMBNAIL_MAX_BYTES,
+    GENERATED_THUMBNAIL_MAX_MB,
+    MOUNT_IMPORT_COPY,
+    MOUNT_IMPORT_ENABLED,
+    MOUNT_IMPORT_PATH,
+)
 from db import THUMBS, engine
 from file_utils import build_import_filename, mime_from_content_type, sanitize_filename
 from folder_service import validate_parent_folder
 from import_service import download_import_to_temp, import_asset_from_url, open_import_response
-from mount_import import scan_mount_imports
+from mount_import import resolve_safe_mount_file, scan_mount_imports
 from models import Asset, AssetFile, Folder
 from migrations import run_migrations
 from prepared_print import prepared_filename
+from resource_limits import ensure_storage_reserve, stream_upload_to_file
 from settings_service import (
     DEFAULT_STORAGE_TEMPLATE,
     get_mount_import_copy,
@@ -157,11 +166,10 @@ def is_mount_source_allowed(path: Path) -> bool:
     if not MOUNT_IMPORT_PATH:
         return False
     try:
-        root = Path(MOUNT_IMPORT_PATH).resolve()
-        candidate = path.resolve()
-    except Exception:
+        resolve_safe_mount_file(Path(MOUNT_IMPORT_PATH), path)
+    except (OSError, ValueError):
         return False
-    return candidate == root or root in candidate.parents
+    return True
 
 
 def resolve_asset_file(asset: Asset) -> Optional[Path]:
@@ -230,7 +238,8 @@ def arcname_for_asset(asset: Asset, folder_label_map: Optional[dict] = None) -> 
     folder_part = "unassigned"
     if asset.folder_id:
         folder_part = (folder_label_map or {}).get(asset.folder_id, asset.folder_id)
-    return f"{folder_part}/{asset.filename}"
+    folder_part = sanitize_path_segment(folder_part, "unassigned")
+    return f"{folder_part}/{sanitize_filename(asset.filename)}"
 
 
 def zip_assets_response(assets: List[Asset], download_name: str, background: BackgroundTasks, folder_label_map: Optional[dict] = None):
@@ -251,19 +260,28 @@ def zip_assets_response(assets: List[Asset], download_name: str, background: Bac
         folder_part = "unassigned"
         if a.folder_id:
             folder_part = (folder_label_map or {}).get(a.folder_id, a.folder_id)
+        folder_part = sanitize_path_segment(folder_part, "unassigned")
+        asset_part = sanitize_path_segment(a.name, "model")
         for related in supporting.get(a.id, []):
             related_path = managed_asset_file_path(related)
             if related_path.exists():
-                files.append((f"{folder_part}/{a.name}/supporting/{related.filename}", related_path))
+                files.append((f"{folder_part}/{asset_part}/supporting/{sanitize_filename(related.filename)}", related_path))
     if not files:
         raise HTTPException(status_code=404, detail="No files available for download")
 
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
     tmp_path = Path(tmp.name)
     tmp.close()
-    with ZipFile(tmp_path, "w", ZIP_DEFLATED) as zf:
-        for arc, fs_path in files:
-            zf.write(fs_path, arcname=arc)
+    try:
+        source_bytes = sum(fs_path.stat().st_size for _, fs_path in files)
+        ensure_storage_reserve(tmp_path, source_bytes)
+        with ZipFile(tmp_path, "w", ZIP_DEFLATED) as zf:
+            for arc, fs_path in files:
+                zf.write(fs_path, arcname=arc)
+        ensure_storage_reserve(tmp_path)
+    except Exception:
+        tmp_path.unlink(missing_ok=True)
+        raise
 
     background.add_task(lambda p=tmp_path: p.unlink(missing_ok=True))
     return FileResponse(tmp_path, media_type="application/zip", filename=download_name)
@@ -368,26 +386,18 @@ async def upload(
         folder_id,
     )
 
-    # persist file
     dest = managed_asset_path(asset)
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    with open(dest, "wb") as f:
-        while True:
-            chunk = await file.read(1024 * 1024)
-            if not chunk:
-                break
-            f.write(chunk)
-    size = dest.stat().st_size
-
-    # make a thumbnail for common image formats
-    if (asset.mime or "").lower().startswith("image/") and dest.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}:
-        save_thumb(asset.id, dest)
-    elif dest.suffix.lower() == ".3mf":
-        ensure_model_thumbnail(asset.id, dest)
-
-    asset = finalize_asset_record(asset.id, size, asset.mime) or asset
-
-    return to_out(asset)
+    try:
+        size = await stream_upload_to_file(file, dest, "Uploaded file")
+        if (asset.mime or "").lower().startswith("image/") and dest.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}:
+            save_thumb(asset.id, dest)
+        elif dest.suffix.lower() == ".3mf":
+            ensure_model_thumbnail(asset.id, dest)
+        asset = finalize_asset_record(asset.id, size, asset.mime) or asset
+        return to_out(asset)
+    except Exception:
+        cleanup_asset(asset.id)
+        raise
 
 
 @app.post("/import", response_model=AssetOut)
@@ -543,9 +553,12 @@ async def save_generated_thumbnail(
 ):
     if (file.content_type or "").lower() not in {"image/png", "image/jpeg", "image/webp"}:
         raise HTTPException(status_code=415, detail="Generated thumbnail must be PNG, JPEG, or WebP")
-    data = await file.read(8 * 1024 * 1024 + 1)
-    if len(data) > 8 * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="Generated thumbnail exceeds 8 MB")
+    data = await file.read(GENERATED_THUMBNAIL_MAX_BYTES + 1)
+    if len(data) > GENERATED_THUMBNAIL_MAX_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Generated thumbnail exceeds {GENERATED_THUMBNAIL_MAX_MB} MB",
+        )
     with Session(engine) as s:
         asset = s.get(Asset, asset_id)
         if not asset:

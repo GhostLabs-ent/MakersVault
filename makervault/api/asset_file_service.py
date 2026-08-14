@@ -5,11 +5,11 @@ from typing import List, Optional
 from fastapi import HTTPException, UploadFile
 from sqlmodel import Session, select
 
-from config import IMPORT_MAX_BYTES
 from db import STORAGE, engine
 from file_utils import mime_from_content_type, sanitize_filename
 from models import Asset, AssetFile
 from prepared_print import inspect_prepared_print, is_prepared_print_filename
+from resource_limits import stream_upload_to_file
 
 
 def managed_asset_file_path(asset_file: AssetFile) -> Path:
@@ -51,18 +51,8 @@ async def save_asset_file(asset_id: str, upload: UploadFile) -> Asset:
         session.refresh(record)
 
     destination = managed_asset_file_path(record)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    size = 0
     try:
-        with destination.open("wb") as output:
-            while True:
-                chunk = await upload.read(1024 * 1024)
-                if not chunk:
-                    break
-                size += len(chunk)
-                if size > IMPORT_MAX_BYTES:
-                    raise HTTPException(status_code=413, detail="Related file exceeds size limit")
-                output.write(chunk)
+        size = await stream_upload_to_file(upload, destination, "Related file")
 
         metadata = inspect_prepared_print(destination, safe_name) if role == "prepared" or safe_name.lower().endswith(".3mf") else None
         if metadata:

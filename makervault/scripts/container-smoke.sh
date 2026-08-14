@@ -61,4 +61,9 @@ case "$schema_output" in
     ;;
 esac
 
-echo "Container smoke test passed (direct and same-origin API, API UID $api_uid, web UID $web_uid, schema 3)."
+if ! compose exec -T web grep -q "client_max_body_size 513m;" /etc/nginx/conf.d/default.conf; then
+  echo "Smoke test failed: generated Nginx configuration does not allow the default file limit plus multipart framing" >&2
+  exit 1
+fi
+
+echo "Container smoke test passed (direct and same-origin API, 512 MiB file policy, API UID $api_uid, web UID $web_uid, schema 3)."

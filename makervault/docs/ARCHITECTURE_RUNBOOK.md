@@ -419,7 +419,13 @@ first owner checkpoint are recorded in
 are accepted. Fail-closed production configuration is implemented and locally
 verified in [slice 1A evidence](evidence/gate-1/SLICE_1A_RESULTS.md). The
 framework/parser and build-toolchain upgrades are locally verified in
-[slice 1B evidence](evidence/gate-1/SLICE_1B_RESULTS.md).
+[slice 1B evidence](evidence/gate-1/SLICE_1B_RESULTS.md). The owner-approved
+server resource budgets, ZIP safety, and mounted-source containment are locally
+verified in [slice 1C evidence](evidence/gate-1/SLICE_1C_RESULTS.md). Ordinary
+multi-file imports remain unmetered as a batch; the approved limits apply per
+file, with aggregate limits only for ZIP extraction. The immediate next action
+is slice 1D: controlled redirects and connection-target enforcement for
+MV-SEC-003.
 
 **Objective:** Make a fresh v5.1 deployment safe by default for its stated
 single-admin, self-hosted scope.
@@ -958,7 +964,7 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Commit the verified Gate 1 slice 1B locally, then freeze the server-side budgets
-and failure semantics for slice 1C. Do not implement size limits until existing
-upload, archive, image, and mounted-copy paths are mapped to one enforceable
-policy and compatibility impact is explicit.
+Resolve the slice 1C budget checkpoint in
+[SLICE_1C_DESIGN.md](evidence/gate-1/SLICE_1C_DESIGN.md), then implement the
+shared streaming, archive, image, storage-reserve, and mounted-source controls as
+one independently verified local change.

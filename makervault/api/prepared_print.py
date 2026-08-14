@@ -4,6 +4,9 @@ from pathlib import Path
 from typing import Optional
 from zipfile import BadZipFile, ZipFile
 
+from archive_limits import ArchiveLimitError, bounded_archive_infos, validate_archive_member
+from config import ARCHIVE_METADATA_MAX_BYTES
+
 
 _TEXT_LIMIT = 2 * 1024 * 1024
 _PREPARED_SUFFIXES = (".gcode.3mf", ".gcode", ".gco", ".bgcode")
@@ -194,7 +197,8 @@ def inspect_prepared_print(path: Path, filename: Optional[str] = None) -> Option
 
     try:
         with ZipFile(path) as archive:
-            names = archive.namelist()
+            infos = bounded_archive_infos(archive)
+            names = [info.filename for info in infos]
             prepared_members = [
                 name for name in names
                 if name.lower().endswith((".gcode", ".gco", ".bgcode"))
@@ -203,23 +207,30 @@ def inspect_prepared_print(path: Path, filename: Optional[str] = None) -> Option
                 return None
 
             metadata["format"] = "gcode_3mf"
-            for name in names:
+            metadata_bytes = 0
+            for info in infos:
+                name = info.filename
                 lower = name.lower()
-                try:
-                    info = archive.getinfo(name)
-                except KeyError:
-                    continue
                 if info.file_size > _TEXT_LIMIT:
                     continue
+                validate_archive_member(info, enforce_file_size=False)
+                if metadata_bytes + info.file_size > ARCHIVE_METADATA_MAX_BYTES:
+                    break
                 if lower.endswith(".json") and ("metadata/" in lower or "slice" in lower or "plate" in lower):
+                    metadata_bytes += info.file_size
                     _merge_json_metadata(metadata, archive.read(info))
                 elif lower.endswith((".config", ".xml", ".txt")) and ("metadata/" in lower or "slice" in lower):
+                    metadata_bytes += info.file_size
                     _merge_text_metadata(metadata, archive.read(info).decode("utf-8", errors="replace"))
 
             for name in prepared_members[:1]:
-                with archive.open(name) as stream:
-                    _merge_text_metadata(metadata, stream.read(_TEXT_LIMIT).decode("utf-8", errors="replace"))
-    except (BadZipFile, KeyError, OSError):
+                info = archive.getinfo(name)
+                validate_archive_member(info, enforce_file_size=False)
+                remaining = max(0, ARCHIVE_METADATA_MAX_BYTES - metadata_bytes)
+                if remaining:
+                    with archive.open(info) as stream:
+                        _merge_text_metadata(metadata, stream.read(min(_TEXT_LIMIT, remaining)).decode("utf-8", errors="replace"))
+    except (ArchiveLimitError, BadZipFile, KeyError, OSError):
         return None
     return metadata
 

@@ -60,6 +60,26 @@ If startup fails, inspect the API container log. The validation error lists each
 missing or unsafe setting. Correct `.env` and restart; do not restore published
 fallback credentials except temporarily on an isolated recovery network.
 
+## File and archive limits
+
+The default maximum is 512 MiB for each stored or imported file. This is a
+per-file safety boundary, not a quota on the library or an ordinary multi-file
+upload: users may continue importing large file sets as individual files. ZIP
+extraction separately limits the number selected and their total declared
+expanded size because a small archive can otherwise create unbounded work.
+
+MakersVault also keeps a 512 MiB free-space reserve by default. A write that
+would cross it fails with HTTP 507 and its partial file and provisional database
+record are removed. Byte/archive violations fail with HTTP 413. Existing files
+larger than a newly configured ceiling remain readable.
+
+Operators can tune the `FILE_MAX_MB`, `STORAGE_RESERVE_MB`, `ARCHIVE_*`,
+`IMAGE_MAX_PIXELS`, and `GENERATED_THUMBNAIL_MAX_MB` values documented in
+[CONFIGURATION.md](architecture/CONFIGURATION.md). If `FILE_MAX_MB` is raised,
+raise the request-body limit at an external reverse proxy as well. The bundled
+web proxy derives its limit from the same setting. Invalid budget values stop
+startup rather than silently removing a safety control.
+
 ## Supported network posture
 
 - Localhost and a genuinely trusted LAN may use direct access. Plain HTTP does

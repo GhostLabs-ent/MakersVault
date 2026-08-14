@@ -14,11 +14,14 @@ COPY . .
 RUN npm run build
 
 FROM nginxinc/nginx-unprivileged:1.27-alpine
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 USER root
 COPY 40-runtime-config.sh /docker-entrypoint.d/40-runtime-config.sh
 RUN chmod +x /docker-entrypoint.d/40-runtime-config.sh \
+  && rm -f /etc/nginx/conf.d/default.conf \
+  && touch /etc/nginx/conf.d/default.conf \
+  && chown 101:101 /etc/nginx/conf.d/default.conf \
   && chown -R 101:101 /usr/share/nginx/html
 USER 101
 

@@ -11,6 +11,15 @@ services:
       - AUTH_PASSWORD=${AUTH_PASSWORD:-local-development-only}
       - AUTH_SECRET=${AUTH_SECRET:-local-development-signing-secret-never-use-in-production}
       - AUTH_TOKEN_TTL=${AUTH_TOKEN_TTL:-43200}
+      - FILE_MAX_MB=${FILE_MAX_MB:-${IMPORT_MAX_MB:-512}}
+      - STORAGE_RESERVE_MB=${STORAGE_RESERVE_MB:-512}
+      - ARCHIVE_MAX_ENTRIES=${ARCHIVE_MAX_ENTRIES:-10000}
+      - ARCHIVE_MAX_SELECTED=${ARCHIVE_MAX_SELECTED:-1000}
+      - ARCHIVE_MAX_EXPANDED_MB=${ARCHIVE_MAX_EXPANDED_MB:-2048}
+      - ARCHIVE_MAX_RATIO=${ARCHIVE_MAX_RATIO:-200}
+      - ARCHIVE_METADATA_MAX_MB=${ARCHIVE_METADATA_MAX_MB:-16}
+      - IMAGE_MAX_PIXELS=${IMAGE_MAX_PIXELS:-64000000}
+      - GENERATED_THUMBNAIL_MAX_MB=${GENERATED_THUMBNAIL_MAX_MB:-8}
       - FILE_STORAGE=/app/storage
       - DB_URL=sqlite:////app/data/app.db
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173}
@@ -27,5 +36,6 @@ services:
       - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
       - PUBLIC_URL=${PUBLIC_URL:-}
       - VITE_ALLOWED_HOSTS=${VITE_ALLOWED_HOSTS:-}
+      - FILE_MAX_MB=${FILE_MAX_MB:-${IMPORT_MAX_MB:-512}}
     depends_on:
       - api

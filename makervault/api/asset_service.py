@@ -2,6 +2,7 @@ import json
 import io
 import re
 import tempfile
+import warnings
 from pathlib import Path
 from typing import List, Optional
 from zipfile import BadZipFile, ZipFile
@@ -10,16 +11,20 @@ from fastapi import HTTPException
 from PIL import Image
 from sqlmodel import Session, select
 
-from config import IMPORT_MAX_BYTES
+from archive_limits import ArchiveLimitError, bounded_archive_infos, validate_archive_member
+from config import ARCHIVE_METADATA_MAX_BYTES, FILE_MAX_BYTES, IMAGE_MAX_PIXELS
 from db import STORAGE, THUMBS, engine
 from file_utils import build_import_filename, mime_from_content_type, sanitize_filename
 from models import Asset, Folder
 from prepared_print import inspect_prepared_print
+from resource_limits import reject_declared_size, stream_reader_to_file
 from schemas import ImportRequest
 from settings_service import DEFAULT_STORAGE_TEMPLATE, get_storage_template
 
 
 STORAGE_TEMPLATE_TOKENS = ("folder", "collection", "tags", "creator", "model", "name", "filename", "id")
+THUMBNAIL_IMAGE_FORMATS = ["PNG", "JPEG", "WEBP", "BMP"]
+Image.MAX_IMAGE_PIXELS = IMAGE_MAX_PIXELS
 _TOKEN_RE = re.compile(r"\{([a-z_]+)\}")
 _INVALID_SEGMENT_RE = re.compile(r'[<>:"|?*\x00-\x1f]')
 
@@ -228,29 +233,35 @@ def save_thumb_image(asset_id: str, image: Image.Image) -> Optional[str]:
 
 def save_thumb(asset_id: str, src: Path) -> Optional[str]:
     try:
-        with Image.open(src) as image:
-            return save_thumb_image(asset_id, image)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(src, formats=THUMBNAIL_IMAGE_FORMATS) as image:
+                return save_thumb_image(asset_id, image)
     except Exception:
         return None
 
 
 def save_thumb_bytes(asset_id: str, data: bytes) -> Optional[str]:
     try:
-        with Image.open(io.BytesIO(data)) as image:
-            return save_thumb_image(asset_id, image)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(io.BytesIO(data), formats=THUMBNAIL_IMAGE_FORMATS) as image:
+                return save_thumb_image(asset_id, image)
     except Exception:
         return None
 
 
-def extract_3mf_thumbnail(asset_id: str, src: Path) -> Optional[str]:
-    if src.suffix.lower() != ".3mf" or not src.exists():
+def extract_3mf_thumbnail(asset_id: str, src: Path, filename: Optional[str] = None) -> Optional[str]:
+    display_name = filename or src.name
+    if not display_name.lower().endswith(".3mf") or not src.exists():
         return None
     try:
         with ZipFile(src) as archive:
+            infos = bounded_archive_infos(archive)
             image_names = [
-                name for name in archive.namelist()
-                if Path(name).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
-                and "thumbnail" in Path(name).name.lower()
+                info.filename for info in infos
+                if Path(info.filename).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
+                and "thumbnail" in Path(info.filename).name.lower()
             ]
             priorities = {
                 "metadata/thumbnail.png": 0,
@@ -258,23 +269,28 @@ def extract_3mf_thumbnail(asset_id: str, src: Path) -> Optional[str]:
                 "thumbnail.png": 2,
             }
             image_names.sort(key=lambda name: (priorities.get(name.lower().lstrip("/"), 10), len(name)))
+            bytes_read = 0
             for name in image_names:
                 info = archive.getinfo(name)
-                if info.file_size > 16 * 1024 * 1024:
+                if info.file_size > ARCHIVE_METADATA_MAX_BYTES:
                     continue
+                validate_archive_member(info, enforce_file_size=False)
+                if bytes_read + info.file_size > ARCHIVE_METADATA_MAX_BYTES:
+                    break
+                bytes_read += info.file_size
                 saved = save_thumb_bytes(asset_id, archive.read(info))
                 if saved:
                     return saved
-    except (BadZipFile, KeyError, OSError):
+    except (ArchiveLimitError, BadZipFile, KeyError, OSError):
         return None
     return None
 
 
-def ensure_model_thumbnail(asset_id: str, src: Path) -> Optional[str]:
+def ensure_model_thumbnail(asset_id: str, src: Path, filename: Optional[str] = None) -> Optional[str]:
     existing = THUMBS / f"{asset_id}.jpg"
     if existing.exists():
         return f"/thumb/{asset_id}.jpg"
-    return extract_3mf_thumbnail(asset_id, src)
+    return extract_3mf_thumbnail(asset_id, src, filename)
 
 
 def inspect_asset_prepared_print(asset: Asset, src: Optional[Path] = None) -> Optional[dict]:
@@ -363,25 +379,14 @@ def cleanup_asset(asset_id: str) -> None:
 
 
 def stream_response_to_file(resp, dest: Path) -> int:
-    size = 0
-    with open(dest, "wb") as f:
-        while True:
-            chunk = resp.read(1024 * 1024)
-            if not chunk:
-                break
-            size += len(chunk)
-            if size > IMPORT_MAX_BYTES:
-                raise HTTPException(status_code=413, detail="Imported file exceeds size limit")
-            f.write(chunk)
-    return size
+    return stream_reader_to_file(resp, dest, "Imported file")
 
 
 def persist_asset_from_response(resp, final_url: str, body: ImportRequest) -> Asset:
     content_length = resp.headers.get("Content-Length")
     if content_length:
         try:
-            if int(content_length) > IMPORT_MAX_BYTES:
-                raise HTTPException(status_code=413, detail="Imported file exceeds size limit")
+            reject_declared_size(int(content_length), "Imported file", FILE_MAX_BYTES)
         except ValueError:
             pass
 

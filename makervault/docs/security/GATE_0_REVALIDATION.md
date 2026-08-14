@@ -23,14 +23,14 @@ suite to remain green before release.
 | MV-SEC-003 | `CONFIRMED` | Initial and final URL strings are validated, but `urllib` resolves/connects and follows redirects before final validation. DNS/redirect TOCTOU remains unproven. | Gate 1: controlled redirect/connection implementation and adversarial tests. |
 | MV-SEC-004 | `RESOLVED IN GATE 1 SLICE 1B CANDIDATE` | `python-multipart==0.0.32` and the compatible FastAPI/Starlette set pass API/upload smoke tests; the resolved runtime lock audits clean. | Gate 1 slice 1B verification; slice 1C still owns explicit request and parser budgets. |
 | MV-SEC-005 | `RESOLVED IN GATE 1 SLICE 1B CANDIDATE` | `Pillow==12.3.0` passes existing image/thumbnail behavior and the resolved runtime lock audits clean. | Gate 1 slice 1B verification; slice 1C still owns malicious/oversized-image bounds. |
-| MV-SEC-006 | `CONFIRMED` | Remote imports and generated thumbnails have some per-file bounds, but direct primary/supporting uploads and total ZIP expansion are not consistently bounded. | Gate 1 for server limits; Gate 2 for browser preview budgets. |
+| MV-SEC-006 | `RESOLVED IN GATE 1 SLICE 1C CANDIDATE` | Direct, supporting, remote, mounted, and extracted files share a streamed per-file ceiling and free-space reserve; ZIP enumeration, selection, expansion, ratio, 3MF metadata, and image decode work have explicit budgets. Ordinary multi-file imports retain unlimited batch count. | Gate 1 slice 1C verification; Gate 2 still owns browser preview time/complexity budgets. |
 | MV-SEC-007 | `CONFIRMED` | The API accepts `?token=` and the web client appends the primary JWT to file URLs and bridge handoffs. | Gate 1: narrow signed file/handoff grants. |
 | MV-SEC-008 | `CONFIRMED` | The primary JWT is stored in browser `localStorage`. | Gate 1 risk decision; final session architecture in Gate 11. |
 | MV-SEC-009 | `CONFIRMED` | Login has no throttle and JWT sessions have no identifier or revocation store. | Gate 1 for single-admin abuse controls; Gate 11 for full session lifecycle. |
 | MV-SEC-010 | `RESOLVED IN CANDIDATE` | The current multi-stage web image builds with Vite and serves only static output through `nginxinc/nginx-unprivileged`; the container smoke test observes web PID 1 as UID 101. | Gate 0 verification; Gate 1 still owns headers and host policy. |
-| MV-SEC-011 | `CONFIRMED` | Mounted copy mode uses `is_file`, `stat`, and `shutil.copyfile` without rejecting or re-checking resolved symlink targets. | Gate 1. |
+| MV-SEC-011 | `RESOLVED IN GATE 1 SLICE 1C CANDIDATE` | Mounted candidates reject symlinks in every path component; copy and no-copy inspection open the source with `O_NOFOLLOW`, require a regular descriptor beneath the configured root, and copy from that verified descriptor. | Gate 1 slice 1C verification. |
 | MV-SEC-012 | `DEFERRED BY PRODUCT DECISION` | The current global single-admin model has no authorization entities. Multi-user/MFA/SSO is explicitly not a v5.1 feature. | Gate 11; it becomes a release blocker before any multi-user feature ships. |
-| MV-SEC-013 | `CONFIRMED` | ZIP output paths concatenate user-controlled folder/model/supporting filenames without normalizing every archive component. | Gate 1 or the earliest ZIP hardening change. |
+| MV-SEC-013 | `RESOLVED IN GATE 1 SLICE 1C CANDIDATE` | ZIP downloads sanitize every folder, model, primary-file, and supporting-file path component; ZIP imports reject traversal and normalized duplicate paths. | Gate 1 slice 1C verification. |
 | MV-SEC-014 | `PARTIALLY MITIGATED` | Lazy/cached preview work reduces normal load, but synchronous browser decompression and parser work still lacks complete size/time/complexity budgets. | Gate 2. |
 | MV-SEC-015 | `CONFIRMED` | Nginx sets cache policy but no complete CSP, nosniff, referrer, permissions, frame, or trusted-host baseline. | Gate 1, validated against WASM/workers/blob and proxy modes. |
 | MV-SEC-016 | `PARTIALLY RESOLVED IN CANDIDATE` | 8,311 generated/runtime paths were removed from Git tracking without deleting local files; root ignore policy, source-owned verification, CI, and Dependabot now exist. Checksums, SBOMs, signing, and release provenance remain. | Gate 0 for source hygiene; Gate 5 for release artifacts. |
@@ -94,3 +94,17 @@ reports zero production or development findings, and the production bundle and
 web tests pass. The bridge builds and tests under Go 1.26.6, and `govulncheck`
 reports no vulnerabilities. Exact versions and commands are recorded in
 [SLICE_1B_RESULTS.md](../evidence/gate-1/SLICE_1B_RESULTS.md).
+
+## Gate 1 slice 1C update — 2026-08-14
+
+The local candidate now applies one streamed file policy to every ingest path,
+retains an operational storage reserve, bounds ZIP and 3MF expansion work, and
+limits Pillow to supported decoders and a decoded-pixel ceiling. Rejected writes
+remove partial files and provisional rows. Mounted imports reject symlinked path
+components and copy from a verified regular descriptor. ZIP import and export
+names are normalized before use.
+
+The limits remain compatible with large libraries and ordinary large file sets:
+there is no library quota or ordinary batch-count limit. Exact defaults,
+adversarial tests, and verification are recorded in
+[SLICE_1C_RESULTS.md](../evidence/gate-1/SLICE_1C_RESULTS.md).

@@ -9,6 +9,19 @@ def env_int(name: str, default: int) -> int:
         return default
 
 
+def env_limit_int(name: str, default: int, *, minimum: int = 1) -> int:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        value = int(raw)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"{name} must be an integer") from exc
+    if value < minimum:
+        raise RuntimeError(f"{name} must be at least {minimum}")
+    return value
+
+
 def env_bool(name: str, default: bool) -> bool:
     raw = os.getenv(name)
     if raw is None:
@@ -40,11 +53,26 @@ IMPORT_BLOCKED_EXTS = {
     ".ttf",
     ".eot",
 }
-IMPORT_TIMEOUT_SECONDS = env_int("IMPORT_TIMEOUT_SECONDS", 30)
-IMPORT_MAX_MB = env_int("IMPORT_MAX_MB", 512)
-IMPORT_MAX_BYTES = max(1, IMPORT_MAX_MB) * 1024 * 1024
+IMPORT_TIMEOUT_SECONDS = max(1, env_int("IMPORT_TIMEOUT_SECONDS", 30))
+IMPORT_MAX_MB = env_limit_int("IMPORT_MAX_MB", 512)
+FILE_MAX_MB = env_limit_int("FILE_MAX_MB", IMPORT_MAX_MB)
+FILE_MAX_BYTES = FILE_MAX_MB * 1024 * 1024
+# Compatibility alias for existing import code and v5.0/v5.1 operator settings.
+IMPORT_MAX_BYTES = FILE_MAX_BYTES
 IMPORT_HTML_MAX_KB = env_int("IMPORT_HTML_MAX_KB", 4096)
 IMPORT_HTML_MAX_BYTES = max(64, IMPORT_HTML_MAX_KB) * 1024
+STORAGE_RESERVE_MB = env_limit_int("STORAGE_RESERVE_MB", 512, minimum=0)
+STORAGE_RESERVE_BYTES = STORAGE_RESERVE_MB * 1024 * 1024
+ARCHIVE_MAX_ENTRIES = env_limit_int("ARCHIVE_MAX_ENTRIES", 10000)
+ARCHIVE_MAX_SELECTED = env_limit_int("ARCHIVE_MAX_SELECTED", 1000)
+ARCHIVE_MAX_EXPANDED_MB = env_limit_int("ARCHIVE_MAX_EXPANDED_MB", 2048)
+ARCHIVE_MAX_EXPANDED_BYTES = ARCHIVE_MAX_EXPANDED_MB * 1024 * 1024
+ARCHIVE_MAX_RATIO = env_limit_int("ARCHIVE_MAX_RATIO", 200)
+ARCHIVE_METADATA_MAX_MB = env_limit_int("ARCHIVE_METADATA_MAX_MB", 16)
+ARCHIVE_METADATA_MAX_BYTES = ARCHIVE_METADATA_MAX_MB * 1024 * 1024
+IMAGE_MAX_PIXELS = env_limit_int("IMAGE_MAX_PIXELS", 64_000_000)
+GENERATED_THUMBNAIL_MAX_MB = env_limit_int("GENERATED_THUMBNAIL_MAX_MB", 8)
+GENERATED_THUMBNAIL_MAX_BYTES = GENERATED_THUMBNAIL_MAX_MB * 1024 * 1024
 IMPORT_USER_AGENT = "MakerVault/1.0"
 IMPORT_BROWSER_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "

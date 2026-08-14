@@ -1,6 +1,6 @@
 # MakersVault Configuration Inventory
 
-**Baseline:** Gate 1 slice 1A candidate, 2026-08-14
+**Baseline:** Gate 1 slice 1C candidate, 2026-08-14
 
 This inventory records configuration ownership. It does not replace the secure
 deployment guidance required by Gate 1.
@@ -32,12 +32,36 @@ deployment guidance required by Gate 1.
 | `API_PORT` | `8000` | Published API port. |
 | `WEB_PORT` | `5173` | Published web port. |
 
+## Ingest and derived-preview budgets
+
+These limits apply per file or per ZIP extraction request; they are not a
+library-wide quota. Ordinary multi-file and mounted imports have no cumulative
+file-count or batch-byte ceiling. A value that is not an integer, or is below
+the documented minimum, stops the affected container at startup.
+
+| Variable | Current default | Effect |
+|---|---:|---|
+| `FILE_MAX_MB` | `512` | Shared per-file limit for direct, supporting, remote, mounted, and extracted files. The web proxy derives a request-body ceiling with 1 MiB of multipart allowance. |
+| `STORAGE_RESERVE_MB` | `512` | Minimum free space retained while writing managed or temporary files; `0` explicitly disables the reserve. |
+| `ARCHIVE_MAX_ENTRIES` | `10000` | Maximum ZIP central-directory entries enumerated. |
+| `ARCHIVE_MAX_SELECTED` | `1000` | Maximum entries selected in one ZIP extraction request. |
+| `ARCHIVE_MAX_EXPANDED_MB` | `2048` | Maximum declared expanded bytes selected in one ZIP extraction request. |
+| `ARCHIVE_MAX_RATIO` | `200` | Maximum uncompressed-to-compressed ratio for a ZIP member that MakersVault reads. |
+| `ARCHIVE_METADATA_MAX_MB` | `16` | Aggregate 3MF thumbnail/metadata bytes considered during one inspection. |
+| `IMAGE_MAX_PIXELS` | `64000000` | Maximum decoded pixels for a server-generated image preview. |
+| `GENERATED_THUMBNAIL_MAX_MB` | `8` | Maximum browser-generated thumbnail upload. |
+
+`IMPORT_MAX_MB` remains a v5.0 compatibility alias for `FILE_MAX_MB` when the
+new variable is absent. Set `FILE_MAX_MB` for new installations. Raising it
+also requires an equal or higher request-body limit at any external reverse
+proxy.
+
 ## Remote import settings
 
 | Variable | Current default | Effect |
 |---|---|---|
 | `IMPORT_TIMEOUT_SECONDS` | `30` | Remote request time budget. |
-| `IMPORT_MAX_MB` | `512` | Maximum remote response size; does not yet cover every direct-upload path. |
+| `IMPORT_MAX_MB` | `512` | Compatibility alias for `FILE_MAX_MB`; retained for existing deployments. |
 | `IMPORT_HTML_MAX_KB` | `4096` | Maximum resolver HTML size. |
 | `MAKERWORLD_COOKIE` | empty | Optional server-side source credential. Browser-provided values are not persisted by the API. |
 | `THINGIVERSE_COOKIE` | empty | Optional server-side source credential. Browser-provided values are not persisted by the API. |
