@@ -424,8 +424,10 @@ server resource budgets, ZIP safety, and mounted-source containment are locally
 verified in [slice 1C evidence](evidence/gate-1/SLICE_1C_RESULTS.md). Ordinary
 multi-file imports remain unmetered as a batch; the approved limits apply per
 file, with aggregate limits only for ZIP extraction. The immediate next action
-is slice 1D: controlled redirects and connection-target enforcement for
-MV-SEC-003.
+was slice 1D; controlled redirects and connection-target enforcement are now
+locally verified in [slice 1D evidence](evidence/gate-1/SLICE_1D_RESULTS.md).
+The immediate next action is the slice 1E owner checkpoint: accept the scoped
+handoff grant and bridge-origin contract before implementation.
 
 **Objective:** Make a fresh v5.1 deployment safe by default for its stated
 single-admin, self-hosted scope.

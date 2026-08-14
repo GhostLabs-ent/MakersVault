@@ -20,7 +20,7 @@ suite to remain green before release.
 |---|---|---|---|
 | MV-SEC-001 | `CONFIRMED` | The bridge accepts any HTTP(S) `url`, downloads it, and can fall back to the OS default opener. Gate 0 tests only establish its current parser boundary. | Gate 1: scoped, short-lived handoff grants; origin, role, size, redirect, and opener restrictions. |
 | MV-SEC-002 | `RESOLVED IN GATE 1 SLICE 1A CANDIDATE` | Production Compose requires explicit password/signing-secret values; API startup rejects missing, published, short, or reused secrets; the setup helper generates deployment-specific values without overwriting an existing `.env`. | Gate 1 slice 1A verification and local commit. |
-| MV-SEC-003 | `CONFIRMED` | Initial and final URL strings are validated, but `urllib` resolves/connects and follows redirects before final validation. DNS/redirect TOCTOU remains unproven. | Gate 1: controlled redirect/connection implementation and adversarial tests. |
+| MV-SEC-003 | `RESOLVED IN GATE 1 SLICE 1D CANDIDATE` | Every import and source-resolver request validates all DNS answers, connects to the exact validated numeric peer, manually validates each redirect, rejects HTTPS downgrade, and strips cross-origin credentials. DNS-change, private-redirect, and live public-network probes pass. | Gate 1 slice 1D verification. |
 | MV-SEC-004 | `RESOLVED IN GATE 1 SLICE 1B CANDIDATE` | `python-multipart==0.0.32` and the compatible FastAPI/Starlette set pass API/upload smoke tests; the resolved runtime lock audits clean. | Gate 1 slice 1B verification; slice 1C still owns explicit request and parser budgets. |
 | MV-SEC-005 | `RESOLVED IN GATE 1 SLICE 1B CANDIDATE` | `Pillow==12.3.0` passes existing image/thumbnail behavior and the resolved runtime lock audits clean. | Gate 1 slice 1B verification; slice 1C still owns malicious/oversized-image bounds. |
 | MV-SEC-006 | `RESOLVED IN GATE 1 SLICE 1C CANDIDATE` | Direct, supporting, remote, mounted, and extracted files share a streamed per-file ceiling and free-space reserve; ZIP enumeration, selection, expansion, ratio, 3MF metadata, and image decode work have explicit budgets. Ordinary multi-file imports retain unlimited batch count. | Gate 1 slice 1C verification; Gate 2 still owns browser preview time/complexity budgets. |
@@ -108,3 +108,17 @@ The limits remain compatible with large libraries and ordinary large file sets:
 there is no library quota or ordinary batch-count limit. Exact defaults,
 adversarial tests, and verification are recorded in
 [SLICE_1C_RESULTS.md](../evidence/gate-1/SLICE_1C_RESULTS.md).
+
+## Gate 1 slice 1D update — 2026-08-14
+
+The local candidate replaces automatic `urllib` connections and redirects with
+one import transport that pins each socket to the globally routable DNS answer
+it validated. Every redirect is resolved and checked before connection; HTTPS
+downgrades fail, and cookies/authorization are removed on origin changes. All
+source-specific helper requests use the same boundary.
+
+Adversarial coverage includes IPv4/IPv6 special-use targets, mixed DNS answers,
+DNS changes, private redirects, cross-origin credential stripping, method rules,
+and redirect limits. Live container probes preserve public HTTPS, HTTP-error, and
+redirect behavior. Exact evidence is recorded in
+[SLICE_1D_RESULTS.md](../evidence/gate-1/SLICE_1D_RESULTS.md).

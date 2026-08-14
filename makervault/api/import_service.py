@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Optional
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
-from urllib.request import Request, urlopen
+from urllib.request import Request
 
 from fastapi import HTTPException
 
@@ -12,6 +12,7 @@ from config import IMPORT_HTML_MAX_BYTES, IMPORT_TIMEOUT_SECONDS, IMPORT_USER_AG
 from file_utils import build_import_filename, is_html_content_type, mime_from_content_type
 from import_resolvers import (
     find_download_url,
+    is_makerworld_host,
     is_printables_page_host,
     is_thingiverse_page_host,
     makerworld_html_headers,
@@ -24,6 +25,7 @@ from import_resolvers import (
     thingiverse_html_headers,
 )
 from schemas import ImportRequest
+from safe_http import safe_urlopen
 from url_utils import validate_remote_url
 
 
@@ -35,7 +37,7 @@ def open_import_response(url: str, body: ImportRequest, referer: Optional[str] =
     host = (urlparse(url).hostname or "").lower()
     makerworld_cookie = None
     thingiverse_cookie = None
-    if host.endswith("makerworld.com"):
+    if is_makerworld_host(host):
         makerworld_cookie = resolve_makerworld_cookie(body)
         headers = makerworld_html_headers(referer or url, cookie=makerworld_cookie)
     elif is_thingiverse_page_host(host):
@@ -47,14 +49,13 @@ def open_import_response(url: str, body: ImportRequest, referer: Optional[str] =
         headers["Referer"] = referer
     req = Request(url, headers=headers)
     try:
-        resp = urlopen(req, timeout=IMPORT_TIMEOUT_SECONDS)
+        resp = safe_urlopen(req, timeout=IMPORT_TIMEOUT_SECONDS)
     except HTTPError as err:
         raise HTTPException(status_code=err.code or 400, detail=f"Failed to fetch URL: {err.reason}")
     except URLError:
         raise HTTPException(status_code=400, detail="Failed to reach the provided URL")
 
     final_url = resp.geturl()
-    validate_remote_url(final_url)
     content_type = resp.headers.get("Content-Type", "")
     if is_html_content_type(content_type):
         html_bytes = resp.read(IMPORT_HTML_MAX_BYTES + 1)
@@ -66,7 +67,7 @@ def open_import_response(url: str, body: ImportRequest, referer: Optional[str] =
         resp.close()
         download_url = None
         host = urlparse(final_url).hostname or ""
-        if host.lower().endswith("makerworld.com"):
+        if is_makerworld_host(host):
             if not makerworld_cookie:
                 makerworld_cookie = resolve_makerworld_cookie(body)
             download_url = resolve_makerworld_download_url(html, final_url, makerworld_cookie)

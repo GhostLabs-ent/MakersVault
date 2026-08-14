@@ -1,6 +1,6 @@
 # MakersVault Configuration Inventory
 
-**Baseline:** Gate 1 slice 1C candidate, 2026-08-14
+**Baseline:** Gate 1 slice 1D candidate, 2026-08-14
 
 This inventory records configuration ownership. It does not replace the secure
 deployment guidance required by Gate 1.
@@ -61,6 +61,7 @@ proxy.
 | Variable | Current default | Effect |
 |---|---|---|
 | `IMPORT_TIMEOUT_SECONDS` | `30` | Remote request time budget. |
+| `IMPORT_MAX_REDIRECTS` | `5` | Maximum transport redirects; every hop is revalidated and HTTPS downgrade is rejected. Set `0` to disable redirects. |
 | `IMPORT_MAX_MB` | `512` | Compatibility alias for `FILE_MAX_MB`; retained for existing deployments. |
 | `IMPORT_HTML_MAX_KB` | `4096` | Maximum resolver HTML size. |
 | `MAKERWORLD_COOKIE` | empty | Optional server-side source credential. Browser-provided values are not persisted by the API. |
