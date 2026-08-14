@@ -479,9 +479,10 @@ to known credentials. File-format changes are not allowed in this gate.
 
 ### Gate 2 — Bound preview work and prove library responsiveness
 
-**Current execution:** `NOT OPENED`. Gates 0 and 1 are accepted. The next action
-is to create the Gate 2 entry record and benchmark-corpus contract before
-selecting numeric preview budgets or changing preview behavior.
+**Current execution:** `IN PROGRESS`. Gates 0 and 1 are accepted. Gate 2 opened on
+2026-08-14 with a synthetic benchmark-corpus contract and disposable measurement
+harness. Preview budgets and observable skip behavior remain unselected pending
+baseline evidence and the owner checkpoint.
 
 **Objective:** Ensure no single model can freeze the library and cached libraries
 remain fast.

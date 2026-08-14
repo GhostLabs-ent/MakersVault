@@ -57,3 +57,7 @@ Thumbs.db
 *.tmp
 *.temp
 *.log
+
+# Reproducible Gate 2 preview benchmark output
+makervault/benchmarks/preview/corpus/generated/
+makervault/benchmarks/preview/.artifacts/

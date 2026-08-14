@@ -1,0 +1,12 @@
+{
+  "name": "makervault-preview-benchmark",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "baseline": "node preview-baseline.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.62.1"
+  }
+}

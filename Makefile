@@ -21,6 +21,7 @@ verify-compose:
 	cd makervault && AUTH_PASSWORD=compose-verification-password AUTH_SECRET=compose-verification-signing-secret-32-bytes docker compose --env-file /dev/null -f docker-deploy.yml config -q
 	cd makervault && ./scripts/verify-compose-security.sh
 	cd makervault && docker compose -f docker-compose.yml -f docker-compose.smoke.yml config -q
+	cd makervault && docker compose -f docker-compose.yml -f docker-compose.preview-benchmark.yml config -q
 
 verify-smoke:
 	./makervault/scripts/container-smoke.sh
