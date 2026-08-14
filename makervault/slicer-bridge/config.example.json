@@ -1,6 +1,8 @@
 {
   "download_dir": "",
   "log_file": "",
+  "trusted_origins": [],
+  "max_download_mb": 512,
   "slicers": {
     "orca": {
       "command": "C:\\\\Program Files\\\\OrcaSlicer\\\\OrcaSlicer.exe"

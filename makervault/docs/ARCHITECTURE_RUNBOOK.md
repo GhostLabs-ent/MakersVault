@@ -427,7 +427,11 @@ file, with aggregate limits only for ZIP extraction. The immediate next action
 was slice 1D; controlled redirects and connection-target enforcement are now
 locally verified in [slice 1D evidence](evidence/gate-1/SLICE_1D_RESULTS.md).
 The immediate next action is the slice 1E owner checkpoint: accept the scoped
-handoff grant and bridge-origin contract before implementation.
+handoff grant and bridge-origin contract before implementation. That contract is
+now owner-approved and locally verified in
+[slice 1E evidence](evidence/gate-1/SLICE_1E_RESULTS.md). The immediate next
+action is slice 1F: single-admin login/session residual risk, security headers,
+host policy, and final Gate 1 deployment guidance.
 
 **Objective:** Make a fresh v5.1 deployment safe by default for its stated
 single-admin, self-hosted scope.

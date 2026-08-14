@@ -2,19 +2,14 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 )
 
 type SlicerConfig struct {
@@ -23,10 +18,12 @@ type SlicerConfig struct {
 }
 
 type Config struct {
-	DownloadDir string                  `json:"download_dir,omitempty"`
-	LogFile     string                  `json:"log_file,omitempty"`
-	Slicers     map[string]SlicerConfig `json:"slicers,omitempty"`
-	Engravers   map[string]SlicerConfig `json:"engravers,omitempty"`
+	DownloadDir    string                  `json:"download_dir,omitempty"`
+	LogFile        string                  `json:"log_file,omitempty"`
+	TrustedOrigins []string                `json:"trusted_origins,omitempty"`
+	MaxDownloadMB  int                     `json:"max_download_mb,omitempty"`
+	Slicers        map[string]SlicerConfig `json:"slicers,omitempty"`
+	Engravers      map[string]SlicerConfig `json:"engravers,omitempty"`
 }
 
 const (
@@ -79,83 +76,37 @@ func printUsage() {
 }
 
 func handleProtocol(raw string, cfg Config) error {
-	parsed, err := url.Parse(raw)
+	request, err := parseProtocolRequest(raw)
 	if err != nil {
-		return fmt.Errorf("parse url: %w", err)
+		return err
 	}
-	tool := ""
-	idParam := ""
-	switch parsed.Scheme {
-	case slicerScheme:
-		tool = "slicer"
-		idParam = "slicer"
-	case engraveScheme:
-		tool = "engraver"
-		idParam = "engraver"
-	default:
-		return fmt.Errorf("unexpected scheme: %s", parsed.Scheme)
+	log.Printf("open request tool=%s app=%s origin=%s filename=%s", request.Tool, request.AppID, request.Origin, request.Filename)
+
+	var cmd string
+	var args []string
+	if request.Tool == "engraver" {
+		cmd, args = resolveEngraverCommand(request.AppID, cfg)
+	} else {
+		cmd, args = resolveSlicerCommand(request.AppID, cfg)
+	}
+	if cmd == "" {
+		return fmt.Errorf("configured %s application is unavailable: %s", request.Tool, request.AppID)
 	}
 
-	action := strings.Trim(parsed.Host, "/")
-	if action == "" {
-		action = strings.Trim(parsed.Path, "/")
+	cfgDir := configDir()
+	if err := ensureTrustedOrigin(request.Origin, &cfg, cfgDir); err != nil {
+		return err
 	}
-	if action == "" {
-		action = "open"
-	}
-	if action != "open" {
-		return fmt.Errorf("unsupported action: %s", action)
-	}
-
-	q := parsed.Query()
-	downloadURL := strings.TrimSpace(q.Get("url"))
-	if downloadURL == "" {
-		return errors.New("missing url parameter")
-	}
-	if !strings.HasPrefix(downloadURL, "http://") && !strings.HasPrefix(downloadURL, "https://") {
-		return fmt.Errorf("unsupported url: %s", redactURL(downloadURL))
-	}
-
-	filename := strings.TrimSpace(q.Get("filename"))
-	if filename == "" {
-		if u, err := url.Parse(downloadURL); err == nil {
-			filename = path.Base(u.Path)
-		}
-	}
-	filename = sanitizeFilename(filename)
-
-	appID := strings.ToLower(strings.TrimSpace(q.Get(idParam)))
-	if appID == "" && tool == "engraver" {
-		appID = strings.ToLower(strings.TrimSpace(q.Get("slicer")))
-	}
-	log.Printf("open request tool=%s app=%s url=%s filename=%s", tool, appID, redactURL(downloadURL), filename)
 
 	downloadDir := resolveDownloadDir(cfg)
 	if err := os.MkdirAll(downloadDir, 0755); err != nil {
 		return fmt.Errorf("create download dir: %w", err)
 	}
-
-	targetPath := uniquePath(downloadDir, filename)
-	if err := downloadFile(downloadURL, targetPath); err != nil {
+	targetPath, err := downloadGrantedFile(request, cfg, downloadDir)
+	if err != nil {
 		return err
 	}
-
-	if appID == "" || appID == "other" {
-		return openWithDefault(targetPath)
-	}
-
-	var cmd string
-	var args []string
-	if tool == "engraver" {
-		cmd, args = resolveEngraverCommand(appID, cfg)
-	} else {
-		cmd, args = resolveSlicerCommand(appID, cfg)
-	}
-	if cmd == "" {
-		return openWithDefault(targetPath)
-	}
-
-	log.Printf("launch %s command=%s args=%v", tool, cmd, args)
+	log.Printf("launch %s command=%s args=%v", request.Tool, cmd, args)
 	return launchCommand(cmd, args, targetPath)
 }
 
@@ -251,31 +202,6 @@ func uniquePath(dir, name string) string {
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
-}
-
-func downloadFile(downloadURL, targetPath string) error {
-	client := &http.Client{Timeout: 5 * time.Minute}
-	req, err := http.NewRequest(http.MethodGet, downloadURL, nil)
-	if err != nil {
-		return fmt.Errorf("request: %w", err)
-	}
-	res, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("download: %w", err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return fmt.Errorf("download failed: %s", res.Status)
-	}
-	out, err := os.Create(targetPath)
-	if err != nil {
-		return fmt.Errorf("create file: %w", err)
-	}
-	defer out.Close()
-	if _, err := io.Copy(out, res.Body); err != nil {
-		return fmt.Errorf("save file: %w", err)
-	}
-	return nil
 }
 
 func resolveSlicerCommand(id string, cfg Config) (string, []string) {
@@ -374,37 +300,37 @@ func findLinuxCommand(id string, candidates map[string][]string) string {
 
 func windowsCandidates() map[string][]string {
 	return map[string][]string{
-		"orca":       {"OrcaSlicer\\OrcaSlicer.exe"},
-		"bambu":      {"Bambu Studio\\BambuStudio.exe"},
-		"prusa":      {"PrusaSlicer\\PrusaSlicer.exe"},
+		"orca":        {"OrcaSlicer\\OrcaSlicer.exe"},
+		"bambu":       {"Bambu Studio\\BambuStudio.exe"},
+		"prusa":       {"PrusaSlicer\\PrusaSlicer.exe"},
 		"superslicer": {"SuperSlicer\\SuperSlicer.exe"},
-		"cura":       {"UltiMaker Cura\\UltiMaker Cura.exe", "Ultimaker Cura\\Ultimaker Cura.exe"},
-		"ideamaker":  {"ideaMaker\\ideaMaker.exe"},
-		"simplify3d": {"Simplify3D\\Simplify3D.exe"},
-		"kisslicer":  {"KISSlicer\\KISSlicer.exe"},
-		"repetier":   {"Repetier-Host\\RepetierHost.exe"},
-		"chitubox":   {"CHITUBOX\\CHITUBOX.exe"},
-		"lychee":     {"LycheeSlicer\\LycheeSlicer.exe"},
-		"photon":     {"Photon Workshop\\PhotonWorkshop.exe"},
-		"creality":   {"Creality Print\\CrealityPrint.exe"},
+		"cura":        {"UltiMaker Cura\\UltiMaker Cura.exe", "Ultimaker Cura\\Ultimaker Cura.exe"},
+		"ideamaker":   {"ideaMaker\\ideaMaker.exe"},
+		"simplify3d":  {"Simplify3D\\Simplify3D.exe"},
+		"kisslicer":   {"KISSlicer\\KISSlicer.exe"},
+		"repetier":    {"Repetier-Host\\RepetierHost.exe"},
+		"chitubox":    {"CHITUBOX\\CHITUBOX.exe"},
+		"lychee":      {"LycheeSlicer\\LycheeSlicer.exe"},
+		"photon":      {"Photon Workshop\\PhotonWorkshop.exe"},
+		"creality":    {"Creality Print\\CrealityPrint.exe"},
 	}
 }
 
 func linuxCandidates() map[string][]string {
 	return map[string][]string{
-		"orca":       {"orca-slicer", "OrcaSlicer"},
-		"bambu":      {"bambu-studio", "BambuStudio"},
-		"prusa":      {"prusa-slicer", "PrusaSlicer"},
+		"orca":        {"orca-slicer", "OrcaSlicer"},
+		"bambu":       {"bambu-studio", "BambuStudio"},
+		"prusa":       {"prusa-slicer", "PrusaSlicer"},
 		"superslicer": {"superslicer", "SuperSlicer"},
-		"cura":       {"cura", "UltiMaker-Cura", "Cura"},
-		"ideamaker":  {"ideamaker", "ideaMaker"},
-		"simplify3d": {"simplify3d", "Simplify3D"},
-		"kisslicer":  {"KISSlicer"},
-		"repetier":   {"repetier-host", "RepetierHost"},
-		"chitubox":   {"chitubox", "CHITUBOX"},
-		"lychee":     {"lychee-slicer", "LycheeSlicer"},
-		"photon":     {"photon-workshop", "PhotonWorkshop"},
-		"creality":   {"creality-print", "CrealityPrint"},
+		"cura":        {"cura", "UltiMaker-Cura", "Cura"},
+		"ideamaker":   {"ideamaker", "ideaMaker"},
+		"simplify3d":  {"simplify3d", "Simplify3D"},
+		"kisslicer":   {"KISSlicer"},
+		"repetier":    {"repetier-host", "RepetierHost"},
+		"chitubox":    {"chitubox", "CHITUBOX"},
+		"lychee":      {"lychee-slicer", "LycheeSlicer"},
+		"photon":      {"photon-workshop", "PhotonWorkshop"},
+		"creality":    {"creality-print", "CrealityPrint"},
 	}
 }
 
@@ -433,26 +359,18 @@ func launchCommand(cmd string, args []string, filePath string) error {
 	return c.Start()
 }
 
-func openWithDefault(filePath string) error {
-	switch runtime.GOOS {
-	case "windows":
-		return exec.Command("cmd", "/c", "start", "", filePath).Start()
-	case "linux":
-		return exec.Command("xdg-open", filePath).Start()
-	default:
-		return fmt.Errorf("unsupported os: %s", runtime.GOOS)
-	}
-}
-
 func redactURL(raw string) string {
 	parsed, err := url.Parse(raw)
 	if err != nil {
-		return raw
+		return "[invalid URL redacted]"
 	}
 	q := parsed.Query()
 	if q.Has("token") {
 		q.Set("token", "REDACTED")
-		parsed.RawQuery = q.Encode()
 	}
+	if q.Has("grant") {
+		q.Set("grant", "REDACTED")
+	}
+	parsed.RawQuery = q.Encode()
 	return parsed.String()
 }

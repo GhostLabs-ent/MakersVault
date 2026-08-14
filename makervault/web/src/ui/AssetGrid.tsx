@@ -16,9 +16,11 @@ import {
   downloadZip,
   deleteAssetFile,
   deletePreparedPrint,
+  createHandoff,
   listAssetFiles,
   uploadAssetFile,
 } from "../lib/api";
+import { buildHandoffProtocolUrl } from "../lib/handoff";
 import ModelViewer, { ModelSnapshot } from "./ModelViewer";
 import LightBurnPreview from "./LightBurnPreview";
 import TagBadge from "./TagBadge";
@@ -539,28 +541,36 @@ export default function AssetGrid({
     }
   };
 
-  const openInSlicer = (asset: Asset) => {
+  const openInSlicer = async (asset: Asset) => {
     if (!slicerEnabled) return;
-    const url = fileUrl(asset.slicer_url || asset.url);
-    const params = new URLSearchParams({
-      url,
-      slicer: slicerSettings?.selected || "orca",
-      filename: asset.slicer_filename || asset.filename || "model",
-    });
-    const target = `makersvault-slicer://open?${params.toString()}`;
-    window.location.href = target;
+    try {
+      const handoff = await createHandoff(asset.id, "slicer");
+      window.location.href = buildHandoffProtocolUrl(
+        "slicer",
+        handoff,
+        slicerSettings?.selected || "orca",
+      );
+    } catch (err) {
+      if (!handleApiError(err, "Unable to open this file in the slicer.")) {
+        console.error(err);
+      }
+    }
   };
 
-  const openInEngraving = (asset: Asset) => {
+  const openInEngraving = async (asset: Asset) => {
     if (!engravingEnabled) return;
-    const url = fileUrl(asset.url);
-    const params = new URLSearchParams({
-      url,
-      engraver: engravingSettings?.selected || "lightburn",
-      filename: asset.filename || "design",
-    });
-    const target = `makersvault-engrave://open?${params.toString()}`;
-    window.location.href = target;
+    try {
+      const handoff = await createHandoff(asset.id, "engraver");
+      window.location.href = buildHandoffProtocolUrl(
+        "engraver",
+        handoff,
+        engravingSettings?.selected || "lightburn",
+      );
+    } catch (err) {
+      if (!handleApiError(err, "Unable to open this file in the engraving software.")) {
+        console.error(err);
+      }
+    }
   };
 
   const downloadSelected = async () => {

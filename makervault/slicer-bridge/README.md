@@ -1,118 +1,100 @@
 # MakerVault Bridge
 
-This helper registers the custom protocols `makersvault-slicer://` and
-`makersvault-engrave://`, launching slicing or engraving software with the
-downloaded file. It is required for the "Open in Slicer" and "Open in Engraving
-Software" buttons to work across Windows and Linux clients.
+The v5.1 bridge registers `makersvault-slicer://` and
+`makersvault-engrave://`, redeems a short-lived file grant from a paired
+MakersVault origin, and launches the selected slicing or engraving application.
 
-Protocol formats:
-`makersvault-slicer://open?url=<download-url>&slicer=<id>&filename=<name>`
-`makersvault-engrave://open?url=<download-url>&engraver=<id>&filename=<name>`
+The bridge no longer accepts arbitrary download URLs or administrator session
+tokens. It follows no download redirects, limits each file to 512 MiB by
+default, and never falls back to the operating-system default file opener.
 
-The `url` parameter should be a direct HTTP(s) download link. MakerVault
-already includes the auth token in that URL.
+## Install
 
-## Quick install (no shell commands)
-
-Download the latest Bridge binary for your OS from the
+Download the v5.1 bridge binary for your OS from the
 [MakerVault releases](https://github.com/VincentCinque/MakersVault/releases/latest)
-page and run it once. The installer registers the `makersvault-slicer://` and
-`makersvault-engrave://` protocol handlers and copies the binary into a stable location:
+page and run it once. The installer copies the binary to a stable location and
+registers both protocol handlers:
 
 - Windows: `%LOCALAPPDATA%\MakersVault\SlicerBridge\makersvault-slicer.exe`
 - Linux: `~/.local/bin/makersvault-slicer`
 
-If your Linux file manager blocks execution, mark the file as executable and run it once.
+If a Linux file manager blocks execution, mark the binary executable and run it
+once.
+
+## First handoff from an origin
+
+The first Open in Slicer or Open in Engraving Software request from a
+MakersVault API origin opens a local confirmation page in your browser. Confirm
+only the exact MakersVault address you intended to use. The bridge stores that
+origin in its local config; later handoffs from it remain one click.
+
+An HTTP origin is labeled as unencrypted and should be trusted only on a network
+you control. Remote MakersVault deployments should use HTTPS.
+
+Each handoff grant:
+
+- expires after 90 seconds;
+- authorizes one exact primary or prepared file;
+- is valid only for slicing or engraving, never both; and
+- cannot sign in to MakersVault or authorize another API route.
+
+If confirmation takes long enough for the first grant to expire, the origin is
+still paired; click Open in Slicer/Engraving again to receive a fresh grant.
 
 ## Build
 
-You need Go 1.26 or newer installed.
+Go 1.26 or newer is required.
 
-Windows (PowerShell):
+Windows:
+
 ```powershell
 cd makervault\slicer-bridge
 go build -o dist\slicer-bridge.exe .\cmd\slicer-bridge
 ```
 
-Linux (bash):
+Linux:
+
 ```bash
 cd makervault/slicer-bridge
 go build -o dist/slicer-bridge ./cmd/slicer-bridge
 ```
 
-## Install (manual)
+Manual install remains available through `slicer-bridge --install` or the
+scripts in `scripts/`.
 
-Windows (PowerShell):
-```powershell
-cd makervault\slicer-bridge\scripts
-.\install-windows.ps1 -BridgePath "..\dist\slicer-bridge.exe"
-```
+## Configuration
 
-Linux (bash):
-```bash
-cd makervault/slicer-bridge/scripts
-./install-linux.sh ../dist/slicer-bridge
-```
+Config location:
 
-You can also run the binary directly:
-`slicer-bridge --install`
+- Windows: `%APPDATA%\makersvault-slicer\config.json`
+- Linux: `~/.config/makersvault-slicer/config.json`
 
-If your shell blocks scripts, set the execution policy for the current user:
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-```
+`config.example.json` documents these optional settings:
 
-## Config
+- `download_dir`: cache/download directory.
+- `log_file`: bridge log path.
+- `trusted_origins`: exact origins confirmed on this computer.
+- `max_download_mb`: bridge-side file ceiling; default 512.
+- `slicers` / `engravers`: locally trusted custom command definitions.
 
-Create a config file if you want custom slicer or engraver paths or arguments:
+Environment command overrides remain supported, for example:
+`MAKERVAULT_SLICER_ORCA=/path/to/orca-slicer`.
 
-Windows: `%APPDATA%\makersvault-slicer\config.json`
-Linux: `~/.config/makersvault-slicer/config.json`
+## Built-in application IDs
 
-Use `config.example.json` as a template.
+Slicers: `orca`, `bambu`, `prusa`, `superslicer`, `cura`, `ideamaker`,
+`simplify3d`, `kisslicer`, `repetier`, `chitubox`, `lychee`, `photon`, and
+`creality`.
 
-Environment override (per slicer):
-`MAKERVAULT_SLICER_ORCA=C:\Path\To\OrcaSlicer.exe`
+Engravers: `lightburn` and `ezcad`.
 
-Environment override (per engraver):
-`MAKERVAULT_ENGRAVER_LIGHTBURN=C:\Path\To\LightBurn.exe`
-
-## Slicer IDs
-
-- orca
-- bambu
-- prusa
-- superslicer
-- cura
-- ideamaker
-- simplify3d
-- kisslicer
-- repetier
-- chitubox
-- lychee
-- photon
-- creality
-- other (opens with OS default)
-
-## Engraver IDs
-
-- lightburn
-- ezcad
-- other (opens with OS default)
-
-## Testing
-
-After install, paste this into your browser (replace URL):
-`makersvault-slicer://open?url=https://example.com/model.stl&slicer=orca&filename=model.stl`
-`makersvault-engrave://open?url=https://example.com/design.svg&engraver=lightburn&filename=design.svg`
+If the selected application cannot be found, the bridge records an actionable
+error in its log and does not download or open the file. Custom applications
+must be explicitly configured locally.
 
 ## Logs
 
-Log file location:
-Windows: `%APPDATA%\makersvault-slicer\bridge.log`
-Linux: `~/.config/makersvault-slicer/bridge.log`
+- Windows: `%APPDATA%\makersvault-slicer\bridge.log`
+- Linux: `~/.config/makersvault-slicer/bridge.log`
 
-## Notes
-
-- The bridge downloads files into the user cache directory unless configured.
-- If an app is not found, the file opens with the OS default app.
+Grant values are redacted from bridge logs.

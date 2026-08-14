@@ -500,7 +500,8 @@ export default function Settings({
           </div>
 
           <p className="text-xs opacity-70">
-            The Open in Slicer button launches the custom protocol with a signed download URL.
+            First use asks you to confirm the exact MakersVault origin locally. Each later
+            handoff uses a 90-second grant for one file and never shares your sign-in token.
           </p>
         </div>
       </div>
@@ -566,7 +567,8 @@ export default function Settings({
           </div>
 
           <p className="text-xs opacity-70">
-            The Open in Engraving Software button launches the custom protocol with a signed download URL.
+            First use asks you to confirm the exact MakersVault origin locally. Each later
+            handoff uses a 90-second grant for one file and never shares your sign-in token.
           </p>
         </div>
       </div>

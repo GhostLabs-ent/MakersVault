@@ -1,4 +1,4 @@
-from fastapi import BackgroundTasks, Depends, FastAPI, UploadFile, File, Form, HTTPException, Query, Response
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, UploadFile, File, Form, HTTPException, Query, Response
 from fastapi.responses import FileResponse
 from starlette.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
@@ -21,7 +21,10 @@ from auth import (
     AUTH_TOKEN_TTL,
     AUTH_SECRET,
     AUTH_ALGO,
+    HANDOFF_TOKEN_TTL,
+    create_handoff_token,
     create_token,
+    decode_handoff_token,
     require_auth,
     validate_auth_config,
 )
@@ -86,6 +89,8 @@ from schemas import (
     FolderOut,
     LoginRequest,
     LoginResponse,
+    HandoffGrantOut,
+    HandoffGrantRequest,
     DownloadRequest,
     TagUpdate,
     AssetMetaUpdate,
@@ -118,6 +123,12 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="MakerVault API", lifespan=lifespan)
+
+SLICER_HANDOFF_EXTS = {".stl", ".3mf", ".step", ".stp", ".obj", ".gcode", ".gco", ".bgcode"}
+ENGRAVER_HANDOFF_EXTS = {
+    ".svg", ".dxf", ".ai", ".eps", ".pdf", ".plt", ".hpgl", ".png", ".jpg",
+    ".jpeg", ".webp", ".bmp", ".gif", ".tif", ".tiff", ".lbrn", ".lbrn2", ".ezd",
+}
 
 
 def normalize_origin(raw: str) -> Optional[str]:
@@ -181,6 +192,12 @@ def resolve_asset_file(asset: Asset) -> Optional[Path]:
         if source.exists() and is_mount_source_allowed(source):
             return source
     return None
+
+
+def validate_handoff_extension(filename: str, tool: str) -> None:
+    allowed = SLICER_HANDOFF_EXTS if tool == "slicer" else ENGRAVER_HANDOFF_EXTS
+    if Path(filename or "").suffix.lower() not in allowed:
+        raise HTTPException(status_code=415, detail=f"File type is not supported for {tool} handoff")
 
 
 def folder_to_out(f: Folder) -> "FolderOut":
@@ -526,6 +543,121 @@ def get_prepared_print(asset_id: str, _: Optional[str] = Depends(require_auth)):
     if not path.exists():
         raise HTTPException(404)
     return FileResponse(path, media_type=mime or "application/octet-stream", filename=filename)
+
+
+@app.post("/asset/{asset_id}/handoff", response_model=HandoffGrantOut)
+def create_asset_handoff(
+    asset_id: str,
+    body: HandoffGrantRequest,
+    response: Response,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        asset = session.get(Asset, asset_id)
+        if not asset:
+            raise HTTPException(404)
+
+        file_kind = "primary"
+        file_id = asset.id
+        filename = asset.filename
+        size = int(asset.size or 0)
+        path = resolve_asset_file(asset)
+        if body.tool == "slicer" and asset.prepared_file_id:
+            record = session.get(AssetFile, asset.prepared_file_id)
+            if not record or record.asset_id != asset.id or record.role != "prepared":
+                raise HTTPException(status_code=409, detail="Prepared file record is unavailable")
+            file_kind = "prepared"
+            file_id = record.id
+            filename = record.filename
+            size = int(record.size or 0)
+            path = managed_asset_file_path(record)
+
+    validate_handoff_extension(filename, body.tool)
+    if not path or not path.exists() or not path.is_file():
+        raise HTTPException(status_code=404, detail="Handoff file is unavailable")
+    try:
+        actual_size = path.stat().st_size
+    except OSError as exc:
+        raise HTTPException(status_code=404, detail="Handoff file is unavailable") from exc
+    if actual_size != size:
+        raise HTTPException(status_code=409, detail="Handoff file changed; refresh the asset and try again")
+
+    grant = create_handoff_token(asset_id, file_kind, file_id, body.tool, filename, size)
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["Pragma"] = "no-cache"
+    return HandoffGrantOut(
+        redeem_url="/handoff/redeem",
+        grant=grant,
+        filename=filename,
+        expires_in=HANDOFF_TOKEN_TTL,
+    )
+
+
+@app.get("/handoff/redeem")
+def redeem_handoff(
+    authorization: Optional[str] = Header(default=None, alias="Authorization"),
+    tool: Optional[str] = Header(default=None, alias="X-MakerVault-Handoff-Tool"),
+):
+    prefix = "MakerVault-Handoff "
+    if not authorization or not authorization.startswith(prefix):
+        raise HTTPException(status_code=401, detail="Handoff grant is required")
+    if tool not in {"slicer", "engraver"}:
+        raise HTTPException(status_code=400, detail="Handoff tool is required")
+    payload = decode_handoff_token(authorization[len(prefix):].strip())
+    if payload.get("tool") != tool:
+        raise HTTPException(status_code=403, detail="Handoff grant is not valid for this tool")
+
+    asset_id = payload.get("sub")
+    file_kind = payload.get("file_kind")
+    file_id = payload.get("file_id")
+    filename = payload.get("filename")
+    expected_size = payload.get("size")
+    if not all(isinstance(value, str) and value for value in (asset_id, file_id, filename)):
+        raise HTTPException(status_code=401, detail="Invalid handoff grant")
+    if not isinstance(expected_size, int) or isinstance(expected_size, bool) or expected_size < 0:
+        raise HTTPException(status_code=401, detail="Invalid handoff grant")
+
+    with Session(engine) as session:
+        asset = session.get(Asset, asset_id)
+        if not asset:
+            raise HTTPException(status_code=404, detail="Handoff asset no longer exists")
+        if file_kind == "primary":
+            if file_id != asset.id or filename != asset.filename or expected_size != int(asset.size or 0):
+                raise HTTPException(status_code=409, detail="Handoff file changed")
+            path = resolve_asset_file(asset)
+            mime = asset.mime
+        else:
+            record = session.get(AssetFile, file_id)
+            if (
+                not record
+                or record.asset_id != asset.id
+                or record.role != "prepared"
+                or asset.prepared_file_id != record.id
+                or filename != record.filename
+                or expected_size != int(record.size or 0)
+            ):
+                raise HTTPException(status_code=409, detail="Handoff file changed")
+            path = managed_asset_file_path(record)
+            mime = record.mime
+
+    validate_handoff_extension(filename, tool)
+    if not path or not path.exists() or not path.is_file():
+        raise HTTPException(status_code=404, detail="Handoff file is unavailable")
+    try:
+        if path.stat().st_size != expected_size:
+            raise HTTPException(status_code=409, detail="Handoff file changed")
+    except OSError as exc:
+        raise HTTPException(status_code=404, detail="Handoff file is unavailable") from exc
+    return FileResponse(
+        path,
+        media_type=mime or "application/octet-stream",
+        filename=filename,
+        headers={
+            "Cache-Control": "private, no-store",
+            "Pragma": "no-cache",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @app.delete("/asset/{asset_id}/prepared-print", response_model=AssetOut)

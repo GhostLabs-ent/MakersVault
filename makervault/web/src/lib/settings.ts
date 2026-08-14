@@ -14,7 +14,6 @@ export const SLICER_OPTIONS: SlicerOption[] = [
   { id: "lychee", label: "Lychee Slicer" },
   { id: "photon", label: "Anycubic Photon Workshop" },
   { id: "creality", label: "Creality Print" },
-  { id: "other", label: "Other / Manual" },
 ];
 
 export type EngraverOption = { id: string; label: string };
@@ -22,7 +21,6 @@ export type EngraverOption = { id: string; label: string };
 export const ENGRAVER_OPTIONS: EngraverOption[] = [
   { id: "lightburn", label: "LightBurn" },
   { id: "ezcad", label: "EZCAD" },
-  { id: "other", label: "Other / Manual" },
 ];
 
 export type ThemeId = "system" | "light" | "dark" | "neon" | "purple" | "blue";

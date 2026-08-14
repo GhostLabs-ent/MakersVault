@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Literal, Optional
 from pydantic import BaseModel
 
 
@@ -107,6 +107,17 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(BaseModel):
   token: str
+  expires_in: int
+
+
+class HandoffGrantRequest(BaseModel):
+  tool: Literal["slicer", "engraver"]
+
+
+class HandoffGrantOut(BaseModel):
+  redeem_url: str
+  grant: str
+  filename: str
   expires_in: int
 
 

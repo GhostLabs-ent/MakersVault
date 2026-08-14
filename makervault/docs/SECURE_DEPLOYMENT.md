@@ -96,6 +96,24 @@ replace the validated destination with a proxy connection. Outbound proxy suppor
 is not part of the v5.1 trust contract. Private-network URL imports remain
 unsupported; use the read-only mounted-import workflow for local files.
 
+## Slicer and engraver bridge trust
+
+v5.1 requires the v5.1 bridge. Older bridge binaries accept the retired
+administrator-token/arbitrary-URL protocol and are not compatible with the v5.1
+web handoff.
+
+On first use, the bridge opens a confirmation page served only from a random
+loopback address and displays the exact MakersVault API origin. Confirm only the
+address you intended to use. HTTPS is expected for remote deployments; an HTTP
+origin should be trusted only on a LAN you control. Confirmed origins are stored
+in the bridge's local `trusted_origins` config.
+
+Every handoff is limited to one file and slicing or engraving for 90 seconds.
+The administrator token is not shared with the bridge. The bridge does not follow
+redirects or invoke the OS default file opener, and it removes partial downloads
+that exceed its default 512 MiB ceiling. Select an installed built-in application
+or define a trusted custom command in the local bridge config.
+
 ## Supported network posture
 
 - Localhost and a genuinely trusted LAN may use direct access. Plain HTTP does

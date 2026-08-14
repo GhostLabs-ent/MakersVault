@@ -1,5 +1,6 @@
 import { appendTokenToUrl, authHeaders } from "./auth";
 import { loadSettings } from "./settings";
+import { HandoffGrant, HandoffTool } from "./handoff";
 
 export class UnauthorizedError extends Error {
   constructor(message = "Unauthorized") {
@@ -471,6 +472,23 @@ export async function updateAssetFolder(id: string, folder_id: string | null) {
     throw new Error(await readErrorMessage(res, "Folder update failed"));
   }
   return res.json();
+}
+
+export async function createHandoff(id: string, tool: HandoffTool): Promise<HandoffGrant> {
+  const res = await fetch(`${apiBase()}/asset/${id}/handoff`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ tool }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Unable to create bridge handoff"));
+  }
+  const handoff = await res.json() as HandoffGrant;
+  return {
+    ...handoff,
+    redeem_url: `${apiBase()}${handoff.redeem_url}`,
+  };
 }
 
 export function fileUrl(rel: string) {

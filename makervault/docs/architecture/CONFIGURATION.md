@@ -1,6 +1,6 @@
 # MakersVault Configuration Inventory
 
-**Baseline:** Gate 1 slice 1D candidate, 2026-08-14
+**Baseline:** Gate 1 slice 1E candidate, 2026-08-14
 
 This inventory records configuration ownership. It does not replace the secure
 deployment guidance required by Gate 1.
@@ -101,3 +101,15 @@ storage separately.
 
 The current database-backed settings are mounted-import enable/copy behavior and
 the managed-storage template. These settings are shared by the instance.
+
+## Bridge-local settings
+
+The bridge config is local to each workstation and is not an API `AppConfig`:
+
+| Field | Default | Effect |
+|---|---:|---|
+| `trusted_origins` | empty | Exact API origins approved through the loopback confirmation page. |
+| `max_download_mb` | `512` | Per-handoff streamed file ceiling. |
+| `download_dir` | OS user cache | Destination for redeemed handoff files. |
+| `log_file` | OS user config | Bridge log; grant values are redacted. |
+| `slicers`, `engravers` | empty maps | Explicitly trusted custom command/argument definitions. |
