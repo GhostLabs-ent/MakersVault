@@ -1,8 +1,8 @@
 # Gate 0 Security Finding Revalidation
 
-**Status:** Evidence review
+**Status:** Gate 0 record; updated by Gate 1 evidence
 
-**Revalidated:** 2026-08-13
+**Revalidated:** 2026-08-13; MV-SEC-002 candidate updated 2026-08-14
 
 **Committed anchor:** `80ddc5bb8849c0532ecf4de91010e450df28b940`
 
@@ -19,7 +19,7 @@ suite to remain green before release.
 | ID | Disposition | Current evidence | Owning gate |
 |---|---|---|---|
 | MV-SEC-001 | `CONFIRMED` | The bridge accepts any HTTP(S) `url`, downloads it, and can fall back to the OS default opener. Gate 0 tests only establish its current parser boundary. | Gate 1: scoped, short-lived handoff grants; origin, role, size, redirect, and opener restrictions. |
-| MV-SEC-002 | `CONFIRMED` | `api/auth.py`, production Compose, `.env.example`, and README still contain known credential/signing fallbacks or examples. | Gate 1: secure first-run/explicit environment and compatibility migration. |
+| MV-SEC-002 | `RESOLVED IN GATE 1 SLICE 1A CANDIDATE` | Production Compose requires explicit password/signing-secret values; API startup rejects missing, published, short, or reused secrets; the setup helper generates deployment-specific values without overwriting an existing `.env`. | Gate 1 slice 1A verification and local commit. |
 | MV-SEC-003 | `CONFIRMED` | Initial and final URL strings are validated, but `urllib` resolves/connects and follows redirects before final validation. DNS/redirect TOCTOU remains unproven. | Gate 1: controlled redirect/connection implementation and adversarial tests. |
 | MV-SEC-004 | `CONFIRMED` | `python-multipart==0.0.9` remains pinned. Current `pip-audit` reports multiple records with fixes in newer releases. | Gate 1: compatible dependency upgrade plus upload regression tests. |
 | MV-SEC-005 | `CONFIRMED` | `Pillow==10.4.0` remains pinned and processes user-controlled images. Current `pip-audit` reports multiple fixed advisories. | Gate 1: upgrade and malicious/oversized-image tests. |

@@ -17,8 +17,9 @@ verify-bridge:
 
 verify-compose:
 	cd makervault && docker compose -f docker-compose.yml config -q
-	cd makervault && docker compose -f docker-compose.deploy.yml config -q
-	cd makervault && docker compose -f docker-deploy.yml config -q
+	cd makervault && AUTH_PASSWORD=compose-verification-password AUTH_SECRET=compose-verification-signing-secret-32-bytes docker compose --env-file /dev/null -f docker-compose.deploy.yml config -q
+	cd makervault && AUTH_PASSWORD=compose-verification-password AUTH_SECRET=compose-verification-signing-secret-32-bytes docker compose --env-file /dev/null -f docker-deploy.yml config -q
+	cd makervault && ./scripts/verify-compose-security.sh
 	cd makervault && docker compose -f docker-compose.yml -f docker-compose.smoke.yml config -q
 
 verify-smoke:

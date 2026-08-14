@@ -66,5 +66,6 @@ same-origin gateway itself.
 - If the external proxy shares the Compose network, attach it to the MakersVault
   network and target service `web` on port `5173`; otherwise target the host's
   published web port.
-- Do not expose the current beta directly to the Internet. Gate 1 must complete
-  secure first-run, dependency, request-limit, and handoff hardening first.
+- Remote access requires HTTPS at the reverse proxy or equivalent protection from
+  a private network/VPN. Direct public exposure of MakersVault ports is
+  unsupported for v5.1.

@@ -5,9 +5,10 @@ services:
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
+      - MAKERSVAULT_ENV=production
       - AUTH_USERNAME=${AUTH_USERNAME:-admin}
-      - AUTH_PASSWORD=${AUTH_PASSWORD:-super-secret}
-      - AUTH_SECRET=${AUTH_SECRET:-changeme-secret}
+      - AUTH_PASSWORD=${AUTH_PASSWORD:?AUTH_PASSWORD is required; run ./scripts/setup-env.sh}
+      - AUTH_SECRET=${AUTH_SECRET:?AUTH_SECRET is required; run ./scripts/setup-env.sh}
       - AUTH_TOKEN_TTL=${AUTH_TOKEN_TTL:-43200}
       - FILE_STORAGE=/app/storage
       - DB_URL=sqlite:////app/data/app.db

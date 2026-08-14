@@ -1,4 +1,3 @@
-import os
 import time
 import jwt
 from jwt import PyJWTError
@@ -6,13 +5,20 @@ from fastapi import Depends, HTTPException, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from typing import Optional
 
-AUTH_USERNAME = os.getenv("AUTH_USERNAME", "admin")
-AUTH_PASSWORD = os.getenv("AUTH_PASSWORD", "super-secret")
-AUTH_SECRET = os.getenv("AUTH_SECRET", "changeme-secret")
-AUTH_TOKEN_TTL = int(os.getenv("AUTH_TOKEN_TTL", "43200"))
+from security_config import load_security_config, validate_security_config
+
+SECURITY_CONFIG = load_security_config()
+AUTH_USERNAME = SECURITY_CONFIG.username
+AUTH_PASSWORD = SECURITY_CONFIG.password
+AUTH_SECRET = SECURITY_CONFIG.secret
+AUTH_TOKEN_TTL = SECURITY_CONFIG.token_ttl
 AUTH_ALGO = "HS256"
 AUTH_ENABLED = bool(AUTH_USERNAME and AUTH_PASSWORD)
 auth_scheme = HTTPBearer(auto_error=False)
+
+
+def validate_auth_config() -> None:
+  validate_security_config(SECURITY_CONFIG)
 
 
 def create_token(username: str) -> str:

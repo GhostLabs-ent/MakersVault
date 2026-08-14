@@ -23,6 +23,7 @@ from auth import (
     AUTH_ALGO,
     create_token,
     require_auth,
+    validate_auth_config,
 )
 from asset_service import (
     STORAGE_TEMPLATE_TOKENS,
@@ -98,6 +99,7 @@ from url_utils import normalize_import_url
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    validate_auth_config()
     run_migrations(engine)
     threading.Thread(target=backfill_embedded_thumbnails, daemon=True).start()
     threading.Thread(target=backfill_prepared_print_metadata, daemon=True).start()

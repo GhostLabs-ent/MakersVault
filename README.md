@@ -38,39 +38,22 @@
 
 ```bash
 cd makervault
+./scripts/setup-env.sh
 docker compose -f docker-compose.deploy.yml up -d
 ```
 
 <p><code>makervault/docker-compose.deploy.yml</code> is the canonical production manifest. <code>makervault/docker-compose.yml</code> is the canonical local source-build manifest. The historical <code>docker-deploy.yml</code> filename is retained only as a compatibility alias.</p>
-<p><strong>Security notice:</strong> the current beta authentication defaults are suitable only for a trusted local test deployment. Do not expose the current build directly to the Internet. Secure first-run configuration is a v5.1 release gate.</p>
+<p><strong>Security notice:</strong> production startup requires an explicit administrator password and deployment-specific signing secret. The setup helper creates both without overwriting an existing <code>.env</code>. Do not expose MakersVault ports directly to the public Internet.</p>
 
 <h3>Setting up the .env file</h3>
-<p>Create a <strong>.env</strong> file in the same folder as <code>docker-compose.yml</code>. Start with this baseline:</p>
+<p>From the <code>makervault</code> directory, generate a new <strong>.env</strong> file:</p>
 
-```yaml
-PUID=1000
-PGID=1000
-API_IMAGE=shotgunwilly555/makersvault-api:latest
-WEB_IMAGE=shotgunwilly555/makersvault-web:latest
-FILE_STORAGE=/app/storage
-DB_URL=sqlite:///./app.db
-API_PORT=8000
-PUBLIC_URL=
-CORS_ORIGINS=
-VITE_API_URL=
-VITE_ALLOWED_HOSTS=
-AUTH_USERNAME=admin
-AUTH_PASSWORD=super-secret
-AUTH_SECRET=replace-with-random-secret
-AUTH_TOKEN_TTL=43200
-IMPORT_MOUNT_PATH=/imports
-IMPORT_MOUNT_PATH_HOST=/path/to/imports
-IMPORT_MOUNT_EXTS=stl,3mf,step,stp,obj,svg,png,jpg,jpeg,webp,bmp,lbrn,lbrn2,zip
-IMPORT_MOUNT_INCLUDE_HIDDEN=false
-IMPORT_MOUNT_ON_STARTUP=true
+```bash
+./scripts/setup-env.sh
 ```
 
-<p>For direct/LAN mode, set <code>VITE_API_URL</code> to a browser-reachable API URL (for example, <code>http://10.0.0.160:8000</code>).</p>
+<p>The helper writes the canonical <code>.env.example</code> values, generates a random administrator password and 256-bit signing secret, protects the file with mode <code>600</code>, and prints the password once. For an existing installation, keep the current <code>.env</code> and follow the <a href="makervault/docs/SECURE_DEPLOYMENT.md">secure deployment and upgrade guide</a>.</p>
+<p>For direct/LAN mode, set <code>VITE_API_URL</code> to a browser-reachable API URL (for example, <code>http://10.0.0.160:8000</code>). Plain HTTP is appropriate only on a genuinely trusted network because it does not protect credentials or tokens from network observers.</p>
 
 <h3>Reverse Proxy Support (Any Provider)</h3>
 <p>Makers Vault is reverse-proxy agnostic. Nginx Proxy Manager, Traefik, Nginx, Caddy, HAProxy, and Apache all work.</p>
@@ -122,7 +105,7 @@ VITE_ALLOWED_HOSTS=
   <li>Public login fails while LAN/direct works: clear/avoid hardcoded private-IP <code>VITE_API_URL</code> for proxied access.</li>
 </ul>
 
-<p>Change the default credentials in <code>.env</code> before exposing the app publicly.</p>
+<p>Remote access is supported through an HTTPS reverse proxy or a private network/VPN. Direct public exposure of the API or web ports is unsupported for v5.1.</p>
 
 <h2>Contributing</h2> 
 <p>Contributions are always welcome, whether it be bug fixes or feature improvements. For large changes, please open a discussion first!</p> <h2>Feature Requests and Bug Reporting</h2> <p>For bug reports or feature improvement requests, please open an issue or start a discussion thread.</p> 

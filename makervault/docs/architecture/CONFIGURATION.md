@@ -1,6 +1,6 @@
 # MakersVault Configuration Inventory
 
-**Baseline:** Gate 0, 2026-08-13
+**Baseline:** Gate 1 slice 1A candidate, 2026-08-14
 
 This inventory records configuration ownership. It does not replace the secure
 deployment guidance required by Gate 1.
@@ -12,7 +12,7 @@ deployment guidance required by Gate 1.
 | Local source build | `makervault/docker-compose.yml` |
 | Production images | `makervault/docker-compose.deploy.yml` |
 | Historical production alias | `makervault/docker-deploy.yml` |
-| API example environment | `makervault/api/.env.example` |
+| Canonical environment example | `makervault/.env.example` |
 
 ## API and container settings
 
@@ -22,9 +22,10 @@ deployment guidance required by Gate 1.
 | `CHOWN_MODE` | `minimal` | API entrypoint; `recursive` opts into a full data-tree ownership repair. |
 | `FILE_STORAGE` | `./storage` in code; `/app/storage` in Compose | Managed primary, thumbnail, and bundle root. |
 | `DB_URL` | `sqlite:///./app.db` in code | SQLAlchemy database URL; Compose uses `/app/data/app.db`. |
-| `AUTH_USERNAME` | `admin` | Current single-admin identity. Gate 1 must remove unsafe production fallback behavior. |
-| `AUTH_PASSWORD` | `super-secret` | Current single-admin secret. Confirmed Gate 1 blocker. |
-| `AUTH_SECRET` | `changeme-secret` | JWT signing secret. Confirmed Gate 1 blocker. |
+| `MAKERSVAULT_ENV` | `production` in code and production; explicit `development` in source Compose | Selects the fail-closed validation policy. |
+| `AUTH_USERNAME` | `admin` | Current single-admin identity; it is not treated as a secret. |
+| `AUTH_PASSWORD` | none in production | Required in production; at least 12 characters and not a published placeholder. |
+| `AUTH_SECRET` | none in production | Required deployment-specific JWT secret; at least 32 bytes and distinct from the password. |
 | `AUTH_TOKEN_TTL` | `43200` seconds | JWT lifetime. |
 | `PUBLIC_URL` | empty | Public browser origin; also allows web runtime API derivation. |
 | `CORS_ORIGINS` | derived or localhost | Comma-separated browser origins accepted by API CORS middleware. |

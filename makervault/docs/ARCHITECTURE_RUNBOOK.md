@@ -192,7 +192,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-002 | `VERIFIED` | The web client is React/Vite and performs substantial preview work in the browser. | `web/package.json`, `web/src/ui/ModelViewer.tsx`, `AssetGrid.tsx` | Preview work needs hard budgets and persisted outcomes. |
 | T-003 | `VERIFIED` | Production web packaging is a static build served by unprivileged Nginx with runtime API configuration. | `web/Dockerfile`, `web/nginx.conf`, `web/40-runtime-config.sh` | The former production Vite-server finding is resolved in the Gate 0 baseline. |
 | T-004 | `VERIFIED` | Production deployment separates `/app/data` and `/app/storage`; development layout differs. | Docker Compose files | Backup instructions must distinguish production and development. |
-| T-005 | `VERIFIED` | Published deployment examples contain known fallback admin credentials and signing secrets. | deploy Compose files and `.env.example` | Fresh-production secret handling is a v5.1 blocker. |
+| T-005 | `VERIFIED` | Production Compose requires explicit credentials, and API startup independently rejects missing, published, short, or reused secrets. Development fixtures require an explicit non-production mode. | `api/security_config.py`, Compose manifests, Gate 1 slice 1A evidence | Authentication configuration is fail-closed; later Gate 1 slices still govern network, token, and bridge exposure. |
 | T-006 | `VERIFIED` | Auth is one environment-configured administrator with 12-hour HS256 JWTs. There is no user, role, revocation, or MFA model. | `api/auth.py`, models | Multi-user security is a later dedicated architecture gate. |
 | T-007 | `VERIFIED` | Some file handoffs place bearer material in URLs, including custom-protocol handoff. | API schemas/routes and bridge code | Replace broad reusable bearer URLs with narrow, short-lived grants. |
 | T-008 | `VERIFIED` | The bridge accepts custom protocol input, downloads a URL, caches the result, and launches a local application. | `slicer-bridge` source | The bridge is a workstation trust boundary and needs protocol hardening. |
@@ -413,9 +413,11 @@ policy can be reverted while the preserved working snapshot remains recoverable.
 
 ### Gate 1 — Harden v5.1 trust boundaries and deployment
 
-**Current execution:** `READY` as of 2026-08-14. Gate 0 is accepted. Begin with
-secure first-run configuration and bridge handoff design, preserving each
-security finding as an explicit evidence-backed work item.
+**Current execution:** `IN PROGRESS` as of 2026-08-14. Entry evidence and the
+first owner checkpoint are recorded in
+[evidence/gate-1/BASELINE.md](evidence/gate-1/BASELINE.md). Both owner decisions
+are accepted. Fail-closed production configuration is implemented and locally
+verified in [slice 1A evidence](evidence/gate-1/SLICE_1A_RESULTS.md).
 
 **Objective:** Make a fresh v5.1 deployment safe by default for its stated
 single-admin, self-hosted scope.
@@ -954,7 +956,6 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Begin Gate 1 by freezing its entry evidence and mapping each accepted security
-finding to a testable change, migration/rollback impact, and operator-facing
-behavior. Present any trust-boundary or secret-management choice that materially
-changes deployment behavior at the owner checkpoint before implementation.
+Commit the verified Gate 1 slice 1A locally, then begin slice 1B as an isolated
+dependency/toolchain upgrade with fresh audit evidence. Do not mix bridge,
+import, or parser behavior into the dependency change.

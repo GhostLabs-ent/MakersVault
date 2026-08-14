@@ -13,7 +13,7 @@ def test_health_and_authenticated_library_smoke() -> None:
 
         login = client.post(
             "/login",
-            json={"username": "admin", "password": "super-secret"},
+            json={"username": "admin", "password": "test-only-password"},
         )
         assert login.status_code == 200
         token = login.json()["token"]

@@ -6,6 +6,11 @@ services:
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
+      - MAKERSVAULT_ENV=development
+      - AUTH_USERNAME=${AUTH_USERNAME:-admin}
+      - AUTH_PASSWORD=${AUTH_PASSWORD:-local-development-only}
+      - AUTH_SECRET=${AUTH_SECRET:-local-development-signing-secret-never-use-in-production}
+      - AUTH_TOKEN_TTL=${AUTH_TOKEN_TTL:-43200}
       - FILE_STORAGE=/app/storage
       - DB_URL=sqlite:////app/data/app.db
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173}
