@@ -413,8 +413,8 @@ policy can be reverted while the preserved working snapshot remains recoverable.
 
 ### Gate 1 — Harden v5.1 trust boundaries and deployment
 
-**Current execution:** `IMPLEMENTATION COMPLETE; OWNER CLOSEOUT PENDING` as of
-2026-08-14. Entry evidence and the
+**Current execution:** `ACCEPTED` as of 2026-08-14. Final evidence is recorded in
+[evidence/gate-1/RESULTS.md](evidence/gate-1/RESULTS.md). Entry evidence and the
 first owner checkpoint are recorded in
 [evidence/gate-1/BASELINE.md](evidence/gate-1/BASELINE.md). Both owner decisions
 are accepted. Fail-closed production configuration is implemented and locally
@@ -434,8 +434,9 @@ now owner-approved and locally verified in
 single-admin login/session residual-risk contract, security headers, host policy,
 and final deployment guidance are now locally verified in
 [slice 1F evidence](evidence/gate-1/SLICE_1F_RESULTS.md). All Gate 1 slices are
-implemented and locally verified. The immediate next action is the owner Gate 1
-closeout checkpoint before Gate 2 begins.
+implemented, locally verified, and owner-accepted. The commits remain local by
+owner decision until coordinated v5.1 rollout. Gate 2 is eligible to open from a
+measured preview baseline.
 
 **Objective:** Make a fresh v5.1 deployment safe by default for its stated
 single-admin, self-hosted scope.
@@ -477,6 +478,10 @@ deployments. A documented environment migration restores service without reverti
 to known credentials. File-format changes are not allowed in this gate.
 
 ### Gate 2 — Bound preview work and prove library responsiveness
+
+**Current execution:** `NOT OPENED`. Gates 0 and 1 are accepted. The next action
+is to create the Gate 2 entry record and benchmark-corpus contract before
+selecting numeric preview budgets or changing preview behavior.
 
 **Objective:** Ensure no single model can freeze the library and cached libraries
 remain fast.

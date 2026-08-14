@@ -2,7 +2,7 @@
 
 **Gate:** 1 — Harden v5.1 trust boundaries and deployment
 
-**Status:** Implementation complete; owner closeout pending
+**Status:** Accepted; see [RESULTS.md](RESULTS.md)
 
 **Opened:** 2026-08-14
 
@@ -116,3 +116,10 @@ operation.
 Both owner-checkpoint recommendations are accepted. Slice 1A implementation is
 authorized; later slices retain their stated entry dependencies and any new
 owner checkpoints.
+
+## Closeout
+
+All six implementation slices passed the complete local verification harness.
+The owner accepted Gate 1 closeout on 2026-08-14. Final exit evidence, rollback
+points, publication state, and forward-assigned residual risks are recorded in
+[RESULTS.md](RESULTS.md).

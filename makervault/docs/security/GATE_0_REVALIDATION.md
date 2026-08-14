@@ -1,8 +1,8 @@
 # Gate 0 Security Finding Revalidation
 
-**Status:** Gate 0 record; updated by Gate 1 evidence
+**Status:** Gate 0 record; reconciled through accepted Gate 1 evidence
 
-**Revalidated:** 2026-08-13; Gate 1 candidate updates recorded 2026-08-14
+**Revalidated:** 2026-08-13; Gate 1 accepted updates recorded 2026-08-14
 
 **Committed anchor:** `80ddc5bb8849c0532ecf4de91010e450df28b940`
 
@@ -18,22 +18,22 @@ suite to remain green before release.
 
 | ID | Disposition | Current evidence | Owning gate |
 |---|---|---|---|
-| MV-SEC-001 | `RESOLVED IN GATE 1 SLICE 1E CANDIDATE` | The bridge accepts only 90-second exact-file grants from explicitly paired origins at the fixed redemption path; it rejects redirects/legacy URLs, bounds downloads, checks role extensions, and launches only built-in or locally configured applications without an OS-default file opener. | Gate 1 slice 1E verification and matched v5.1 bridge release. |
-| MV-SEC-002 | `RESOLVED IN GATE 1 SLICE 1A CANDIDATE` | Production Compose requires explicit password/signing-secret values; API startup rejects missing, published, short, or reused secrets; the setup helper generates deployment-specific values without overwriting an existing `.env`. | Gate 1 slice 1A verification and local commit. |
-| MV-SEC-003 | `RESOLVED IN GATE 1 SLICE 1D CANDIDATE` | Every import and source-resolver request validates all DNS answers, connects to the exact validated numeric peer, manually validates each redirect, rejects HTTPS downgrade, and strips cross-origin credentials. DNS-change, private-redirect, and live public-network probes pass. | Gate 1 slice 1D verification. |
-| MV-SEC-004 | `RESOLVED IN GATE 1 SLICE 1B CANDIDATE` | `python-multipart==0.0.32` and the compatible FastAPI/Starlette set pass API/upload smoke tests; the resolved runtime lock audits clean. | Gate 1 slice 1B verification; slice 1C still owns explicit request and parser budgets. |
-| MV-SEC-005 | `RESOLVED IN GATE 1 SLICE 1B CANDIDATE` | `Pillow==12.3.0` passes existing image/thumbnail behavior and the resolved runtime lock audits clean. | Gate 1 slice 1B verification; slice 1C still owns malicious/oversized-image bounds. |
-| MV-SEC-006 | `RESOLVED IN GATE 1 SLICE 1C CANDIDATE` | Direct, supporting, remote, mounted, and extracted files share a streamed per-file ceiling and free-space reserve; ZIP enumeration, selection, expansion, ratio, 3MF metadata, and image decode work have explicit budgets. Ordinary multi-file imports retain unlimited batch count. | Gate 1 slice 1C verification; Gate 2 still owns browser preview time/complexity budgets. |
+| MV-SEC-001 | `RESOLVED IN ACCEPTED GATE 1` | The bridge accepts only 90-second exact-file grants from explicitly paired origins at the fixed redemption path; it rejects redirects/legacy URLs, bounds downloads, checks role extensions, and launches only built-in or locally configured applications without an OS-default file opener. | Gate 1 slice 1E verification and matched v5.1 bridge release. |
+| MV-SEC-002 | `RESOLVED IN ACCEPTED GATE 1` | Production Compose requires explicit password/signing-secret values; API startup rejects missing, published, short, or reused secrets; the setup helper generates deployment-specific values without overwriting an existing `.env`. | Gate 1 slice 1A verification and local commit. |
+| MV-SEC-003 | `RESOLVED IN ACCEPTED GATE 1` | Every import and source-resolver request validates all DNS answers, connects to the exact validated numeric peer, manually validates each redirect, rejects HTTPS downgrade, and strips cross-origin credentials. DNS-change, private-redirect, and live public-network probes pass. | Gate 1 slice 1D verification. |
+| MV-SEC-004 | `RESOLVED IN ACCEPTED GATE 1` | `python-multipart==0.0.32` and the compatible FastAPI/Starlette set pass API/upload smoke tests; the resolved runtime lock audits clean. | Gate 1 slice 1B verification. |
+| MV-SEC-005 | `RESOLVED IN ACCEPTED GATE 1` | `Pillow==12.3.0` passes existing image/thumbnail behavior and the resolved runtime lock audits clean. | Gate 1 slice 1B verification. |
+| MV-SEC-006 | `RESOLVED IN ACCEPTED GATE 1` | Direct, supporting, remote, mounted, and extracted files share a streamed per-file ceiling and free-space reserve; ZIP enumeration, selection, expansion, ratio, 3MF metadata, and image decode work have explicit budgets. Ordinary multi-file imports retain unlimited batch count. | Gate 1 slice 1C verification; Gate 2 owns browser preview time/complexity budgets. |
 | MV-SEC-007 | `PARTIALLY RESOLVED; V5.1 RESIDUAL ACCEPTED IN SLICE 1F` | Bridge handoff uses a derived-key exact-file grant and never receives the administrator JWT. Browser previews/file URLs retain query-token compatibility with remote HTTPS, no-referrer, private/no-store, session-only persistence, and CSP as compensating controls. | Gate 2 measured preview delivery and final Gate 11 session/file-delivery architecture. |
-| MV-SEC-008 | `PARTIALLY MITIGATED IN GATE 1 SLICE 1F CANDIDATE` | The primary JWT migrates from persistent local storage to session storage; CSP narrows script execution. Active-page XSS can still read it. | Gate 11 HttpOnly/session architecture and revocation. |
+| MV-SEC-008 | `PARTIALLY MITIGATED IN ACCEPTED GATE 1` | The primary JWT migrates from persistent local storage to session storage; CSP narrows script execution. Active-page XSS can still read it. | Gate 11 HttpOnly/session architecture and revocation. |
 | MV-SEC-009 | `LOGIN ABUSE RESOLVED; SESSION LIFECYCLE DEFERRED` | Bounded progressive source/identity cooldowns, constant-time checks, generic responses, and secret-free audit events protect the single-process login. JWTs still have no durable revocation store. | Gate 1 slice 1F for login abuse; Gate 11 for durable session lifecycle. |
-| MV-SEC-010 | `RESOLVED IN CANDIDATE` | The current multi-stage web image builds with Vite and serves only static output through `nginxinc/nginx-unprivileged`; the container smoke test observes web PID 1 as UID 101. | Gate 0 verification; Gate 1 still owns headers and host policy. |
-| MV-SEC-011 | `RESOLVED IN GATE 1 SLICE 1C CANDIDATE` | Mounted candidates reject symlinks in every path component; copy and no-copy inspection open the source with `O_NOFOLLOW`, require a regular descriptor beneath the configured root, and copy from that verified descriptor. | Gate 1 slice 1C verification. |
+| MV-SEC-010 | `RESOLVED IN ACCEPTED GATE 0` | The current multi-stage web image builds with Vite and serves only static output through `nginxinc/nginx-unprivileged`; the container smoke test observes web PID 1 as UID 101. | Gate 0 verification; accepted Gate 1 adds headers and host policy. |
+| MV-SEC-011 | `RESOLVED IN ACCEPTED GATE 1` | Mounted candidates reject symlinks in every path component; copy and no-copy inspection open the source with `O_NOFOLLOW`, require a regular descriptor beneath the configured root, and copy from that verified descriptor. | Gate 1 slice 1C verification. |
 | MV-SEC-012 | `DEFERRED BY PRODUCT DECISION` | The current global single-admin model has no authorization entities. Multi-user/MFA/SSO is explicitly not a v5.1 feature. | Gate 11; it becomes a release blocker before any multi-user feature ships. |
-| MV-SEC-013 | `RESOLVED IN GATE 1 SLICE 1C CANDIDATE` | ZIP downloads sanitize every folder, model, primary-file, and supporting-file path component; ZIP imports reject traversal and normalized duplicate paths. | Gate 1 slice 1C verification. |
+| MV-SEC-013 | `RESOLVED IN ACCEPTED GATE 1` | ZIP downloads sanitize every folder, model, primary-file, and supporting-file path component; ZIP imports reject traversal and normalized duplicate paths. | Gate 1 slice 1C verification. |
 | MV-SEC-014 | `PARTIALLY MITIGATED` | Lazy/cached preview work reduces normal load, but synchronous browser decompression and parser work still lacks complete size/time/complexity budgets. | Gate 2. |
-| MV-SEC-015 | `RESOLVED IN GATE 1 SLICE 1F CANDIDATE` | Generated Nginx responses carry a tested CSP plus nosniff, no-referrer, permissions, and frame denial; direct API responses carry the non-CSP baseline; `PUBLIC_URL` or `TRUSTED_HOSTS` enables API host enforcement. | Gate 1 slice 1F verification and external-proxy HSTS guidance. |
-| MV-SEC-016 | `PARTIALLY RESOLVED IN CANDIDATE` | 8,311 generated/runtime paths were removed from Git tracking without deleting local files; root ignore policy, source-owned verification, CI, and Dependabot now exist. Checksums, SBOMs, signing, and release provenance remain. | Gate 0 for source hygiene; Gate 5 for release artifacts. |
+| MV-SEC-015 | `RESOLVED IN ACCEPTED GATE 1` | Generated Nginx responses carry a tested CSP plus nosniff, no-referrer, permissions, and frame denial; direct API responses carry the non-CSP baseline; `PUBLIC_URL` or `TRUSTED_HOSTS` enables API host enforcement. | Gate 1 slice 1F verification and external-proxy HSTS guidance. |
+| MV-SEC-016 | `PARTIALLY RESOLVED IN ACCEPTED GATE 0` | 8,311 generated/runtime paths were removed from Git tracking without deleting local files; root ignore policy, source-owned verification, CI, and Dependabot now exist. Checksums, SBOMs, signing, and release provenance remain. | Gate 0 for source hygiene; Gate 5 for release artifacts. |
 
 ## Dependency scan evidence
 
@@ -76,10 +76,10 @@ Gate 1 still owns the build-tool upgrade and its compatibility evidence.
 
 ## Gate implication
 
-Gate 0 may pass with confirmed product vulnerabilities because its purpose is to
-make those facts reproducible and assign them. Gate 1 may not pass until all
-confirmed P0 findings have regression evidence or an explicit, owned compensating
-control. No current result supports unrestricted Internet exposure.
+Gate 0 passed with confirmed product vulnerabilities because its purpose was to
+make those facts reproducible and assign them. Gate 1 is now accepted with every
+v5.1 P0 finding covered by regression evidence or an explicit, owned
+compensating control. No current result supports unrestricted Internet exposure.
 
 ## Gate 1 slice 1B update — 2026-08-14
 
@@ -151,3 +151,12 @@ the recommended host policy; `TRUSTED_HOSTS` handles separate API or combined
 public/LAN hostnames. HSTS remains at the operator-managed TLS proxy. Exact
 evidence is recorded in
 [SLICE_1F_RESULTS.md](../evidence/gate-1/SLICE_1F_RESULTS.md).
+
+## Gate 1 accepted closeout — 2026-08-14
+
+The owner accepted Gate 1 after all six slices passed the complete local
+verification harness. The browser file-query and stateless-session limitations
+remain explicit accepted residuals assigned to Gates 2 and 11. Direct public
+port exposure remains unsupported, and HSTS remains an external TLS-proxy
+decision. Consolidated exit criteria, rollback points, and publication state are
+recorded in [Gate 1 results](../evidence/gate-1/RESULTS.md).
