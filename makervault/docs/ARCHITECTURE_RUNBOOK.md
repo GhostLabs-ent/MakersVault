@@ -479,11 +479,10 @@ to known credentials. File-format changes are not allowed in this gate.
 
 ### Gate 2 — Bound preview work and prove library responsiveness
 
-**Current execution:** `IN PROGRESS — AWAITING OWNER CLOSEOUT`. Gates 0 and 1 are
-accepted. The Gate 2 baseline and owner checkpoint were completed on 2026-08-14;
-the approved contract is implemented at local commit `af57da3`. The complete
-repository harness and cold/warm/detail/LightBurn browser evidence pass. See
-[Gate 2 results](evidence/gate-2/RESULTS.md). Gate 3 has not started.
+**Current execution:** `ACCEPTED`. The owner approved Gate 2 closeout on
+2026-08-14. The approved contract is implemented at local commit `af57da3`; the
+complete repository harness and cold/warm/detail/LightBurn browser evidence pass.
+See [Gate 2 results](evidence/gate-2/RESULTS.md).
 
 **Objective:** Ensure no single model can freeze the library and cached libraries
 remain fast.
@@ -517,6 +516,10 @@ where installations reasonably differ.
 without affecting original files or metadata.
 
 ### Gate 3 — Complete scalable organization workflows
+
+**Current execution:** `IN PROGRESS`. Gate 2 was accepted on 2026-08-14. Gate 3
+opens from an inventory and representative large-library baseline before selection,
+bulk-action, or pre-Trash deletion semantics are changed.
 
 **Objective:** Make large-library navigation and bulk work explicit, predictable,
 and recoverable.

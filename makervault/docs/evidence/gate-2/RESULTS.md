@@ -2,9 +2,11 @@
 
 **Gate:** 2 — Bound preview work and prove library responsiveness
 
-**Status:** Implementation verified; awaiting owner closeout
+**Status:** Accepted
 
 **Evidence date:** 2026-08-14
+
+**Accepted:** 2026-08-14
 
 **Baseline commit:** `2ad0348`
 
@@ -131,5 +133,5 @@ down migration.
 - Browser file URLs retain the accepted Gate 1 query-token compatibility residual;
   Gate 11 still owns the final session/file-delivery architecture.
 
-The implementation and evidence are ready for owner closeout. No Gate 3 work has
-started.
+The owner approved Gate 2 closeout on 2026-08-14. Gate 3 may open from a measured
+organization-workflow baseline; only one roadmap gate remains active at a time.
