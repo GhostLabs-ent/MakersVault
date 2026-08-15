@@ -517,9 +517,11 @@ without affecting original files or metadata.
 
 ### Gate 3 — Complete scalable organization workflows
 
-**Current execution:** `IN PROGRESS`. Gate 2 was accepted on 2026-08-14. Gate 3
-opens from an inventory and representative large-library baseline before selection,
-bulk-action, or pre-Trash deletion semantics are changed.
+**Current execution:** `IN PROGRESS`. Gate 2 was accepted on 2026-08-14. The source
+inventory and reproducible 600-asset/104-folder entry measurement are recorded in
+[Gate 3 baseline](evidence/gate-3/BASELINE.md). Organization behavior remains
+unchanged pending the deletion decision in
+[Gate 3 owner checkpoint](evidence/gate-3/OWNER_CHECKPOINT.md).
 
 **Objective:** Make large-library navigation and bulk work explicit, predictable,
 and recoverable.

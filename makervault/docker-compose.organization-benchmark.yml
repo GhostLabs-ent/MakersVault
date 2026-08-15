@@ -1,0 +1,12 @@
+# Gate 3 verification-only overlay. Runtime content is isolated in
+# project-scoped named volumes and removed by organization-benchmark.sh.
+services:
+  api:
+    volumes:
+      - makersvault_organization_benchmark_storage:/app/storage
+      - makersvault_organization_benchmark_db:/app/data
+      - ./api:/app
+
+volumes:
+  makersvault_organization_benchmark_storage:
+  makersvault_organization_benchmark_db:
