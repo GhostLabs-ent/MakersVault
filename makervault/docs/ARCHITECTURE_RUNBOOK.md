@@ -517,12 +517,12 @@ without affecting original files or metadata.
 
 ### Gate 3 — Complete scalable organization workflows
 
-**Current execution:** `IN PROGRESS`. Gate 2 was accepted on 2026-08-14. The source
-inventory and reproducible 600-asset/104-folder entry measurement are recorded in
-[Gate 3 baseline](evidence/gate-3/BASELINE.md). Organization behavior remains
-unchanged at the baseline commit. The owner approved single-model-only permanent
-deletion before Trash on 2026-08-21; implementation may proceed under
-[Gate 3 owner checkpoint](evidence/gate-3/OWNER_CHECKPOINT.md).
+**Current execution:** `VERIFICATION COMPLETE — CLOSEOUT REQUESTED`. The owner
+approved single-model-only permanent deletion before Trash on 2026-08-21. The
+contract is implemented at local commit `188b2e9`; the complete repository harness
+and executable 600-asset/104-folder browser workflow pass. See
+[Gate 3 results](evidence/gate-3/RESULTS.md). Gate 4 remains closed pending owner
+acceptance.
 
 **Objective:** Make large-library navigation and bulk work explicit, predictable,
 and recoverable.

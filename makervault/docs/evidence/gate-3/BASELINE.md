@@ -118,3 +118,9 @@ and folder open within 300 ms; and measured API p95 below 100 ms.
 
 The baseline is captured and no organization behavior has changed. The owner decision
 on irreversible deletion is requested in [OWNER_CHECKPOINT.md](OWNER_CHECKPOINT.md).
+
+## Historical record disposition
+
+The checkpoint was subsequently approved in [OWNER_CHECKPOINT.md](OWNER_CHECKPOINT.md),
+and the verified implementation comparison is recorded in [RESULTS.md](RESULTS.md).
+This file remains the unchanged-before-implementation measurement record.
