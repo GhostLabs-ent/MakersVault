@@ -2,9 +2,11 @@
 
 **Gate:** 3 — Complete scalable organization workflows
 
-**Status:** Verification complete — owner closeout requested
+**Status:** Accepted
 
 **Evidence date:** 2026-08-21
+
+**Accepted:** 2026-08-21
 
 **Baseline commit:** `02aa49f`
 
@@ -142,4 +144,5 @@ that user-requested operation.
 - Bulk move/tag mutations are sequential exact-ID requests. This favors observable
   recovery over throughput; a future server job contract must retain per-ID results.
 
-Owner closeout is requested. Gate 4 must not start until Gate 3 is accepted.
+The owner approved Gate 3 closeout on 2026-08-21. Gate 4 may begin from the
+accepted organization and deletion contracts when the owner authorizes its start.

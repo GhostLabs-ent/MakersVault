@@ -517,12 +517,10 @@ without affecting original files or metadata.
 
 ### Gate 3 — Complete scalable organization workflows
 
-**Current execution:** `VERIFICATION COMPLETE — CLOSEOUT REQUESTED`. The owner
-approved single-model-only permanent deletion before Trash on 2026-08-21. The
-contract is implemented at local commit `188b2e9`; the complete repository harness
-and executable 600-asset/104-folder browser workflow pass. See
-[Gate 3 results](evidence/gate-3/RESULTS.md). Gate 4 remains closed pending owner
-acceptance.
+**Current execution:** `ACCEPTED`. The owner approved Gate 3 closeout on
+2026-08-21. The contract is implemented at local commit `188b2e9`; the complete
+repository harness and executable 600-asset/104-folder browser workflow pass. See
+[Gate 3 results](evidence/gate-3/RESULTS.md).
 
 **Objective:** Make large-library navigation and bulk work explicit, predictable,
 and recoverable.
@@ -553,6 +551,9 @@ destructive confirmation; a representative large library remains usable.
 IDs changed. Partial failure must never invite blind retry of destructive work.
 
 ### Gate 4 — Make ingestion observable and establish content truth
+
+**Current execution:** `NOT STARTED`. Gate 3 is accepted; Gate 4 remains unopened
+until the owner authorizes its start.
 
 **Objective:** Let operators understand mounted imports and, when stable, establish
 rename-resistant identity and provenance.
