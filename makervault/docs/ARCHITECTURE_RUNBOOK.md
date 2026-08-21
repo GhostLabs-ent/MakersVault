@@ -552,8 +552,10 @@ IDs changed. Partial failure must never invite blind retry of destructive work.
 
 ### Gate 4 — Make ingestion observable and establish content truth
 
-**Current execution:** `NOT STARTED`. Gate 3 is accepted; Gate 4 remains unopened
-until the owner authorizes its start.
+**Current execution:** `IN PROGRESS`. The owner opened Gate 4 on 2026-08-21.
+Required Gate 4A is active under the contract in
+[the Gate 4 baseline](evidence/gate-4/BASELINE.md); optional Gate 4B remains closed
+until Gate 4A is verified stable and its inclusion is assessed explicitly.
 
 **Objective:** Let operators understand mounted imports and, when stable, establish
 rename-resistant identity and provenance.
