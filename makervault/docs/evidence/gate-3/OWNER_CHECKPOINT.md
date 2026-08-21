@@ -1,6 +1,8 @@
 # Gate 3 Owner Checkpoint — Deletion Before Trash
 
-**Status:** Decision requested
+**Status:** Approved
+
+**Approved:** 2026-08-21
 
 **Evidence:** [BASELINE.md](BASELINE.md)
 
@@ -53,3 +55,10 @@ files are deleted.
 
 Approve or revise the recommended rule: permanent deletion remains one model at a
 time in Gate 3, while recoverable multi-model deletion waits for the Trash gate.
+
+## Owner decision
+
+The owner approved the recommended contract on 2026-08-21. Gate 3 may make bulk
+selection, move, tag, and download explicit, but it must remove the implicit
+permanent multi-model deletion path. Recoverable multi-model deletion remains
+deferred until Trash and restore behavior are implemented and verified.
