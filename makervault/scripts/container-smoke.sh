@@ -94,4 +94,4 @@ for expected_header in \
   fi
 done
 
-echo "Container smoke test passed (direct and same-origin API, security headers, 512 MiB file policy, API UID $api_uid, web UID $web_uid, schema 4)."
+echo "Container smoke test passed (direct and same-origin API, security headers, 512 MiB file policy, API UID $api_uid, web UID $web_uid, schema 5)."

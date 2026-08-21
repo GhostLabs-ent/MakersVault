@@ -140,7 +140,9 @@ def test_expired_and_tampered_handoff_grants_fail(monkeypatch) -> None:
     valid = auth.create_handoff_token(
         "asset", "primary", "asset", "slicer", "model.stl", 5
     )
-    altered = f"{valid[:-1]}{'a' if valid[-1] != 'a' else 'b'}"
+    header, payload, signature = valid.split(".")
+    altered_signature = f"{'a' if signature[0] != 'a' else 'b'}{signature[1:]}"
+    altered = f"{header}.{payload}.{altered_signature}"
     with pytest.raises(HTTPException, match="Invalid"):
         auth.decode_handoff_token(altered)
 
