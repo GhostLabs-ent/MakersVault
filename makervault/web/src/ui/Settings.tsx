@@ -3,12 +3,16 @@ import { AppSettings, ENGRAVER_OPTIONS, PreviewMode, SLICER_OPTIONS, THEME_OPTIO
 import {
   UnauthorizedError,
   createFolder,
+  getMountImportScan,
   getMountImportSettings,
   getStorageSettings,
+  rescanMountImport,
   updateMountImportSettings,
   updateStorageSettings,
+  type MountScan,
 } from "../lib/api";
 import { entriesFromFileList, uploadEntriesToFolder, type UploadEntry } from "../lib/uploadTree";
+import { mountOwnership, mountScanStatusLabel } from "../lib/mountImport";
 
 type Props = {
   settings: AppSettings;
@@ -133,6 +137,9 @@ export default function Settings({
   const [mountLoading, setMountLoading] = React.useState(false);
   const [mountSaving, setMountSaving] = React.useState(false);
   const [mountInitial, setMountInitial] = React.useState({ enabled: false, copy: true });
+  const [mountScan, setMountScan] = React.useState<MountScan | null>(null);
+  const [mountScanStarting, setMountScanStarting] = React.useState(false);
+  const [mountScanMessage, setMountScanMessage] = React.useState<string | null>(null);
   const [storageTemplate, setStorageTemplate] = React.useState("{folder}/{model}/{filename}");
   const [storageInitial, setStorageInitial] = React.useState("{folder}/{model}/{filename}");
   const [storageTokens, setStorageTokens] = React.useState<string[]>([]);
@@ -293,6 +300,7 @@ export default function Settings({
       setMountCopyFiles(Boolean(data.copy_files));
       setMountPath(data.path || null);
       setMountInitial({ enabled: Boolean(data.enabled), copy: Boolean(data.copy_files) });
+      setMountScan(data.last_scan || null);
     } catch (err) {
       if (err instanceof UnauthorizedError) {
         onUnauthorized?.();
@@ -301,6 +309,23 @@ export default function Settings({
       }
     } finally {
       setMountSaving(false);
+    }
+  };
+  const startMountRescan = async () => {
+    setMountScanStarting(true);
+    setMountScanMessage(null);
+    try {
+      const result = await rescanMountImport();
+      setMountScan(result.scan);
+      setMountScanMessage(result.started ? "Mounted-library scan started." : "A scan is already running.");
+    } catch (err) {
+      if (err instanceof UnauthorizedError) {
+        onUnauthorized?.();
+      } else {
+        setMountScanMessage(err instanceof Error ? err.message : "Failed to start mounted-library scan.");
+      }
+    } finally {
+      setMountScanStarting(false);
     }
   };
   const saveStorageSettings = async () => {
@@ -367,6 +392,7 @@ export default function Settings({
         setMountCopyFiles(Boolean(data.copy_files));
         setMountPath(data.path || null);
         setMountInitial({ enabled: Boolean(data.enabled), copy: Boolean(data.copy_files) });
+        setMountScan(data.last_scan || null);
       } catch (err) {
         if (err instanceof UnauthorizedError) {
           onUnauthorized?.();
@@ -381,6 +407,41 @@ export default function Settings({
       active = false;
     };
   }, [section, onUnauthorized]);
+
+  React.useEffect(() => {
+    if (section !== "imports" || mountScan?.status !== "running") return;
+    let active = true;
+    const poll = async () => {
+      try {
+        const next = await getMountImportScan();
+        if (!active || !next) return;
+        setMountScan(next);
+        if (next.status !== "running") {
+          setMountScanMessage(
+            next.status === "completed"
+              ? "Mounted-library scan completed."
+              : "Mounted-library scan finished with details below."
+          );
+          if (next.imported) {
+            onAssetsChanged?.();
+            onFoldersChanged?.();
+          }
+        }
+      } catch (err) {
+        if (!active) return;
+        if (err instanceof UnauthorizedError) {
+          onUnauthorized?.();
+        } else {
+          setMountScanMessage("Unable to refresh mounted-library scan status.");
+        }
+      }
+    };
+    const timer = window.setInterval(() => void poll(), 1000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [section, mountScan?.id, mountScan?.status, onAssetsChanged, onFoldersChanged, onUnauthorized]);
 
   React.useEffect(() => {
     if (section !== "network") return;
@@ -866,6 +927,9 @@ export default function Settings({
     const supportedSelected = scanEntries.length;
     const newSelected = scanEntries.length ? filterNewEntries(scanEntries).length : 0;
     const mountDirty = mountEnabled !== mountInitial.enabled || mountCopyFiles !== mountInitial.copy;
+    const mountScanRunning = mountScan?.status === "running";
+    const mountScanStatus = mountScanStatusLabel(mountScan?.status);
+    const ownership = mountOwnership(mountCopyFiles);
     return (
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
@@ -885,16 +949,16 @@ export default function Settings({
           <div>
             <div className="text-lg font-semibold">Mount import (server)</div>
             <p className="text-sm opacity-70">
-              Index files from the server's mounted volume. Enable the no-copy option to keep
-              files in place and avoid duplicates.
+              Import eligible files from the server's configured read-only volume. Unchanged
+              source paths are skipped on later scans.
             </p>
           </div>
           <p className="text-xs opacity-70">
             Mount path: {mountPath || "Not configured"}
           </p>
           <p className="text-xs opacity-70">
-            Changes apply on the next server restart. In no-copy mode, mounted files stay read-only and
-            renaming is disabled.
+            The startup option applies on the next server restart. Save the storage mode before
+            starting a manual scan.
           </p>
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -914,8 +978,11 @@ export default function Settings({
               className="w-4 h-4"
               disabled={mountLoading || mountSaving}
             />
-            <span>Copy files into MakerVault storage (disable to use mounted files directly)</span>
+            <span>Copy files into MakersVault storage (disable to use mounted files directly)</span>
           </label>
+          <div className="rounded-md border border-panel-strong bg-panel px-3 py-2 text-xs">
+            <span className="font-semibold">{ownership.label}:</span> {ownership.description}
+          </div>
           <div className="flex items-center gap-2 flex-wrap">
             <button
               className="text-xs px-2 py-1 rounded-md border border-panel-strong disabled:opacity-60"
@@ -924,7 +991,57 @@ export default function Settings({
             >
               {mountSaving ? "Saving..." : "Save"}
             </button>
+            <button
+              className="text-xs px-2 py-1 rounded-md border border-panel-strong disabled:opacity-60"
+              disabled={
+                !mountPath || mountDirty || mountLoading || mountSaving || mountScanStarting || mountScanRunning
+              }
+              onClick={startMountRescan}
+            >
+              {mountScanStarting ? "Starting..." : mountScanRunning ? "Scanning..." : "Rescan now"}
+            </button>
             {mountLoading && <span className="text-xs opacity-70">Loading settings...</span>}
+            {mountDirty && <span className="text-xs opacity-70">Save changes before rescanning.</span>}
+          </div>
+          {mountScanMessage && <p className="text-xs opacity-80">{mountScanMessage}</p>}
+          <div className="rounded-md border border-panel-strong p-3 flex flex-col gap-2" aria-live="polite">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <span className="text-sm font-semibold">Last scan</span>
+              <span className="text-xs capitalize">{mountScanStatus}</span>
+            </div>
+            {mountScan ? (
+              <>
+                <p className="text-xs opacity-70">
+                  {mountScan.trigger === "startup" ? "Startup" : "Manual"} · {mountScan.mode === "copy" ? "Copy" : "Index in place"}
+                  {` · Started ${new Date(mountScan.started_at).toLocaleString()}`}
+                  {mountScan.finished_at ? ` · Finished ${new Date(mountScan.finished_at).toLocaleString()}` : ""}
+                </p>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded bg-panel px-2 py-1"><div className="text-sm font-semibold">{mountScan.imported}</div><div className="text-[11px] opacity-70">Imported</div></div>
+                  <div className="rounded bg-panel px-2 py-1"><div className="text-sm font-semibold">{mountScan.skipped}</div><div className="text-[11px] opacity-70">Unchanged</div></div>
+                  <div className="rounded bg-panel px-2 py-1"><div className="text-sm font-semibold">{mountScan.failed}</div><div className="text-[11px] opacity-70">Failed</div></div>
+                </div>
+                {mountScan.failure_details.length > 0 && (
+                  <div className="text-xs">
+                    <div className="font-semibold mb-1">Failure details</div>
+                    <ul className="space-y-1">
+                      {mountScan.failure_details.map((failure, index) => (
+                        <li key={`${failure.path}-${index}`} className="break-words">
+                          <span className="font-medium">{failure.path}</span>: {failure.reason}
+                        </li>
+                      ))}
+                    </ul>
+                    {mountScan.failure_details_omitted > 0 && (
+                      <p className="mt-1 opacity-70">
+                        {mountScan.failure_details_omitted} additional failure detail(s) omitted.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-xs opacity-70">No mounted-library scan has run yet.</p>
+            )}
           </div>
         </div>
 

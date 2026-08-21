@@ -183,8 +183,34 @@ class MountImportSettings(BaseModel):
   copy_files: bool
 
 
+class MountScanFailureOut(BaseModel):
+  path: str
+  reason: str
+
+
+class MountScanOut(BaseModel):
+  id: str
+  trigger: Literal["startup", "manual"]
+  status: Literal["running", "completed", "completed_with_failures", "failed", "interrupted"]
+  mode: Literal["copy", "index_in_place"]
+  root_path: str
+  started_at: str
+  finished_at: Optional[str] = None
+  imported: int = 0
+  skipped: int = 0
+  failed: int = 0
+  failure_details: List[MountScanFailureOut] = Field(default_factory=list)
+  failure_details_omitted: int = 0
+
+
 class MountImportSettingsOut(MountImportSettings):
   path: Optional[str] = None
+  last_scan: Optional[MountScanOut] = None
+
+
+class MountScanStartOut(BaseModel):
+  scan: MountScanOut
+  started: bool
 
 
 class StorageSettings(BaseModel):

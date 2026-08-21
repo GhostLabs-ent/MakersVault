@@ -109,6 +109,27 @@ export type MountImportSettings = {
   enabled: boolean;
   copy_files: boolean;
   path?: string | null;
+  last_scan?: MountScan | null;
+};
+
+export type MountScanFailure = {
+  path: string;
+  reason: string;
+};
+
+export type MountScan = {
+  id: string;
+  trigger: "startup" | "manual";
+  status: "running" | "completed" | "completed_with_failures" | "failed" | "interrupted";
+  mode: "copy" | "index_in_place";
+  root_path: string;
+  started_at: string;
+  finished_at?: string | null;
+  imported: number;
+  skipped: number;
+  failed: number;
+  failure_details: MountScanFailure[];
+  failure_details_omitted: number;
 };
 
 export type StorageSettings = {
@@ -680,6 +701,26 @@ export async function updateMountImportSettings(payload: {
     body: JSON.stringify(payload),
   });
   assertOk(res, "Failed to update mount import settings");
+  return res.json();
+}
+
+export async function getMountImportScan(): Promise<MountScan | null> {
+  const res = await fetch(`${apiBase()}/settings/mount-import/scan`, { headers: authHeaders() });
+  assertOk(res, "Failed to load mounted import scan");
+  return res.json();
+}
+
+export async function rescanMountImport(): Promise<{ scan: MountScan; started: boolean }> {
+  const res = await fetch(`${apiBase()}/settings/mount-import/rescan`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (res.status === 401) {
+    throw new UnauthorizedError();
+  }
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Failed to start mounted import scan"));
+  }
   return res.json();
 }
 

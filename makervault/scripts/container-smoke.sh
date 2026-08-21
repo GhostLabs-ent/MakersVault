@@ -54,7 +54,7 @@ fi
 
 schema_output=$(compose exec -T api python -m migrations)
 case "$schema_output" in
-  *"schema version: 4"*) ;;
+  *"schema version: 5"*) ;;
   *)
     echo "Smoke test failed: unexpected schema output: $schema_output" >&2
     exit 1

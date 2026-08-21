@@ -49,3 +49,18 @@ class AssetFile(SQLModel, table=True):
 class AppConfig(SQLModel, table=True):
   key: str = Field(primary_key=True)
   value: str
+
+
+class MountScan(SQLModel, table=True):
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  trigger: str = Field(index=True)
+  status: str = Field(index=True)
+  mode: str
+  root_path: str
+  started_at: str
+  finished_at: Optional[str] = None
+  imported: int = Field(default=0)
+  skipped: int = Field(default=0)
+  failed: int = Field(default=0)
+  failure_details_json: str = Field(default="[]")
+  failure_details_omitted: int = Field(default=0)

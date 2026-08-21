@@ -73,8 +73,14 @@ from folder_service import validate_parent_folder
 from http_security import HostPolicyMiddleware, SecurityHeadersMiddleware, resolve_trusted_hosts
 from import_service import download_import_to_temp, import_asset_from_url, open_import_response
 from login_security import LoginAttemptLimiter
-from mount_import import resolve_safe_mount_file, scan_mount_imports
-from models import Asset, AssetFile, Folder
+from mount_import import (
+    latest_mount_scan,
+    mount_scan_failure_details,
+    recover_interrupted_mount_scans,
+    resolve_safe_mount_file,
+    start_mount_scan,
+)
+from models import Asset, AssetFile, Folder, MountScan
 from migrations import run_migrations
 from prepared_print import prepared_filename
 from preview_policy import (
@@ -115,6 +121,8 @@ from schemas import (
     ImportZipResult,
     MountImportSettings,
     MountImportSettingsOut,
+    MountScanOut,
+    MountScanStartOut,
     StorageSettings,
     StorageSettingsOut,
     PreviewPolicyOut,
@@ -128,10 +136,11 @@ from url_utils import normalize_import_url
 async def lifespan(_app: FastAPI):
     validate_auth_config()
     run_migrations(engine)
+    recover_interrupted_mount_scans()
     threading.Thread(target=backfill_embedded_thumbnails, daemon=True).start()
     threading.Thread(target=backfill_prepared_print_metadata, daemon=True).start()
     if MOUNT_IMPORT_PATH and get_mount_import_enabled(MOUNT_IMPORT_ENABLED):
-        threading.Thread(target=scan_mount_imports, daemon=True).start()
+        start_mount_scan("startup")
     yield
 
 
@@ -375,6 +384,7 @@ def get_mount_import_settings(_: Optional[str] = Depends(require_auth)):
         enabled=get_mount_import_enabled(MOUNT_IMPORT_ENABLED),
         copy_files=get_mount_import_copy(MOUNT_IMPORT_COPY),
         path=MOUNT_IMPORT_PATH or None,
+        last_scan=mount_scan_out(latest_mount_scan()),
     )
 
 
@@ -386,7 +396,41 @@ def update_mount_import_settings(body: MountImportSettings, _: Optional[str] = D
         enabled=get_mount_import_enabled(MOUNT_IMPORT_ENABLED),
         copy_files=get_mount_import_copy(MOUNT_IMPORT_COPY),
         path=MOUNT_IMPORT_PATH or None,
+        last_scan=mount_scan_out(latest_mount_scan()),
     )
+
+
+def mount_scan_out(scan: Optional[MountScan]) -> Optional[MountScanOut]:
+    if not scan:
+        return None
+    return MountScanOut(
+        id=scan.id,
+        trigger=scan.trigger,
+        status=scan.status,
+        mode=scan.mode,
+        root_path=scan.root_path,
+        started_at=scan.started_at,
+        finished_at=scan.finished_at,
+        imported=scan.imported,
+        skipped=scan.skipped,
+        failed=scan.failed,
+        failure_details=mount_scan_failure_details(scan),
+        failure_details_omitted=scan.failure_details_omitted,
+    )
+
+
+@app.get("/settings/mount-import/scan", response_model=Optional[MountScanOut])
+def get_mount_import_scan(_: Optional[str] = Depends(require_auth)):
+    return mount_scan_out(latest_mount_scan())
+
+
+@app.post("/settings/mount-import/rescan", response_model=MountScanStartOut)
+def rescan_mount_import(_: Optional[str] = Depends(require_auth)):
+    try:
+        scan, started = start_mount_scan("manual")
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return MountScanStartOut(scan=mount_scan_out(scan), started=started)
 
 
 def storage_settings_out(template: str, moved: int = 0, skipped: int = 0) -> StorageSettingsOut:

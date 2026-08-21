@@ -165,11 +165,42 @@ def _migration_004_preview_state(conn: Connection) -> None:
     )
 
 
+def _migration_005_mount_scan_records(conn: Connection) -> None:
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS mountscan (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            trigger VARCHAR NOT NULL,
+            status VARCHAR NOT NULL,
+            mode VARCHAR NOT NULL,
+            root_path VARCHAR NOT NULL,
+            started_at VARCHAR NOT NULL,
+            finished_at VARCHAR,
+            imported INTEGER NOT NULL DEFAULT 0,
+            skipped INTEGER NOT NULL DEFAULT 0,
+            failed INTEGER NOT NULL DEFAULT 0,
+            failure_details_json VARCHAR NOT NULL DEFAULT '[]',
+            failure_details_omitted INTEGER NOT NULL DEFAULT 0
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_mountscan_trigger ON mountscan(trigger)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_mountscan_status ON mountscan(status)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_mountscan_started_at ON mountscan(started_at)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
     Migration(3, "asset_metadata_and_bundles", _migration_003_asset_metadata_and_bundles),
     Migration(4, "persistent_preview_state", _migration_004_preview_state),
+    Migration(5, "persistent_mount_scan_records", _migration_005_mount_scan_records),
 )
 
 

@@ -74,7 +74,7 @@ def test_fresh_database_reaches_current_schema(tmp_path: Path) -> None:
                 "SELECT name FROM sqlite_master WHERE type = 'table'"
             ).fetchall()
         }
-    assert {"folder", "asset", "assetfile", "appconfig", "schema_migration"}.issubset(tables)
+    assert {"folder", "asset", "assetfile", "appconfig", "mountscan", "schema_migration"}.issubset(tables)
 
 
 def test_pre_v5_1_fixture_migrates_and_is_idempotent(tmp_path: Path) -> None:
@@ -102,6 +102,19 @@ def test_pre_v5_1_fixture_migrates_and_is_idempotent(tmp_path: Path) -> None:
         "preview_source",
     }.issubset(table_columns(database_engine, "asset"))
     assert "parent_id" in table_columns(database_engine, "folder")
+    assert {
+        "trigger",
+        "status",
+        "mode",
+        "root_path",
+        "started_at",
+        "finished_at",
+        "imported",
+        "skipped",
+        "failed",
+        "failure_details_json",
+        "failure_details_omitted",
+    }.issubset(table_columns(database_engine, "mountscan"))
 
     with database_engine.connect() as conn:
         assets = conn.exec_driver_sql(

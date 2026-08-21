@@ -105,8 +105,19 @@ queue, and timeout limits and persists a static thumbnail on success.
 | `IMPORT_MOUNT_PATH_HOST` | `./imports` | Read-only host path mounted at `/imports` by production Compose. |
 | `IMPORT_MOUNT_EXTS` | built-in supported list | Comma-separated eligible extensions. |
 | `IMPORT_MOUNT_INCLUDE_HIDDEN` | `false` | Whether hidden paths are scanned. |
-| `IMPORT_MOUNT_ON_STARTUP` | `false` in canonical production manifest | Enables the current startup scan. The code default remains `true` when a path exists. |
+| `IMPORT_MOUNT_ON_STARTUP` | `false` in canonical production manifest | Enables a mounted-library scan during API startup. The code default remains `true` when a path exists. A scan can also be started explicitly from **Settings → Imports**. |
 | `IMPORT_MOUNT_COPY` | `true` | Copy into managed storage instead of indexing in place. |
+
+Mounted scans use the last saved copy setting and expose durable status, start/end
+times, imported/unchanged/failed counts, and up to 50 relative-path failure details
+in **Settings → Imports**. MakersVault retains at most 100 scan records. An
+interrupted scan can be safely run again: an unchanged exact source path is skipped.
+
+In copy mode, MakersVault owns the managed copy and leaves the read-only mounted
+source unchanged; the managed copy remains usable when the mount is unavailable. In
+index-in-place mode, the mount remains authoritative and must stay available. Model
+rename is disabled, and deleting the MakersVault entry does not delete the mounted
+source.
 
 ## Web runtime settings
 
