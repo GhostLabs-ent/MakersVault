@@ -200,6 +200,7 @@ export default function App() {
             key={`${nonce + (folderId||'')}-${folderVersion}`}
             folderId={folderId}
             foldersVersion={folderVersion}
+            onSelectFolder={handleSelectFolder}
             onUnauthorized={handleUnauthorized}
             slicerSettings={settings.slicer}
             engravingSettings={settings.engraving}

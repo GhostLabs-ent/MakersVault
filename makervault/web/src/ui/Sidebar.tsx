@@ -251,7 +251,7 @@ export default function Sidebar({
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Delete folder? (Assets remain but become unassigned)")) return;
+    if (!confirm("Delete this folder? Direct models will become unassigned and direct child folders will move to the root. No model files will be deleted.")) return;
     setBusy(true);
     try {
       await deleteFolder(id);

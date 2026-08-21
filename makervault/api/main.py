@@ -2,6 +2,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, Header, Request, UploadFi
 from fastapi.responses import FileResponse
 from starlette.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
+from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED, BadZipFile
@@ -142,6 +143,7 @@ app.add_middleware(
 
 security_logger = logging.getLogger("makersvault.security")
 login_limiter = LoginAttemptLimiter()
+organization_mutation_lock = threading.Lock()
 
 SLICER_HANDOFF_EXTS = {".stl", ".3mf", ".step", ".stp", ".obj", ".gcode", ".gco", ".bgcode"}
 ENGRAVER_HANDOFF_EXTS = {
@@ -152,6 +154,26 @@ PROTECTED_FILE_HEADERS = {
     "Cache-Control": "private, no-store",
     "Pragma": "no-cache",
 }
+
+
+def commit_asset_organization_change(session: Session, asset: Asset, old_path: Path) -> Asset:
+    """Commit a path-changing asset mutation and restore the file on a DB conflict."""
+    new_path = managed_asset_path(asset)
+    session.add(asset)
+    try:
+        session.commit()
+    except IntegrityError as exc:
+        session.rollback()
+        if new_path != old_path and new_path.exists() and not old_path.exists():
+            old_path.parent.mkdir(parents=True, exist_ok=True)
+            new_path.rename(old_path)
+            prune_empty_storage_dirs(new_path.parent)
+        raise HTTPException(
+            status_code=409,
+            detail="A model with this name already exists in the destination folder",
+        ) from exc
+    session.refresh(asset)
+    return asset
 
 
 def normalize_origin(raw: str) -> Optional[str]:
@@ -957,7 +979,7 @@ def set_tags(asset_id: str, body: TagUpdate, _: Optional[str] = Depends(require_
 
 @app.post("/asset/{asset_id}/meta", response_model=AssetOut)
 def update_asset_meta(asset_id: str, body: AssetMetaUpdate, _: Optional[str] = Depends(require_auth)):
-    with Session(engine) as s:
+    with organization_mutation_lock, Session(engine) as s:
         a = s.get(Asset, asset_id)
         if not a:
             raise HTTPException(404)
@@ -978,10 +1000,7 @@ def update_asset_meta(asset_id: str, body: AssetMetaUpdate, _: Optional[str] = D
         if body.collection is not None:
             a.collection = body.collection.strip() or None
         relocate_asset(a, s, old_path)
-        s.add(a)
-        s.commit()
-        s.refresh(a)
-        return to_out(a)
+        return to_out(commit_asset_organization_change(s, a, old_path))
 
 
 @app.post("/asset/{asset_id}/rename", response_model=AssetOut)
@@ -992,7 +1011,7 @@ def rename_asset(asset_id: str, body: AssetRename, _: Optional[str] = Depends(re
     if "/" in new_name or "\\" in new_name:
         raise HTTPException(400, "Invalid filename")
 
-    with Session(engine) as s:
+    with organization_mutation_lock, Session(engine) as s:
         a = s.get(Asset, asset_id)
         if not a:
             raise HTTPException(404)
@@ -1010,10 +1029,7 @@ def rename_asset(asset_id: str, body: AssetRename, _: Optional[str] = Depends(re
         a.title = model_name
         a.filename = new_name_only
         relocate_asset(a, s, old_path)
-        s.add(a)
-        s.commit()
-        s.refresh(a)
-        return to_out(a)
+        return to_out(commit_asset_organization_change(s, a, old_path))
 
 
 @app.delete("/asset/{asset_id}")
@@ -1120,7 +1136,7 @@ def download_folder(folder_id: str, background: BackgroundTasks, _: Optional[str
 
 @app.post("/asset/{asset_id}/folder", response_model=AssetOut)
 def update_asset_folder(asset_id: str, body: AssetFolderUpdate, _: Optional[str] = Depends(require_auth)):
-    with Session(engine) as s:
+    with organization_mutation_lock, Session(engine) as s:
         asset = s.get(Asset, asset_id)
         if not asset:
             raise HTTPException(404)
@@ -1136,7 +1152,4 @@ def update_asset_folder(asset_id: str, body: AssetFolderUpdate, _: Optional[str]
             asset.folder_id = None
             unique_model_name(s, asset.name, None, exclude_id=asset.id)
         relocate_asset(asset, s, old_path)
-        s.add(asset)
-        s.commit()
-        s.refresh(asset)
-        return to_out(asset)
+        return to_out(commit_asset_organization_change(s, asset, old_path))

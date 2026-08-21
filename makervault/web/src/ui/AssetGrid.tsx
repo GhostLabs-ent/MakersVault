@@ -1,5 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  CheckSquare2,
+  ChevronRight,
+  Download as DownloadIcon,
+  FolderInput,
+  FolderOpen,
+  Tags as TagsIcon,
+  Trash2,
+  X,
+} from "lucide-react";
+import {
   Asset,
   AssetFile,
   PreparedPrint,
@@ -30,6 +40,7 @@ import { EngravingSettings, PreviewSettings, ResolvedTheme, SlicerSettings, engr
 import { entriesFromDataTransfer, uploadEntriesToFolder } from "../lib/uploadTree";
 import { buildUploadEntriesFromZip, isZipFile, readZipEntries } from "../lib/zipUtils";
 import { useZipImportPrompt } from "./ZipImportModal";
+import { buildFolderTrail, mutateTags, selectionAfterSuccess, type TagMutationMode } from "../lib/organization";
 
 function extOf(name: string) {
   const m = /\.([^.]+)$/.exec(name);
@@ -61,6 +72,7 @@ const ENGRAVING_EXTS = new Set([
 const ROWS_PER_BATCH = 5;
 const CARD_MIN_WIDTH_PX = 260;
 const GRID_GAP_PX = 16;
+const LIBRARY_CHROME_WIDTH_PX = 340;
 
 function rowsBatchSizeForWidth(width: number) {
   const cols = Math.max(1, Math.floor((width + GRID_GAP_PX) / (CARD_MIN_WIDTH_PX + GRID_GAP_PX)));
@@ -70,6 +82,7 @@ function rowsBatchSizeForWidth(width: number) {
 type Props = {
   folderId?: string | null;
   foldersVersion?: number;
+  onSelectFolder: (id: string | null) => void;
   onUnauthorized?: () => void;
   slicerSettings?: SlicerSettings;
   engravingSettings?: EngravingSettings;
@@ -79,10 +92,20 @@ type Props = {
 
 type RefreshOpts = { tags?: string[]; search?: string };
 type GroupBucket = { id: string; title: string; items: Asset[] };
+type BulkPanel = "move" | "tags" | "delete" | null;
+type BulkFailure = { id: string; name: string; reason: string };
+type BulkStatus = {
+  label: string;
+  completed: number;
+  total: number;
+  failures: BulkFailure[];
+  done: boolean;
+};
 
 export default function AssetGrid({
   folderId,
   foldersVersion = 0,
+  onSelectFolder,
   onUnauthorized,
   slicerSettings,
   engravingSettings,
@@ -107,9 +130,14 @@ export default function AssetGrid({
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDownloading, setBulkDownloading] = useState<string | null>(null);
+  const [bulkPanel, setBulkPanel] = useState<BulkPanel>(null);
+  const [bulkMoveTarget, setBulkMoveTarget] = useState<string>("");
+  const [bulkTagMode, setBulkTagMode] = useState<TagMutationMode>("add");
+  const [bulkTags, setBulkTags] = useState<string[]>([]);
+  const [bulkStatus, setBulkStatus] = useState<BulkStatus | null>(null);
   const [pageSize] = useState<number>(() => {
     if (typeof window === "undefined") return ROWS_PER_BATCH;
-    return rowsBatchSizeForWidth(window.innerWidth);
+    return rowsBatchSizeForWidth(Math.max(CARD_MIN_WIDTH_PX, window.innerWidth - LIBRARY_CHROME_WIDTH_PX));
   });
   const dragDepth = useRef(0);
   const [dragActive, setDragActive] = useState(false);
@@ -128,6 +156,22 @@ export default function AssetGrid({
     console.error(err);
     if (message) alert(message);
     return false;
+  };
+
+  const resetBulkUi = () => {
+    setBulkPanel(null);
+    setBulkStatus(null);
+    setBulkTags([]);
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    resetBulkUi();
+  };
+
+  const refreshScope = (opts: RefreshOpts = {}) => {
+    clearSelection();
+    void refresh(opts);
   };
 
   const replaceAsset = React.useCallback((updated: Asset) => {
@@ -285,7 +329,10 @@ export default function AssetGrid({
     setDropUploading(false);
   };
 
-  useEffect(() => { refresh(); }, [folderId]);
+  useEffect(() => {
+    clearSelection();
+    void refresh();
+  }, [folderId]);
   useEffect(() => {
     (async () => {
       try {
@@ -347,6 +394,12 @@ export default function AssetGrid({
         .sort((a, b) => a.name.localeCompare(b.name)),
     ];
   }, [folders, folderNames]);
+
+  const folderTrail = useMemo(() => buildFolderTrail(folderId, folders), [folderId, folders]);
+
+  const childFolders = useMemo(() => folders
+    .filter(folder => (folder.parent_id || null) === (folderId || null))
+    .sort((a, b) => a.name.localeCompare(b.name)), [folderId, folders]);
 
   const sortedItems = useMemo(() => {
     const copy = [...items];
@@ -426,7 +479,9 @@ export default function AssetGrid({
   const toggleTag = (t: string) => {
     setActiveTags(prev => {
       const next = prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t];
-      refresh({ tags: next });
+      setSelectedIds(new Set());
+      resetBulkUi();
+      void refresh({ tags: next });
       return next;
     });
   };
@@ -438,6 +493,80 @@ export default function AssetGrid({
       else next.add(id);
       return next;
     });
+  };
+
+  const selectLoaded = () => {
+    setSelectedIds(new Set(items.map(item => item.id)));
+    setBulkStatus(null);
+  };
+
+  const runBulkMutation = async (
+    label: string,
+    operation: (asset: Asset) => Promise<unknown>,
+  ) => {
+    const targets = Array.from(selectedIds).map(id => itemById[id]).filter(Boolean);
+    if (!targets.length) return;
+    const failures: BulkFailure[] = [];
+    const succeeded: string[] = [];
+    setBulkStatus({ label, completed: 0, total: targets.length, failures: [], done: false });
+    for (let index = 0; index < targets.length; index += 1) {
+      const asset = targets[index];
+      try {
+        await operation(asset);
+        succeeded.push(asset.id);
+      } catch (err) {
+        if (err instanceof UnauthorizedError) {
+          onUnauthorized?.();
+          break;
+        }
+        console.error(err);
+        failures.push({
+          id: asset.id,
+          name: asset.name || asset.filename,
+          reason: err instanceof Error ? err.message : "Operation failed",
+        });
+      }
+      setBulkStatus({
+        label,
+        completed: index + 1,
+        total: targets.length,
+        failures: [...failures],
+        done: false,
+      });
+    }
+    await refresh();
+    setSelectedIds(current => selectionAfterSuccess(current, succeeded));
+    setBulkStatus({
+      label,
+      completed: succeeded.length + failures.length,
+      total: targets.length,
+      failures,
+      done: true,
+    });
+    setBulkPanel(null);
+    setBulkTags([]);
+  };
+
+  const moveSelected = async () => {
+    const destination = bulkMoveTarget || null;
+    await runBulkMutation("Moving models", asset => {
+      if ((asset.folder_id || null) === destination) return Promise.resolve();
+      return updateAssetFolder(asset.id, destination);
+    });
+  };
+
+  const updateSelectedTags = async () => {
+    if (!bulkTags.length) return;
+    await runBulkMutation(
+      bulkTagMode === "add" ? "Adding tags" : "Removing tags",
+      asset => {
+        const nextTags = mutateTags(asset.tags, bulkTags, bulkTagMode);
+        if (nextTags.length === asset.tags.length && nextTags.every((tag, index) => tag === asset.tags[index])) {
+          return Promise.resolve();
+        }
+        return setTags(asset.id, nextTags);
+      },
+    );
   };
 
   const filenameFromDisposition = (res: Response, fallback: string) => {
@@ -460,31 +589,11 @@ export default function AssetGrid({
   };
 
   const onSaveTags = async (id: string, tags: string[]) => {
-    const bulkEdit = selectedIds.has(id) && selectedIds.size > 1;
-    const targets = bulkEdit ? Array.from(selectedIds) : [id];
-    const failed: string[] = [];
-    let aborted = false;
-    for (const targetId of targets) {
-      try {
-        await setTags(targetId, tags);
-      } catch (err) {
-        if (err instanceof UnauthorizedError) {
-          onUnauthorized?.();
-          aborted = true;
-          break;
-        }
-        console.error(err);
-        failed.push(itemById[targetId]?.filename || targetId);
-      }
-    }
-    if (!aborted) {
+    try {
+      await setTags(id, tags);
       await refresh();
-      if (bulkEdit) {
-        setSelectedIds(new Set());
-      }
-    }
-    if (failed.length) {
-      alert(`Tag update failed for: ${failed.join(", ")}`);
+    } catch (err) {
+      handleApiError(err, err instanceof Error ? err.message : "Tag update failed.");
     }
   };
 
@@ -607,39 +716,34 @@ export default function AssetGrid({
   };
 
   const removeAsset = async (asset: Asset) => {
-    const targets = selectedIds.has(asset.id) && selectedIds.size > 1
-      ? Array.from(selectedIds)
-      : [asset.id];
-    const confirmLabel = targets.length > 1
-      ? `Delete ${targets.length} selected items? This cannot be undone.`
-      : `Delete "${asset.title || asset.filename}"? This cannot be undone.`;
+    const confirmLabel = `Permanently delete "${asset.name || asset.filename}" and its primary and supporting files? This cannot be undone.`;
     if (!confirm(confirmLabel)) {
       return;
     }
     setDeletingId(asset.id);
-    const failed: string[] = [];
-    let aborted = false;
-    for (const targetId of targets) {
-      try {
-        await deleteAsset(targetId);
-      } catch (err) {
-        if (err instanceof UnauthorizedError) {
-          onUnauthorized?.();
-          aborted = true;
-          break;
-        }
-        console.error(err);
-        failed.push(itemById[targetId]?.filename || targetId);
-      }
-    }
-    if (!aborted) {
+    try {
+      await deleteAsset(asset.id);
+      setSelectedIds(current => selectionAfterSuccess(current, [asset.id]));
       await refresh();
+      setBulkStatus({ label: "Deleting model", completed: 1, total: 1, failures: [], done: true });
+    } catch (err) {
+      handleApiError(err, err instanceof Error ? err.message : "Delete failed.");
+    } finally {
+      setDeletingId(null);
     }
-    if (failed.length) {
-      alert(`Delete failed for: ${failed.join(", ")}`);
-    }
-    setDeletingId(null);
   };
+
+  const deleteSelected = () => {
+    if (selectedIds.size !== 1) {
+      setBulkPanel("delete");
+      setBulkStatus(null);
+      return;
+    }
+    const selected = itemById[Array.from(selectedIds)[0]];
+    if (selected) void removeAsset(selected);
+  };
+
+  const bulkBusy = Boolean(bulkStatus && !bulkStatus.done);
 
   const showDropOverlay = dragActive || dropUploading;
   const dropMessage = dropUploading
@@ -662,6 +766,29 @@ export default function AssetGrid({
         </div>
       )}
       <div className="flex flex-col gap-4">
+      <nav aria-label="Breadcrumb" className="flex min-h-9 items-center gap-1 overflow-x-auto text-sm text-muted">
+        <button
+          type="button"
+          className={`shrink-0 rounded-md px-2 py-1 hover:bg-panel-soft hover:text-foreground ${!folderId ? "font-semibold text-foreground" : ""}`}
+          onClick={() => onSelectFolder(null)}
+          aria-current={!folderId ? "page" : undefined}
+        >
+          All files
+        </button>
+        {folderTrail.map((folder, index) => (
+          <React.Fragment key={folder.id}>
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-subtle" aria-hidden="true" />
+            <button
+              type="button"
+              className={`shrink-0 rounded-md px-2 py-1 hover:bg-panel-soft hover:text-foreground ${index === folderTrail.length - 1 ? "font-semibold text-foreground" : ""}`}
+              onClick={() => onSelectFolder(folder.id)}
+              aria-current={index === folderTrail.length - 1 ? "page" : undefined}
+            >
+              {folder.name || "Untitled"}
+            </button>
+          </React.Fragment>
+        ))}
+      </nav>
       <div className="flex items-center gap-3 flex-wrap">
         <input
           value={q}
@@ -669,7 +796,7 @@ export default function AssetGrid({
           onKeyDown={e => {
             if (e.key === "Enter") {
               const val = (e.currentTarget as HTMLInputElement).value;
-              refresh({ search: val });
+              refreshScope({ search: val });
             }
           }}
           placeholder="Search title, filename, notes..."
@@ -677,14 +804,14 @@ export default function AssetGrid({
         />
         <button
           className="px-3 py-2 rounded-md border border-panel-strong disabled:opacity-60"
-          onClick={() => refresh({ search: q })}
+          onClick={() => refreshScope({ search: q })}
           disabled={loading}
         >
           Search
         </button>
         {loading && <span className="text-sm opacity-70">Loading...</span>}
         <div className="flex items-center gap-2 text-sm">
-          <span className="opacity-70">Sort</span>
+          <span className="opacity-70">Sort loaded</span>
           <select
             className="px-2 py-1 rounded-md border border-panel-strong bg-panel-soft"
             value={sortKey}
@@ -730,7 +857,7 @@ export default function AssetGrid({
           {activeTags.length>0 && (
             <button
               className="px-2 py-1 rounded-full text-sm border border-panel-strong"
-              onClick={() => { setActiveTags([]); refresh({ tags: [] }); }}
+              onClick={() => { setActiveTags([]); refreshScope({ tags: [] }); }}
             >
               Reset
             </button>
@@ -738,7 +865,161 @@ export default function AssetGrid({
         </div>
       )}
 
-      {["folder", "type"].includes(sortKey) ? (
+      {selectedIds.size > 0 && (
+        <section
+          role="toolbar"
+          aria-label="Selected models"
+          className="sticky top-0 z-20 rounded-xl border border-accent-soft bg-panel-strong p-3 shadow-lg"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="mr-1 flex items-center gap-2 font-semibold">
+              <CheckSquare2 className="h-4 w-4 text-accent" aria-hidden="true" />
+              <span>{selectedIds.size} selected</span>
+            </div>
+            <button
+              type="button"
+              className="rounded-md border border-panel-strong px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
+              onClick={selectLoaded}
+              disabled={bulkBusy || selectedIds.size === items.length}
+            >
+              Select loaded ({items.length})
+            </button>
+            <button
+              type="button"
+              className="rounded-md border border-panel-strong px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
+              onClick={clearSelection}
+              disabled={bulkBusy}
+            >
+              Clear
+            </button>
+            <span className="mx-1 hidden h-6 w-px bg-[color:var(--mv-border)] sm:block" aria-hidden="true" />
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-md border border-panel-strong px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
+              onClick={() => { setBulkPanel(bulkPanel === "move" ? null : "move"); setBulkStatus(null); }}
+              disabled={bulkBusy}
+            >
+              <FolderInput className="h-3.5 w-3.5" aria-hidden="true" /> Move
+            </button>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-md border border-panel-strong px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
+              onClick={() => { setBulkPanel(bulkPanel === "tags" ? null : "tags"); setBulkStatus(null); }}
+              disabled={bulkBusy}
+            >
+              <TagsIcon className="h-3.5 w-3.5" aria-hidden="true" /> Tags
+            </button>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-md border border-panel-strong px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
+              onClick={downloadSelected}
+              disabled={bulkBusy || Boolean(bulkDownloading)}
+            >
+              <DownloadIcon className="h-3.5 w-3.5" aria-hidden="true" />
+              {bulkDownloading ? "Preparing…" : "Download"}
+            </button>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-md border border-red-300 px-2.5 py-1.5 text-xs font-medium text-red-700 disabled:opacity-50 dark:text-red-300"
+              onClick={deleteSelected}
+              disabled={bulkBusy || Boolean(deletingId)}
+            >
+              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> Delete…
+            </button>
+          </div>
+
+          {bulkPanel === "move" && (
+            <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-panel pt-3">
+              <label className="flex min-w-[260px] flex-1 flex-col gap-1 text-xs font-medium">
+                Destination for {selectedIds.size} selected model{selectedIds.size === 1 ? "" : "s"}
+                <select
+                  value={bulkMoveTarget}
+                  onChange={event => setBulkMoveTarget(event.target.value)}
+                  className="h-9 rounded-md border border-panel-strong bg-panel-soft px-2 text-sm"
+                >
+                  {folderOptions.map(option => (
+                    <option key={option.id || "none"} value={option.id || ""}>{option.name}</option>
+                  ))}
+                </select>
+              </label>
+              <button type="button" className="h-9 rounded-md bg-accent px-3 text-sm font-medium" onClick={moveSelected}>
+                Move selected
+              </button>
+              <button type="button" className="grid h-9 w-9 place-items-center rounded-md border border-panel-strong" onClick={() => setBulkPanel(null)} aria-label="Close move controls">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {bulkPanel === "tags" && (
+            <div className="mt-3 flex flex-col gap-2 border-t border-panel pt-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={bulkTagMode}
+                  onChange={event => setBulkTagMode(event.target.value as TagMutationMode)}
+                  className="h-9 rounded-md border border-panel-strong bg-panel-soft px-2 text-sm"
+                  aria-label="Bulk tag operation"
+                >
+                  <option value="add">Add tags</option>
+                  <option value="remove">Remove tags</option>
+                </select>
+                <div className="min-w-[260px] flex-1">
+                  <TagInput value={bulkTags} onChange={setBulkTags} placeholder="Type tags and press comma/Enter" />
+                </div>
+                <button
+                  type="button"
+                  className="h-9 rounded-md bg-accent px-3 text-sm font-medium disabled:opacity-50"
+                  onClick={updateSelectedTags}
+                  disabled={!bulkTags.length}
+                >
+                  Apply to {selectedIds.size}
+                </button>
+                <button type="button" className="grid h-9 w-9 place-items-center rounded-md border border-panel-strong" onClick={() => setBulkPanel(null)} aria-label="Close tag controls">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="text-xs text-muted">Existing unrelated tags are preserved.</p>
+            </div>
+          )}
+
+          {bulkPanel === "delete" && selectedIds.size > 1 && (
+            <div className="mt-3 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-900 dark:bg-red-950/30 dark:text-red-100">
+              <div className="font-semibold">Permanent bulk delete is unavailable.</div>
+              <p className="mt-1">Trash and restore support must exist before MakersVault can safely delete multiple models. Delete models individually for now.</p>
+            </div>
+          )}
+
+        </section>
+      )}
+
+      {bulkStatus && <BulkProgress status={bulkStatus} />}
+
+      {!loading && items.length === 0 && (
+        <div className="rounded-xl border border-dashed border-panel-strong bg-panel-soft px-6 py-10 text-center">
+          <FolderOpen className="mx-auto h-8 w-8 text-subtle" aria-hidden="true" />
+          <h2 className="mt-3 font-semibold">
+            {q || activeTags.length ? "No models match this view" : folderId ? "No models directly in this folder" : "Your vault is empty"}
+          </h2>
+          {folderId && !q && !activeTags.length && childFolders.length > 0 ? (
+            <div className="mt-3">
+              <p className="text-sm text-muted">Continue into a subfolder:</p>
+              <div className="mt-3 flex flex-wrap justify-center gap-2">
+                {childFolders.map(folder => (
+                  <button key={folder.id} type="button" className="rounded-md border border-panel-strong px-3 py-2 text-sm hover:bg-panel-strong" onClick={() => onSelectFolder(folder.id)}>
+                    {folder.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-muted">
+              {q || activeTags.length ? "Try changing the search or tag filters." : "Upload files or drop a folder here to get started."}
+            </p>
+          )}
+        </div>
+      )}
+
+      {items.length > 0 && (["folder", "type"].includes(sortKey) ? (
         <div className="space-y-4">
           {(sortKey === "folder" ? folderGroups : typeGroups).map(group => {
             const collapsed = collapsedGroups.has(group.id);
@@ -776,10 +1057,8 @@ export default function AssetGrid({
                             folderOptions={folderOptions}
                             moving={movingId === it.id}
                             onDownloadByTag={downloadByTag}
-                            onDownloadSelected={downloadSelected}
                             selected={selectedIds.has(it.id)}
                             onToggleSelected={() => toggleSelected(it.id)}
-                            hasSelection={selectedIds.size > 0}
                             bulkDownloading={Boolean(bulkDownloading)}
                             slicerEnabled={slicerEnabled}
                             slicerLabel={slicerLabel}
@@ -821,10 +1100,8 @@ export default function AssetGrid({
               folderOptions={folderOptions}
               moving={movingId === it.id}
               onDownloadByTag={downloadByTag}
-              onDownloadSelected={downloadSelected}
               selected={selectedIds.has(it.id)}
               onToggleSelected={() => toggleSelected(it.id)}
-              hasSelection={selectedIds.size > 0}
               bulkDownloading={Boolean(bulkDownloading)}
               slicerEnabled={slicerEnabled}
               slicerLabel={slicerLabel}
@@ -838,7 +1115,7 @@ export default function AssetGrid({
             />
           ))}
         </div>
-      )}
+      ))}
       {hasMore && (
         <div className="flex justify-center pt-2">
           <button
@@ -859,7 +1136,32 @@ export default function AssetGrid({
   );
 }
 
-function AssetCard({
+function BulkProgress({ status }: { status: BulkStatus }) {
+  return (
+    <div className={`rounded-lg border p-3 text-sm ${status.failures.length ? "border-amber-400 bg-amber-50 text-amber-950 dark:bg-amber-950/30 dark:text-amber-100" : "border-panel bg-panel-soft"}`} aria-live="polite">
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-medium">{status.label}</span>
+        <span>{status.completed} / {status.total}</span>
+      </div>
+      {!status.done && (
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-panel">
+          <div className="h-full bg-accent transition-[width]" style={{ width: `${(status.completed / status.total) * 100}%` }} />
+        </div>
+      )}
+      {status.done && !status.failures.length && <p className="mt-1 text-xs text-muted">Completed successfully.</p>}
+      {!!status.failures.length && (
+        <div className="mt-2">
+          <p className="font-medium">{status.failures.length} failed and remain selected:</p>
+          <ul className="mt-1 space-y-1 text-xs">
+            {status.failures.map(failure => <li key={failure.id}><strong>{failure.name}:</strong> {failure.reason}</li>)}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const AssetCard = React.memo(function AssetCard({
   item,
   onSaveTags,
   onSaveDetails,
@@ -867,7 +1169,6 @@ function AssetCard({
   onPreview,
   onDownloadSingle,
   onDownloadByTag,
-  onDownloadSelected,
   downloading,
   onDelete,
   deleting,
@@ -876,7 +1177,6 @@ function AssetCard({
   moving,
   selected,
   onToggleSelected,
-  hasSelection,
   bulkDownloading,
   slicerEnabled,
   slicerLabel,
@@ -895,7 +1195,6 @@ function AssetCard({
   onPreview: (asset: Asset | null) => void;
   onDownloadSingle: (asset: Asset) => void;
   onDownloadByTag: (tag: string) => void;
-  onDownloadSelected: () => void;
   downloading: boolean;
   onDelete: (asset: Asset) => void;
   deleting: boolean;
@@ -904,7 +1203,6 @@ function AssetCard({
   moving: boolean;
   selected: boolean;
   onToggleSelected: () => void;
-  hasSelection: boolean;
   bulkDownloading: boolean;
   slicerEnabled: boolean;
   slicerLabel: string;
@@ -1101,8 +1399,6 @@ function AssetCard({
     setDownloadChoice("");
     if (val === "single") {
       onDownloadSingle(item);
-    } else if (val === "selected") {
-      onDownloadSelected();
     } else if (val.startsWith("tag:")) {
       onDownloadByTag(val.slice(4));
     }
@@ -1136,6 +1432,7 @@ function AssetCard({
               type="checkbox"
               checked={selected}
               onChange={onToggleSelected}
+              aria-label={`Select ${item.name || item.filename}`}
               className="w-4 h-4"
             />
             <span>Select</span>
@@ -1149,7 +1446,6 @@ function AssetCard({
             >
               <option value="">Download...</option>
               <option value="single">Download file</option>
-              <option value="selected" disabled={!hasSelection}>Download all selected</option>
               {item.tags.map(t => (
                 <option key={`tag-${t}`} value={`tag:${t}`}>Download tag: {t}</option>
               ))}
@@ -1398,7 +1694,21 @@ function AssetCard({
       </div>
     </div>
   );
-}
+}, (previous, next) => (
+  previous.item === next.item
+  && previous.downloading === next.downloading
+  && previous.deleting === next.deleting
+  && previous.folderOptions === next.folderOptions
+  && previous.moving === next.moving
+  && previous.selected === next.selected
+  && previous.bulkDownloading === next.bulkDownloading
+  && previous.slicerEnabled === next.slicerEnabled
+  && previous.slicerLabel === next.slicerLabel
+  && previous.engravingEnabled === next.engravingEnabled
+  && previous.engraverLabel === next.engraverLabel
+  && previous.theme === next.theme
+  && previous.previewMode === next.previewMode
+));
 
 function formatPreparedDuration(totalSeconds?: number | null) {
   if (!totalSeconds || totalSeconds < 1) return null;
