@@ -552,10 +552,10 @@ IDs changed. Partial failure must never invite blind retry of destructive work.
 
 ### Gate 4 — Make ingestion observable and establish content truth
 
-**Current execution:** `IN PROGRESS`. The owner opened Gate 4 on 2026-08-21.
-Required Gate 4A is active under the contract in
-[the Gate 4 baseline](evidence/gate-4/BASELINE.md); optional Gate 4B remains closed
-until Gate 4A is verified stable and its inclusion is assessed explicitly.
+**Current execution:** `ACCEPTED`. Required Gate 4A was completed and locally
+verified on 2026-08-21. Optional Gate 4B is explicitly deferred until Gate 5 proves
+release-critical upgrade and recovery stability. See
+[Gate 4 results](evidence/gate-4/RESULTS.md).
 
 **Objective:** Let operators understand mounted imports and, when stable, establish
 rename-resistant identity and provenance.
@@ -579,9 +579,12 @@ rename-resistant identity and provenance.
 - Store source URL, creator, and license provenance when known.
 - Warn on matching content; never auto-merge or delete.
 
-**Exit evidence:** repeated scans are explainable and do not duplicate unchanged
-source paths; failure details are visible without container logs; hashing jobs are
-bounded and restartable; known duplicate fixtures produce suggestions only.
+**Gate 4A exit evidence:** repeated scans are explainable and do not duplicate
+unchanged source paths; failure details are visible without container logs; copy and
+index-in-place ownership remain explicit and tested.
+
+**Gate 4B exit evidence when included:** hashing jobs are bounded and restartable;
+known duplicate fixtures produce suggestions only.
 
 **Owner checkpoint:** none for 4A within approved scope. Ask before introducing
 automatic grouping, merging, or a license inference policy.
