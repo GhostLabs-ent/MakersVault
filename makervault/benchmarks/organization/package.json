@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "baseline": "node organization-baseline.mjs"
+    "baseline": "node organization-baseline.mjs",
+    "mount-scan": "node mount-scan-verification.mjs"
   },
   "devDependencies": {
     "playwright-core": "1.62.1"

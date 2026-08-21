@@ -1,0 +1,17 @@
+# Gate 4A verification-only overlay. Runtime content is isolated in
+# project-scoped named volumes and removed by mount-scan-verification.sh.
+services:
+  api:
+    environment:
+      - IMPORT_MOUNT_PATH=/imports
+      - IMPORT_MOUNT_ON_STARTUP=false
+      - IMPORT_MOUNT_COPY=true
+    volumes:
+      - makersvault_mount_scan_storage:/app/storage
+      - makersvault_mount_scan_db:/app/data
+      - ./api:/app
+      - ${MAKERSVAULT_MOUNT_FIXTURE:-./benchmarks/mount-import/fixture}:/imports:ro
+
+volumes:
+  makersvault_mount_scan_storage:
+  makersvault_mount_scan_db:

@@ -23,6 +23,7 @@ verify-compose:
 	cd makervault && docker compose -f docker-compose.yml -f docker-compose.smoke.yml config -q
 	cd makervault && docker compose -f docker-compose.yml -f docker-compose.preview-benchmark.yml config -q
 	cd makervault && docker compose -f docker-compose.yml -f docker-compose.organization-benchmark.yml config -q
+	cd makervault && docker compose -f docker-compose.yml -f docker-compose.mount-scan-verification.yml config -q
 
 verify-smoke:
 	./makervault/scripts/container-smoke.sh
