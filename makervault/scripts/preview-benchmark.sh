@@ -12,15 +12,18 @@ output_path="$app_dir/benchmarks/preview/.artifacts/baseline.json"
 cd "$app_dir"
 
 compose() {
-  API_PORT="$api_port" \
-  WEB_PORT="$web_port" \
-  VITE_API_URL="http://localhost:$api_port" \
-  CORS_ORIGINS="http://localhost:$web_port" \
-    docker compose \
-      --project-name "$project_name" \
-      -f docker-compose.yml \
-      -f docker-compose.preview-benchmark.yml \
-      "$@"
+  (
+    cd "$app_dir"
+    API_PORT="$api_port" \
+    WEB_PORT="$web_port" \
+    VITE_API_URL="http://localhost:$api_port" \
+    CORS_ORIGINS="http://localhost:$web_port" \
+      docker compose \
+        --project-name "$project_name" \
+        -f docker-compose.yml \
+        -f docker-compose.preview-benchmark.yml \
+        "$@"
+  )
 }
 
 cleanup() {
