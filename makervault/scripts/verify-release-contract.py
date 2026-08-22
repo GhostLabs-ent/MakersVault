@@ -77,6 +77,7 @@ def main() -> int:
     for path in (
         APP / "scripts/build-release.sh",
         APP / "scripts/release-metadata.py",
+        APP / "scripts/verify-image-reproducibility.py",
         APP / "scripts/backup.sh",
         APP / "scripts/restore.sh",
     ):

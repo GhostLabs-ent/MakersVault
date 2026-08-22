@@ -6,6 +6,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import subprocess
+import tarfile
 from pathlib import Path
 
 
@@ -15,6 +17,74 @@ def sha256(path: Path) -> str:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def normalized_runtime_digests(image: dict) -> tuple[str, str]:
+    """Hash runtime semantics while ignoring layer packing/history/timestamps."""
+    config = image.get("Config", {})
+    selected_config = {
+        key: config.get(key)
+        for key in (
+            "Cmd", "Entrypoint", "Env", "ExposedPorts", "Healthcheck", "Labels",
+            "OnBuild", "Shell", "StopSignal", "User", "Volumes", "WorkingDir",
+        )
+    }
+    config_digest = hashlib.sha256(
+        json.dumps(selected_config, separators=(",", ":"), sort_keys=True).encode()
+    ).hexdigest()
+
+    container_id = subprocess.check_output(
+        ["docker", "create", image["Id"]], text=True
+    ).strip()
+    entries: list[dict] = []
+    process: subprocess.Popen | None = None
+    try:
+        process = subprocess.Popen(
+            ["docker", "export", container_id],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        assert process.stdout is not None
+        with tarfile.open(fileobj=process.stdout, mode="r|") as archive:
+            for member in archive:
+                record = {
+                    "path": member.name,
+                    "type": member.type.decode("latin1"),
+                    "mode": member.mode,
+                    "uid": member.uid,
+                    "gid": member.gid,
+                    "size": member.size,
+                    "link": member.linkname,
+                    "device": [member.devmajor, member.devminor],
+                }
+                if member.isfile():
+                    source = archive.extractfile(member)
+                    if source is None:
+                        raise RuntimeError(f"Cannot inspect image member: {member.name}")
+                    digest = hashlib.sha256()
+                    with source:
+                        for block in iter(lambda: source.read(1024 * 1024), b""):
+                            digest.update(block)
+                    record["sha256"] = digest.hexdigest()
+                entries.append(record)
+        stderr = process.stderr.read() if process.stderr else b""
+        if process.wait() != 0:
+            raise RuntimeError(f"docker export failed: {stderr.decode(errors='replace')}")
+    finally:
+        if process and process.poll() is None:
+            process.kill()
+            process.wait()
+        subprocess.run(
+            ["docker", "rm", "-f", container_id],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    entries.sort(key=lambda value: (value["path"], value["type"]))
+    filesystem_digest = hashlib.sha256(
+        json.dumps(entries, separators=(",", ":"), sort_keys=True).encode()
+    ).hexdigest()
+    return config_digest, filesystem_digest
 
 
 def image_record(path: Path, version: str, revision: str, created: str) -> dict:
@@ -32,12 +102,19 @@ def image_record(path: Path, version: str, revision: str, created: str) -> dict:
     for key, expected_value in expected.items():
         if labels.get(key) != expected_value:
             raise RuntimeError(f"Image label mismatch for {key}: {path}")
+    config_digest, filesystem_digest = normalized_runtime_digests(image)
+    runtime_digest = hashlib.sha256(
+        f"{config_digest}:{filesystem_digest}".encode()
+    ).hexdigest()
     return {
         "id": image["Id"],
         "repo_tags": sorted(image.get("RepoTags") or []),
         "os": image.get("Os"),
         "architecture": image.get("Architecture"),
         "labels": {key: labels[key] for key in sorted(expected)},
+        "normalized_config_sha256": config_digest,
+        "normalized_filesystem_sha256": filesystem_digest,
+        "normalized_runtime_sha256": runtime_digest,
     }
 
 
