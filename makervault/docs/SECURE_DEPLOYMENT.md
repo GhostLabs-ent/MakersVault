@@ -30,8 +30,10 @@ protects non-Compose deployments.
 
 ## Upgrading an existing installation
 
-Back up the database and storage volumes before any release upgrade. Then inspect
-the existing `.env` file in the `makervault` directory.
+Follow the tested [v5.1 upgrade procedure](UPGRADE_V5.1.md) and create a verified
+matched database/storage archive with the
+[backup and recovery tooling](BACKUP_AND_RECOVERY.md) before changing images.
+Then inspect the existing `.env` file in the `makervault` directory.
 
 Set all of these values before starting v5.1:
 

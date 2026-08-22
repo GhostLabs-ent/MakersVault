@@ -1,0 +1,163 @@
+# Backup and Recovery
+
+MakersVault v5.1 backs up the SQLite database and managed storage as one matched,
+stopped snapshot. Never back up or restore only one side. A database can point to
+files that are absent from a mismatched storage snapshot, while storage alone
+cannot reconstruct names, folders, metadata, or relationships.
+
+The supported production procedure uses `docker-compose.deploy.yml`, the exact
+Compose project name used by the installation, and these canonical mounts:
+
+| Data | Compose volume key | Container path |
+|---|---|---|
+| SQLite and migration records | `makersvault_db` | `/app/data` |
+| Primary files, supporting files, prepared files, and thumbnails | `makersvault_storage` | `/app/storage` |
+
+The archive also contains the deployment `.env`. It therefore contains secrets
+and must be protected like the vault itself. The tool creates it with mode `600`.
+
+## Create a production backup
+
+First update or copy the v5.1 repository files so the recovery scripts are
+available. This does not change a running older installation. From `makervault/`:
+
+```bash
+mkdir -p backups
+chmod 700 backups
+./scripts/backup.sh \
+  --project-name makersvault \
+  --output "backups/makersvault-$(date +%Y%m%d-%H%M%S).tar.gz" \
+  --release v5.0 \
+  --source-revision <deployed-tag-digest-or-revision>
+```
+
+Use the real Compose project if it is not `makersvault`. The script validates the
+manifest and target, records which services are running, stops API and web, streams
+both canonical volumes, restarts only the services that were running, creates the
+archive atomically, and verifies it before reporting success.
+
+Do not use `--overwrite` until the existing archive has been copied elsewhere or
+is known to be disposable. Store at least one copy outside the Docker host.
+
+## Verify without starting MakersVault
+
+Verification needs Python 3 but does not start an application image:
+
+```bash
+./scripts/verify-backup.sh backups/makersvault-20260821-220000.tar.gz
+```
+
+The verifier rejects corrupt or unknown archive members, path traversal,
+backslashes, symlinks, devices, duplicate members, checksum differences, an
+unreadable SQLite database, an invalid backup version, missing managed content,
+missing related files, and broken prepared-file pointers. It reports:
+
+- release, source revision, Compose project, manifest, mounts, and volume names;
+- SQLite integrity, schema version, tables, and row counts;
+- SHA-256 for the manifest, component archives, and every stored file;
+- managed, related, prepared, external, orphaned, and derived-thumbnail states;
+- whether externally owned no-copy bytes were included (always `false` in v5.1).
+
+Checksums detect accidental corruption and incomplete copies. They are not a
+signature from the project; release artifact signing is a separate concern.
+
+## Restore into empty production volumes
+
+Prepare the v5.1 Compose manifest and a safe current `.env`, then verify the backup.
+The restore command refuses non-empty database or storage volumes by default:
+
+```bash
+./scripts/restore.sh \
+  --project-name makersvault-recovery \
+  --archive /secure/path/makersvault-backup.tar.gz
+```
+
+The procedure verifies and extracts the archive before stopping services. It then
+restores managed storage first and SQLite last, corrects ownership, snapshots the
+live targets again, and proves every restored byte matches the archived inventory.
+Only services that were running before the operation are restarted.
+
+The archived `.env` is never applied automatically. To extract it for comparison,
+choose a new path that does not exist:
+
+```bash
+./scripts/restore.sh \
+  --project-name makersvault-recovery \
+  --archive /secure/path/makersvault-backup.tar.gz \
+  --config-output ./archived.env.review
+```
+
+The comparison file is created with mode `600`. Review image tags, host paths,
+URLs, proxy origins, UID/GID values, and credentials before transferring any value
+to the active `.env`. Delete the comparison file securely when finished.
+
+## Replace an existing installation
+
+`--replace` clears the exact project-scoped `/app/data` and `/app/storage` targets.
+Before using it, create and verify a new backup of the installation being replaced:
+
+```bash
+./scripts/restore.sh \
+  --project-name makersvault \
+  --archive /secure/path/makersvault-backup.tar.gz \
+  --replace
+```
+
+If the restore fails before volume mutation, previously running services are
+restarted. If it fails after clearing or extraction begins, services remain stopped
+and the script prints an operator-recovery warning. Preserve the failed state and
+logs; do not repeatedly run `--replace` without understanding the failure.
+
+Use `--leave-stopped` for release rollback so the restored older database is not
+started by the newer image:
+
+```bash
+./scripts/restore.sh \
+  --project-name makersvault \
+  --archive /secure/path/pre-upgrade-backup.tar.gz \
+  --replace \
+  --leave-stopped
+```
+
+Select the older matched API and web image tags in `.env`, then start the stack.
+
+## External no-copy content
+
+Mounted index-in-place files are owned outside MakersVault and are deliberately
+not copied into this backup. Their asset IDs, metadata, and exact container-visible
+source paths remain in SQLite. After recovery, remount the external library at the
+same `/imports`-relative paths. Until then, managed content continues to work and
+the external file routes return unavailable.
+
+The server backup also excludes browser sessions and source-site cookies, browser
+preferences, and workstation-local bridge configuration/cache. Re-authenticate the
+browser and reinstall or restore the v5.1 bridge separately.
+
+## Development-path compatibility
+
+The current source-development manifest stores SQLite at
+`makervault/data/db/app.db` and managed content at `makervault/data/storage`. An
+older source checkout may instead have `makervault/api/app.db` and
+`makervault/api/storage` because the whole API directory was mounted at `/app`.
+
+Stop the development stack. Preserve a matched copy of the old `app.db` and
+`storage` directory outside the repository, then copy—not move—the database to
+`data/db/app.db` and the storage contents to `data/storage`. Keep the originals
+until the current application has started, migration is complete, files open, and
+a new v5.1 backup verifies. Never point production at these development bind paths.
+
+## Tested recovery contract
+
+The source-owned `scripts/gate5-recovery-drill.sh` operates only on generated
+fixtures and unique disposable Compose projects. A clean committed revision must:
+
+1. create and verify a stopped schema-4 backup;
+2. upgrade nested folders, renamed content, old thumbnails, supporting/prepared
+   files, prepared summaries, external records, and interrupted preview state;
+3. validate IDs, metadata, and bytes through authenticated APIs;
+4. restore into an independent empty project with external no-copy bytes absent;
+5. restore the original project byte-for-byte to the pre-upgrade snapshot; and
+6. remove its project-scoped containers, networks, and volumes.
+
+`--allow-dirty` exists only for developing the drill. Its output is not release
+evidence because the image cannot be tied to an immutable source revision.

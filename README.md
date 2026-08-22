@@ -2,7 +2,7 @@
 <img width="612" height="408" alt="makersvaultlogoneon-removebg-preview" src="https://github.com/user-attachments/assets/32e7faae-23e3-41bb-a188-376ad2fa68df" />
 
 ![Status](https://img.shields.io/badge/status-Beta%20release-brightgreen)
-![Version](https://img.shields.io/badge/version-5.1.2-blue)
+![Version](https://img.shields.io/badge/version-5.1.0--rc-blue)
 ![Docker Pulls](https://img.shields.io/docker/pulls/shotgunwilly555/makersvault-web)
 ![License](https://img.shields.io/github/license/VincentCinque/MakersVault)
 
@@ -44,6 +44,7 @@ docker compose -f docker-compose.deploy.yml up -d
 
 <p><code>makervault/docker-compose.deploy.yml</code> is the canonical production manifest. <code>makervault/docker-compose.yml</code> is the canonical local source-build manifest. The historical <code>docker-deploy.yml</code> filename is retained only as a compatibility alias.</p>
 <p><strong>Security notice:</strong> production startup requires an explicit administrator password and deployment-specific signing secret. The setup helper creates both without overwriting an existing <code>.env</code>. Do not expose MakersVault ports directly to the public Internet.</p>
+<p><strong>Existing installation:</strong> do not start new images until you have followed the tested <a href="makervault/docs/UPGRADE_V5.1.md">v5.1 upgrade procedure</a> and created a verified matched backup using the <a href="makervault/docs/BACKUP_AND_RECOVERY.md">backup and recovery guide</a>. SQLite and managed storage must always be backed up and restored together.</p>
 
 <h3>Setting up the .env file</h3>
 <p>From the <code>makervault</code> directory, generate a new <strong>.env</strong> file:</p>

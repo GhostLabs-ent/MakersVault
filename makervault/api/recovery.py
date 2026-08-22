@@ -328,6 +328,10 @@ def create_backup(
     source_revision: str,
     config_env: Optional[Path] = None,
     overwrite: bool = False,
+    compose_project: str = "unknown",
+    compose_manifest: str = "unknown",
+    database_source: str = "unknown",
+    storage_source: str = "unknown",
 ) -> dict:
     if output.exists() and not overwrite:
         raise RecoveryError(f"Backup already exists: {output}")
@@ -364,6 +368,18 @@ def create_backup(
             "created_at": utc_timestamp(),
             "release": release,
             "source_revision": source_revision,
+            "deployment": {
+                "compose_project": compose_project,
+                "compose_manifest": compose_manifest,
+                "database": {
+                    "source": database_source,
+                    "container_path": "/app/data",
+                },
+                "storage": {
+                    "source": storage_source,
+                    "container_path": "/app/storage",
+                },
+            },
             "components": components,
             "database": summary,
             "consistency": audit,
@@ -570,6 +586,10 @@ def build_parser() -> argparse.ArgumentParser:
     create.add_argument("--source-revision", required=True)
     create.add_argument("--config-env", type=Path)
     create.add_argument("--overwrite", action="store_true")
+    create.add_argument("--compose-project", required=True)
+    create.add_argument("--compose-manifest", required=True)
+    create.add_argument("--database-source", required=True)
+    create.add_argument("--storage-source", required=True)
 
     verify = subparsers.add_parser("verify")
     verify.add_argument("--archive", type=Path, required=True)
@@ -607,6 +627,10 @@ def main() -> int:
                 args.source_revision,
                 args.config_env,
                 args.overwrite,
+                args.compose_project,
+                args.compose_manifest,
+                args.database_source,
+                args.storage_source,
             )
         elif args.command == "verify":
             result = verify_backup(args.archive)

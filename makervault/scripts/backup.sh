@@ -116,6 +116,10 @@ python3 "$app_dir/api/recovery.py" create \
   --output "$output" \
   --release "$release" \
   --source-revision "$source_revision" \
+  --compose-project "$project_name" \
+  --compose-manifest "$(basename "$compose_file")" \
+  --database-source "${project_name}_makersvault_db" \
+  --storage-source "${project_name}_makersvault_storage" \
   $create_args \
   > "$temporary/manifest.json"
 python3 "$app_dir/api/recovery.py" verify --archive "$output" >/dev/null
