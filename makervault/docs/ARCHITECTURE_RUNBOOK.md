@@ -2,11 +2,11 @@
 
 **Status:** Governing working document
 
-**Baseline date:** 2026-08-14
+**Baseline date:** 2026-08-22
 
-**Committed baseline:** `main` at `63ade54cad7b1681cf2a33f62c0512d6d80bc45c`
+**Committed baseline:** `main` at `c004c60`
 
-**Immutable source baseline:** `1231565642b8541a7ad36ba4ffdeb2da9527ef89`
+**Immutable v5.1 source baseline:** `f6ff55b33fd64c7a5037e8eb642bed048c3e0e4f`
 
 **Target:** v5.1 and the strategic roadmap that follows it
 
@@ -159,6 +159,12 @@ runtime artifacts are excluded from source ownership. The complete local
 tree. GitHub Actions run 31802094344 then passed all four verification jobs
 against evidence closeout commit `63ade54cad7b1681cf2a33f62c0512d6d80bc45c`.
 
+Gates 1–5 subsequently passed their named local evidence. Gate 5 qualified immutable
+v5.1 source `f6ff55b33fd64c7a5037e8eb642bed048c3e0e4f`; owner acceptance is recorded at
+`c004c60`. No tag, push, image, binary, or release is published. By owner decision,
+post-v5.1 Gate 6 work proceeds after that immutable candidate in local history while
+publication remains reserved for a coordinated rollout.
+
 ### 5.2 Current component map
 
 ```text
@@ -208,6 +214,9 @@ be made explicit before deployment boundaries are multiplied.
 | T-018 | `VERIFIED` | Canonical local and production Compose manifests are named; compatibility aliases are tested; generated/runtime artifacts are ignored and absent from Git tracking. | ADR 0001, Compose validation, root `.gitignore`, Gate 0 evidence | Deployment and repository ownership drift is now detectable by the shared harness. |
 | T-019 | `DECIDED` | v5.1 is single-admin; multi-user/MFA/SSO is deferred. | product strategy and v5.1 scope | Security analysis statements that assume v5.1 multi-user are stale. |
 | T-020 | `DECIDED` | v5.1 is a confidence release, not the Project/Revision rewrite. | v5.1 scope | Reliability gates outrank future architecture work. |
+| T-021 | `VERIFIED` | Gate 5 qualifies and locally accepts immutable v5.1 source `f6ff55b`; upgrade, recovery, exact-image, reproducibility, performance, import, and browser evidence pass. Publication remains deferred. | `docs/evidence/gate-5/RESULTS.md`, acceptance commit `c004c60` | Gate 6 branches from a fixed release boundary and cannot alter the v5.1 candidate. |
+| T-022 | `VERIFIED` | Schema 5 has one mutable primary-file state per Asset, no content digest or revisions, and immediate best-effort deletion outside a filesystem/database transaction. | Gate 6 source audit and `docs/evidence/gate-6/BASELINE.md` | Gate 6 begins with content truth, immutable revision ownership, and metadata-only Trash. |
+| T-023 | `DECIDED` | A bounded print-failure alert is a candidate experimental post-v5.1 track: disabled by default, advisory only, external-provider-first, and never a Gate 6 dependency. | `docs/EXPERIMENTAL_PRINT_MONITORING.md`, owner direction 2026-08-22 | Monitoring can be prototyped independently but cannot introduce printer-control authority or weaken active-gate evidence. |
 
 ### 5.4 Current storage invariants
 
@@ -639,10 +648,22 @@ matched set. Never restore only one side of the pair.
 
 ### Gate 6 — Establish revisions and recoverable deletion
 
+**Current execution:** `IN PROGRESS` for the architecture and owner-decision
+subgate only. Current schema-5 behavior is recorded in
+[the Gate 6 baseline](evidence/gate-6/BASELINE.md). ADRs 0006–0008 and the
+[owner checkpoint](evidence/gate-6/OWNER_CHECKPOINT.md) are proposed; schema and
+behavior implementation have not started.
+
 **Objective:** Add trustworthy history before adding the larger Project model.
 
-**Dependencies:** v5.1 released; SHA-256 identity completed or included as the
-first subgate.
+**Dependencies:** Gate 5 accepted against an immutable v5.1 candidate. Public
+publication may remain deferred under the owner's local-development decision, but
+Gate 6 history must remain strictly after and excluded from that candidate. SHA-256
+identity is included as subgate 6A because Gate 4B was deferred.
+
+**Subgates:** 6A content truth and revision expansion; 6B immutable revision
+workflows; 6C Trash and permanent deletion; 6D recovery, compatibility, and
+closeout.
 
 **Required decisions:** current-revision semantics; metadata ownership between
 artifact and revision; supporting-file versioning; preview retention; storage
@@ -930,6 +951,7 @@ the operator, build, environment, steps, expected result, actual result, and dat
 | Multi-user without authorization model | Cross-user data exposure | Gate 11 |
 | Documentation drift | Decisions and implementation diverge | Every re-cock |
 | Hosted service before portability/security | Lock-in and operational trust failure | Gates 10–12 |
+| Experimental camera/AI monitoring leaks LAN endpoints, secrets, or incident images | Privacy, network pivot, or operator trust failure | Independent experimental monitoring discovery; never a Gate 6 dependency |
 
 Risks are never closed only because a feature shipped. Closure requires evidence;
 accepted residual risk names its owner, reason, review date, and containment.
@@ -976,6 +998,7 @@ implementation. Gate 13 closes the roadmap only when the listed proof exists.
 | Useful relationships and project provenance | Gate 7 | Retrieval workflows and round-trip export evidence |
 | Safe general local application handoff | Gates 1 and 8 | Scoped-grant and multi-adapter conformance tests |
 | Descriptive machine context without control | Gate 9 | Boundary and export tests; no command/telemetry authority |
+| Optional advisory print-failure alerts without printer control | Independent post-v5.1 experiment | Disabled-by-default provider isolation, measured detection quality, secret/privacy review, Discord delivery, and proof that monitor failure cannot impair the vault |
 | Open, portable backup and storage evolution | Gate 10 | Independently documented and verified `.mvault` round trip |
 | Deliberate authentication evolution | Gates 1 and 11 | Authorization, recovery, session, and audit test suites |
 | Complete open source plus paid convenience | Gate 12 | Sustainability decision tests and non-lock-in exit drill |
@@ -1003,7 +1026,9 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Resolve the slice 1C budget checkpoint in
-[SLICE_1C_DESIGN.md](evidence/gate-1/SLICE_1C_DESIGN.md), then implement the
-shared streaming, archive, image, storage-reserve, and mounted-source controls as
-one independently verified local change.
+Resolve the Gate 6 metadata, revision, storage, export, and Trash decisions in
+[the owner checkpoint](evidence/gate-6/OWNER_CHECKPOINT.md). Once accepted, begin
+subgate 6A with the additive revision/content-identity migration, schema-5 fixture
+upgrade, no-relocation verification, and bounded hashing contract. Keep the
+[print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
+disabled by default; it is not part of Gate 6 acceptance.
