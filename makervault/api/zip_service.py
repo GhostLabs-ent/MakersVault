@@ -1,4 +1,5 @@
 import os
+import hashlib
 from pathlib import Path
 from typing import List, Optional
 from zipfile import ZipFile
@@ -148,12 +149,13 @@ def extract_zip_entries_to_assets(zip_path: Path, selections: List[str], body: I
             try:
                 validate_archive_member(info)
                 with zf.open(info) as src:
-                    size = stream_reader_to_file(src, dest, "Extracted file")
+                    digest = hashlib.sha256()
+                    size = stream_reader_to_file(src, dest, "Extracted file", digest=digest)
                 if (mime or "").startswith("image/") and dest.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}:
                     save_thumb(asset.id, dest)
                 elif dest.suffix.lower() == ".3mf":
                     ensure_model_thumbnail(asset.id, dest)
-                refreshed = finalize_asset_record(asset.id, size, mime)
+                refreshed = finalize_asset_record(asset.id, size, mime, digest.hexdigest())
                 assets.append(refreshed or asset)
             except Exception:
                 cleanup_asset(asset.id)

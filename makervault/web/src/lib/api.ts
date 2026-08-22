@@ -160,6 +160,27 @@ export type PreviewPolicy = {
   automatic_step_enabled: boolean;
 };
 
+export type ContentHashFailure = {
+  revision_id: string;
+  reason: string;
+};
+
+export type ContentHashJob = {
+  id: string;
+  trigger: "startup" | "manual" | "verify";
+  status: "running" | "completed" | "completed_with_findings" | "interrupted";
+  started_at: string;
+  finished_at?: string | null;
+  total: number;
+  processed: number;
+  ready: number;
+  unavailable: number;
+  changed: number;
+  failed: number;
+  failure_details: ContentHashFailure[];
+  failure_details_omitted: number;
+};
+
 let previewPolicyPromise: Promise<PreviewPolicy> | null = null;
 
 function normalizePublicUrl(raw: string): string | null {
@@ -742,6 +763,27 @@ export async function updateStorageSettings(payload: {
   if (res.status === 401) throw new UnauthorizedError();
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Failed to update storage settings"));
+  }
+  return res.json();
+}
+
+export async function getContentIdentityJob(): Promise<ContentHashJob | null> {
+  const res = await fetch(`${apiBase()}/settings/content-identity`, { headers: authHeaders() });
+  assertOk(res, "Failed to load content identity status");
+  return res.json();
+}
+
+export async function startContentIdentityBackfill(
+  verifyAll = false
+): Promise<{ job: ContentHashJob | null; started: boolean }> {
+  const res = await fetch(`${apiBase()}/settings/content-identity/backfill`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ verify_all: verifyAll }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Failed to start content verification"));
   }
   return res.json();
 }

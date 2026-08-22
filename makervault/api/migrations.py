@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterable
+import uuid
 
 from sqlalchemy.engine import Connection, Engine
 
@@ -195,12 +196,179 @@ def _migration_005_mount_scan_records(conn: Connection) -> None:
     )
 
 
+def _migration_006_artifact_revisions_and_content_identity(conn: Connection) -> None:
+    _add_column(conn, "asset", "current_revision_id", "TEXT")
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS artifactrevision (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            asset_id VARCHAR NOT NULL,
+            revision_number INTEGER NOT NULL,
+            created_at VARCHAR NOT NULL,
+            origin_revision_id VARCHAR,
+            filename VARCHAR NOT NULL,
+            mime VARCHAR NOT NULL,
+            size INTEGER NOT NULL DEFAULT 0,
+            sha256 VARCHAR,
+            observed_sha256 VARCHAR,
+            content_state VARCHAR NOT NULL DEFAULT 'pending',
+            content_reason VARCHAR,
+            content_checked_at VARCHAR,
+            storage_path VARCHAR,
+            source_path VARCHAR,
+            change_note VARCHAR,
+            prepared_file_id VARCHAR,
+            prepared_metadata_json VARCHAR,
+            preview_status VARCHAR NOT NULL DEFAULT 'pending',
+            preview_reason VARCHAR,
+            preview_attempts INTEGER NOT NULL DEFAULT 0,
+            preview_policy_version INTEGER NOT NULL DEFAULT 1,
+            preview_updated_at VARCHAR,
+            preview_source VARCHAR,
+            preview_thumb_path VARCHAR,
+            FOREIGN KEY(asset_id) REFERENCES asset(id),
+            FOREIGN KEY(origin_revision_id) REFERENCES artifactrevision(id)
+        )
+        """
+    )
+    _add_column(conn, "assetfile", "revision_id", "TEXT")
+
+    conn.exec_driver_sql(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_artifactrevision_asset_number_unique "
+        "ON artifactrevision(asset_id, revision_number)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_artifactrevision_asset_id "
+        "ON artifactrevision(asset_id)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_artifactrevision_sha256 "
+        "ON artifactrevision(sha256)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_artifactrevision_content_state "
+        "ON artifactrevision(content_state)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_asset_current_revision_id "
+        "ON asset(current_revision_id)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_assetfile_revision_id "
+        "ON assetfile(revision_id)"
+    )
+
+    assets = conn.exec_driver_sql(
+        """
+        SELECT id, filename, mime, size, storage_path, source_path,
+               prepared_file_id, prepared_metadata_json,
+               preview_status, preview_reason, preview_attempts,
+               preview_policy_version, preview_updated_at, preview_source,
+               current_revision_id
+        FROM asset
+        ORDER BY id
+        """
+    ).fetchall()
+    for asset in assets:
+        asset_id = str(asset[0])
+        revision_id = str(
+            uuid.uuid5(uuid.NAMESPACE_URL, f"makersvault:artifact:{asset_id}:revision:1")
+        )
+        current_revision_id = asset[14]
+        if not current_revision_id:
+            conn.exec_driver_sql(
+                """
+                INSERT OR IGNORE INTO artifactrevision(
+                    id, asset_id, revision_number, created_at, filename, mime, size,
+                    storage_path, source_path, prepared_file_id,
+                    prepared_metadata_json, preview_status, preview_reason,
+                    preview_attempts, preview_policy_version, preview_updated_at,
+                    preview_source, preview_thumb_path, content_state
+                ) VALUES (?, ?, 1, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+                """,
+                (
+                    revision_id,
+                    asset_id,
+                    asset[1],
+                    asset[2],
+                    asset[3],
+                    asset[4],
+                    asset[5],
+                    asset[6],
+                    asset[7],
+                    asset[8],
+                    asset[9],
+                    asset[10],
+                    asset[11],
+                    asset[12],
+                    asset[13],
+                    f"thumbs/{asset_id}.jpg",
+                ),
+            )
+            conn.exec_driver_sql(
+                "UPDATE asset SET current_revision_id = ? WHERE id = ?",
+                (revision_id, asset_id),
+            )
+        if asset[6]:
+            conn.exec_driver_sql(
+                "UPDATE assetfile SET revision_id = ? WHERE id = ? AND role = 'prepared'",
+                (revision_id, asset[6]),
+            )
+
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS contenthashjob (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            trigger VARCHAR NOT NULL,
+            status VARCHAR NOT NULL,
+            started_at VARCHAR NOT NULL,
+            finished_at VARCHAR,
+            total INTEGER NOT NULL DEFAULT 0,
+            processed INTEGER NOT NULL DEFAULT 0,
+            ready INTEGER NOT NULL DEFAULT 0,
+            unavailable INTEGER NOT NULL DEFAULT 0,
+            changed INTEGER NOT NULL DEFAULT 0,
+            failed INTEGER NOT NULL DEFAULT 0,
+            failure_details_json VARCHAR NOT NULL DEFAULT '[]',
+            failure_details_omitted INTEGER NOT NULL DEFAULT 0
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_contenthashjob_trigger ON contenthashjob(trigger)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_contenthashjob_status ON contenthashjob(status)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_contenthashjob_started_at ON contenthashjob(started_at)"
+    )
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS contenthashjobitem (
+            job_id VARCHAR NOT NULL,
+            revision_id VARCHAR NOT NULL,
+            status VARCHAR NOT NULL DEFAULT 'pending',
+            reason VARCHAR,
+            PRIMARY KEY(job_id, revision_id),
+            FOREIGN KEY(job_id) REFERENCES contenthashjob(id),
+            FOREIGN KEY(revision_id) REFERENCES artifactrevision(id)
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_contenthashjobitem_status "
+        "ON contenthashjobitem(status)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
     Migration(3, "asset_metadata_and_bundles", _migration_003_asset_metadata_and_bundles),
     Migration(4, "persistent_preview_state", _migration_004_preview_state),
     Migration(5, "persistent_mount_scan_records", _migration_005_mount_scan_records),
+    Migration(6, "artifact_revisions_and_content_identity", _migration_006_artifact_revisions_and_content_identity),
 )
 
 

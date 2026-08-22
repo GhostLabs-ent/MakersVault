@@ -1,6 +1,6 @@
 import shutil
 from pathlib import Path
-from typing import BinaryIO
+from typing import Any, BinaryIO, Optional
 
 from fastapi import HTTPException, UploadFile
 
@@ -38,6 +38,7 @@ async def stream_upload_to_file(
     destination: Path,
     label: str,
     max_bytes: int = FILE_MAX_BYTES,
+    digest: Optional[Any] = None,
 ) -> int:
     reject_declared_size(getattr(upload, "size", None), label, max_bytes)
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -53,6 +54,8 @@ async def stream_upload_to_file(
                 reject_declared_size(size, label, max_bytes)
                 ensure_storage_reserve(destination, len(chunk))
                 output.write(chunk)
+                if digest is not None:
+                    digest.update(chunk)
         return size
     except Exception:
         destination.unlink(missing_ok=True)
@@ -64,6 +67,7 @@ def stream_reader_to_file(
     destination: Path,
     label: str,
     max_bytes: int = FILE_MAX_BYTES,
+    digest: Optional[Any] = None,
 ) -> int:
     destination.parent.mkdir(parents=True, exist_ok=True)
     ensure_storage_reserve(destination)
@@ -78,7 +82,29 @@ def stream_reader_to_file(
                 reject_declared_size(size, label, max_bytes)
                 ensure_storage_reserve(destination, len(chunk))
                 output.write(chunk)
+                if digest is not None:
+                    digest.update(chunk)
         return size
     except Exception:
         destination.unlink(missing_ok=True)
         raise
+
+
+def digest_reader(
+    reader: BinaryIO,
+    label: str,
+    max_bytes: Optional[int] = FILE_MAX_BYTES,
+) -> tuple[int, str]:
+    import hashlib
+
+    digest = hashlib.sha256()
+    size = 0
+    while True:
+        chunk = reader.read(CHUNK_BYTES)
+        if not chunk:
+            break
+        size += len(chunk)
+        if max_bytes is not None and max_bytes > 0:
+            reject_declared_size(size, label, max_bytes)
+        digest.update(chunk)
+    return size, digest.hexdigest()

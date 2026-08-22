@@ -10,6 +10,7 @@ from file_utils import mime_from_content_type, sanitize_filename
 from models import Asset, AssetFile
 from prepared_print import inspect_prepared_print, is_prepared_print_filename
 from resource_limits import stream_upload_to_file
+from revision_service import sync_current_revision
 
 
 def managed_asset_file_path(asset_file: AssetFile) -> Path:
@@ -44,6 +45,7 @@ async def save_asset_file(asset_id: str, upload: UploadFile) -> Asset:
             mime=mime,
             role=role,
             storage_path="pending",
+            revision_id=asset.current_revision_id if role == "prepared" else None,
         )
         record.storage_path = f"bundles/{asset.id}/{record.id}/{safe_name}"
         session.add(record)
@@ -67,6 +69,7 @@ async def save_asset_file(asset_id: str, upload: UploadFile) -> Asset:
             db_record.role = role
             db_record.metadata_json = json.dumps(metadata) if metadata else None
             if role == "prepared":
+                db_record.revision_id = asset.current_revision_id
                 if asset.prepared_file_id and asset.prepared_file_id != db_record.id:
                     old_prepared = session.get(AssetFile, asset.prepared_file_id)
                     if old_prepared:
@@ -76,7 +79,7 @@ async def save_asset_file(asset_id: str, upload: UploadFile) -> Asset:
             else:
                 asset.supporting_file_count = int(asset.supporting_file_count or 0) + 1
             session.add(db_record)
-            session.add(asset)
+            sync_current_revision(session, asset)
             if old_prepared_path:
                 session.delete(old_prepared)
             session.commit()
@@ -109,7 +112,7 @@ def delete_supporting_file(asset_id: str, file_id: str) -> Asset:
             raise HTTPException(404)
         path = managed_asset_file_path(record)
         asset.supporting_file_count = max(0, int(asset.supporting_file_count or 0) - 1)
-        session.add(asset)
+        sync_current_revision(session, asset)
         session.delete(record)
         session.commit()
         session.refresh(asset)
@@ -153,7 +156,7 @@ def delete_prepared_file(asset_id: str) -> Asset:
         embedded = inspect_asset_prepared_print(asset)
         asset.prepared_file_id = None
         asset.prepared_metadata_json = json.dumps(embedded) if embedded else None
-        session.add(asset)
+        sync_current_revision(session, asset)
         session.delete(record)
         session.commit()
         session.refresh(asset)
@@ -195,5 +198,5 @@ def backfill_prepared_print_metadata() -> None:
             current = session.get(Asset, asset.id)
             if current and not current.prepared_metadata_json:
                 current.prepared_metadata_json = json.dumps(metadata)
-                session.add(current)
+                sync_current_revision(session, current)
                 session.commit()

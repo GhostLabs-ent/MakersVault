@@ -225,3 +225,53 @@ class StorageSettingsOut(BaseModel):
   sample_path: str
   moved: int = 0
   skipped: int = 0
+
+
+class ArtifactRevisionOut(BaseModel):
+  id: str
+  revision_number: int
+  created_at: str
+  origin_revision_id: Optional[str] = None
+  filename: str
+  mime: str
+  size: int
+  sha256: Optional[str] = None
+  content_state: Literal["pending", "ready", "unavailable", "changed", "failed"]
+  content_reason: Optional[str] = None
+  content_checked_at: Optional[str] = None
+  is_current: bool
+
+
+class ContentHashFailureOut(BaseModel):
+  revision_id: str
+  reason: str
+
+
+class ContentHashJobOut(BaseModel):
+  id: str
+  trigger: Literal["startup", "manual", "verify"]
+  status: Literal[
+    "running",
+    "completed",
+    "completed_with_findings",
+    "interrupted",
+  ]
+  started_at: str
+  finished_at: Optional[str] = None
+  total: int = 0
+  processed: int = 0
+  ready: int = 0
+  unavailable: int = 0
+  changed: int = 0
+  failed: int = 0
+  failure_details: List[ContentHashFailureOut] = Field(default_factory=list)
+  failure_details_omitted: int = 0
+
+
+class ContentHashStartRequest(BaseModel):
+  verify_all: bool = False
+
+
+class ContentHashStartOut(BaseModel):
+  job: Optional[ContentHashJobOut] = None
+  started: bool

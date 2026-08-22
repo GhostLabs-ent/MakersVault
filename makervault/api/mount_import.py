@@ -2,6 +2,7 @@ import os
 import re
 import stat
 import json
+import hashlib
 import threading
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -25,7 +26,7 @@ from file_utils import guess_mime_from_path, sanitize_filename
 from models import Asset, MountScan
 from settings_service import get_mount_import_copy
 from zip_service import resolve_zip_folder_id
-from resource_limits import reject_declared_size, stream_reader_to_file
+from resource_limits import digest_reader, reject_declared_size, stream_reader_to_file
 
 
 MOUNT_SCAN_FAILURE_LIMIT = 50
@@ -377,6 +378,7 @@ def scan_mount_imports(
                         )
                         if copy_files:
                             dest = managed_asset_path(asset)
+                            digest = hashlib.sha256()
                             with open_safe_mount_file(root_abs, path) as (source, opened_size, _):
                                 reject_declared_size(opened_size, "Mounted file", IMPORT_MAX_BYTES)
                                 copied_size = stream_reader_to_file(
@@ -384,6 +386,7 @@ def scan_mount_imports(
                                     dest,
                                     "Mounted file",
                                     IMPORT_MAX_BYTES,
+                                    digest=digest,
                                 )
                             if copied_size != opened_size:
                                 raise ValueError("Mounted source changed while it was copied")
@@ -394,6 +397,13 @@ def scan_mount_imports(
                         else:
                             with open_safe_mount_file(root_abs, path) as (source, opened_size, opened_path):
                                 reject_declared_size(opened_size, "Mounted file", IMPORT_MAX_BYTES)
+                                digested_size, content_sha256 = digest_reader(
+                                    source,
+                                    "Mounted file",
+                                    IMPORT_MAX_BYTES,
+                                )
+                                if digested_size != opened_size:
+                                    raise ValueError("Mounted source changed while it was hashed")
                                 descriptor_path = Path(f"/proc/self/fd/{source.fileno()}")
                                 preview_path = descriptor_path if descriptor_path.exists() else opened_path
                                 if (mime or "").startswith("image/") and opened_path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}:
@@ -402,7 +412,12 @@ def scan_mount_imports(
                                     ensure_model_thumbnail(asset.id, preview_path, opened_path.name)
                             if opened_size != size:
                                 raise ValueError("Mounted source changed while it was indexed")
-                        finalize_asset_record(asset.id, size, mime)
+                        finalize_asset_record(
+                            asset.id,
+                            size,
+                            mime,
+                            digest.hexdigest() if copy_files else content_sha256,
+                        )
                         result.imported += 1
                         existing_sources.add(source_path)
                     except Exception as exc:

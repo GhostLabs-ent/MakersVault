@@ -11,6 +11,7 @@ import tempfile
 import threading
 from urllib.parse import quote, urlparse
 import hmac
+import hashlib
 import json
 import logging
 import os
@@ -72,6 +73,12 @@ from file_utils import build_import_filename, mime_from_content_type, sanitize_f
 from folder_service import validate_parent_folder
 from http_security import HostPolicyMiddleware, SecurityHeadersMiddleware, resolve_trusted_hosts
 from import_service import download_import_to_temp, import_asset_from_url, open_import_response
+from content_identity import (
+    content_hash_failure_details,
+    latest_content_hash_job,
+    recover_interrupted_content_hash_jobs,
+    start_content_hash_job,
+)
 from login_security import LoginAttemptLimiter
 from mount_import import (
     latest_mount_scan,
@@ -80,7 +87,7 @@ from mount_import import (
     resolve_safe_mount_file,
     start_mount_scan,
 )
-from models import Asset, AssetFile, Folder, MountScan
+from models import ArtifactRevision, Asset, AssetFile, ContentHashJob, Folder, MountScan
 from migrations import run_migrations
 from prepared_print import prepared_filename
 from preview_policy import (
@@ -89,6 +96,7 @@ from preview_policy import (
     preview_timestamp,
     validate_preview_state,
 )
+from revision_service import delete_artifact_revisions, sync_current_revision
 from resource_limits import ensure_storage_reserve, stream_upload_to_file
 from settings_service import (
     DEFAULT_STORAGE_TEMPLATE,
@@ -125,6 +133,10 @@ from schemas import (
     MountScanStartOut,
     StorageSettings,
     StorageSettingsOut,
+    ArtifactRevisionOut,
+    ContentHashJobOut,
+    ContentHashStartOut,
+    ContentHashStartRequest,
     PreviewPolicyOut,
     PreviewStateUpdate,
 )
@@ -137,8 +149,10 @@ async def lifespan(_app: FastAPI):
     validate_auth_config()
     run_migrations(engine)
     recover_interrupted_mount_scans()
+    recover_interrupted_content_hash_jobs()
     threading.Thread(target=backfill_embedded_thumbnails, daemon=True).start()
     threading.Thread(target=backfill_prepared_print_metadata, daemon=True).start()
+    start_content_hash_job("startup")
     if MOUNT_IMPORT_PATH and get_mount_import_enabled(MOUNT_IMPORT_ENABLED):
         start_mount_scan("startup")
     yield
@@ -312,6 +326,43 @@ def asset_file_to_out(asset_file: AssetFile) -> AssetFileOut:
     )
 
 
+def revision_to_out(revision: ArtifactRevision, current_revision_id: Optional[str]) -> ArtifactRevisionOut:
+    return ArtifactRevisionOut(
+        id=revision.id,
+        revision_number=revision.revision_number,
+        created_at=revision.created_at,
+        origin_revision_id=revision.origin_revision_id,
+        filename=revision.filename,
+        mime=revision.mime,
+        size=revision.size,
+        sha256=revision.sha256,
+        content_state=revision.content_state,
+        content_reason=revision.content_reason,
+        content_checked_at=revision.content_checked_at,
+        is_current=revision.id == current_revision_id,
+    )
+
+
+def content_hash_job_out(job: Optional[ContentHashJob]) -> Optional[ContentHashJobOut]:
+    if not job:
+        return None
+    return ContentHashJobOut(
+        id=job.id,
+        trigger=job.trigger,
+        status=job.status,
+        started_at=job.started_at,
+        finished_at=job.finished_at,
+        total=job.total,
+        processed=job.processed,
+        ready=job.ready,
+        unavailable=job.unavailable,
+        changed=job.changed,
+        failed=job.failed,
+        failure_details=content_hash_failure_details(job),
+        failure_details_omitted=job.failure_details_omitted,
+    )
+
+
 def arcname_for_asset(asset: Asset, folder_label_map: Optional[dict] = None) -> str:
     folder_part = "unassigned"
     if asset.folder_id:
@@ -460,6 +511,23 @@ def get_preview_policy(_: Optional[str] = Depends(require_auth)):
     return PreviewPolicyOut(**preview_policy_payload())
 
 
+@app.get("/settings/content-identity", response_model=Optional[ContentHashJobOut])
+def get_content_identity_job(_: Optional[str] = Depends(require_auth)):
+    return content_hash_job_out(latest_content_hash_job())
+
+
+@app.post("/settings/content-identity/backfill", response_model=ContentHashStartOut)
+def start_content_identity_backfill(
+    body: ContentHashStartRequest,
+    _: Optional[str] = Depends(require_auth),
+):
+    job, started = start_content_hash_job(
+        "verify" if body.verify_all else "manual",
+        verify_all=body.verify_all,
+    )
+    return ContentHashStartOut(job=content_hash_job_out(job), started=started)
+
+
 @app.post("/settings/storage", response_model=StorageSettingsOut)
 def update_storage_settings(body: StorageSettings, _: Optional[str] = Depends(require_auth)):
     template = validate_storage_template(body.template)
@@ -537,12 +605,13 @@ async def upload(
 
     dest = managed_asset_path(asset)
     try:
-        size = await stream_upload_to_file(file, dest, "Uploaded file")
+        digest = hashlib.sha256()
+        size = await stream_upload_to_file(file, dest, "Uploaded file", digest=digest)
         if (asset.mime or "").lower().startswith("image/") and dest.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}:
             save_thumb(asset.id, dest)
         elif dest.suffix.lower() == ".3mf":
             ensure_model_thumbnail(asset.id, dest)
-        asset = finalize_asset_record(asset.id, size, asset.mime) or asset
+        asset = finalize_asset_record(asset.id, size, asset.mime, digest.hexdigest()) or asset
         return to_out(asset)
     except Exception:
         cleanup_asset(asset.id)
@@ -629,6 +698,63 @@ def get_supporting_files(asset_id: str, _: Optional[str] = Depends(require_auth)
         if not session.get(Asset, asset_id):
             raise HTTPException(404)
     return [asset_file_to_out(row) for row in list_supporting_files(asset_id)]
+
+
+@app.get("/asset/{asset_id}/revisions", response_model=List[ArtifactRevisionOut])
+def get_artifact_revisions(asset_id: str, _: Optional[str] = Depends(require_auth)):
+    with Session(engine) as session:
+        asset = session.get(Asset, asset_id)
+        if not asset:
+            raise HTTPException(404)
+        revisions = list(
+            session.exec(
+                select(ArtifactRevision)
+                .where(ArtifactRevision.asset_id == asset_id)
+                .order_by(
+                    ArtifactRevision.revision_number.desc(),
+                    ArtifactRevision.id.desc(),
+                )
+            )
+        )
+        return [revision_to_out(row, asset.current_revision_id) for row in revisions]
+
+
+@app.get("/asset/{asset_id}/duplicates", response_model=List[AssetOut])
+def get_duplicate_suggestions(asset_id: str, _: Optional[str] = Depends(require_auth)):
+    with Session(engine) as session:
+        asset = session.get(Asset, asset_id)
+        if not asset:
+            raise HTTPException(404)
+        revision = (
+            session.get(ArtifactRevision, asset.current_revision_id)
+            if asset.current_revision_id
+            else None
+        )
+        if not revision or revision.content_state != "ready" or not revision.sha256:
+            return []
+        matching_revision_ids = list(
+            session.exec(
+                select(ArtifactRevision.id).where(
+                    ArtifactRevision.id != revision.id,
+                    ArtifactRevision.sha256 == revision.sha256,
+                    ArtifactRevision.size == revision.size,
+                    ArtifactRevision.content_state == "ready",
+                )
+            )
+        )
+        if not matching_revision_ids:
+            return []
+        matches = list(
+            session.exec(
+                select(Asset)
+                .where(
+                    Asset.id != asset.id,
+                    Asset.current_revision_id.in_(matching_revision_ids),
+                )
+                .order_by(Asset.name, Asset.id)
+            )
+        )
+        return [to_out(row) for row in matches]
 
 
 @app.post("/asset/{asset_id}/files", response_model=AssetOut)
@@ -845,7 +971,7 @@ async def save_generated_thumbnail(
         asset.preview_updated_at = preview_timestamp()
         asset.preview_source = "generated"
         asset.preview_attempts = max(1, asset.preview_attempts)
-        s.add(asset)
+        sync_current_revision(s, asset)
         s.commit()
         s.refresh(asset)
         return to_out(asset)
@@ -875,7 +1001,7 @@ def update_preview_state(
                 asset.preview_attempts += 1
         asset.preview_policy_version = PREVIEW_POLICY_VERSION
         asset.preview_updated_at = preview_timestamp()
-        session.add(asset)
+        sync_current_revision(session, asset)
         session.commit()
         session.refresh(asset)
         return to_out(asset)
@@ -894,7 +1020,7 @@ def request_preview_retry(asset_id: str, _: Optional[str] = Depends(require_auth
         asset.preview_reason = None
         asset.preview_policy_version = PREVIEW_POLICY_VERSION
         asset.preview_updated_at = preview_timestamp()
-        session.add(asset)
+        sync_current_revision(session, asset)
         session.commit()
         session.refresh(asset)
         return to_out(asset)
@@ -1094,6 +1220,7 @@ def delete_asset(asset_id: str, _: Optional[str] = Depends(require_auth)):
         a = s.get(Asset, asset_id)
         if not a:
             raise HTTPException(404)
+        delete_artifact_revisions(s, asset_id)
         s.delete(a)
         s.commit()
     # best-effort cleanup

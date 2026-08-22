@@ -3,6 +3,7 @@ import io
 import re
 import tempfile
 import warnings
+import hashlib
 from pathlib import Path
 from typing import List, Optional
 from zipfile import BadZipFile, ZipFile
@@ -19,6 +20,7 @@ from models import Asset, Folder
 from prepared_print import inspect_prepared_print
 from preview_policy import apply_automatic_preview_disposition
 from resource_limits import reject_declared_size, stream_reader_to_file
+from revision_service import delete_artifact_revisions, initial_revision_for_asset, sync_current_revision
 from schemas import ImportRequest
 from settings_service import DEFAULT_STORAGE_TEMPLATE, get_storage_template
 
@@ -174,6 +176,7 @@ def relocate_asset(asset: Asset, session: Session, old_path: Path, template: Opt
     new_path = STORAGE / new_relative
     if old_path.resolve() == new_path.resolve():
         asset.storage_path = new_relative
+        sync_current_revision(session, asset)
         return False
     if new_path.exists():
         raise HTTPException(status_code=409, detail=f"Storage path already exists: {new_relative}")
@@ -183,6 +186,7 @@ def relocate_asset(asset: Asset, session: Session, old_path: Path, template: Opt
         old_path.rename(new_path)
         prune_empty_storage_dirs(old_parent)
     asset.storage_path = new_relative
+    sync_current_revision(session, asset)
     return True
 
 
@@ -324,7 +328,7 @@ def backfill_embedded_thumbnails() -> None:
                 )
                 if should_refresh:
                     apply_automatic_preview_disposition(current, thumb.exists())
-                    session.add(current)
+                    sync_current_revision(session, current)
                     session.commit()
 
 
@@ -351,13 +355,21 @@ def create_asset_record(
             source_path=source_path,
         )
         asset.storage_path = render_storage_path(asset, s)
+        revision = initial_revision_for_asset(asset)
+        asset.current_revision_id = revision.id
         s.add(asset)
+        s.add(revision)
         s.commit()
         s.refresh(asset)
     return asset
 
 
-def finalize_asset_record(asset_id: str, size: int, mime: Optional[str] = None) -> Optional[Asset]:
+def finalize_asset_record(
+    asset_id: str,
+    size: int,
+    mime: Optional[str] = None,
+    content_sha256: Optional[str] = None,
+) -> Optional[Asset]:
     with Session(engine) as s:
         db_a = s.get(Asset, asset_id)
         if not db_a:
@@ -372,7 +384,7 @@ def finalize_asset_record(asset_id: str, size: int, mime: Optional[str] = None) 
             db_a,
             (THUMBS / f"{asset_id}.jpg").exists(),
         )
-        s.add(db_a)
+        sync_current_revision(s, db_a, content_sha256=content_sha256)
         s.commit()
         s.refresh(db_a)
         return db_a
@@ -384,6 +396,7 @@ def cleanup_asset(asset_id: str) -> None:
         a = s.get(Asset, asset_id)
         if a:
             managed_path = managed_asset_path(a)
+            delete_artifact_revisions(s, asset_id)
             s.delete(a)
             s.commit()
     try:
@@ -396,8 +409,8 @@ def cleanup_asset(asset_id: str) -> None:
         pass
 
 
-def stream_response_to_file(resp, dest: Path) -> int:
-    return stream_reader_to_file(resp, dest, "Imported file")
+def stream_response_to_file(resp, dest: Path, digest=None) -> int:
+    return stream_reader_to_file(resp, dest, "Imported file", digest=digest)
 
 
 def persist_asset_from_response(resp, final_url: str, body: ImportRequest) -> Asset:
@@ -414,12 +427,13 @@ def persist_asset_from_response(resp, final_url: str, body: ImportRequest) -> As
     dest = managed_asset_path(asset)
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:
-        size = stream_response_to_file(resp, dest)
+        digest = hashlib.sha256()
+        size = stream_response_to_file(resp, dest, digest=digest)
         if (mime or "").startswith("image/") and dest.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}:
             save_thumb(asset.id, dest)
         elif dest.suffix.lower() == ".3mf":
             ensure_model_thumbnail(asset.id, dest)
-        refreshed = finalize_asset_record(asset.id, size, mime)
+        refreshed = finalize_asset_record(asset.id, size, mime, digest.hexdigest())
         return refreshed or asset
     except HTTPException:
         cleanup_asset(asset.id)

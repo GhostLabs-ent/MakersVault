@@ -3,13 +3,16 @@ import { AppSettings, ENGRAVER_OPTIONS, PreviewMode, SLICER_OPTIONS, THEME_OPTIO
 import {
   UnauthorizedError,
   createFolder,
+  getContentIdentityJob,
   getMountImportScan,
   getMountImportSettings,
   getStorageSettings,
   rescanMountImport,
+  startContentIdentityBackfill,
   updateMountImportSettings,
   updateStorageSettings,
   type MountScan,
+  type ContentHashJob,
 } from "../lib/api";
 import { entriesFromFileList, uploadEntriesToFolder, type UploadEntry } from "../lib/uploadTree";
 import { mountOwnership, mountScanStatusLabel } from "../lib/mountImport";
@@ -23,7 +26,7 @@ type Props = {
   onSelectFolder?: (id: string | null) => void;
 };
 
-type Section = "root" | "slicer" | "engraving" | "theme" | "network" | "previews" | "storage" | "imports";
+type Section = "root" | "slicer" | "engraving" | "theme" | "network" | "previews" | "storage" | "imports" | "content";
 
 const THEME_SWATCHES: Record<ThemeId, string> = {
   system: "linear-gradient(135deg, #f8fafc 0%, #f8fafc 50%, #0b0f19 50%, #0b0f19 100%)",
@@ -148,6 +151,10 @@ export default function Settings({
   const [storageLoading, setStorageLoading] = React.useState(false);
   const [storageSaving, setStorageSaving] = React.useState(false);
   const [storageStatus, setStorageStatus] = React.useState<string | null>(null);
+  const [contentJob, setContentJob] = React.useState<ContentHashJob | null>(null);
+  const [contentLoading, setContentLoading] = React.useState(false);
+  const [contentStarting, setContentStarting] = React.useState(false);
+  const [contentMessage, setContentMessage] = React.useState<string | null>(null);
   const [scanRawEntries, setScanRawEntries] = React.useState<UploadEntry[]>([]);
   const [scanEntries, setScanEntries] = React.useState<UploadEntry[]>([]);
   const [scanRoot, setScanRoot] = React.useState("");
@@ -356,6 +363,24 @@ export default function Settings({
       setStorageSaving(false);
     }
   };
+  const startContentScan = async (verifyAll: boolean) => {
+    setContentStarting(true);
+    setContentMessage(null);
+    try {
+      const result = await startContentIdentityBackfill(verifyAll);
+      setContentJob(result.job);
+      setContentMessage(
+        result.started
+          ? verifyAll ? "Full content verification started." : "Content identity backfill started."
+          : "There is no pending content work, or a scan is already running."
+      );
+    } catch (err) {
+      if (err instanceof UnauthorizedError) onUnauthorized?.();
+      else setContentMessage(err instanceof Error ? err.message : "Failed to start content verification.");
+    } finally {
+      setContentStarting(false);
+    }
+  };
   const updateNetwork = (patch: Partial<AppSettings["network"]>) => {
     onChange({
       ...settings,
@@ -470,6 +495,46 @@ export default function Settings({
     })();
     return () => { active = false; };
   }, [section, onUnauthorized]);
+
+  React.useEffect(() => {
+    if (section !== "content") return;
+    let active = true;
+    setContentLoading(true);
+    void getContentIdentityJob()
+      .then(job => { if (active) setContentJob(job); })
+      .catch(err => {
+        if (!active) return;
+        if (err instanceof UnauthorizedError) onUnauthorized?.();
+        else setContentMessage("Failed to load content identity status.");
+      })
+      .finally(() => { if (active) setContentLoading(false); });
+    return () => { active = false; };
+  }, [section, onUnauthorized]);
+
+  React.useEffect(() => {
+    if (section !== "content" || contentJob?.status !== "running") return;
+    let active = true;
+    const timer = window.setInterval(() => {
+      void getContentIdentityJob()
+        .then(job => {
+          if (!active) return;
+          setContentJob(job);
+          if (job && job.status !== "running") {
+            setContentMessage(
+              job.status === "completed"
+                ? "Content verification completed."
+                : "Content verification completed with findings."
+            );
+          }
+        })
+        .catch(err => {
+          if (!active) return;
+          if (err instanceof UnauthorizedError) onUnauthorized?.();
+          else setContentMessage("Unable to refresh content identity status.");
+        });
+    }, 1000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [section, contentJob?.id, contentJob?.status, onUnauthorized]);
 
   React.useEffect(() => {
     if (!makerworldEditing) {
@@ -860,6 +925,87 @@ export default function Settings({
             </button>
             {storageStatus && <span className="text-xs opacity-80">{storageStatus}</span>}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (section === "content") {
+    const running = contentJob?.status === "running";
+    const progress = contentJob?.total
+      ? Math.round((contentJob.processed / contentJob.total) * 100)
+      : 0;
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold">Content Identity</h2>
+            <p className="text-sm opacity-70">Verify exact file bytes without changing or merging your models.</p>
+          </div>
+          <button className="text-sm px-3 py-2 rounded-md border border-panel-strong" onClick={() => setSection("root")}>Back</button>
+        </div>
+
+        <div className="rounded-lg border border-panel bg-panel-soft p-4 flex flex-col gap-4">
+          <div>
+            <div className="text-lg font-semibold">SHA-256 content verification</div>
+            <p className="text-sm opacity-70">
+              MakersVault processes one file at a time and remembers progress across restarts. Library size is not limited,
+              and matching files are suggestions only—nothing is automatically merged or deleted.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              className="text-sm px-3 py-2 rounded-md bg-accent disabled:opacity-60"
+              disabled={contentLoading || contentStarting || running}
+              onClick={() => void startContentScan(false)}
+            >
+              {contentStarting ? "Starting..." : "Hash missing content"}
+            </button>
+            <button
+              className="text-sm px-3 py-2 rounded-md border border-panel-strong disabled:opacity-60"
+              disabled={contentLoading || contentStarting || running}
+              onClick={() => void startContentScan(true)}
+            >
+              Verify all content
+            </button>
+          </div>
+          {contentLoading && <p className="text-xs opacity-70">Loading content status...</p>}
+          {contentMessage && <p className="text-xs opacity-80" aria-live="polite">{contentMessage}</p>}
+          {contentJob ? (
+            <div className="rounded-md border border-panel-strong p-3 flex flex-col gap-3" aria-live="polite">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <span className="text-sm font-semibold">Latest verification</span>
+                <span className="text-xs capitalize">{contentJob.status.replace(/_/g, " ")}</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-panel-strong">
+                <div className="h-full bg-accent transition-all" style={{ width: `${progress}%` }} />
+              </div>
+              <p className="text-xs opacity-70">
+                {contentJob.processed} of {contentJob.total} processed · Started {new Date(contentJob.started_at).toLocaleString()}
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-5">
+                <div className="rounded bg-panel px-2 py-1"><div className="text-sm font-semibold">{contentJob.ready}</div><div className="text-[11px] opacity-70">Verified</div></div>
+                <div className="rounded bg-panel px-2 py-1"><div className="text-sm font-semibold">{contentJob.changed}</div><div className="text-[11px] opacity-70">Changed</div></div>
+                <div className="rounded bg-panel px-2 py-1"><div className="text-sm font-semibold">{contentJob.unavailable}</div><div className="text-[11px] opacity-70">Unavailable</div></div>
+                <div className="rounded bg-panel px-2 py-1"><div className="text-sm font-semibold">{contentJob.failed}</div><div className="text-[11px] opacity-70">Failed</div></div>
+                <div className="rounded bg-panel px-2 py-1"><div className="text-sm font-semibold">{progress}%</div><div className="text-[11px] opacity-70">Complete</div></div>
+              </div>
+              {contentJob.failure_details.length > 0 && (
+                <div className="max-h-40 overflow-auto rounded border border-panel-strong p-2 text-xs">
+                  {contentJob.failure_details.map(detail => (
+                    <div key={`${detail.revision_id}:${detail.reason}`} className="py-1">
+                      <span className="font-mono">{detail.revision_id.slice(0, 8)}</span>: {detail.reason.replace(/_/g, " ")}
+                    </div>
+                  ))}
+                  {contentJob.failure_details_omitted > 0 && (
+                    <div className="py-1 opacity-70">{contentJob.failure_details_omitted} additional finding(s) omitted.</div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : !contentLoading ? (
+            <p className="text-xs opacity-70">No content verification has run yet.</p>
+          ) : null}
         </div>
       </div>
     );
@@ -1346,6 +1492,14 @@ export default function Settings({
           <div className="text-xs uppercase tracking-wide text-muted">Files</div>
           <div className="text-lg font-semibold">Storage Structure</div>
           <div className="text-sm opacity-70">Organize files with folders, model names, creators, tags, and collections.</div>
+        </button>
+        <button
+          className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
+          onClick={() => setSection("content")}
+        >
+          <div className="text-xs uppercase tracking-wide text-muted">Integrity</div>
+          <div className="text-lg font-semibold">Content Identity</div>
+          <div className="text-sm opacity-70">Verify files, resume large-library hashing, and find exact duplicates safely.</div>
         </button>
         <button
           className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"

@@ -74,7 +74,17 @@ def test_fresh_database_reaches_current_schema(tmp_path: Path) -> None:
                 "SELECT name FROM sqlite_master WHERE type = 'table'"
             ).fetchall()
         }
-    assert {"folder", "asset", "assetfile", "appconfig", "mountscan", "schema_migration"}.issubset(tables)
+    assert {
+        "folder",
+        "asset",
+        "assetfile",
+        "artifactrevision",
+        "contenthashjob",
+        "contenthashjobitem",
+        "appconfig",
+        "mountscan",
+        "schema_migration",
+    }.issubset(tables)
 
 
 def test_pre_v5_1_fixture_migrates_and_is_idempotent(tmp_path: Path) -> None:
@@ -100,6 +110,7 @@ def test_pre_v5_1_fixture_migrates_and_is_idempotent(tmp_path: Path) -> None:
         "preview_policy_version",
         "preview_updated_at",
         "preview_source",
+        "current_revision_id",
     }.issubset(table_columns(database_engine, "asset"))
     assert "parent_id" in table_columns(database_engine, "folder")
     assert {
@@ -115,6 +126,19 @@ def test_pre_v5_1_fixture_migrates_and_is_idempotent(tmp_path: Path) -> None:
         "failure_details_json",
         "failure_details_omitted",
     }.issubset(table_columns(database_engine, "mountscan"))
+    assert {
+        "asset_id",
+        "revision_number",
+        "sha256",
+        "observed_sha256",
+        "content_state",
+        "storage_path",
+        "source_path",
+        "prepared_file_id",
+        "preview_status",
+        "preview_thumb_path",
+    }.issubset(table_columns(database_engine, "artifactrevision"))
+    assert "revision_id" in table_columns(database_engine, "assetfile")
 
     with database_engine.connect() as conn:
         assets = conn.exec_driver_sql(
@@ -124,12 +148,26 @@ def test_pre_v5_1_fixture_migrates_and_is_idempotent(tmp_path: Path) -> None:
         migration_count = conn.exec_driver_sql(
             "SELECT COUNT(*) FROM schema_migration"
         ).scalar_one()
+        revisions = conn.exec_driver_sql(
+            """
+            SELECT a.id, a.current_revision_id, r.asset_id, r.revision_number,
+                   r.filename, r.storage_path, r.content_state
+            FROM asset a
+            JOIN artifactrevision r ON r.id = a.current_revision_id
+            ORDER BY a.id
+            """
+        ).fetchall()
 
     assert assets == [
         ("asset-1", "Widget", "Widget", "asset-1/widget.stl", 0),
         ("asset-2", "Widget (2)", "Widget (2)", "asset-2/widget-copy.stl", 0),
     ]
     assert migration_count == len(MIGRATIONS)
+    assert [(row[0], row[2], row[3], row[4], row[5], row[6]) for row in revisions] == [
+        ("asset-1", "asset-1", 1, "widget.stl", "asset-1/widget.stl", "pending"),
+        ("asset-2", "asset-2", 1, "widget-copy.stl", "asset-2/widget-copy.stl", "pending"),
+    ]
+    assert all(row[1] for row in revisions)
 
     with pytest.raises(IntegrityError):
         with database_engine.begin() as conn:

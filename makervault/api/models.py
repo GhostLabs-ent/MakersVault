@@ -33,6 +33,35 @@ class Asset(SQLModel, table=True):
   preview_policy_version: int = Field(default=1)
   preview_updated_at: Optional[str] = None
   preview_source: Optional[str] = None
+  current_revision_id: Optional[str] = Field(default=None, index=True)
+
+
+class ArtifactRevision(SQLModel, table=True):
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  asset_id: str = Field(foreign_key="asset.id", index=True)
+  revision_number: int
+  created_at: str
+  origin_revision_id: Optional[str] = Field(default=None, foreign_key="artifactrevision.id")
+  filename: str
+  mime: str
+  size: int = Field(default=0)
+  sha256: Optional[str] = Field(default=None, index=True)
+  observed_sha256: Optional[str] = None
+  content_state: str = Field(default="pending", index=True)
+  content_reason: Optional[str] = None
+  content_checked_at: Optional[str] = None
+  storage_path: Optional[str] = None
+  source_path: Optional[str] = None
+  change_note: Optional[str] = None
+  prepared_file_id: Optional[str] = None
+  prepared_metadata_json: Optional[str] = None
+  preview_status: str = Field(default="pending", index=True)
+  preview_reason: Optional[str] = None
+  preview_attempts: int = Field(default=0)
+  preview_policy_version: int = Field(default=1)
+  preview_updated_at: Optional[str] = None
+  preview_source: Optional[str] = None
+  preview_thumb_path: Optional[str] = None
 
 
 class AssetFile(SQLModel, table=True):
@@ -44,6 +73,7 @@ class AssetFile(SQLModel, table=True):
   role: str = Field(default="supporting", index=True)
   storage_path: str
   metadata_json: Optional[str] = None
+  revision_id: Optional[str] = Field(default=None, foreign_key="artifactrevision.id", index=True)
 
 
 class AppConfig(SQLModel, table=True):
@@ -64,3 +94,26 @@ class MountScan(SQLModel, table=True):
   failed: int = Field(default=0)
   failure_details_json: str = Field(default="[]")
   failure_details_omitted: int = Field(default=0)
+
+
+class ContentHashJob(SQLModel, table=True):
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  trigger: str = Field(index=True)
+  status: str = Field(index=True)
+  started_at: str
+  finished_at: Optional[str] = None
+  total: int = Field(default=0)
+  processed: int = Field(default=0)
+  ready: int = Field(default=0)
+  unavailable: int = Field(default=0)
+  changed: int = Field(default=0)
+  failed: int = Field(default=0)
+  failure_details_json: str = Field(default="[]")
+  failure_details_omitted: int = Field(default=0)
+
+
+class ContentHashJobItem(SQLModel, table=True):
+  job_id: str = Field(foreign_key="contenthashjob.id", primary_key=True)
+  revision_id: str = Field(foreign_key="artifactrevision.id", primary_key=True)
+  status: str = Field(default="pending", index=True)
+  reason: Optional[str] = None
