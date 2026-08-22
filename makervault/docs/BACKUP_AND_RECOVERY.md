@@ -11,7 +11,7 @@ Compose project name used by the installation, and these canonical mounts:
 | Data | Compose volume key | Container path |
 |---|---|---|
 | SQLite and migration records | `makersvault_db` | `/app/data` |
-| Primary files, supporting files, prepared files, and thumbnails | `makersvault_storage` | `/app/storage` |
+| Primary and historical revision files, supporting/prepared files, thumbnails, Trash, and pending purge quarantine | `makersvault_storage` | `/app/storage` |
 
 The archive also contains the deployment `.env`. It therefore contains secrets
 and must be protected like the vault itself. The tool creates it with mode `600`.
@@ -50,16 +50,49 @@ Verification needs Python 3 but does not start an application image:
 The verifier rejects corrupt or unknown archive members, path traversal,
 backslashes, symlinks, devices, duplicate members, checksum differences, an
 unreadable SQLite database, an invalid backup version, missing managed content,
-missing related files, and broken prepared-file pointers. It reports:
+missing related files, broken revision/current/prepared ownership, changed managed
+revision digests, malformed purge journals, and unknown quarantine content. It
+reports:
 
 - release, source revision, Compose project, manifest, mounts, and volume names;
-- SQLite integrity, schema version, tables, and row counts;
+- SQLite integrity, schema version, tables, and schema-aware row counts;
 - SHA-256 for the manifest, component archives, and every stored file;
-- managed, related, prepared, external, orphaned, and derived-thumbnail states;
+- active/trashed artifacts, every immutable revision, related/prepared ownership,
+  external references, purge-operation/quarantine state, orphaned content, and
+  derived-thumbnail state;
 - whether externally owned no-copy bytes were included (always `false` in v5.1).
 
 Checksums detect accidental corruption and incomplete copies. They are not a
 signature from the project; release artifact signing is a separate concern.
+
+The outer archive remains `makersvault-backup` format version 1. Current recovery
+tools accept manifests produced by the earlier format-1 recovery contract and add a
+separate recovery-contract version for schema-aware reports. This compatibility does
+not weaken new backups: a new manifest must contain and exactly match the complete
+current report.
+
+## Schema 8 revisions and Trash
+
+For post-v5.1 schema 8, a valid matched backup includes authoritative managed bytes
+for both active and trashed artifacts. Every historical revision is checked, not
+only the artifact's current revision. Artifact-wide and revision-owned supporting
+files, hidden prepared payloads, prepared pointers, current-revision pointers, and
+content identity are checked against SQLite ownership.
+
+Thumbnails are derived content. Referenced thumbnails are inventoried when present,
+and missing thumbnails are reported for regeneration without making authoritative
+model content inconsistent.
+
+An interrupted permanent-delete operation can leave files under
+`.trash-quarantine/<operation-id>/`. The database journal identifies quarantine that
+is still owned by a recoverable move or pending cleanup. The matched snapshot keeps
+those bytes and the journal together so startup reconciliation can finish safely.
+Unknown quarantine is an inconsistency: verification reports it and never deletes,
+adopts, or guesses ownership.
+
+Schema 7 upgrades add only the schema-8 Trash fields and purge-operation journal.
+Existing artifacts begin active; current revisions, attachments, prepared metadata,
+preview references, source ownership, IDs, and stored byte paths remain unchanged.
 
 ## Restore into empty production volumes
 
@@ -125,7 +158,7 @@ Select the older matched API and web image tags in `.env`, then start the stack.
 
 Mounted index-in-place files are owned outside MakersVault and are deliberately
 not copied into this backup. Their asset IDs, metadata, and exact container-visible
-source paths remain in SQLite. After recovery, remount the external library at the
+source paths remain in SQLite for every affected revision. After recovery, remount the external library at the
 same `/imports`-relative paths. Until then, managed content continues to work and
 the external file routes return unavailable.
 
@@ -161,3 +194,21 @@ fixtures and unique disposable Compose projects. A clean committed revision must
 
 `--allow-dirty` exists only for developing the drill. Its output is not release
 evidence because the image cannot be tied to an immutable source revision.
+
+Gate 6D adds source-owned API recovery fixtures that keep this Gate 5 contract and
+also prove a schema-8 create/verify/extract/restore round trip containing active and
+trashed multi-revision artifacts, artifact-wide and revision-owned files, a hidden
+prepared payload, revision thumbnails, external no-copy content, and a pending
+quarantine cleanup. Negative fixtures prove that missing or changed historical
+bytes, broken cross-artifact pointers, malformed ownership, and unknown quarantine
+cannot produce a valid new backup.
+
+## Rollback boundary after schema 8
+
+Rollback is restoration, not schema contraction. Stop API and web, verify the chosen
+archive, and restore its SQLite database and managed storage as one matched pair.
+Never combine a pre-Gate-6 database with post-Gate-6 storage or vice versa. To run an
+older application image, restore the matched pre-upgrade backup with
+`--leave-stopped`, select its matching API/web versions and configuration, then
+start it. Do not edit schema migration records or manually remove revision/Trash
+tables.

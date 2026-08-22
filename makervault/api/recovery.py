@@ -23,6 +23,7 @@ from typing import BinaryIO, Iterable, Optional
 
 BACKUP_FORMAT = "makersvault-backup"
 BACKUP_FORMAT_VERSION = 1
+RECOVERY_CONTRACT_VERSION = 2
 COMPONENT_NAMES = ("database.tar", "storage.tar")
 OPTIONAL_NAMES = ("config.env",)
 METADATA_NAMES = ("manifest.json", "checksums.sha256")
@@ -146,7 +147,18 @@ def database_summary(database: Path) -> dict:
             row = connection.execute("SELECT MAX(version) FROM schema_migration").fetchone()
             schema_version = int(row[0] or 0)
         counts = {}
-        for table in ("folder", "asset", "assetfile", "appconfig", "mountscan"):
+        counted_tables = ["folder", "asset", "assetfile", "appconfig", "mountscan"]
+        counted_tables.extend(
+            table
+            for table in (
+                "artifactrevision",
+                "contenthashjob",
+                "contenthashjobitem",
+                "trashpurgeoperation",
+            )
+            if table in tables
+        )
+        for table in counted_tables:
             counts[table] = (
                 int(connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
                 if table in tables
@@ -176,6 +188,9 @@ def _select_assets(connection: sqlite3.Connection) -> list[dict]:
         "storage_path",
         "prepared_file_id",
         "supporting_file_count",
+        "current_revision_id",
+        "current_thumb_path",
+        "deleted_at",
     ]
     selected = [name for name in wanted if name in columns]
     rows = connection.execute(f"SELECT {', '.join(selected)} FROM asset").fetchall()
@@ -187,9 +202,42 @@ def _select_asset_files(connection: sqlite3.Connection) -> list[dict]:
     if "assetfile" not in tables:
         return []
     columns = table_columns(connection, "assetfile")
-    wanted = ["id", "asset_id", "role", "storage_path"]
+    wanted = ["id", "asset_id", "role", "storage_path", "revision_id"]
     selected = [name for name in wanted if name in columns]
     rows = connection.execute(f"SELECT {', '.join(selected)} FROM assetfile").fetchall()
+    return [dict(zip(selected, row)) for row in rows]
+
+
+def _select_revisions(connection: sqlite3.Connection) -> list[dict]:
+    tables = table_names(connection)
+    if "artifactrevision" not in tables:
+        return []
+    columns = table_columns(connection, "artifactrevision")
+    wanted = [
+        "id",
+        "asset_id",
+        "revision_number",
+        "filename",
+        "size",
+        "sha256",
+        "storage_path",
+        "source_path",
+        "prepared_file_id",
+        "preview_thumb_path",
+    ]
+    selected = [name for name in wanted if name in columns]
+    rows = connection.execute(f"SELECT {', '.join(selected)} FROM artifactrevision").fetchall()
+    return [dict(zip(selected, row)) for row in rows]
+
+
+def _select_purge_operations(connection: sqlite3.Connection) -> list[dict]:
+    tables = table_names(connection)
+    if "trashpurgeoperation" not in tables:
+        return []
+    columns = table_columns(connection, "trashpurgeoperation")
+    wanted = ["id", "status", "asset_ids_json", "paths_json", "quarantine_path"]
+    selected = [name for name in wanted if name in columns]
+    rows = connection.execute(f"SELECT {', '.join(selected)} FROM trashpurgeoperation").fetchall()
     return [dict(zip(selected, row)) for row in rows]
 
 
@@ -211,37 +259,128 @@ def _external_state(
 
 def consistency_audit(
     database: Path,
-    storage_files: Iterable[str],
+    storage_files: Iterable[str | dict],
     external_container_root: Optional[Path] = None,
     external_host_root: Optional[Path] = None,
 ) -> dict:
     storage: set[str] = set()
-    for name in storage_files:
+    storage_digests: dict[str, str] = {}
+    storage_sizes: dict[str, int] = {}
+    for item in storage_files:
+        name = str(item.get("path") or "") if isinstance(item, dict) else str(item)
         normalized = normalized_member_name(name)
         if normalized:
             storage.add(normalized)
+            if isinstance(item, dict):
+                if item.get("sha256"):
+                    storage_digests[normalized] = str(item["sha256"])
+                if item.get("size") is not None:
+                    storage_sizes[normalized] = int(item["size"])
     connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
     try:
+        tables = table_names(connection)
         assets = _select_assets(connection)
         asset_files = _select_asset_files(connection)
+        revisions = _select_revisions(connection)
+        purge_operations = _select_purge_operations(connection)
     finally:
         connection.close()
 
+    asset_by_id = {str(row.get("id") or ""): row for row in assets}
+    revision_by_id = {str(row.get("id") or ""): row for row in revisions}
+    file_by_id = {str(row.get("id") or ""): row for row in asset_files}
     referenced: set[str] = set()
     managed_present = 0
     missing_managed: list[str] = []
     external: list[dict[str, str]] = []
-    for asset in assets:
-        asset_id = str(asset.get("id") or "")
-        filename = str(asset.get("filename") or "")
-        managed = str(asset.get("storage_path") or f"{asset_id}/{filename}")
-        managed = normalized_member_name(managed)
-        if managed in storage:
-            referenced.add(managed)
+    malformed_purge_operation_ids: list[str] = []
+    purge_status_counts: dict[str, int] = {}
+    quarantine_alternates: dict[str, set[str]] = {}
+    known_quarantine_paths: set[str] = set()
+    recoverable_statuses = {"moving", "quarantined"}
+    committed_statuses = {"database_committed", "cleanup_pending"}
+    for operation in purge_operations:
+        operation_id = str(operation.get("id") or "")
+        status = str(operation.get("status") or "unknown")
+        purge_status_counts[status] = purge_status_counts.get(status, 0) + 1
+        try:
+            paths = json.loads(str(operation.get("paths_json") or "[]"))
+            asset_ids = json.loads(str(operation.get("asset_ids_json") or "[]"))
+            if not isinstance(paths, list) or not isinstance(asset_ids, list):
+                raise ValueError
+            expected_root = normalized_member_name(
+                str(operation.get("quarantine_path") or f".trash-quarantine/{operation_id}")
+            )
+            for entry in paths:
+                if not isinstance(entry, dict):
+                    raise ValueError
+                source = normalized_member_name(str(entry.get("source") or ""))
+                quarantine = normalized_member_name(str(entry.get("quarantine") or ""))
+                if not source or not quarantine or not quarantine.startswith(f"{expected_root}/"):
+                    raise ValueError
+                if status in recoverable_statuses:
+                    quarantine_alternates.setdefault(source, set()).add(quarantine)
+                    if quarantine in storage:
+                        known_quarantine_paths.add(quarantine)
+                        referenced.add(quarantine)
+                elif status in committed_statuses and quarantine in storage:
+                    known_quarantine_paths.add(quarantine)
+                    referenced.add(quarantine)
+        except (TypeError, ValueError, json.JSONDecodeError, RecoveryError):
+            malformed_purge_operation_ids.append(operation_id)
+
+    def locate_managed(path: str) -> tuple[str, Optional[str]]:
+        normalized = normalized_member_name(path)
+        if normalized in storage:
+            referenced.add(normalized)
+            return "present", normalized
+        for quarantine in sorted(quarantine_alternates.get(normalized, set())):
+            if quarantine in storage:
+                referenced.add(quarantine)
+                return "quarantined", quarantine
+        return "missing", None
+
+    managed_revision_present = 0
+    quarantined_managed_revision_ids: list[str] = []
+    missing_managed_revision_ids: list[str] = []
+    revision_digest_mismatch_ids: list[str] = []
+    revision_size_mismatch_ids: list[str] = []
+    uses_revisions = "artifactrevision" in tables
+    primary_rows = revisions if uses_revisions else assets
+    for row in primary_rows:
+        asset_id = str(row.get("asset_id") or row.get("id") or "")
+        revision_id = str(row.get("id") or "") if uses_revisions else ""
+        filename = str(row.get("filename") or "")
+        managed = normalized_member_name(
+            str(row.get("storage_path") or f"{asset_id}/{filename}")
+        )
+        state, located_path = locate_managed(managed)
+        if state == "present":
             managed_present += 1
-        elif asset.get("source_path"):
-            source_path = str(asset["source_path"])
-            external.append({
+            managed_revision_present += int(uses_revisions)
+            expected_digest = str(row.get("sha256") or "")
+            if expected_digest and storage_digests.get(managed) not in {None, expected_digest}:
+                revision_digest_mismatch_ids.append(revision_id)
+            expected_size = row.get("size")
+            if expected_size is not None and managed in storage_sizes:
+                if int(expected_size) != storage_sizes[managed]:
+                    revision_size_mismatch_ids.append(revision_id or asset_id)
+        elif state == "quarantined":
+            managed_present += 1
+            if uses_revisions:
+                managed_revision_present += 1
+                quarantined_managed_revision_ids.append(revision_id)
+            if located_path:
+                expected_digest = str(row.get("sha256") or "")
+                if expected_digest and storage_digests.get(located_path) not in {None, expected_digest}:
+                    revision_digest_mismatch_ids.append(revision_id)
+                expected_size = row.get("size")
+                if expected_size is not None and located_path in storage_sizes:
+                    if int(expected_size) != storage_sizes[located_path]:
+                        revision_size_mismatch_ids.append(revision_id)
+        elif row.get("source_path"):
+            source_path = str(row["source_path"])
+            record = {
                 "asset_id": asset_id,
                 "source_path": source_path,
                 "state": _external_state(
@@ -249,43 +388,159 @@ def consistency_audit(
                     external_container_root,
                     external_host_root,
                 ),
-            })
+            }
+            if uses_revisions:
+                record["revision_id"] = revision_id
+            external.append(record)
+        elif uses_revisions:
+            missing_managed_revision_ids.append(revision_id)
         else:
             missing_managed.append(asset_id)
 
-    related_ids = {str(row.get("id") or "") for row in asset_files}
     related_missing: list[str] = []
+    related_quarantined: list[str] = []
+    related_orphan_asset_ids: list[str] = []
+    related_revision_mismatch_ids: list[str] = []
     for row in asset_files:
-        storage_path = normalized_member_name(str(row.get("storage_path") or ""))
-        if storage_path in storage:
-            referenced.add(storage_path)
-        else:
-            related_missing.append(str(row.get("id") or ""))
+        file_id = str(row.get("id") or "")
+        asset_id = str(row.get("asset_id") or "")
+        revision_id = str(row.get("revision_id") or "")
+        state, _located = locate_managed(str(row.get("storage_path") or ""))
+        if state == "quarantined":
+            related_quarantined.append(file_id)
+        elif state != "present":
+            related_missing.append(file_id)
+        if asset_id not in asset_by_id:
+            related_orphan_asset_ids.append(file_id)
+        if revision_id:
+            revision = revision_by_id.get(revision_id)
+            if not revision or str(revision.get("asset_id") or "") != asset_id:
+                related_revision_mismatch_ids.append(file_id)
+
+    revision_orphan_asset_ids = sorted(
+        str(row.get("id") or "")
+        for row in revisions
+        if str(row.get("asset_id") or "") not in asset_by_id
+    )
+    missing_current_revision_asset_ids: list[str] = []
+    invalid_current_revision_asset_ids: list[str] = []
+    if uses_revisions:
+        for asset in assets:
+            asset_id = str(asset.get("id") or "")
+            revision_id = str(asset.get("current_revision_id") or "")
+            if not revision_id:
+                missing_current_revision_asset_ids.append(asset_id)
+                continue
+            revision = revision_by_id.get(revision_id)
+            if not revision or str(revision.get("asset_id") or "") != asset_id:
+                invalid_current_revision_asset_ids.append(asset_id)
+
+    def invalid_prepared_pointer(owner_asset_id: str, pointer: object, revision_id: str = "") -> bool:
+        if not pointer:
+            return False
+        file = file_by_id.get(str(pointer))
+        if not file or str(file.get("asset_id") or "") != owner_asset_id:
+            return True
+        if str(file.get("role") or "") != "prepared":
+            return True
+        file_revision_id = str(file.get("revision_id") or "")
+        return bool(revision_id and file_revision_id != revision_id)
 
     prepared_pointer_missing = [
         str(asset.get("id") or "")
         for asset in assets
-        if asset.get("prepared_file_id") and str(asset["prepared_file_id"]) not in related_ids
+        if invalid_prepared_pointer(
+            str(asset.get("id") or ""),
+            asset.get("prepared_file_id"),
+            str(asset.get("current_revision_id") or "") if uses_revisions else "",
+        )
     ]
+    invalid_revision_prepared_pointer_ids = [
+        str(revision.get("id") or "")
+        for revision in revisions
+        if invalid_prepared_pointer(
+            str(revision.get("asset_id") or ""),
+            revision.get("prepared_file_id"),
+            str(revision.get("id") or ""),
+        )
+    ]
+
+    missing_thumbnail_paths: list[str] = []
+    thumbnail_paths = {
+        normalized_member_name(str(path))
+        for path in [
+            *(asset.get("current_thumb_path") for asset in assets),
+            *(revision.get("preview_thumb_path") for revision in revisions),
+        ]
+        if path
+    }
+    for path in sorted(thumbnail_paths):
+        if path in storage:
+            referenced.add(path)
+        else:
+            missing_thumbnail_paths.append(path)
+
     external_counts = {
         state: sum(1 for item in external if item["state"] == state)
         for state in ("available", "unavailable", "unknown", "outside_mapping")
     }
+    unknown_quarantine_paths = sorted(
+        name
+        for name in storage
+        if name.startswith(".trash-quarantine/") and name not in known_quarantine_paths
+    )
     orphans = sorted(
         name
         for name in storage
         if name not in referenced and not name.startswith("thumbs/")
     )
-    critical_count = len(missing_managed) + len(related_missing) + len(prepared_pointer_missing)
+    critical_lists = (
+        missing_managed,
+        missing_managed_revision_ids,
+        revision_digest_mismatch_ids,
+        revision_size_mismatch_ids,
+        related_missing,
+        related_orphan_asset_ids,
+        related_revision_mismatch_ids,
+        revision_orphan_asset_ids,
+        missing_current_revision_asset_ids,
+        invalid_current_revision_asset_ids,
+        prepared_pointer_missing,
+        invalid_revision_prepared_pointer_ids,
+        malformed_purge_operation_ids,
+        unknown_quarantine_paths,
+    )
+    critical_count = sum(len(items) for items in critical_lists)
     return {
         "status": "ok" if critical_count == 0 else "inconsistent",
+        "active_asset_count": sum(1 for row in assets if not row.get("deleted_at")),
+        "trashed_asset_count": sum(1 for row in assets if row.get("deleted_at")),
+        "revision_count": len(revisions),
         "managed_primary_present": managed_present,
         "missing_managed_asset_ids": sorted(missing_managed),
         "external_primary_records": sorted(external, key=lambda item: item["asset_id"]),
         "external_state_counts": external_counts,
+        "managed_revision_present": managed_revision_present,
+        "quarantined_managed_revision_ids": sorted(quarantined_managed_revision_ids),
+        "missing_managed_revision_ids": sorted(missing_managed_revision_ids),
+        "revision_digest_mismatch_ids": sorted(revision_digest_mismatch_ids),
+        "revision_size_mismatch_ids": sorted(revision_size_mismatch_ids),
         "related_file_present": len(asset_files) - len(related_missing),
+        "quarantined_related_file_ids": sorted(related_quarantined),
         "missing_related_file_ids": sorted(related_missing),
+        "related_file_orphan_asset_ids": sorted(related_orphan_asset_ids),
+        "related_file_revision_mismatch_ids": sorted(related_revision_mismatch_ids),
+        "revision_orphan_asset_ids": revision_orphan_asset_ids,
+        "missing_current_revision_asset_ids": sorted(missing_current_revision_asset_ids),
+        "invalid_current_revision_asset_ids": sorted(invalid_current_revision_asset_ids),
         "missing_prepared_pointer_asset_ids": sorted(prepared_pointer_missing),
+        "invalid_revision_prepared_pointer_ids": sorted(invalid_revision_prepared_pointer_ids),
+        "missing_derived_thumbnail_paths": missing_thumbnail_paths,
+        "purge_operation_count": len(purge_operations),
+        "purge_operation_status_counts": dict(sorted(purge_status_counts.items())),
+        "known_quarantine_files": sorted(known_quarantine_paths),
+        "unknown_quarantine_files": unknown_quarantine_paths,
+        "malformed_purge_operation_ids": sorted(malformed_purge_operation_ids),
         "unreferenced_storage_files": orphans,
         "derived_thumbnail_files": sum(1 for name in storage if name.startswith("thumbs/")),
     }
@@ -344,8 +599,10 @@ def create_backup(
             raise RecoveryError("SQLite quick_check did not return ok")
         audit = consistency_audit(
             database,
-            [item["path"] for item in storage_members],
+            storage_members,
         )
+        if audit["status"] != "ok":
+            raise RecoveryError("Matched database and storage snapshot is inconsistent")
         components = {
             "database.tar": _component_metadata(database_tar, database_members),
             "storage.tar": _component_metadata(storage_tar, storage_members),
@@ -365,6 +622,7 @@ def create_backup(
         manifest = {
             "format": BACKUP_FORMAT,
             "format_version": BACKUP_FORMAT_VERSION,
+            "recovery_contract_version": RECOVERY_CONTRACT_VERSION,
             "created_at": utc_timestamp(),
             "release": release,
             "source_revision": source_revision,
@@ -476,13 +734,29 @@ def verify_extracted_backup(directory: Path, seen: set[str]) -> dict:
     with tempfile.TemporaryDirectory(prefix="makersvault-verify-") as temporary:
         database = extract_database_component(directory / "database.tar", Path(temporary) / "database")
         summary = database_summary(database)
-        audit = consistency_audit(database, [item["path"] for item in storage_members])
+        audit = consistency_audit(database, storage_members)
     if summary["quick_check"] != ["ok"]:
         raise RecoveryError("Restored SQLite quick_check did not return ok")
-    if manifest.get("database") != summary:
+
+    def report_matches(recorded: object, actual: object, legacy: bool) -> bool:
+        if not legacy:
+            return recorded == actual
+        if isinstance(recorded, dict) and isinstance(actual, dict):
+            return all(
+                key in actual and report_matches(value, actual[key], legacy)
+                for key, value in recorded.items()
+            )
+        if isinstance(recorded, list) and isinstance(actual, list):
+            return recorded == actual
+        return recorded == actual
+
+    legacy_contract = manifest.get("recovery_contract_version") is None
+    if not report_matches(manifest.get("database"), summary, legacy_contract):
         raise RecoveryError("Backup database summary does not match its manifest")
-    if manifest.get("consistency") != audit:
+    if not report_matches(manifest.get("consistency"), audit, legacy_contract):
         raise RecoveryError("Backup consistency report does not match its contents")
+    if audit["status"] != "ok":
+        raise RecoveryError("Backup contains an inconsistent database/storage snapshot")
     if manifest_components["database.tar"].get("file_count") != len(database_members):
         raise RecoveryError("Database component file count does not match its manifest")
     if manifest_components["storage.tar"].get("file_count") != len(storage_members):
@@ -548,7 +822,7 @@ def audit_component_tars(database_tar: Path, storage_tar: Path) -> dict:
     with tempfile.TemporaryDirectory(prefix="makersvault-audit-") as temporary:
         database = extract_database_component(database_tar, Path(temporary) / "database")
         summary = database_summary(database)
-        audit = consistency_audit(database, [item["path"] for item in storage_members])
+        audit = consistency_audit(database, storage_members)
     return {"database": summary, "consistency": audit}
 
 

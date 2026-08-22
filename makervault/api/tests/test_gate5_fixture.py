@@ -39,7 +39,18 @@ def test_representative_pre_v5_1_library_upgrades_without_data_loss(tmp_path: Pa
     assert run_migrations(engine) == MIGRATIONS[-1].version
 
     after = audit_live_paths(database, storage, Path("/imports"), fixture / "imports")
-    assert after["consistency"] == before["consistency"]
+    assert after["consistency"]["status"] == "ok"
+    assert after["consistency"]["managed_primary_present"] == 3
+    assert after["consistency"]["related_file_present"] == 2
+    assert after["consistency"]["derived_thumbnail_files"] == 1
+    assert after["consistency"]["external_state_counts"] == before["consistency"][
+        "external_state_counts"
+    ]
+    assert after["consistency"]["active_asset_count"] == 5
+    assert after["consistency"]["trashed_asset_count"] == 0
+    assert after["consistency"]["revision_count"] == 5
+    assert after["consistency"]["managed_revision_present"] == 3
+    assert after["consistency"]["missing_managed_revision_ids"] == []
     assert after["database"]["schema_version"] == MIGRATIONS[-1].version
     assert after["database"]["row_counts"]["mountscan"] == 0
 

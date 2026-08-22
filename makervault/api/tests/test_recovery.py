@@ -1,4 +1,5 @@
 import io
+import hashlib
 import json
 import sqlite3
 import tarfile
@@ -126,6 +127,131 @@ def make_database(path: Path) -> None:
         connection.commit()
     finally:
         connection.close()
+
+
+def make_schema8_database(path: Path) -> None:
+    connection = sqlite3.connect(path)
+    try:
+        connection.executescript(
+            """
+            CREATE TABLE asset (
+                id TEXT PRIMARY KEY, name TEXT, filename TEXT NOT NULL, mime TEXT NOT NULL,
+                size INTEGER NOT NULL, source_path TEXT, storage_path TEXT,
+                prepared_file_id TEXT, current_revision_id TEXT, current_thumb_path TEXT,
+                deleted_at TEXT
+            );
+            CREATE TABLE artifactrevision (
+                id TEXT PRIMARY KEY, asset_id TEXT NOT NULL, revision_number INTEGER NOT NULL,
+                filename TEXT NOT NULL, size INTEGER NOT NULL, sha256 TEXT,
+                storage_path TEXT, source_path TEXT, prepared_file_id TEXT,
+                preview_thumb_path TEXT
+            );
+            CREATE TABLE assetfile (
+                id TEXT PRIMARY KEY, asset_id TEXT NOT NULL, filename TEXT NOT NULL,
+                role TEXT NOT NULL, storage_path TEXT NOT NULL, revision_id TEXT
+            );
+            CREATE TABLE trashpurgeoperation (
+                id TEXT PRIMARY KEY, status TEXT NOT NULL, asset_ids_json TEXT NOT NULL,
+                paths_json TEXT NOT NULL, quarantine_path TEXT
+            );
+            CREATE TABLE contenthashjob (id TEXT PRIMARY KEY);
+            CREATE TABLE contenthashjobitem (job_id TEXT, revision_id TEXT);
+            CREATE TABLE schema_migration (
+                version INTEGER PRIMARY KEY, name TEXT NOT NULL,
+                applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            INSERT INTO schema_migration(version, name) VALUES
+                (1, 'initial_schema'),
+                (2, 'nested_folders_and_mount_sources'),
+                (3, 'asset_metadata_and_bundles'),
+                (4, 'persistent_preview_state'),
+                (5, 'persistent_mount_scan_records'),
+                (6, 'artifact_revisions_and_content_identity'),
+                (7, 'immutable_revision_workflows'),
+                (8, 'recoverable_trash');
+            INSERT INTO asset VALUES
+                ('active', 'Active', 'active-v2.stl', 'model/stl', 6, NULL,
+                 'revisions/active/2/active-v2.stl', 'active-prepared', 'active-r2',
+                 'thumbs/revisions/active-r2.jpg', NULL),
+                ('trash', 'Trash', 'trash-v2.3mf', 'model/3mf', 8, NULL,
+                 'revisions/trash/2/trash-v2.3mf', NULL, 'trash-r2',
+                 'thumbs/revisions/trash-r2.jpg', '2026-08-20T00:00:00Z'),
+                ('external', 'External', 'external.3mf', 'model/3mf', 9,
+                 '/imports/external.3mf', 'Unassigned/External/external.3mf', NULL,
+                 'external-r1', NULL, NULL);
+            INSERT INTO artifactrevision VALUES
+                ('active-r1', 'active', 1, 'active-v1.stl', 3, NULL,
+                 'revisions/active/1/active-v1.stl', NULL, NULL,
+                 'thumbs/revisions/active-r1.jpg'),
+                ('active-r2', 'active', 2, 'active-v2.stl', 6, NULL,
+                 'revisions/active/2/active-v2.stl', NULL, 'active-prepared',
+                 'thumbs/revisions/active-r2.jpg'),
+                ('trash-r1', 'trash', 1, 'trash-v1.3mf', 3, NULL,
+                 'revisions/trash/1/trash-v1.3mf', NULL, NULL,
+                 'thumbs/revisions/trash-r1.jpg'),
+                ('trash-r2', 'trash', 2, 'trash-v2.3mf', 8, NULL,
+                 'revisions/trash/2/trash-v2.3mf', NULL, NULL,
+                 'thumbs/revisions/trash-r2.jpg'),
+                ('external-r1', 'external', 1, 'external.3mf', 9, NULL,
+                 'Unassigned/External/external.3mf', '/imports/external.3mf', NULL, NULL);
+            INSERT INTO assetfile VALUES
+                ('active-doc', 'active', 'assembly.pdf', 'supporting',
+                 'bundles/active/support/assembly.pdf', NULL),
+                ('active-prepared', 'active', 'print.gcode', 'prepared',
+                 'bundles/active/prepared/print.gcode', 'active-r2'),
+                ('trash-note', 'trash', 'notes.txt', 'supporting',
+                 'bundles/trash/revisions/trash-r1/notes.txt', 'trash-r1');
+            INSERT INTO trashpurgeoperation VALUES (
+                'purge-op', 'cleanup_pending', '["already-purged"]',
+                '[{"asset_id":"already-purged","source":"revisions/already-purged/1/model.stl","quarantine":".trash-quarantine/purge-op/already-purged/0-model.stl"}]',
+                '.trash-quarantine/purge-op'
+            );
+            """
+        )
+        for revision_id, payload in {
+            "active-r1": b"old",
+            "active-r2": b"active",
+            "trash-r1": b"old",
+            "trash-r2": b"trashed!",
+        }.items():
+            connection.execute(
+                "UPDATE artifactrevision SET sha256 = ? WHERE id = ?",
+                (hashlib.sha256(payload).hexdigest(), revision_id),
+            )
+        connection.commit()
+    finally:
+        connection.close()
+
+
+def schema8_fixture(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
+    database_dir = tmp_path / "database-v8"
+    storage_dir = tmp_path / "storage-v8"
+    database_dir.mkdir()
+    storage_dir.mkdir()
+    make_schema8_database(database_dir / "app.db")
+    files = {
+        "revisions/active/1/active-v1.stl": b"old",
+        "revisions/active/2/active-v2.stl": b"active",
+        "revisions/trash/1/trash-v1.3mf": b"old",
+        "revisions/trash/2/trash-v2.3mf": b"trashed!",
+        "bundles/active/support/assembly.pdf": b"support",
+        "bundles/active/prepared/print.gcode": b"prepared",
+        "bundles/trash/revisions/trash-r1/notes.txt": b"notes",
+        "thumbs/revisions/active-r1.jpg": b"thumb-a1",
+        "thumbs/revisions/active-r2.jpg": b"thumb-a2",
+        "thumbs/revisions/trash-r1.jpg": b"thumb-t1",
+        "thumbs/revisions/trash-r2.jpg": b"thumb-t2",
+        ".trash-quarantine/purge-op/already-purged/0-model.stl": b"purged",
+    }
+    for relative, payload in files.items():
+        target = storage_dir / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(payload)
+    database_tar = tmp_path / "database-v8.tar"
+    storage_tar = tmp_path / "storage-v8.tar"
+    tar_directory(database_dir, database_tar)
+    tar_directory(storage_dir, storage_tar)
+    return database_dir, storage_dir, database_tar, storage_tar
 
 
 def tar_directory(source: Path, output: Path) -> None:
@@ -271,3 +397,173 @@ def test_restored_verification_detects_changed_file_bytes(tmp_path: Path) -> Non
 
     with pytest.raises(RecoveryError, match="does not match"):
         verify_restored_components(archive, database_tar, changed_storage_tar)
+
+
+def test_schema8_backup_round_trip_represents_revisions_trash_and_quarantine(
+    tmp_path: Path,
+) -> None:
+    _, _, database_tar, storage_tar = schema8_fixture(tmp_path)
+    archive = tmp_path / "makersvault-schema8.backup.tar.gz"
+
+    manifest = create_backup(
+        database_tar,
+        storage_tar,
+        archive,
+        "post-v5.1-gate6",
+        "gate6-fixture",
+    )
+
+    assert manifest["format_version"] == 1
+    assert manifest["recovery_contract_version"] == 2
+    assert manifest["database"]["schema_version"] == 8
+    assert manifest["database"]["row_counts"]["artifactrevision"] == 5
+    assert manifest["database"]["row_counts"]["trashpurgeoperation"] == 1
+    audit = manifest["consistency"]
+    assert audit["status"] == "ok"
+    assert audit["active_asset_count"] == 2
+    assert audit["trashed_asset_count"] == 1
+    assert audit["revision_count"] == 5
+    assert audit["managed_revision_present"] == 4
+    assert audit["external_state_counts"]["unknown"] == 1
+    assert audit["related_file_present"] == 3
+    assert audit["purge_operation_status_counts"] == {"cleanup_pending": 1}
+    assert audit["known_quarantine_files"] == [
+        ".trash-quarantine/purge-op/already-purged/0-model.stl"
+    ]
+    assert audit["unknown_quarantine_files"] == []
+
+    assert verify_backup(archive) == manifest
+    assert verify_restored_components(
+        archive, database_tar, storage_tar
+    )["matches_backup"] is True
+    extracted = tmp_path / "schema8-extracted"
+    assert extract_backup(archive, extracted) == manifest
+
+
+def test_schema8_audit_rejects_missing_or_changed_history_and_broken_ownership(
+    tmp_path: Path,
+) -> None:
+    database_dir, storage_dir, _, _ = schema8_fixture(tmp_path)
+    database = database_dir / "app.db"
+
+    (storage_dir / "revisions/active/1/active-v1.stl").write_bytes(b"bad")
+    (storage_dir / "revisions/trash/1/trash-v1.3mf").unlink()
+    unknown = storage_dir / ".trash-quarantine/unknown/orphan.stl"
+    unknown.parent.mkdir(parents=True)
+    unknown.write_bytes(b"unknown")
+    connection = sqlite3.connect(database)
+    try:
+        connection.execute(
+            "UPDATE asset SET current_revision_id = 'trash-r2' WHERE id = 'active'"
+        )
+        connection.execute(
+            "UPDATE assetfile SET revision_id = 'trash-r1' WHERE id = 'active-prepared'"
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    result = audit_live_paths(database, storage_dir)["consistency"]
+
+    assert result["status"] == "inconsistent"
+    assert result["missing_managed_revision_ids"] == ["trash-r1"]
+    assert result["invalid_current_revision_asset_ids"] == ["active"]
+    assert result["related_file_revision_mismatch_ids"] == ["active-prepared"]
+    assert result["invalid_revision_prepared_pointer_ids"] == ["active-r2"]
+    assert result["unknown_quarantine_files"] == [
+        ".trash-quarantine/unknown/orphan.stl"
+    ]
+
+    database_tar = tmp_path / "broken-database.tar"
+    storage_tar = tmp_path / "broken-storage.tar"
+    tar_directory(database_dir, database_tar)
+    tar_directory(storage_dir, storage_tar)
+    with pytest.raises(RecoveryError, match="inconsistent"):
+        create_backup(
+            database_tar,
+            storage_tar,
+            tmp_path / "must-not-exist.tar.gz",
+            "gate6",
+            "broken",
+        )
+
+
+def test_schema8_backup_rejects_revision_digest_mismatch(tmp_path: Path) -> None:
+    _, storage_dir, database_tar, _ = schema8_fixture(tmp_path)
+    (storage_dir / "revisions/active/1/active-v1.stl").write_bytes(b"bad")
+    storage_tar = tmp_path / "digest-mismatch-storage.tar"
+    tar_directory(storage_dir, storage_tar)
+
+    result = audit_component_tars(database_tar, storage_tar)["consistency"]
+    assert result["status"] == "inconsistent"
+    assert result["revision_digest_mismatch_ids"] == ["active-r1"]
+    with pytest.raises(RecoveryError, match="inconsistent"):
+        create_backup(
+            database_tar,
+            storage_tar,
+            tmp_path / "digest-mismatch.backup.tar.gz",
+            "gate6",
+            "digest-mismatch",
+        )
+
+
+def test_verifier_accepts_legacy_format1_manifest_shape(tmp_path: Path) -> None:
+    _, _, database_tar, storage_tar = backup_fixture(tmp_path)
+    current_archive = tmp_path / "current.tar.gz"
+    create_backup(database_tar, storage_tar, current_archive, "v5.1.0", "legacy")
+    unpacked = tmp_path / "legacy-shape"
+    unpacked.mkdir()
+    with tarfile.open(current_archive, "r:gz") as archive:
+        archive.extractall(unpacked)
+    manifest_path = unpacked / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest.pop("recovery_contract_version")
+    manifest["database"]["row_counts"] = {
+        key: manifest["database"]["row_counts"][key]
+        for key in ("folder", "asset", "assetfile", "appconfig", "mountscan")
+    }
+    legacy_consistency_keys = {
+        "status",
+        "managed_primary_present",
+        "missing_managed_asset_ids",
+        "external_primary_records",
+        "external_state_counts",
+        "related_file_present",
+        "missing_related_file_ids",
+        "missing_prepared_pointer_asset_ids",
+        "unreferenced_storage_files",
+        "derived_thumbnail_files",
+    }
+    manifest["consistency"] = {
+        key: value
+        for key, value in manifest["consistency"].items()
+        if key in legacy_consistency_keys
+    }
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    checksums_path = unpacked / "checksums.sha256"
+    checksums = checksums_path.read_text(encoding="utf-8").splitlines()
+    manifest_digest = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+    checksums_path.write_text(
+        "\n".join(
+            f"{manifest_digest}  manifest.json" if line.endswith("  manifest.json") else line
+            for line in checksums
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    legacy_archive = tmp_path / "legacy-format1.tar.gz"
+    with tarfile.open(legacy_archive, "w:gz") as archive:
+        for name in (
+            "manifest.json",
+            "checksums.sha256",
+            "database.tar",
+            "storage.tar",
+        ):
+            archive.add(unpacked / name, arcname=name)
+
+    verified = verify_backup(legacy_archive)
+
+    assert "recovery_contract_version" not in verified
+    assert verified["database"]["schema_version"] == 5

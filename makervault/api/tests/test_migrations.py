@@ -216,6 +216,53 @@ def test_pre_v5_1_fixture_migrates_and_is_idempotent(tmp_path: Path) -> None:
             )
 
 
+def test_schema7_to_schema8_upgrade_preserves_identity_and_byte_paths(tmp_path: Path) -> None:
+    db_path = tmp_path / "schema7.db"
+    create_pre_v5_1_fixture(db_path)
+    database_engine = sqlite_engine(db_path)
+    assert run_migrations(database_engine, MIGRATIONS[:7]) == 7
+
+    with database_engine.connect() as conn:
+        assets_before = conn.exec_driver_sql(
+            "SELECT id, name, filename, folder_id, source_path, storage_path, "
+            "prepared_file_id, current_revision_id, current_thumb_path "
+            "FROM asset ORDER BY id"
+        ).fetchall()
+        revisions_before = conn.exec_driver_sql(
+            "SELECT id, asset_id, revision_number, filename, storage_path, source_path, "
+            "prepared_file_id, preview_thumb_path FROM artifactrevision ORDER BY asset_id"
+        ).fetchall()
+
+    assert run_migrations(database_engine) == 8
+    assert run_migrations(database_engine) == 8
+
+    with database_engine.connect() as conn:
+        assets_after = conn.exec_driver_sql(
+            "SELECT id, name, filename, folder_id, source_path, storage_path, "
+            "prepared_file_id, current_revision_id, current_thumb_path "
+            "FROM asset ORDER BY id"
+        ).fetchall()
+        revisions_after = conn.exec_driver_sql(
+            "SELECT id, asset_id, revision_number, filename, storage_path, source_path, "
+            "prepared_file_id, preview_thumb_path FROM artifactrevision ORDER BY asset_id"
+        ).fetchall()
+        trash_defaults = conn.exec_driver_sql(
+            "SELECT id, deleted_at, trash_original_folder_id, trash_original_folder_name "
+            "FROM asset ORDER BY id"
+        ).fetchall()
+        purge_count = conn.exec_driver_sql(
+            "SELECT COUNT(*) FROM trashpurgeoperation"
+        ).scalar_one()
+
+    assert assets_after == assets_before
+    assert revisions_after == revisions_before
+    assert trash_defaults == [
+        ("asset-1", None, None, None),
+        ("asset-2", None, None, None),
+    ]
+    assert purge_count == 0
+
+
 def test_failed_migration_is_not_recorded(tmp_path: Path) -> None:
     database_engine = sqlite_engine(tmp_path / "failed.db")
 
