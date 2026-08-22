@@ -53,11 +53,12 @@ def sync_current_revision(
         revision = initial_revision_for_asset(asset)
         asset.current_revision_id = revision.id
 
-    revision.filename = asset.filename
-    revision.mime = asset.mime
-    revision.size = int(asset.size or 0)
-    revision.storage_path = asset.storage_path
-    revision.source_path = asset.source_path
+    if revision.content_state == "pending" or content_sha256:
+        revision.filename = asset.filename
+        revision.mime = asset.mime
+        revision.size = int(asset.size or 0)
+        revision.storage_path = asset.storage_path
+        revision.source_path = asset.source_path
     revision.prepared_file_id = asset.prepared_file_id
     revision.prepared_metadata_json = asset.prepared_metadata_json
     revision.preview_status = asset.preview_status
@@ -66,7 +67,10 @@ def sync_current_revision(
     revision.preview_policy_version = int(asset.preview_policy_version or 1)
     revision.preview_updated_at = asset.preview_updated_at
     revision.preview_source = asset.preview_source
-    revision.preview_thumb_path = f"thumbs/{asset.id}.jpg"
+    revision.preview_thumb_path = asset.current_thumb_path or revision.preview_thumb_path
+    if revision.preview_thumb_path is None and revision.content_state == "pending":
+        revision.preview_thumb_path = f"thumbs/{asset.id}.jpg"
+    asset.current_thumb_path = revision.preview_thumb_path
     if content_sha256:
         revision.sha256 = content_sha256
         revision.observed_sha256 = content_sha256

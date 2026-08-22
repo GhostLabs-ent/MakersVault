@@ -12,6 +12,7 @@ import {
 import {
   Asset,
   AssetFile,
+  ArtifactRevision,
   PreparedPrint,
   Folder,
   UnauthorizedError,
@@ -29,6 +30,10 @@ import {
   createHandoff,
   listAssetFiles,
   uploadAssetFile,
+  artifactHistoryExportUrl,
+  listArtifactRevisions,
+  restoreArtifactRevision,
+  uploadArtifactRevision,
 } from "../lib/api";
 import { buildHandoffProtocolUrl } from "../lib/handoff";
 import ModelViewer, { ModelSnapshot } from "./ModelViewer";
@@ -1230,7 +1235,15 @@ const AssetCard = React.memo(function AssetCard({
   const [filesLoading, setFilesLoading] = useState(false);
   const [filesUploading, setFilesUploading] = useState(false);
   const [preparedClearing, setPreparedClearing] = useState(false);
+  const [scopeFilesToVersion, setScopeFilesToVersion] = useState(false);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [revisions, setRevisions] = useState<ArtifactRevision[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [revisionUploading, setRevisionUploading] = useState(false);
+  const [restoringRevisionId, setRestoringRevisionId] = useState<string | null>(null);
+  const [revisionNote, setRevisionNote] = useState("");
   const relatedInputRef = useRef<HTMLInputElement | null>(null);
+  const revisionInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!editingTags) {
@@ -1270,6 +1283,22 @@ const AssetCard = React.memo(function AssetCard({
     if (filesExpanded) void loadSupportingFiles();
   }, [filesExpanded, item.id]);
 
+  const loadRevisions = async () => {
+    setHistoryLoading(true);
+    try {
+      setRevisions(await listArtifactRevisions(item.id));
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Failed to load version history");
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (historyExpanded) void loadRevisions();
+  }, [historyExpanded, item.id]);
+
   const addRelatedFiles = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     event.target.value = "";
@@ -1278,7 +1307,11 @@ const AssetCard = React.memo(function AssetCard({
     try {
       let updated = item;
       for (const file of files) {
-        updated = await uploadAssetFile(item.id, file);
+        updated = await uploadAssetFile(
+          item.id,
+          file,
+          scopeFilesToVersion ? item.current_revision_id : null,
+        );
         onAssetChanged(updated);
       }
       setSupportingFiles(await listAssetFiles(item.id));
@@ -1288,6 +1321,46 @@ const AssetCard = React.memo(function AssetCard({
       alert(err instanceof Error ? err.message : "Failed to add files");
     } finally {
       setFilesUploading(false);
+    }
+  };
+
+  const addRevision = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setRevisionUploading(true);
+    try {
+      const result = await uploadArtifactRevision(
+        item.id,
+        file,
+        revisionNote,
+        item.current_revision_id,
+      );
+      onAssetChanged(result.asset);
+      setRevisionNote("");
+      setRevisions(await listArtifactRevisions(item.id));
+      setHistoryExpanded(true);
+      if (!result.created) alert("That file is identical to the current version; no new version was added.");
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Failed to add version");
+    } finally {
+      setRevisionUploading(false);
+    }
+  };
+
+  const restoreVersion = async (revision: ArtifactRevision) => {
+    if (!window.confirm(`Restore version ${revision.revision_number} as a new current version?`)) return;
+    setRestoringRevisionId(revision.id);
+    try {
+      const result = await restoreArtifactRevision(item.id, revision.id);
+      onAssetChanged(result.asset);
+      setRevisions(await listArtifactRevisions(item.id));
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Failed to restore version");
+    } finally {
+      setRestoringRevisionId(null);
     }
   };
 
@@ -1563,6 +1636,18 @@ const AssetCard = React.memo(function AssetCard({
           </div>
           {filesExpanded && (
             <div className="border-t border-panel px-2 py-2">
+              <label className="mb-2 flex items-start gap-2 text-xs text-muted">
+                <input
+                  type="checkbox"
+                  checked={scopeFilesToVersion}
+                  onChange={event => setScopeFilesToVersion(event.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>
+                  Attach documentation to the current version only
+                  <span className="block text-[11px] text-subtle">Leave off for files that apply to the whole model.</span>
+                </span>
+              </label>
               {filesLoading ? (
                 <div className="text-xs text-muted">Loading files...</div>
               ) : supportingFiles.length ? (
@@ -1589,6 +1674,100 @@ const AssetCard = React.memo(function AssetCard({
                 </div>
               ) : (
                 <div className="text-xs text-muted">Add assembly instructions, notes, other documentation, or a prepared print.</div>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="rounded-md border border-panel-strong bg-panel-strong/40 text-sm">
+          <div className="flex items-center justify-between gap-2 p-2">
+            <button
+              type="button"
+              className="flex min-w-0 items-center gap-2 text-left"
+              onClick={() => setHistoryExpanded(value => !value)}
+            >
+              <ChevronRight className={`h-4 w-4 transition-transform ${historyExpanded ? "rotate-90" : ""}`} />
+              <span className="font-medium">Version history</span>
+              {revisions.length > 0 && (
+                <span className="rounded-full bg-panel px-2 py-0.5 text-[11px] text-muted">{revisions.length}</span>
+              )}
+            </button>
+            <a
+              className="rounded-md border border-panel-strong px-2 py-1 text-xs"
+              href={artifactHistoryExportUrl(item.id)}
+              download
+              title="Download every version and attachment with a manifest"
+            >
+              Export
+            </a>
+          </div>
+          {historyExpanded && (
+            <div className="space-y-2 border-t border-panel px-2 py-2">
+              <div className="flex gap-2">
+                <input
+                  value={revisionNote}
+                  onChange={event => setRevisionNote(event.target.value)}
+                  className="min-w-0 flex-1 rounded-md border border-panel-strong bg-panel-soft px-2 py-1 text-xs"
+                  maxLength={500}
+                  placeholder="What changed? (optional)"
+                />
+                <input
+                  ref={revisionInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={addRevision}
+                />
+                <button
+                  type="button"
+                  className="rounded-md border border-panel-strong px-2 py-1 text-xs disabled:opacity-60"
+                  disabled={revisionUploading}
+                  onClick={() => revisionInputRef.current?.click()}
+                >
+                  {revisionUploading ? "Adding..." : "Add version"}
+                </button>
+              </div>
+              {historyLoading ? (
+                <div className="text-xs text-muted">Loading versions...</div>
+              ) : revisions.length ? (
+                <div className="space-y-1">
+                  {revisions.map(revision => (
+                    <div key={revision.id} className="rounded border border-panel px-2 py-2 text-xs">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="font-medium">Version {revision.revision_number}</span>
+                            {revision.is_current && (
+                              <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] text-blue-800 dark:bg-blue-950 dark:text-blue-200">Current</span>
+                            )}
+                            {revision.content_state !== "ready" && (
+                              <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-900 dark:bg-amber-950 dark:text-amber-200">{revision.content_state}</span>
+                            )}
+                          </div>
+                          <div className="truncate text-subtle" title={revision.filename}>{revision.filename}</div>
+                          {revision.change_note && <div className="mt-1 text-muted">{revision.change_note}</div>}
+                          <div className="mt-1 text-[10px] text-subtle">{new Date(revision.created_at).toLocaleString()}</div>
+                          {revision.prepared_print && <div className="mt-1 text-[10px] text-muted">Prepared print included</div>}
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          {revision.content_state === "ready" && (
+                            <a className="underline-offset-2 hover:underline" href={fileUrl(revision.url)} download={revision.filename}>Download</a>
+                          )}
+                          {!revision.is_current && revision.content_state === "ready" && (
+                            <button
+                              type="button"
+                              className="text-blue-700 disabled:opacity-60 dark:text-blue-300"
+                              disabled={restoringRevisionId !== null}
+                              onClick={() => restoreVersion(revision)}
+                            >
+                              {restoringRevisionId === revision.id ? "Restoring..." : "Restore"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs text-muted">No version history is available yet.</div>
               )}
             </div>
           )}

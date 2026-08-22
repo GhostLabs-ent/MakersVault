@@ -653,8 +653,10 @@ matched set. Never restore only one side of the pair.
 capacity-aware Trash retention as the default. Current schema-5 behavior is recorded
 in [the Gate 6 baseline](evidence/gate-6/BASELINE.md). Subgate 6A content truth and
 revision expansion is implemented at local commit `c7e8743`; the complete repository
-harness and focused migration/content evidence pass. It is awaiting owner acceptance
-in [the 6A results](evidence/gate-6/SUBGATE_6A_RESULTS.md) before 6B begins.
+harness and focused migration/content evidence pass. The owner accepted
+[the 6A results](evidence/gate-6/SUBGATE_6A_RESULTS.md) on 2026-08-22. Subgate 6B
+is now in progress under its
+[immutable workflow contract](evidence/gate-6/SUBGATE_6B_BASELINE.md).
 
 **Objective:** Add trustworthy history before adding the larger Project model.
 

@@ -2,9 +2,11 @@
 
 **Gate:** 6A — Content truth and revision expansion
 
-**Status:** Evidence review
+**Status:** Accepted
 
 **Evidence date:** 2026-08-22
+
+**Accepted:** 2026-08-22
 
 **Implementation commit:** `c7e8743`
 
@@ -130,3 +132,5 @@ Accept subgate 6A. The content/revision expansion is additive, bounded, resumabl
 visible, and locally verified without byte relocation or automatic deduplication.
 Proceed to 6B immutable revision creation, current/history UI, prepared and
 attachment ownership, restore, and history export.
+
+The owner accepted this evidence on 2026-08-22 and authorized subgate 6B.

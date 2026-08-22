@@ -41,20 +41,16 @@ def test_new_ingestion_creates_ready_revision_and_duplicate_suggestion() -> None
                 f"/asset/{first['id']}/revisions", headers=headers
             )
             assert revisions.status_code == 200
-            assert revisions.json() == [{
-                "id": revisions.json()[0]["id"],
-                "revision_number": 1,
-                "created_at": revisions.json()[0]["created_at"],
-                "origin_revision_id": None,
-                "filename": "identity-a.stl",
-                "mime": "application/octet-stream",
-                "size": len(content),
-                "sha256": hashlib.sha256(content).hexdigest(),
-                "content_state": "ready",
-                "content_reason": None,
-                "content_checked_at": revisions.json()[0]["content_checked_at"],
-                "is_current": True,
-            }]
+            revision = revisions.json()[0]
+            assert revision["revision_number"] == 1
+            assert revision["origin_revision_id"] is None
+            assert revision["filename"] == "identity-a.stl"
+            assert revision["mime"] == "application/octet-stream"
+            assert revision["size"] == len(content)
+            assert revision["sha256"] == hashlib.sha256(content).hexdigest()
+            assert revision["content_state"] == "ready"
+            assert revision["content_reason"] is None
+            assert revision["is_current"] is True
 
             duplicates = client.get(
                 f"/asset/{first['id']}/duplicates", headers=headers

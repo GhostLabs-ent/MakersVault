@@ -42,13 +42,14 @@ from asset_service import (
     ensure_model_thumbnail,
     finalize_asset_record,
     managed_asset_path,
+    managed_thumbnail_path,
     prune_empty_storage_dirs,
     relocate_asset,
     reorganize_managed_assets,
     sanitize_path_segment,
     sample_storage_path,
     save_thumb,
-    save_thumb_bytes,
+    save_thumb_bytes_path,
     unique_model_name,
     validate_storage_template,
 )
@@ -97,6 +98,13 @@ from preview_policy import (
     validate_preview_state,
 )
 from revision_service import delete_artifact_revisions, sync_current_revision
+from revision_workflow import (
+    create_revision_from_upload,
+    managed_revision_path,
+    resolve_revision_content_path,
+    restore_revision,
+)
+from revision_export import build_history_export
 from resource_limits import ensure_storage_reserve, stream_upload_to_file
 from settings_service import (
     DEFAULT_STORAGE_TEMPLATE,
@@ -137,6 +145,8 @@ from schemas import (
     ContentHashJobOut,
     ContentHashStartOut,
     ContentHashStartRequest,
+    RevisionCreateOut,
+    RevisionRestoreRequest,
     PreviewPolicyOut,
     PreviewStateUpdate,
 )
@@ -284,6 +294,21 @@ def to_out(a: Asset) -> AssetOut:
         prepared["removable"] = bool(a.prepared_file_id)
     primary_url = f"/file/{a.id}/{safe_filename}"
     slicer_url = f"/asset/{a.id}/prepared-print" if a.prepared_file_id else primary_url
+    thumb_path: Optional[Path] = None
+    if a.current_thumb_path:
+        try:
+            thumb_path = managed_thumbnail_path(a.current_thumb_path)
+        except HTTPException:
+            thumb_path = None
+    elif (THUMBS / f"{a.id}.jpg").exists():
+        thumb_path = THUMBS / f"{a.id}.jpg"
+    thumb_url = None
+    if thumb_path and thumb_path.exists():
+        thumb_url = (
+            f"/asset/{a.id}/revisions/{a.current_revision_id}/thumbnail?v={thumb_path.stat().st_mtime_ns}"
+            if a.current_revision_id
+            else f"/thumb/{a.id}.jpg?v={thumb_path.stat().st_mtime_ns}"
+        )
     return AssetOut(
         id=a.id,
         name=a.name or Path(a.filename).stem,
@@ -296,23 +321,20 @@ def to_out(a: Asset) -> AssetOut:
         collection=a.collection,
         tags=tags,
         url=primary_url,
-        thumb_url=(
-            f"/thumb/{a.id}.jpg?v={(THUMBS / f'{a.id}.jpg').stat().st_mtime_ns}"
-            if (THUMBS / f"{a.id}.jpg").exists()
-            else None
-        ),
+        thumb_url=thumb_url,
         folder_id=a.folder_id,
         storage_path=a.storage_path,
         supporting_file_count=int(a.supporting_file_count or 0),
         prepared_print=prepared,
         slicer_url=slicer_url,
         slicer_filename=(prepared_filename(a.name, prepared) if a.prepared_file_id else a.filename),
-        preview_status=("ready" if (THUMBS / f"{a.id}.jpg").exists() else a.preview_status),
-        preview_reason=(None if (THUMBS / f"{a.id}.jpg").exists() else a.preview_reason),
+        preview_status=("ready" if thumb_path and thumb_path.exists() else a.preview_status),
+        preview_reason=(None if thumb_path and thumb_path.exists() else a.preview_reason),
         preview_attempts=a.preview_attempts,
         preview_policy_version=a.preview_policy_version,
         preview_updated_at=a.preview_updated_at,
         preview_source=a.preview_source,
+        current_revision_id=a.current_revision_id,
     )
 
 
@@ -323,10 +345,28 @@ def asset_file_to_out(asset_file: AssetFile) -> AssetFileOut:
         mime=asset_file.mime,
         size=asset_file.size,
         url=f"/asset/{asset_file.asset_id}/files/{asset_file.id}",
+        revision_id=asset_file.revision_id,
     )
 
 
 def revision_to_out(revision: ArtifactRevision, current_revision_id: Optional[str]) -> ArtifactRevisionOut:
+    try:
+        prepared = json.loads(revision.prepared_metadata_json) if revision.prepared_metadata_json else None
+    except (TypeError, ValueError):
+        prepared = None
+    if prepared:
+        prepared["removable"] = False
+    thumb_url = None
+    if revision.preview_thumb_path:
+        try:
+            thumb = managed_thumbnail_path(revision.preview_thumb_path)
+            if thumb.exists():
+                thumb_url = (
+                    f"/asset/{revision.asset_id}/revisions/{revision.id}/thumbnail"
+                    f"?v={thumb.stat().st_mtime_ns}"
+                )
+        except HTTPException:
+            thumb_url = None
     return ArtifactRevisionOut(
         id=revision.id,
         revision_number=revision.revision_number,
@@ -339,6 +379,10 @@ def revision_to_out(revision: ArtifactRevision, current_revision_id: Optional[st
         content_state=revision.content_state,
         content_reason=revision.content_reason,
         content_checked_at=revision.content_checked_at,
+        change_note=revision.change_note,
+        prepared_print=prepared,
+        url=f"/asset/{revision.asset_id}/revisions/{revision.id}/file",
+        thumb_url=thumb_url,
         is_current=revision.id == current_revision_id,
     )
 
@@ -719,6 +763,103 @@ def get_artifact_revisions(asset_id: str, _: Optional[str] = Depends(require_aut
         return [revision_to_out(row, asset.current_revision_id) for row in revisions]
 
 
+@app.get("/asset/{asset_id}/revisions/export")
+def export_artifact_revisions(
+    asset_id: str,
+    background_tasks: BackgroundTasks,
+    _: Optional[str] = Depends(require_auth),
+):
+    path, filename = build_history_export(asset_id)
+    background_tasks.add_task(path.unlink, missing_ok=True)
+    return FileResponse(
+        path,
+        media_type="application/zip",
+        filename=filename,
+        headers=PROTECTED_FILE_HEADERS,
+        background=background_tasks,
+    )
+
+
+@app.post("/asset/{asset_id}/revisions", response_model=RevisionCreateOut)
+async def upload_artifact_revision(
+    asset_id: str,
+    file: UploadFile = File(...),
+    change_note: Optional[str] = Form(default=None),
+    expected_current_revision_id: Optional[str] = Form(default=None),
+    _: Optional[str] = Depends(require_auth),
+):
+    result = await create_revision_from_upload(
+        asset_id, file, change_note, expected_current_revision_id
+    )
+    return RevisionCreateOut(
+        asset=to_out(result.asset),
+        revision=revision_to_out(result.revision, result.asset.current_revision_id),
+        created=result.created,
+    )
+
+
+@app.post(
+    "/asset/{asset_id}/revisions/{revision_id}/restore",
+    response_model=RevisionCreateOut,
+)
+def restore_artifact_revision(
+    asset_id: str,
+    revision_id: str,
+    body: RevisionRestoreRequest,
+    _: Optional[str] = Depends(require_auth),
+):
+    result = restore_revision(asset_id, revision_id, body.change_note)
+    return RevisionCreateOut(
+        asset=to_out(result.asset),
+        revision=revision_to_out(result.revision, result.asset.current_revision_id),
+        created=result.created,
+    )
+
+
+@app.get("/asset/{asset_id}/revisions/{revision_id}/file")
+def download_artifact_revision(
+    asset_id: str,
+    revision_id: str,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        revision = session.get(ArtifactRevision, revision_id)
+        if not revision or revision.asset_id != asset_id:
+            raise HTTPException(404)
+        if revision.content_state != "ready":
+            raise HTTPException(
+                status_code=409,
+                detail=f"Revision content is {revision.content_state}; verify it before download",
+            )
+        path = resolve_revision_content_path(revision)
+        mime = revision.mime
+        filename = revision.filename
+    if not path or not path.is_file():
+        raise HTTPException(404)
+    return FileResponse(
+        path,
+        media_type=mime or "application/octet-stream",
+        filename=filename,
+        headers=PROTECTED_FILE_HEADERS,
+    )
+
+
+@app.get("/asset/{asset_id}/revisions/{revision_id}/thumbnail")
+def get_revision_thumbnail(
+    asset_id: str,
+    revision_id: str,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        revision = session.get(ArtifactRevision, revision_id)
+        if not revision or revision.asset_id != asset_id or not revision.preview_thumb_path:
+            raise HTTPException(404)
+        path = managed_thumbnail_path(revision.preview_thumb_path)
+    if not path.is_file():
+        raise HTTPException(404)
+    return FileResponse(path, media_type="image/jpeg", headers=PROTECTED_FILE_HEADERS)
+
+
 @app.get("/asset/{asset_id}/duplicates", response_model=List[AssetOut])
 def get_duplicate_suggestions(asset_id: str, _: Optional[str] = Depends(require_auth)):
     with Session(engine) as session:
@@ -761,9 +902,10 @@ def get_duplicate_suggestions(asset_id: str, _: Optional[str] = Depends(require_
 async def upload_related_file(
     asset_id: str,
     file: UploadFile = File(...),
+    revision_id: Optional[str] = Form(default=None),
     _: Optional[str] = Depends(require_auth),
 ):
-    asset = await save_asset_file(asset_id, file)
+    asset = await save_asset_file(asset_id, file, revision_id=revision_id)
     return to_out(asset)
 
 
@@ -963,8 +1105,17 @@ async def save_generated_thumbnail(
         asset = s.get(Asset, asset_id)
         if not asset:
             raise HTTPException(404)
-        if not save_thumb_bytes(asset_id, data):
+        current_revision = (
+            s.get(ArtifactRevision, asset.current_revision_id)
+            if asset.current_revision_id else None
+        )
+        if current_revision and current_revision.revision_number > 1:
+            thumb_relative = f"thumbs/revisions/{current_revision.id}.jpg"
+        else:
+            thumb_relative = asset.current_thumb_path or f"thumbs/{asset_id}.jpg"
+        if not save_thumb_bytes_path(thumb_relative, data):
             raise HTTPException(status_code=400, detail="Invalid thumbnail image")
+        asset.current_thumb_path = thumb_relative
         asset.preview_status = "ready"
         asset.preview_reason = None
         asset.preview_policy_version = PREVIEW_POLICY_VERSION
@@ -1210,11 +1361,24 @@ def rename_asset(asset_id: str, body: AssetRename, _: Optional[str] = Depends(re
 @app.delete("/asset/{asset_id}")
 def delete_asset(asset_id: str, _: Optional[str] = Depends(require_auth)):
     managed_path: Optional[Path] = None
+    revision_paths: list[Path] = []
+    revision_thumb_paths: list[Path] = []
     with Session(engine) as s:
         a = s.get(Asset, asset_id)
         if not a:
             raise HTTPException(404)
         managed_path = managed_asset_path(a)
+        for revision in s.exec(
+            select(ArtifactRevision).where(ArtifactRevision.asset_id == asset_id)
+        ):
+            path = managed_revision_path(revision)
+            if path:
+                revision_paths.append(path)
+            if revision.preview_thumb_path:
+                try:
+                    revision_thumb_paths.append(managed_thumbnail_path(revision.preview_thumb_path))
+                except HTTPException:
+                    pass
     delete_all_asset_files(asset_id)
     with Session(engine) as s:
         a = s.get(Asset, asset_id)
@@ -1230,6 +1394,10 @@ def delete_asset(asset_id: str, _: Optional[str] = Depends(require_auth)):
             managed_path.unlink(missing_ok=True)
             prune_empty_storage_dirs(parent)
         (THUMBS / f"{asset_id}.jpg").unlink(missing_ok=True)
+        for path in dict.fromkeys(revision_paths + revision_thumb_paths):
+            parent = path.parent
+            path.unlink(missing_ok=True)
+            prune_empty_storage_dirs(parent)
     except Exception:
         pass
     return {"ok": True}

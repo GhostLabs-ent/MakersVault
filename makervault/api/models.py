@@ -34,6 +34,7 @@ class Asset(SQLModel, table=True):
   preview_updated_at: Optional[str] = None
   preview_source: Optional[str] = None
   current_revision_id: Optional[str] = Field(default=None, index=True)
+  current_thumb_path: Optional[str] = None
 
 
 class ArtifactRevision(SQLModel, table=True):

@@ -30,7 +30,11 @@ def list_supporting_files(asset_id: str) -> List[AssetFile]:
         ))
 
 
-async def save_asset_file(asset_id: str, upload: UploadFile) -> Asset:
+async def save_asset_file(
+    asset_id: str,
+    upload: UploadFile,
+    revision_id: Optional[str] = None,
+) -> Asset:
     safe_name = sanitize_filename(upload.filename or "supporting-file")
     role = "prepared" if is_prepared_print_filename(safe_name) else "supporting"
     mime = mime_from_content_type(upload.content_type or "", safe_name)
@@ -39,13 +43,19 @@ async def save_asset_file(asset_id: str, upload: UploadFile) -> Asset:
         asset = session.get(Asset, asset_id)
         if not asset:
             raise HTTPException(404)
+        if revision_id:
+            from models import ArtifactRevision
+
+            scoped_revision = session.get(ArtifactRevision, revision_id)
+            if not scoped_revision or scoped_revision.asset_id != asset_id:
+                raise HTTPException(status_code=400, detail="Revision does not belong to this model")
         record = AssetFile(
             asset_id=asset.id,
             filename=safe_name,
             mime=mime,
             role=role,
             storage_path="pending",
-            revision_id=asset.current_revision_id if role == "prepared" else None,
+            revision_id=asset.current_revision_id if role == "prepared" else revision_id,
         )
         record.storage_path = f"bundles/{asset.id}/{record.id}/{safe_name}"
         session.add(record)

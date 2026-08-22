@@ -111,6 +111,7 @@ def test_pre_v5_1_fixture_migrates_and_is_idempotent(tmp_path: Path) -> None:
         "preview_updated_at",
         "preview_source",
         "current_revision_id",
+        "current_thumb_path",
     }.issubset(table_columns(database_engine, "asset"))
     assert "parent_id" in table_columns(database_engine, "folder")
     assert {
@@ -168,6 +169,14 @@ def test_pre_v5_1_fixture_migrates_and_is_idempotent(tmp_path: Path) -> None:
         ("asset-2", "asset-2", 1, "widget-copy.stl", "asset-2/widget-copy.stl", "pending"),
     ]
     assert all(row[1] for row in revisions)
+    with database_engine.connect() as conn:
+        thumb_paths = conn.exec_driver_sql(
+            "SELECT id, current_thumb_path FROM asset ORDER BY id"
+        ).fetchall()
+    assert thumb_paths == [
+        ("asset-1", "thumbs/asset-1.jpg"),
+        ("asset-2", "thumbs/asset-2.jpg"),
+    ]
 
     with pytest.raises(IntegrityError):
         with database_engine.begin() as conn:

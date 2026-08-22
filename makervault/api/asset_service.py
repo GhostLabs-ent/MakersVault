@@ -172,6 +172,13 @@ def prune_empty_storage_dirs(start: Path) -> None:
 
 
 def relocate_asset(asset: Asset, session: Session, old_path: Path, template: Optional[str] = None) -> bool:
+    from revision_service import current_revision
+
+    revision = current_revision(session, asset)
+    if revision and revision.content_state != "pending":
+        asset.storage_path = revision.storage_path
+        sync_current_revision(session, asset)
+        return False
     new_relative = render_storage_path(asset, session, template)
     new_path = STORAGE / new_relative
     if old_path.resolve() == new_path.resolve():
@@ -211,10 +218,19 @@ def reorganize_managed_assets(template: Optional[str] = None) -> tuple[int, int]
     return moved, skipped
 
 
-def save_thumb_image(asset_id: str, image: Image.Image) -> Optional[str]:
+def managed_thumbnail_path(storage_path: str) -> Path:
+    root = THUMBS.resolve()
+    candidate = (STORAGE / storage_path).resolve()
+    if candidate == root or root not in candidate.parents:
+        raise HTTPException(status_code=400, detail="Thumbnail path resolved outside thumbnail storage")
+    return candidate
+
+
+def save_thumb_image_path(storage_path: str, image: Image.Image) -> Optional[str]:
     tmp_path: Optional[Path] = None
     try:
-        thumb = THUMBS / f"{asset_id}.jpg"
+        thumb = managed_thumbnail_path(storage_path)
+        thumb.parent.mkdir(parents=True, exist_ok=True)
         image.load()
         if image.mode in {"RGBA", "LA"} or "transparency" in image.info:
             rgba = image.convert("RGBA")
@@ -224,16 +240,21 @@ def save_thumb_image(asset_id: str, image: Image.Image) -> Optional[str]:
         else:
             image = image.convert("RGB")
         image.thumbnail((512, 512))
-        with tempfile.NamedTemporaryFile(delete=False, dir=THUMBS, suffix=".jpg") as tmp:
+        with tempfile.NamedTemporaryFile(delete=False, dir=thumb.parent, suffix=".jpg") as tmp:
             tmp_path = Path(tmp.name)
         image.save(tmp_path, format="JPEG", quality=88, optimize=True)
         tmp_path.replace(thumb)
-        return f"/thumb/{asset_id}.jpg"
+        return storage_path
     except Exception:
         return None
     finally:
         if tmp_path:
             tmp_path.unlink(missing_ok=True)
+
+
+def save_thumb_image(asset_id: str, image: Image.Image) -> Optional[str]:
+    saved = save_thumb_image_path(f"thumbs/{asset_id}.jpg", image)
+    return f"/thumb/{asset_id}.jpg" if saved else None
 
 
 def save_thumb(asset_id: str, src: Path) -> Optional[str]:
@@ -246,12 +267,32 @@ def save_thumb(asset_id: str, src: Path) -> Optional[str]:
         return None
 
 
+def save_thumb_path(storage_path: str, src: Path) -> Optional[str]:
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(src, formats=THUMBNAIL_IMAGE_FORMATS) as image:
+                return save_thumb_image_path(storage_path, image)
+    except Exception:
+        return None
+
+
 def save_thumb_bytes(asset_id: str, data: bytes) -> Optional[str]:
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("error", Image.DecompressionBombWarning)
             with Image.open(io.BytesIO(data), formats=THUMBNAIL_IMAGE_FORMATS) as image:
                 return save_thumb_image(asset_id, image)
+    except Exception:
+        return None
+
+
+def save_thumb_bytes_path(storage_path: str, data: bytes) -> Optional[str]:
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(io.BytesIO(data), formats=THUMBNAIL_IMAGE_FORMATS) as image:
+                return save_thumb_image_path(storage_path, image)
     except Exception:
         return None
 
@@ -284,6 +325,45 @@ def extract_3mf_thumbnail(asset_id: str, src: Path, filename: Optional[str] = No
                     break
                 bytes_read += info.file_size
                 saved = save_thumb_bytes(asset_id, archive.read(info))
+                if saved:
+                    return saved
+    except (ArchiveLimitError, BadZipFile, KeyError, OSError):
+        return None
+    return None
+
+
+def extract_3mf_thumbnail_path(
+    storage_path: str,
+    src: Path,
+    filename: Optional[str] = None,
+) -> Optional[str]:
+    display_name = filename or src.name
+    if not display_name.lower().endswith(".3mf") or not src.exists():
+        return None
+    try:
+        with ZipFile(src) as archive:
+            infos = bounded_archive_infos(archive)
+            image_names = [
+                info.filename for info in infos
+                if Path(info.filename).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
+                and "thumbnail" in Path(info.filename).name.lower()
+            ]
+            priorities = {
+                "metadata/thumbnail.png": 0,
+                "3d/thumbnail.png": 1,
+                "thumbnail.png": 2,
+            }
+            image_names.sort(key=lambda name: (priorities.get(name.lower().lstrip("/"), 10), len(name)))
+            bytes_read = 0
+            for name in image_names:
+                info = archive.getinfo(name)
+                if info.file_size > ARCHIVE_METADATA_MAX_BYTES:
+                    continue
+                validate_archive_member(info, enforce_file_size=False)
+                if bytes_read + info.file_size > ARCHIVE_METADATA_MAX_BYTES:
+                    break
+                bytes_read += info.file_size
+                saved = save_thumb_bytes_path(storage_path, archive.read(info))
                 if saved:
                     return saved
     except (ArchiveLimitError, BadZipFile, KeyError, OSError):

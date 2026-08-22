@@ -59,6 +59,7 @@ class AssetFileOut(BaseModel):
   mime: str
   size: int
   url: str
+  revision_id: Optional[str] = None
 
 
 class AssetOut(BaseModel):
@@ -86,6 +87,7 @@ class AssetOut(BaseModel):
   preview_policy_version: int = 1
   preview_updated_at: Optional[str] = None
   preview_source: Optional[str] = None
+  current_revision_id: Optional[str] = None
 
 
 class PreviewStateUpdate(BaseModel):
@@ -239,7 +241,21 @@ class ArtifactRevisionOut(BaseModel):
   content_state: Literal["pending", "ready", "unavailable", "changed", "failed"]
   content_reason: Optional[str] = None
   content_checked_at: Optional[str] = None
+  change_note: Optional[str] = None
+  prepared_print: Optional[PreparedPrintOut] = None
+  url: str
+  thumb_url: Optional[str] = None
   is_current: bool
+
+
+class RevisionCreateOut(BaseModel):
+  asset: AssetOut
+  revision: ArtifactRevisionOut
+  created: bool
+
+
+class RevisionRestoreRequest(BaseModel):
+  change_note: Optional[str] = Field(default=None, max_length=500)
 
 
 class ContentHashFailureOut(BaseModel):

@@ -63,6 +63,7 @@ export type Asset = {
   preview_policy_version: number;
   preview_updated_at?: string | null;
   preview_source?: string | null;
+  current_revision_id?: string | null;
 };
 
 export type PreparedPrint = {
@@ -81,6 +82,32 @@ export type AssetFile = {
   mime: string;
   size: number;
   url: string;
+  revision_id?: string | null;
+};
+
+export type ArtifactRevision = {
+  id: string;
+  revision_number: number;
+  created_at: string;
+  origin_revision_id?: string | null;
+  filename: string;
+  mime: string;
+  size: number;
+  sha256?: string | null;
+  content_state: "pending" | "ready" | "unavailable" | "changed" | "failed";
+  content_reason?: string | null;
+  content_checked_at?: string | null;
+  change_note?: string | null;
+  prepared_print?: PreparedPrint | null;
+  url: string;
+  thumb_url?: string | null;
+  is_current: boolean;
+};
+
+export type RevisionMutation = {
+  asset: Asset;
+  revision: ArtifactRevision;
+  created: boolean;
 };
 
 export type ImportInspectInfo = {
@@ -502,9 +529,14 @@ export async function listAssetFiles(id: string): Promise<AssetFile[]> {
   return res.json();
 }
 
-export async function uploadAssetFile(id: string, file: File): Promise<Asset> {
+export async function uploadAssetFile(
+  id: string,
+  file: File,
+  revisionId?: string | null,
+): Promise<Asset> {
   const body = new FormData();
   body.set("file", file, file.name);
+  if (revisionId) body.set("revision_id", revisionId);
   const res = await fetch(`${apiBase()}/asset/${id}/files`, {
     method: "POST",
     headers: authHeaders(),
@@ -515,6 +547,53 @@ export async function uploadAssetFile(id: string, file: File): Promise<Asset> {
     throw new Error(await readErrorMessage(res, "Failed to add file"));
   }
   return res.json();
+}
+
+export async function listArtifactRevisions(id: string): Promise<ArtifactRevision[]> {
+  const res = await fetch(`${apiBase()}/asset/${id}/revisions`, { headers: authHeaders() });
+  assertOk(res, "Failed to load version history");
+  return res.json();
+}
+
+export async function uploadArtifactRevision(
+  id: string,
+  file: File,
+  changeNote?: string,
+  expectedCurrentRevisionId?: string | null,
+): Promise<RevisionMutation> {
+  const body = new FormData();
+  body.set("file", file, file.name);
+  if (changeNote?.trim()) body.set("change_note", changeNote.trim());
+  if (expectedCurrentRevisionId) {
+    body.set("expected_current_revision_id", expectedCurrentRevisionId);
+  }
+  const res = await fetch(`${apiBase()}/asset/${id}/revisions`, {
+    method: "POST",
+    headers: authHeaders(),
+    body,
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to add version"));
+  return res.json();
+}
+
+export async function restoreArtifactRevision(
+  assetId: string,
+  revisionId: string,
+  changeNote?: string,
+): Promise<RevisionMutation> {
+  const res = await fetch(`${apiBase()}/asset/${assetId}/revisions/${revisionId}/restore`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ change_note: changeNote?.trim() || null }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to restore version"));
+  return res.json();
+}
+
+export function artifactHistoryExportUrl(assetId: string) {
+  return fileUrl(`/asset/${assetId}/revisions/export`);
 }
 
 export async function deleteAssetFile(assetId: string, fileId: string): Promise<Asset> {
