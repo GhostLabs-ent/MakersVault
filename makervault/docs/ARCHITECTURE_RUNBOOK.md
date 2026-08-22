@@ -594,9 +594,12 @@ provenance columns remain additive. A backfill can pause and resume safely.
 
 ### Gate 5 — Prove upgrade, recovery, and the v5.1 release
 
-**Current execution:** `IN PROGRESS`. The owner opened Gate 5 on 2026-08-21.
-Feature scope is frozen while the matched backup/restore and release contract in
-[the Gate 5 baseline](evidence/gate-5/BASELINE.md) is implemented and verified.
+**Current execution:** `OWNER CHECKPOINT`. The owner opened Gate 5 on 2026-08-21.
+Feature scope remained frozen while the matched backup/restore and release contract
+in [the Gate 5 baseline](evidence/gate-5/BASELINE.md) was implemented. Upgrade,
+recovery, exact-image, reproducibility, performance, import, bridge, and
+Chromium/Firefox/WebKit evidence now pass in [the Gate 5 results](evidence/gate-5/RESULTS.md).
+Nothing is published; Gate 5 remains open for the explicit ship/no-ship decision.
 
 **Objective:** Release v5.1 only after the whole confidence-release promise works
 as an upgrade, not just as a fresh demo.

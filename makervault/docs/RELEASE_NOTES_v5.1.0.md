@@ -47,6 +47,23 @@ secret invalidates old browser sessions but does not remove vault data.
 Verify downloaded files with `sha256sum --check SHA256SUMS`. Image and file
 attestations can be verified with the GitHub CLI against this repository.
 
+## Recorded release-candidate performance
+
+The repeatable 20-file preview corpus totals 66,037,534 bytes and covers small,
+medium, large, multipart, multiplate, image-heavy, malformed, STL, OBJ, 3MF, and
+STEP inputs. In the headless Chromium release-image run, cold cards appeared in
+361 ms and settled in 5.16 s with at most one original-file request active. The warm
+run showed cards in 135 ms, issued 14 static-thumbnail requests and zero original
+model requests, and recorded zero long tasks. An explicit detail preview completed
+in 269 ms; the LightBurn preview also made zero warm source requests.
+
+The 600-asset/104-folder organization workflow passed in Chromium 151, Firefox 153,
+and WebKit 26.5. Chromium enforced the deterministic performance budgets (347 ms to
+first cards, 139 ms to load the next page, 99 ms exact search, and 102 ms folder
+open); Firefox and WebKit ran the same functional assertions and recorded their
+timings without treating headless software/container startup as an end-user hardware
+benchmark. See [Gate 5 evidence](evidence/gate-5/RESULTS.md) for the full matrix.
+
 ## Intentional boundaries
 
 v5.1 does not add manual thumbnail uploads, multi-user identity/MFA/SSO, slicing or

@@ -64,8 +64,10 @@ These are intentional v5.1 boundaries, not hidden promises.
   slicer/engraver discovery and protocol registration vary by installed application
   and operating-system policy.
 - The bridge is workstation-local and must be upgraded with the server/web release.
-- Mobile/touch and assistive-technology checks are part of the release matrix, but
-  the primary workshop experience remains a modern desktop-class browser.
+- Automated desktop workflows cover Chromium, Firefox, and WebKit at a 1440 × 900
+  viewport. v5.1 does not claim dedicated mobile/touch optimization or formal
+  assistive-technology certification; the primary workshop experience remains a
+  modern desktop-class browser.
 
 See [Upgrade to v5.1](UPGRADE_V5.1.md) and
 [Backup and Recovery](BACKUP_AND_RECOVERY.md) before deployment changes.
