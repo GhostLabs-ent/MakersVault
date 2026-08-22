@@ -2,7 +2,7 @@
 
 **Gate:** 6 — Establish revisions and recoverable deletion
 
-**Status:** In progress — truth audit and owner decision checkpoint; schema not changed
+**Status:** In progress — owner checkpoint accepted; subgate 6A authorized
 
 **Opened:** 2026-08-22
 
@@ -130,4 +130,6 @@ The proposed decision package is
 [0007](../../adr/0007-artifact-revision-ownership.md), and
 [0008](../../adr/0008-trash-retention-and-permanent-deletion.md).
 
-No schema implementation starts until that checkpoint is accepted or revised.
+The owner accepted the checkpoint on 2026-08-22 with the capacity-aware Trash
+retention amendment recorded in ADR 0008. Subgate 6A schema and service work is
+authorized.

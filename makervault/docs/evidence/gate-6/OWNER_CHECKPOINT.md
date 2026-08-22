@@ -1,8 +1,10 @@
 # Gate 6 Owner Checkpoint
 
-**Status:** Awaiting owner decision
+**Status:** Accepted with Trash retention amendment
 
 **Prepared:** 2026-08-22
+
+**Accepted:** 2026-08-22
 
 Gate 6 changes the meaning of a model entry and introduces irreversible permanent
 deletion. The runbook requires these decisions before schema implementation. The
@@ -51,7 +53,12 @@ recommendations below form one coherent contract.
 7. **Trash and permanent deletion**
    - Normal delete becomes metadata-only Trash for the artifact and everything it
      owns.
-   - Default retention is **Never automatically delete**.
+   - Default retention is **Until space is needed**: retain Trash indefinitely and
+     purge the oldest complete trashed artifacts only when a new managed write would
+     otherwise breach the configured free-space reserve.
+   - Settings also provide **1 day**, **1 week**, **1 month**, and **Never**.
+     Time-based choices purge eligible Trash after that age; Never rejects a write
+     rather than automatically deleting Trash.
    - Restore is conflict-aware and never overwrites another artifact.
    - Permanent deletion exists only inside Trash, requires explicit destructive
      confirmation, uses durable quarantine/reconciliation, and never touches
@@ -68,17 +75,22 @@ recommendations below form one coherent contract.
 ## What approval authorizes
 
 Approval accepts ADRs 0006–0008 and authorizes Gate 6A schema and service
-implementation under this contract. It does not authorize automatic Trash purge,
-physical content deduplication, Project entities, printer control, publication, or
-removal of legacy Asset columns.
+implementation under this contract. It does not authorize automatic Trash purge
+beyond the five owner-approved retention choices, physical content deduplication,
+Project entities, printer control, publication, or removal of legacy Asset columns.
 
-## Alternative choices requiring direction
+The owner approved the package with one amendment: automatic Trash purge is
+authorized only under the explicit retention choices above. This supersedes the
+earlier proposed Never-by-default policy; it does not authorize deletion outside
+Trash.
+
+## Alternatives considered at approval
 
 The owner may instead choose any of these material alternatives before approval:
 
 - make all supporting documents artifact-wide or revision-specific;
 - have restore merely reactivate an old revision instead of recording a new one;
-- use a finite automatic Trash retention period such as 30 or 90 days;
+- use a fixed automatic Trash retention period as the only policy;
 - relocate existing bytes into a uniform revision layout during migration; or
 - include recoverable folder trees in Gate 6.
 

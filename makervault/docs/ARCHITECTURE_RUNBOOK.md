@@ -648,11 +648,11 @@ matched set. Never restore only one side of the pair.
 
 ### Gate 6 — Establish revisions and recoverable deletion
 
-**Current execution:** `IN PROGRESS` for the architecture and owner-decision
-subgate only. Current schema-5 behavior is recorded in
-[the Gate 6 baseline](evidence/gate-6/BASELINE.md). ADRs 0006–0008 and the
-[owner checkpoint](evidence/gate-6/OWNER_CHECKPOINT.md) are proposed; schema and
-behavior implementation have not started.
+**Current execution:** `IN PROGRESS`; the owner accepted ADRs 0006–0008 and
+[the Gate 6 checkpoint](evidence/gate-6/OWNER_CHECKPOINT.md) on 2026-08-22, with
+capacity-aware Trash retention as the default. Current schema-5 behavior is recorded
+in [the Gate 6 baseline](evidence/gate-6/BASELINE.md). Subgate 6A content truth and
+revision expansion is authorized.
 
 **Objective:** Add trustworthy history before adding the larger Project model.
 

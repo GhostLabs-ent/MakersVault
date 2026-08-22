@@ -1,8 +1,10 @@
 # ADR 0008: Trash retention and permanent deletion
 
-**Status:** Proposed for Gate 6 owner checkpoint
+**Status:** Accepted with owner amendment
 
 **Proposed:** 2026-08-22
+
+**Accepted:** 2026-08-22
 
 ## Context
 
@@ -21,10 +23,20 @@ allowed.
   previews remain associated and recoverable.
 - Trashed artifacts are excluded from normal navigation, search, selection, and
   duplicate suggestions unless the Trash view is active.
-- Default retention is **Never automatically delete**. Operators may later select a
-  documented automatic policy only after its scheduler and recovery behavior have
-  independent evidence. The first Gate 6 implementation provides explicit permanent
-  deletion and Empty Trash.
+- Default retention is **Until space is needed**. Trashed content is retained
+  indefinitely unless a new managed write would otherwise breach the configured
+  storage free-space reserve. MakersVault then permanently deletes the oldest
+  eligible trashed artifacts, one complete artifact at a time, only until the
+  predicted write and reserve fit.
+- Settings also offer **1 day**, **1 week**, **1 month**, and **Never**. Time-based
+  policies permanently delete eligible Trash after the selected age. **Never**
+  disables automatic purge even when a write lacks space; that write fails safely
+  instead. Explicit permanent deletion and Empty Trash remain available for every
+  policy.
+- “Until space is needed” is capacity-triggered deletion, not byte overwriting. It
+  runs before the storage filesystem is completely full so an upload, import,
+  attachment, or revision write cannot be allowed to fail halfway merely to trigger
+  cleanup.
 - Restore returns the artifact to its original folder when it still exists. If the
   folder is gone, the UI requires confirmation to restore as Unassigned. A
   case-insensitive name conflict returns a choice to rename or select another folder;
@@ -57,11 +69,19 @@ Reconciliation reports orphaned quarantine content without silently deleting it.
 Shared physical blobs are out of scope; if later introduced, reference counting and
 garbage collection require a superseding ADR.
 
+Automatic selection is oldest-deletion-time first with a stable UUID tie-breaker.
+It never partially purges an artifact, never touches active artifacts or external
+no-copy source bytes, and records which capacity request or age policy caused each
+purge. If eligible Trash cannot satisfy the requested reserve, the write returns the
+existing storage-capacity error without purging anything outside Trash.
+
 ## Alternatives considered
 
-- **Thirty-day automatic deletion by default:** familiar behavior, but surprising
-  irreversible cleanup is inappropriate until a durable scheduler and field evidence
-  exist.
+- **Never delete by default:** maximizes retention, but cannot recover space for a
+  user who expects desktop-style capacity management and may leave uploads failing
+  while reclaimable Trash exists.
+- **Fixed-time deletion by default:** familiar and simple, but destroys content even
+  when the installation has abundant space.
 - **Move bytes when entering Trash:** makes a physical Trash tree but turns a
   reversible metadata action into a large partial-failure surface.
 - **Delete database first, then files:** can orphan bytes and lose the information
@@ -73,10 +93,10 @@ garbage collection require a superseding ADR.
 
 ## Consequences
 
-Delete becomes fast and reversible regardless of library size. Storage is not
-reclaimed until permanent deletion. The Trash view must display deletion time,
-original location, total managed size, external-source status, and permanent-delete
-consequences.
+Delete becomes fast and reversible regardless of library size. Storage is reclaimed
+only through explicit, age-based, or capacity-triggered permanent deletion. The
+Trash view must display deletion time, original location, total managed size,
+external-source status, active retention policy, and permanent-delete consequences.
 
 Backup manifests include trashed artifacts and all of their revisions until they are
 permanently deleted. Restore from a vault backup preserves Trash state.
@@ -92,5 +112,5 @@ database/storage snapshot.
 
 ## Superseding conditions
 
-Revisit before enabling automatic retention, recoverable folder trees, multi-user
+Revisit before adding quota-based retention, recoverable folder trees, multi-user
 ownership, legal holds, remote/object storage, or shared physical blobs.

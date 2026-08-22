@@ -1,8 +1,10 @@
 # ADR 0007: Artifact revision ownership and immutable history
 
-**Status:** Proposed for Gate 6 owner checkpoint
+**Status:** Accepted
 
 **Proposed:** 2026-08-22
+
+**Accepted:** 2026-08-22
 
 ## Context
 
