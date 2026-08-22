@@ -2,11 +2,15 @@
 
 **Gate:** 5 — Prove upgrade, recovery, and the v5.1 release
 
-**Status:** Ready for owner ship/no-ship checkpoint; nothing published
+**Status:** Accepted locally; approved release candidate remains unpublished
 
 **Evidence date:** 2026-08-22
 
+**Accepted:** 2026-08-22
+
 **Release identity:** `v5.1.0`, schema 5
+
+**Qualified source revision:** `f6ff55b33fd64c7a5037e8eb642bed048c3e0e4f`
 
 **Publication state:** Local only. No tag, image, binary, release, or commit has been
 pushed; publication remains deferred until the coordinated v5.1 rollout.
@@ -156,10 +160,11 @@ suggestions are not v5.1 release requirements. Other P1 deferrals are dedicated
 mobile/touch and assistive-technology certification, server-wide select-all, advanced
 UI density polish, and real workstation launch testing on every bridge OS/CPU pair.
 
-The owner checkpoint must review [Known Limitations](../../KNOWN_LIMITATIONS.md) and
-these deferrals. There is no manual thumbnail upload, slicing, printer control,
-visible G-code browser, multi-user identity, Trash/revisions, Projects, automatic
-STEP preview, continuous NAS watching, or portable `.mvault` export in v5.1.
+The owner reviewed and approved [Known Limitations](../../KNOWN_LIMITATIONS.md) and
+these deferrals on 2026-08-22. There is no manual thumbnail upload, slicing,
+printer control, visible G-code browser, multi-user identity, Trash/revisions,
+Projects, automatic STEP preview, continuous NAS watching, or portable `.mvault`
+export in v5.1.
 
 ## Local commit record
 
@@ -174,6 +179,9 @@ Major Gate 5 commits include:
 - `8aff259` — pagination-aware preview benchmark
 - `b6da140` — exact release-image browser/import matrix mode
 - `275b91a` — Chromium/Firefox/WebKit release browser matrix
+- `f6ff55b` — owner-checkpoint documentation and immutable qualified candidate
 
-All commits are local. Gate 5 closes only after the owner explicitly approves the
-candidate, known limitations, and P1 deferrals with a ship decision.
+All commits are local. The owner approved the candidate, known limitations, and P1
+deferrals on 2026-08-22, closing Gate 5 locally. This post-qualification acceptance
+record does not change the immutable `f6ff55b` candidate and does not authorize a
+tag, push, image publication, or GitHub release.
