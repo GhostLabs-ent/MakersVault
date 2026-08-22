@@ -64,3 +64,6 @@ makervault/benchmarks/preview/.artifacts/
 
 # Reproducible Gate 3 organization benchmark output
 makervault/benchmarks/organization/.artifacts/
+
+# Local recovery archives may contain user files and deployment secrets
+makervault/backups/
