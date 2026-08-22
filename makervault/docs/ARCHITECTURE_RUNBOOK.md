@@ -652,7 +652,9 @@ matched set. Never restore only one side of the pair.
 [the Gate 6 checkpoint](evidence/gate-6/OWNER_CHECKPOINT.md) on 2026-08-22, with
 capacity-aware Trash retention as the default. Current schema-5 behavior is recorded
 in [the Gate 6 baseline](evidence/gate-6/BASELINE.md). Subgate 6A content truth and
-revision expansion is authorized.
+revision expansion is implemented at local commit `c7e8743`; the complete repository
+harness and focused migration/content evidence pass. It is awaiting owner acceptance
+in [the 6A results](evidence/gate-6/SUBGATE_6A_RESULTS.md) before 6B begins.
 
 **Objective:** Add trustworthy history before adding the larger Project model.
 
@@ -1026,9 +1028,8 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Resolve the Gate 6 metadata, revision, storage, export, and Trash decisions in
-[the owner checkpoint](evidence/gate-6/OWNER_CHECKPOINT.md). Once accepted, begin
-subgate 6A with the additive revision/content-identity migration, schema-5 fixture
-upgrade, no-relocation verification, and bounded hashing contract. Keep the
+Review and accept [subgate 6A evidence](evidence/gate-6/SUBGATE_6A_RESULTS.md).
+Once accepted, begin 6B with staged immutable primary replacement and a minimal
+current/history read path before adding restore or export. Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
 disabled by default; it is not part of Gate 6 acceptance.
