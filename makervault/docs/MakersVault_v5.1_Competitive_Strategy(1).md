@@ -112,7 +112,9 @@ The following ideas remain strategically valuable but must not delay v5.1:
 - Full Project -> Artifact -> Revision architecture.
 - Multi-user accounts, roles, MFA, API keys, and OIDC/SSO.
 - Custom metadata fields.
-- Generic machine integrations and printer telemetry.
+- Generic machine integrations and broad printer telemetry. A bounded,
+  disabled-by-default print-failure alert experiment may be evaluated after v5.1
+  under its own evidence gate.
 - A public community-adapter SDK.
 - Synchronization, hosted storage, and managed backup infrastructure.
 - A fully hosted MakersVault service.
@@ -139,7 +141,8 @@ remaining pleasant to operate.
 ## Features not to chase yet
 
 - Print-farm scheduling or least-busy-printer routing.
-- Deep printer telemetry and large compatibility matrices.
+- Deep printer telemetry, automatic printer control, and large compatibility
+  matrices beyond the bounded alert-only experiment.
 - Advanced filament accounting.
 - Maintenance scheduling.
 - Enterprise-scale object storage.

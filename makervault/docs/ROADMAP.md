@@ -166,6 +166,24 @@ security and support requirements.
 
 MakersVault should not make printer control its primary product identity.
 
+### Experimental print-failure alerts
+
+The first post-v5.1 release may carry an independent, disabled-by-default
+experiment for local print-failure detection and Discord alerts. The experiment
+samples an authorized camera through an optional external inference provider and
+reports advisory incidents. It does not slice, start, pause, cancel, schedule, or
+route prints.
+
+This experiment is not a Gate 6 completion requirement and cannot weaken revision,
+Trash, migration, or recovery evidence. Generic HTTP/RTSP cameras, OctoPrint, and
+Moonraker are the preferred initial inputs. Native Bambu camera access remains
+experimental until it is proven against real hardware and firmware. Promotion
+requires measured false-positive, missed-failure, latency, resource, privacy, and
+service-isolation evidence.
+
+The complete boundary and discovery gate are in
+[EXPERIMENTAL_PRINT_MONITORING.md](EXPERIMENTAL_PRINT_MONITORING.md).
+
 ## Backup and portable export
 
 The long-term portable archive may resemble:
@@ -212,7 +230,8 @@ small settings feature.
 ## Explicitly deprioritized
 
 - Print-farm routing and scheduling.
-- Deep printer telemetry.
+- Broad printer telemetry and automatic printer control beyond the bounded,
+  alert-only experiment.
 - Advanced filament accounting.
 - Large compatibility matrices.
 - Enterprise workflow orchestration.
