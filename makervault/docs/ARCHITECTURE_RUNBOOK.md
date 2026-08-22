@@ -202,10 +202,10 @@ be made explicit before deployment boundaries are multiplied.
 | T-006 | `VERIFIED` | Auth is one environment-configured administrator with 12-hour HS256 JWTs. There is no user, role, revocation, or MFA model. | `api/auth.py`, models | Multi-user security is a later dedicated architecture gate. |
 | T-007 | `VERIFIED` | Some file handoffs place bearer material in URLs, including custom-protocol handoff. | API schemas/routes and bridge code | Replace broad reusable bearer URLs with narrow, short-lived grants. |
 | T-008 | `VERIFIED` | The bridge accepts custom protocol input, downloads a URL, caches the result, and launches a local application. | `slicer-bridge` source | The bridge is a workstation trust boundary and needs protocol hardening. |
-| T-009 | `VERIFIED` | Startup uses an ordered, immutable SQLite migration ledger at schema version 5, with dependency locking and fail-closed version/name checks. Migration 4 adds persistent preview outcomes; migration 5 adds mounted-scan records. | `api/migrations.py`, `api/db.py`, API migration tests | Larger model changes must extend this migration mechanism and retain old-database fixtures. |
+| T-009 | `VERIFIED` | Startup uses an ordered, immutable SQLite migration ledger at schema version 8, with dependency locking and fail-closed version/name checks. Schemas 6–8 add revision/content truth, immutable workflows, and recoverable Trash additively. | `api/migrations.py`, `api/db.py`, API migration tests | Larger model changes must extend this migration mechanism and retain old-database fixtures. |
 | T-010 | `VERIFIED` | Metadata is split between SQLite and filesystem content; updates are not one atomic transaction. | API storage and asset services | File mutations require staging, compensation, and reconciliation. |
-| T-011 | `VERIFIED` | Current records are `Folder`, `Asset`, `AssetFile`, and `AppConfig`; several JSON structures are stored as text. | `api/models.py` | Project/revision work must migrate rather than replace data in place. |
-| T-012 | `VERIFIED` | Managed primary files, thumbnails, and bundles use different storage layouts; no-copy records reference external paths. | asset/file services | Backup completeness and storage invariants must be explicit. |
+| T-011 | `VERIFIED` | Current records include `Folder`, `Asset`, immutable `ArtifactRevision`, scoped `AssetFile`, durable content jobs, `TrashPurgeOperation`, and `AppConfig`; several bounded journal/result structures are stored as JSON text. | `api/models.py`, Gate 6 evidence | Project work must build on these records rather than replace data in place. |
+| T-012 | `VERIFIED` | Managed historical revisions, thumbnails, bundles, and purge quarantine use explicit storage layouts; no-copy revision records reference external paths. | revision/file/Trash services and Gate 6D recovery evidence | Backup completeness and storage invariants are enforced by schema-aware matched-pair verification. |
 | T-013 | `VERIFIED` | Mounted scans deduplicate primarily by source path and report details to process logs. | `api/mount_import.py` | A durable scan job/report is required for v5.1 observability. |
 | T-014 | `VERIFIED` | URL import performs important address checks, but redirect and DNS behavior still need adversarial tests. | `api/url_utils.py`, security review | SSRF safety is proven by tests at the security gate, not presumed. |
 | T-015 | `VERIFIED` | Prepared payloads and visible supporting files already have distinct roles and response behavior. | `AssetFile`, prepared-print and ZIP services | Visibility/download invariants need regression tests. |
@@ -215,22 +215,29 @@ be made explicit before deployment boundaries are multiplied.
 | T-019 | `DECIDED` | v5.1 is single-admin; multi-user/MFA/SSO is deferred. | product strategy and v5.1 scope | Security analysis statements that assume v5.1 multi-user are stale. |
 | T-020 | `DECIDED` | v5.1 is a confidence release, not the Project/Revision rewrite. | v5.1 scope | Reliability gates outrank future architecture work. |
 | T-021 | `VERIFIED` | Gate 5 qualifies and locally accepts immutable v5.1 source `f6ff55b`; upgrade, recovery, exact-image, reproducibility, performance, import, and browser evidence pass. Publication remains deferred. | `docs/evidence/gate-5/RESULTS.md`, acceptance commit `c004c60` | Gate 6 branches from a fixed release boundary and cannot alter the v5.1 candidate. |
-| T-022 | `VERIFIED` | Schema 5 has one mutable primary-file state per Asset, no content digest or revisions, and immediate best-effort deletion outside a filesystem/database transaction. | Gate 6 source audit and `docs/evidence/gate-6/BASELINE.md` | Gate 6 begins with content truth, immutable revision ownership, and metadata-only Trash. |
+| T-022 | `VERIFIED` | The immutable v5.1/schema-5 boundary had one mutable primary-file state per Asset, no content digest or revisions, and immediate best-effort deletion outside a filesystem/database transaction. | Gate 6 source audit and `docs/evidence/gate-6/BASELINE.md` | This remains the measured migration baseline and pre-Gate-6 rollback boundary. |
 | T-023 | `DECIDED` | A bounded print-failure alert is a candidate experimental post-v5.1 track: disabled by default, advisory only, external-provider-first, and never a Gate 6 dependency. | `docs/EXPERIMENTAL_PRINT_MONITORING.md`, owner direction 2026-08-22 | Monitoring can be prototyped independently but cannot introduce printer-control authority or weaken active-gate evidence. |
+| T-024 | `VERIFIED` | Schema 8 provides content identity, immutable revision replacement/restore/export, metadata-only Trash, explicit retention/permanent deletion, and format-1 matched backup verification for every revision and purge journal. | `docs/evidence/gate-6/RESULTS.md`, Gate 6 API tests | Gate 7 may rely on stable artifact/revision ownership only after the owner accepts Gate 6 closeout. |
 
 ### 5.4 Current storage invariants
 
 Until a later gate changes them deliberately:
 
 - SQLite holds identity and metadata; it is essential backup data.
-- Managed primary files live under the configured storage template.
+- Existing managed revision-1 bytes may remain at their legacy/template path; every
+  later managed revision lives at an immutable artifact/revision path and is never
+  moved by artifact metadata changes.
 - Generated thumbnails live under managed thumbnail storage and may be
   regenerated, but retaining them improves restore fidelity and performance.
-- Supporting and prepared files live under per-asset bundle storage.
+- Supporting and prepared files live under per-asset bundle storage with explicit
+  artifact-wide or revision ownership.
 - A prepared file is internal and excluded from normal browse/download surfaces.
-- Mounted no-copy content remains outside the vault backup unless separately
-  captured by the operator.
-- `storage_path` and `source_path` behavior must remain compatible through v5.1.
+- Trash is metadata-only. Permanent deletion uses a durable database journal and a
+  same-filesystem `.trash-quarantine` transition before ownership deletion.
+- Mounted no-copy revision content remains outside the vault backup unless
+  separately captured by the operator; its source path and state remain explicit.
+- Operational recovery and rollback always restore SQLite and managed storage as a
+  matched pair. Schema contraction is not authorized.
 
 ## 6. Target architecture direction
 
@@ -648,7 +655,7 @@ matched set. Never restore only one side of the pair.
 
 ### Gate 6 — Establish revisions and recoverable deletion
 
-**Current execution:** `IN PROGRESS`; the owner accepted ADRs 0006–0008 and
+**Current execution:** `READY FOR OWNER ACCEPTANCE`; the owner accepted ADRs 0006–0008 and
 [the Gate 6 checkpoint](evidence/gate-6/OWNER_CHECKPOINT.md) on 2026-08-22, with
 capacity-aware Trash retention as the default. Current schema-5 behavior is recorded
 in [the Gate 6 baseline](evidence/gate-6/BASELINE.md). Subgate 6A content truth and
@@ -665,7 +672,11 @@ implementation is complete at local commit `71c3d82`; focused safety tests and t
 full repository harness pass in
 [the 6C results](evidence/gate-6/SUBGATE_6C_RESULTS.md), accepted by the owner on
 2026-08-22. Subgate 6D recovery, compatibility, and closeout is in progress under
-[its evidence contract](evidence/gate-6/SUBGATE_6D_BASELINE.md).
+[its evidence contract](evidence/gate-6/SUBGATE_6D_BASELINE.md). Its implementation
+is complete at local commit `642735d`; schema-7 upgrade, format-1 compatibility,
+revision-aware backup/restore, and negative consistency evidence pass in
+[the 6D results](evidence/gate-6/SUBGATE_6D_RESULTS.md). All Gate 6 exit claims are
+mapped in [the Gate 6 closeout](evidence/gate-6/RESULTS.md), pending owner acceptance.
 
 **Objective:** Add trustworthy history before adding the larger Project model.
 
