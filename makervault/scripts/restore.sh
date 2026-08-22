@@ -9,6 +9,7 @@ project_name=${COMPOSE_PROJECT_NAME:-makersvault}
 archive=""
 replace=false
 config_output=""
+leave_stopped=false
 
 usage() {
   cat <<'EOF'
@@ -20,6 +21,7 @@ Options:
   --project-name NAME  Exact Compose project (default: makersvault)
   --replace            Clear and replace non-empty database/storage volumes
   --config-output PATH Extract archived config to a new comparison file
+  --leave-stopped      Do not restart services after a successful restore
 EOF
 }
 
@@ -31,6 +33,7 @@ while [ "$#" -gt 0 ]; do
     --project-name) project_name=${2:-}; shift 2 ;;
     --replace) replace=true; shift ;;
     --config-output) config_output=${2:-}; shift 2 ;;
+    --leave-stopped) leave_stopped=true; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -88,7 +91,7 @@ cleanup() {
   status=$?
   trap - EXIT HUP INT TERM
   rm -rf -- "$temporary"
-  if [ "$restore_complete" = true ] || [ "$mutation_started" = false ]; then
+  if [ "$mutation_started" = false ] || { [ "$restore_complete" = true ] && [ "$leave_stopped" != true ]; }; then
     restart_services
   elif [ "$services_stopped" = true ]; then
     echo "Restore failed after volume mutation began; services remain stopped for operator recovery." >&2
@@ -126,7 +129,8 @@ compose run --rm -T --no-deps --entrypoint sh api -eu -c \
   'chown -R "${PUID:-1000}:${PGID:-1000}" /app/data /app/storage'
 compose run --rm -T --no-deps --entrypoint tar api -C /app/data -cf - . > "$temporary/restored-database.tar"
 compose run --rm -T --no-deps --entrypoint tar api -C /app/storage -cf - . > "$temporary/restored-storage.tar"
-python3 "$app_dir/api/recovery.py" audit-components \
+python3 "$app_dir/api/recovery.py" verify-restored \
+  --archive "$archive" \
   --database-tar "$temporary/restored-database.tar" \
   --storage-tar "$temporary/restored-storage.tar" \
   >/dev/null
@@ -140,6 +144,8 @@ if [ -n "$config_output" ]; then
 fi
 
 restore_complete=true
-restart_services
+if [ "$leave_stopped" != true ]; then
+  restart_services
+fi
 
 echo "MakersVault database and storage restored as a matched set from: $archive"

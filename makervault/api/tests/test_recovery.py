@@ -14,6 +14,7 @@ from recovery import (
     extract_backup,
     validate_component_tar,
     verify_backup,
+    verify_restored_components,
 )
 
 
@@ -178,6 +179,9 @@ def test_backup_round_trip_verifies_manifest_and_sensitive_config(tmp_path: Path
 
     verified = verify_backup(archive)
     assert verified == manifest
+    restored = verify_restored_components(archive, database_tar, storage_tar)
+    assert restored["matches_backup"] is True
+    assert restored["consistency"]["status"] == "ok"
     extracted = tmp_path / "extracted"
     assert extract_backup(archive, extracted) == manifest
     assert (extracted / "config.env").read_text() == config.read_text()
@@ -255,3 +259,15 @@ def test_extract_refuses_nonempty_target_and_corruption(tmp_path: Path) -> None:
     corrupt.write_bytes(data)
     with pytest.raises(RecoveryError):
         verify_backup(corrupt)
+
+
+def test_restored_verification_detects_changed_file_bytes(tmp_path: Path) -> None:
+    _, storage_dir, database_tar, storage_tar = backup_fixture(tmp_path)
+    archive = tmp_path / "backup.tar.gz"
+    create_backup(database_tar, storage_tar, archive, "v5.1.0", "fixture")
+    (storage_dir / "Fixtures/Managed/managed.stl").write_bytes(b"changed")
+    changed_storage_tar = tmp_path / "changed-storage.tar"
+    tar_directory(storage_dir, changed_storage_tar)
+
+    with pytest.raises(RecoveryError, match="does not match"):
+        verify_restored_components(archive, database_tar, changed_storage_tar)

@@ -15,6 +15,7 @@ import sqlite3
 import stat
 import tarfile
 import tempfile
+import zlib
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import BinaryIO, Iterable, Optional
@@ -60,7 +61,7 @@ def validate_component_tar(path: Path) -> list[dict]:
     seen: set[str] = set()
     try:
         archive = tarfile.open(path, "r:*")
-    except (tarfile.TarError, OSError) as exc:
+    except (tarfile.TarError, OSError, EOFError, zlib.error) as exc:
         raise RecoveryError(f"Backup component is not a readable tar archive: {path.name}") from exc
     try:
         with archive:
@@ -75,8 +76,19 @@ def validate_component_tar(path: Path) -> list[dict]:
                     continue
                 if not member.isfile():
                     raise RecoveryError(f"Backup component contains a non-regular entry: {name}")
-                files.append({"path": name, "size": int(member.size)})
-    except (tarfile.TarError, OSError) as exc:
+                source = archive.extractfile(member)
+                if source is None:
+                    raise RecoveryError(f"Backup component member is unreadable: {name}")
+                digest = hashlib.sha256()
+                with source:
+                    for block in iter(lambda: source.read(1024 * 1024), b""):
+                        digest.update(block)
+                files.append({
+                    "path": name,
+                    "size": int(member.size),
+                    "sha256": digest.hexdigest(),
+                })
+    except (tarfile.TarError, OSError, EOFError, zlib.error) as exc:
         raise RecoveryError(f"Backup component is unreadable: {path.name}") from exc
     files.sort(key=lambda item: item["path"])
     return files
@@ -285,6 +297,7 @@ def _component_metadata(path: Path, members: list[dict]) -> dict:
         "bytes": path.stat().st_size,
         "file_count": len(members),
         "expanded_bytes": sum(int(item["size"]) for item in members),
+        "files": members,
     }
 
 
@@ -385,7 +398,7 @@ def extract_outer_archive(archive_path: Path, destination: Path) -> set[str]:
     seen: set[str] = set()
     try:
         archive = tarfile.open(archive_path, "r:gz")
-    except (tarfile.TarError, OSError) as exc:
+    except (tarfile.TarError, OSError, EOFError, zlib.error) as exc:
         raise RecoveryError("Backup is not a readable gzip tar archive") from exc
     try:
         with archive:
@@ -399,7 +412,7 @@ def extract_outer_archive(archive_path: Path, destination: Path) -> set[str]:
                     raise RecoveryError(f"Backup contains an unknown member: {name}")
                 seen.add(name)
                 extract_regular_member(archive, member, destination)
-    except (tarfile.TarError, OSError) as exc:
+    except (tarfile.TarError, OSError, EOFError, zlib.error) as exc:
         raise RecoveryError("Backup archive is unreadable") from exc
     required = set(COMPONENT_NAMES + METADATA_NAMES)
     if not required.issubset(seen):
@@ -458,6 +471,10 @@ def verify_extracted_backup(directory: Path, seen: set[str]) -> dict:
         raise RecoveryError("Database component file count does not match its manifest")
     if manifest_components["storage.tar"].get("file_count") != len(storage_members):
         raise RecoveryError("Storage component file count does not match its manifest")
+    if manifest_components["database.tar"].get("files") != database_members:
+        raise RecoveryError("Database file inventory does not match its manifest")
+    if manifest_components["storage.tar"].get("files") != storage_members:
+        raise RecoveryError("Storage file inventory does not match its manifest")
     return manifest
 
 
@@ -519,6 +536,24 @@ def audit_component_tars(database_tar: Path, storage_tar: Path) -> dict:
     return {"database": summary, "consistency": audit}
 
 
+def verify_restored_components(
+    archive_path: Path,
+    database_tar: Path,
+    storage_tar: Path,
+) -> dict:
+    """Prove a live post-restore snapshot matches every archived file byte."""
+    manifest = verify_backup(archive_path)
+    live_members = {
+        "database.tar": validate_component_tar(database_tar),
+        "storage.tar": validate_component_tar(storage_tar),
+    }
+    for name, members in live_members.items():
+        if manifest["components"][name].get("files") != members:
+            raise RecoveryError(f"Restored {name} content does not match the backup")
+    result = audit_component_tars(database_tar, storage_tar)
+    return {"matches_backup": True, **result}
+
+
 def print_json(value: dict) -> None:
     print(json.dumps(value, indent=2, sort_keys=True))
 
@@ -552,6 +587,11 @@ def build_parser() -> argparse.ArgumentParser:
     audit_components = subparsers.add_parser("audit-components")
     audit_components.add_argument("--database-tar", type=Path, required=True)
     audit_components.add_argument("--storage-tar", type=Path, required=True)
+
+    verify_restored = subparsers.add_parser("verify-restored")
+    verify_restored.add_argument("--archive", type=Path, required=True)
+    verify_restored.add_argument("--database-tar", type=Path, required=True)
+    verify_restored.add_argument("--storage-tar", type=Path, required=True)
     return parser
 
 
@@ -579,10 +619,16 @@ def main() -> int:
                 args.external_container_root,
                 args.external_host_root,
             )
-        else:
+        elif args.command == "audit-components":
             result = audit_component_tars(args.database_tar, args.storage_tar)
+        else:
+            result = verify_restored_components(
+                args.archive,
+                args.database_tar,
+                args.storage_tar,
+            )
         print_json(result)
-        if args.command in {"audit", "audit-components"} and (
+        if args.command in {"audit", "audit-components", "verify-restored"} and (
             result["database"]["quick_check"] != ["ok"]
             or result["consistency"]["status"] != "ok"
         ):
