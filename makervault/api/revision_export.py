@@ -13,6 +13,7 @@ from file_utils import sanitize_filename
 from models import ArtifactRevision, Asset, AssetFile
 from resource_limits import ensure_storage_reserve
 from revision_workflow import resolve_revision_content_path
+from trash_service import require_active_asset
 
 
 def _archive_name(prefix: str, record_id: str, filename: str) -> str:
@@ -30,9 +31,7 @@ def _json_or_none(raw: str | None):
 
 def build_history_export(asset_id: str) -> tuple[Path, str]:
     with Session(engine) as session:
-        asset = session.get(Asset, asset_id)
-        if not asset:
-            raise HTTPException(404)
+        asset = require_active_asset(session, asset_id)
         revisions = list(session.exec(
             select(ArtifactRevision)
             .where(ArtifactRevision.asset_id == asset_id)

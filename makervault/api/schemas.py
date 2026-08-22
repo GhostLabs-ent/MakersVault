@@ -258,6 +258,50 @@ class RevisionRestoreRequest(BaseModel):
   change_note: Optional[str] = Field(default=None, max_length=500)
 
 
+class TrashItemOut(BaseModel):
+  id: str
+  name: str
+  filename: str
+  deleted_at: str
+  original_folder_id: Optional[str] = None
+  original_folder_name: Optional[str] = None
+  managed_bytes: int
+  managed_file_count: int
+  revision_count: int
+  supporting_file_count: int
+  external_source: bool
+
+
+class TrashRestoreRequest(BaseModel):
+  restore_unassigned: bool = False
+
+
+class TrashPermanentDeleteRequest(BaseModel):
+  asset_ids: List[str] = Field(default_factory=list, max_length=1000)
+  confirmation: str = Field(max_length=64)
+
+
+class TrashPurgeItemOut(BaseModel):
+  asset_id: str
+  name: str
+  status: str
+  managed_files: int
+  managed_bytes: int
+  external_source_preserved: bool
+
+
+class TrashRetentionUpdate(BaseModel):
+  policy: Literal["until_needed", "day", "week", "month", "never"]
+
+
+class TrashSettingsOut(BaseModel):
+  policy: Literal["until_needed", "day", "week", "month", "never"]
+  choices: List[str]
+  trash_count: int
+  managed_bytes: int
+  orphaned_quarantine: List[str]
+
+
 class ContentHashFailureOut(BaseModel):
   revision_id: str
   reason: str

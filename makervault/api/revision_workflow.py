@@ -24,6 +24,7 @@ from prepared_print import inspect_prepared_print
 from preview_policy import automatic_preview_disposition
 from resource_limits import stream_reader_to_file, stream_upload_to_file
 from revision_service import current_revision, revision_timestamp
+from trash_service import require_active_asset
 
 
 revision_mutation_lock = threading.Lock()
@@ -231,9 +232,7 @@ def _finalize_staged_revision(
             shutil.copy2(source, prepared_copy)
 
         with Session(engine) as session:
-            asset = session.get(Asset, asset_id)
-            if not asset:
-                raise HTTPException(404)
+            asset = require_active_asset(session, asset_id)
             old_current = _current_revision_or_conflict(session, asset)
             if old_current.id != expected_current_id:
                 raise HTTPException(status_code=409, detail="Current revision changed; retry replacement")
@@ -301,9 +300,7 @@ async def create_revision_from_upload(
     expected_current_revision_id: Optional[str] = None,
 ) -> RevisionMutationResult:
     with Session(engine) as session:
-        asset = session.get(Asset, asset_id)
-        if not asset:
-            raise HTTPException(404)
+        asset = require_active_asset(session, asset_id)
         current = _current_revision_or_conflict(session, asset)
         if expected_current_revision_id and current.id != expected_current_revision_id:
             raise HTTPException(status_code=409, detail="Current revision changed; refresh and retry")
@@ -370,9 +367,9 @@ def restore_revision(
 ) -> RevisionMutationResult:
     with revision_mutation_lock:
         with Session(engine) as session:
-            asset = session.get(Asset, asset_id)
+            asset = require_active_asset(session, asset_id)
             target = session.get(ArtifactRevision, revision_id)
-            if not asset or not target or target.asset_id != asset_id:
+            if not target or target.asset_id != asset_id:
                 raise HTTPException(404)
             current = _current_revision_or_conflict(session, asset)
             expected_current_id = current.id

@@ -128,7 +128,7 @@ def filename_for_model_name(name: str, current_filename: str) -> str:
 
 def unique_model_name(session: Session, requested: str, folder_id: Optional[str], exclude_id: Optional[str] = None) -> str:
     base = sanitize_path_segment(requested, "Model")
-    stmt = select(Asset).where(Asset.folder_id == folder_id)
+    stmt = select(Asset).where(Asset.folder_id == folder_id, Asset.deleted_at == None)  # noqa: E711
     existing = {
         (row.name or model_name_from_filename(row.filename)).casefold()
         for row in session.exec(stmt)
@@ -141,7 +141,7 @@ def unique_model_name(session: Session, requested: str, folder_id: Optional[str]
 
 def available_model_name(session: Session, requested: str, folder_id: Optional[str], exclude_id: Optional[str] = None) -> str:
     base = sanitize_path_segment(requested, "Model")
-    stmt = select(Asset).where(Asset.folder_id == folder_id)
+    stmt = select(Asset).where(Asset.folder_id == folder_id, Asset.deleted_at == None)  # noqa: E711
     existing = {
         (row.name or model_name_from_filename(row.filename)).casefold()
         for row in session.exec(stmt)
@@ -158,6 +158,28 @@ def available_model_name(session: Session, requested: str, folder_id: Optional[s
 def managed_asset_path(asset: Asset) -> Path:
     relative = asset.storage_path or f"{asset.id}/{asset.filename}"
     return STORAGE / relative
+
+
+def available_storage_path(
+    relative: str,
+    session: Session,
+    asset_id: str,
+) -> str:
+    path = Path(relative)
+    candidate = path
+    suffix = 1
+    while True:
+        owner = session.exec(
+            select(Asset).where(
+                Asset.storage_path == candidate.as_posix(),
+                Asset.id != asset_id,
+            )
+        ).first()
+        if not owner and not (STORAGE / candidate).exists():
+            return candidate.as_posix()
+        label = asset_id[:8] if suffix == 1 else f"{asset_id[:8]}-{suffix}"
+        candidate = path.with_name(f"{path.stem}-{label}{path.suffix}")
+        suffix += 1
 
 
 def prune_empty_storage_dirs(start: Path) -> None:
@@ -201,7 +223,9 @@ def reorganize_managed_assets(template: Optional[str] = None) -> tuple[int, int]
     moved = 0
     skipped = 0
     with Session(engine) as session:
-        assets = list(session.exec(select(Asset).order_by(Asset.id)))
+        assets = list(session.exec(
+            select(Asset).where(Asset.deleted_at == None).order_by(Asset.id)  # noqa: E711
+        ))
         for asset in assets:
             old_path = managed_asset_path(asset)
             if not old_path.exists() and asset.source_path:
@@ -389,7 +413,7 @@ def inspect_asset_prepared_print(asset: Asset, src: Optional[Path] = None) -> Op
 
 def backfill_embedded_thumbnails() -> None:
     with Session(engine) as session:
-        assets = list(session.exec(select(Asset)))
+        assets = list(session.exec(select(Asset).where(Asset.deleted_at == None)))  # noqa: E711
     for asset in assets:
         thumb = THUMBS / f"{asset.id}.jpg"
         if not thumb.exists() and (asset.filename or "").lower().endswith(".3mf"):
@@ -399,7 +423,7 @@ def backfill_embedded_thumbnails() -> None:
             ensure_model_thumbnail(asset.id, src)
         with Session(engine) as session:
             current = session.get(Asset, asset.id)
-            if current:
+            if current and not current.deleted_at:
                 should_refresh = (
                     thumb.exists()
                     or not current.preview_updated_at
@@ -434,7 +458,9 @@ def create_asset_record(
             folder_id=folder_id,
             source_path=source_path,
         )
-        asset.storage_path = render_storage_path(asset, s)
+        asset.storage_path = available_storage_path(
+            render_storage_path(asset, s), s, asset.id
+        )
         revision = initial_revision_for_asset(asset)
         asset.current_revision_id = revision.id
         s.add(asset)

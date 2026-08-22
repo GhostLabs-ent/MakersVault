@@ -377,6 +377,50 @@ def _migration_007_immutable_revision_workflows(conn: Connection) -> None:
     )
 
 
+def _migration_008_recoverable_trash(conn: Connection) -> None:
+    _add_column(conn, "asset", "deleted_at", "TEXT")
+    _add_column(conn, "asset", "trash_original_folder_id", "TEXT")
+    _add_column(conn, "asset", "trash_original_folder_name", "TEXT")
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_asset_deleted_at ON asset(deleted_at)"
+    )
+    conn.exec_driver_sql("DROP INDEX IF EXISTS idx_asset_folder_name_unique")
+    conn.exec_driver_sql(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_asset_folder_name_unique "
+        "ON asset(COALESCE(folder_id, ''), LOWER(name)) WHERE deleted_at IS NULL"
+    )
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS trashpurgeoperation (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            trigger VARCHAR NOT NULL,
+            status VARCHAR NOT NULL,
+            created_at VARCHAR NOT NULL,
+            completed_at VARCHAR,
+            asset_ids_json VARCHAR NOT NULL DEFAULT '[]',
+            paths_json VARCHAR NOT NULL DEFAULT '[]',
+            results_json VARCHAR NOT NULL DEFAULT '[]',
+            quarantine_path VARCHAR,
+            requested_bytes INTEGER NOT NULL DEFAULT 0,
+            managed_bytes INTEGER NOT NULL DEFAULT 0,
+            error VARCHAR
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_trashpurgeoperation_trigger "
+        "ON trashpurgeoperation(trigger)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_trashpurgeoperation_status "
+        "ON trashpurgeoperation(status)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_trashpurgeoperation_created_at "
+        "ON trashpurgeoperation(created_at)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
@@ -385,6 +429,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(5, "persistent_mount_scan_records", _migration_005_mount_scan_records),
     Migration(6, "artifact_revisions_and_content_identity", _migration_006_artifact_revisions_and_content_identity),
     Migration(7, "immutable_revision_workflows", _migration_007_immutable_revision_workflows),
+    Migration(8, "recoverable_trash", _migration_008_recoverable_trash),
 )
 
 

@@ -8,7 +8,10 @@ from models import AppConfig
 MOUNT_IMPORT_ENABLED_KEY = "mount_import_enabled"
 MOUNT_IMPORT_COPY_KEY = "mount_import_copy"
 STORAGE_TEMPLATE_KEY = "storage_path_template"
+TRASH_RETENTION_KEY = "trash_retention"
 DEFAULT_STORAGE_TEMPLATE = "{folder}/{model}/{filename}"
+DEFAULT_TRASH_RETENTION = "until_needed"
+TRASH_RETENTION_CHOICES = {"until_needed", "day", "week", "month", "never"}
 
 
 def get_setting(key: str) -> Optional[str]:
@@ -61,3 +64,14 @@ def get_storage_template() -> str:
 
 def set_storage_template(value: str) -> None:
     set_setting(STORAGE_TEMPLATE_KEY, value)
+
+
+def get_trash_retention() -> str:
+    value = get_setting(TRASH_RETENTION_KEY) or DEFAULT_TRASH_RETENTION
+    return value if value in TRASH_RETENTION_CHOICES else DEFAULT_TRASH_RETENTION
+
+
+def set_trash_retention(value: str) -> None:
+    if value not in TRASH_RETENTION_CHOICES:
+        raise ValueError("Invalid Trash retention policy")
+    set_setting(TRASH_RETENTION_KEY, value)

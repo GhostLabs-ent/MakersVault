@@ -28,7 +28,8 @@ type Props = {
   foldersVersion?: number;
   onUnauthorized?: () => void;
   onOpenSettings?: () => void;
-  activeView?: "library" | "settings";
+  onOpenTrash?: () => void;
+  activeView?: "library" | "settings" | "trash";
   onAssetsChanged?: () => void;
 };
 
@@ -41,6 +42,7 @@ export default function Sidebar({
   foldersVersion,
   onUnauthorized,
   onOpenSettings,
+  onOpenTrash,
   activeView = "library",
   onAssetsChanged,
 }: Props) {
@@ -627,6 +629,15 @@ export default function Sidebar({
       )}
 
       <div className="sidebar-footer">
+        <button
+          type="button"
+          onClick={onOpenTrash}
+          className={`sidebar-settings ${activeView === "trash" ? "is-selected" : ""}`}
+          aria-label="Trash"
+        >
+          <Trash2 className="h-4 w-4" />
+          <span>Trash</span>
+        </button>
         <button
           type="button"
           onClick={onOpenSettings}

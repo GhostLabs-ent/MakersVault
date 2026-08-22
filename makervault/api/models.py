@@ -35,6 +35,9 @@ class Asset(SQLModel, table=True):
   preview_source: Optional[str] = None
   current_revision_id: Optional[str] = Field(default=None, index=True)
   current_thumb_path: Optional[str] = None
+  deleted_at: Optional[str] = Field(default=None, index=True)
+  trash_original_folder_id: Optional[str] = None
+  trash_original_folder_name: Optional[str] = None
 
 
 class ArtifactRevision(SQLModel, table=True):
@@ -118,3 +121,18 @@ class ContentHashJobItem(SQLModel, table=True):
   revision_id: str = Field(foreign_key="artifactrevision.id", primary_key=True)
   status: str = Field(default="pending", index=True)
   reason: Optional[str] = None
+
+
+class TrashPurgeOperation(SQLModel, table=True):
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  trigger: str = Field(index=True)
+  status: str = Field(index=True)
+  created_at: str
+  completed_at: Optional[str] = None
+  asset_ids_json: str = Field(default="[]")
+  paths_json: str = Field(default="[]")
+  results_json: str = Field(default="[]")
+  quarantine_path: Optional[str] = None
+  requested_bytes: int = Field(default=0)
+  managed_bytes: int = Field(default=0)
+  error: Optional[str] = None

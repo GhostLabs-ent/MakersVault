@@ -305,6 +305,16 @@ def test_delete_removes_all_managed_revision_files() -> None:
         assert all(path.is_file() for path in paths)
         deleted = client.delete(f"/asset/{asset['id']}", headers=headers)
         assert deleted.status_code == 200
+        assert all(path.exists() for path in paths)
+        purged = client.post(
+            "/trash/permanent",
+            headers=headers,
+            json={
+                "asset_ids": [asset["id"]],
+                "confirmation": "PERMANENTLY DELETE",
+            },
+        )
+        assert purged.status_code == 200
         assert all(not path.exists() for path in paths)
 
 

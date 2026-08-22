@@ -11,6 +11,7 @@ from models import Asset, AssetFile
 from prepared_print import inspect_prepared_print, is_prepared_print_filename
 from resource_limits import stream_upload_to_file
 from revision_service import sync_current_revision
+from trash_service import require_active_asset
 
 
 def managed_asset_file_path(asset_file: AssetFile) -> Path:
@@ -40,9 +41,7 @@ async def save_asset_file(
     mime = mime_from_content_type(upload.content_type or "", safe_name)
 
     with Session(engine) as session:
-        asset = session.get(Asset, asset_id)
-        if not asset:
-            raise HTTPException(404)
+        asset = require_active_asset(session, asset_id)
         if revision_id:
             from models import ArtifactRevision
 
@@ -72,8 +71,8 @@ async def save_asset_file(
         old_prepared_path: Optional[Path] = None
         with Session(engine) as session:
             db_record = session.get(AssetFile, record.id)
-            asset = session.get(Asset, asset_id)
-            if not db_record or not asset:
+            asset = require_active_asset(session, asset_id)
+            if not db_record:
                 raise HTTPException(404)
             db_record.size = size
             db_record.role = role
@@ -116,9 +115,9 @@ async def save_asset_file(
 def delete_supporting_file(asset_id: str, file_id: str) -> Asset:
     path: Optional[Path] = None
     with Session(engine) as session:
-        asset = session.get(Asset, asset_id)
+        asset = require_active_asset(session, asset_id)
         record = session.get(AssetFile, file_id)
-        if not asset or not record or record.asset_id != asset_id or record.role != "supporting":
+        if not record or record.asset_id != asset_id or record.role != "supporting":
             raise HTTPException(404)
         path = managed_asset_file_path(record)
         asset.supporting_file_count = max(0, int(asset.supporting_file_count or 0) - 1)
@@ -153,8 +152,8 @@ def delete_all_asset_files(asset_id: str) -> None:
 def delete_prepared_file(asset_id: str) -> Asset:
     path: Optional[Path] = None
     with Session(engine) as session:
-        asset = session.get(Asset, asset_id)
-        if not asset or not asset.prepared_file_id:
+        asset = require_active_asset(session, asset_id)
+        if not asset.prepared_file_id:
             raise HTTPException(404)
         record = session.get(AssetFile, asset.prepared_file_id)
         if not record or record.asset_id != asset_id or record.role != "prepared":
@@ -193,7 +192,11 @@ def _prune_bundle_dirs(start: Path) -> None:
 def backfill_prepared_print_metadata() -> None:
     with Session(engine) as session:
         assets = list(session.exec(
-            select(Asset).where(Asset.filename.like("%.3mf"), Asset.prepared_metadata_json == None)  # noqa: E711
+            select(Asset).where(
+                Asset.deleted_at == None,  # noqa: E711
+                Asset.filename.like("%.3mf"),
+                Asset.prepared_metadata_json == None,  # noqa: E711
+            )
         ))
     for asset in assets:
         from asset_service import managed_asset_path

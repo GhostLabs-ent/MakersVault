@@ -22,6 +22,20 @@ def ensure_storage_reserve(destination: Path, incoming_bytes: int = 0) -> None:
         return
     usage = shutil.disk_usage(_existing_parent(destination))
     if usage.free - max(0, incoming_bytes) < STORAGE_RESERVE_BYTES:
+        try:
+            from trash_service import reclaim_for_capacity
+
+            reclaim_for_capacity(
+                _existing_parent(destination),
+                max(0, incoming_bytes),
+                STORAGE_RESERVE_BYTES,
+            )
+        except Exception:
+            # Capacity cleanup is opportunistic. A cleanup/database failure must
+            # preserve the original safe write failure rather than admit the write.
+            pass
+        usage = shutil.disk_usage(_existing_parent(destination))
+    if usage.free - max(0, incoming_bytes) < STORAGE_RESERVE_BYTES:
         raise HTTPException(
             status_code=507,
             detail="Storage free-space reserve would be exhausted",
@@ -42,7 +56,7 @@ async def stream_upload_to_file(
 ) -> int:
     reject_declared_size(getattr(upload, "size", None), label, max_bytes)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    ensure_storage_reserve(destination)
+    ensure_storage_reserve(destination, getattr(upload, "size", None) or 0)
     size = 0
     try:
         with destination.open("wb") as output:

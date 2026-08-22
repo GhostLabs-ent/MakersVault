@@ -7,17 +7,22 @@ import {
   getMountImportScan,
   getMountImportSettings,
   getStorageSettings,
+  getTrashSettings,
   rescanMountImport,
   startContentIdentityBackfill,
   updateMountImportSettings,
   updateStorageSettings,
+  updateTrashSettings,
   type MountScan,
   type ContentHashJob,
+  type TrashRetentionPolicy,
+  type TrashSettings,
 } from "../lib/api";
 import { entriesFromFileList, uploadEntriesToFolder, type UploadEntry } from "../lib/uploadTree";
 import { mountOwnership, mountScanStatusLabel } from "../lib/mountImport";
 
 type Props = {
+  initialSection?: "root" | "trash";
   settings: AppSettings;
   onChange: (next: AppSettings) => void;
   onAssetsChanged?: () => void;
@@ -26,7 +31,7 @@ type Props = {
   onSelectFolder?: (id: string | null) => void;
 };
 
-type Section = "root" | "slicer" | "engraving" | "theme" | "network" | "previews" | "storage" | "imports" | "content";
+type Section = "root" | "slicer" | "engraving" | "theme" | "network" | "previews" | "storage" | "imports" | "content" | "trash";
 
 const THEME_SWATCHES: Record<ThemeId, string> = {
   system: "linear-gradient(135deg, #f8fafc 0%, #f8fafc 50%, #0b0f19 50%, #0b0f19 100%)",
@@ -121,6 +126,7 @@ function entryKey(entry: UploadEntry) {
 }
 
 export default function Settings({
+  initialSection = "root",
   settings,
   onChange,
   onAssetsChanged,
@@ -128,7 +134,10 @@ export default function Settings({
   onUnauthorized,
   onSelectFolder,
 }: Props) {
-  const [section, setSection] = React.useState<Section>("root");
+  const [section, setSection] = React.useState<Section>(initialSection);
+  React.useEffect(() => {
+    setSection(initialSection);
+  }, [initialSection]);
   const [makerworldDraft, setMakerworldDraft] = React.useState(settings.makerworld.cookie);
   const [thingiverseDraft, setThingiverseDraft] = React.useState(settings.thingiverse.cookie);
   const [makerworldEditing, setMakerworldEditing] = React.useState(!settings.makerworld.cookie);
@@ -155,6 +164,11 @@ export default function Settings({
   const [contentLoading, setContentLoading] = React.useState(false);
   const [contentStarting, setContentStarting] = React.useState(false);
   const [contentMessage, setContentMessage] = React.useState<string | null>(null);
+  const [trashSettings, setTrashSettings] = React.useState<TrashSettings | null>(null);
+  const [trashPolicy, setTrashPolicy] = React.useState<TrashRetentionPolicy>("until_needed");
+  const [trashLoading, setTrashLoading] = React.useState(false);
+  const [trashSaving, setTrashSaving] = React.useState(false);
+  const [trashMessage, setTrashMessage] = React.useState<string | null>(null);
   const [scanRawEntries, setScanRawEntries] = React.useState<UploadEntry[]>([]);
   const [scanEntries, setScanEntries] = React.useState<UploadEntry[]>([]);
   const [scanRoot, setScanRoot] = React.useState("");
@@ -431,6 +445,26 @@ export default function Settings({
     return () => {
       active = false;
     };
+  }, [section, onUnauthorized]);
+
+  React.useEffect(() => {
+    if (section !== "trash") return;
+    let active = true;
+    setTrashLoading(true);
+    setTrashMessage(null);
+    void getTrashSettings()
+      .then(data => {
+        if (!active) return;
+        setTrashSettings(data);
+        setTrashPolicy(data.policy);
+      })
+      .catch(err => {
+        if (!active) return;
+        if (err instanceof UnauthorizedError) onUnauthorized?.();
+        else setTrashMessage("Failed to load Trash settings.");
+      })
+      .finally(() => { if (active) setTrashLoading(false); });
+    return () => { active = false; };
   }, [section, onUnauthorized]);
 
   React.useEffect(() => {
@@ -1011,6 +1045,93 @@ export default function Settings({
     );
   }
 
+  if (section === "trash") {
+    const labels: Record<TrashRetentionPolicy, string> = {
+      until_needed: "Until space is needed",
+      day: "1 day",
+      week: "1 week",
+      month: "1 month",
+      never: "Never",
+    };
+    const descriptions: Record<TrashRetentionPolicy, string> = {
+      until_needed: "Keep deleted models until a managed write needs their space, then remove the oldest complete models first.",
+      day: "Permanently delete models after they have been in Trash for one day.",
+      week: "Permanently delete models after one week.",
+      month: "Permanently delete models after one month.",
+      never: "Never delete automatically. New writes fail safely when the storage reserve cannot be maintained.",
+    };
+    const saveTrashPolicy = async () => {
+      setTrashSaving(true);
+      setTrashMessage(null);
+      try {
+        const data = await updateTrashSettings(trashPolicy);
+        setTrashSettings(data);
+        setTrashPolicy(data.policy);
+        setTrashMessage("Trash retention saved.");
+        onAssetsChanged?.();
+      } catch (err) {
+        if (err instanceof UnauthorizedError) onUnauthorized?.();
+        else setTrashMessage(err instanceof Error ? err.message : "Failed to save Trash settings.");
+      } finally {
+        setTrashSaving(false);
+      }
+    };
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <button className="text-sm px-3 py-2 rounded-md border border-panel-strong" onClick={() => setSection("root")}>Back</button>
+          <div>
+            <div className="text-lg font-semibold">Trash retention</div>
+            <p className="text-sm opacity-70">Choose how long deleted models and all their versions remain recoverable.</p>
+          </div>
+        </div>
+        <div className="rounded-lg border border-panel bg-panel-soft p-4 flex flex-col gap-3">
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted">Automatically permanently delete</span>
+            <select
+              value={trashPolicy}
+              onChange={event => setTrashPolicy(event.target.value as TrashRetentionPolicy)}
+              disabled={trashLoading || trashSaving}
+              className="rounded-md border border-panel-strong bg-panel-soft px-3 py-2 text-sm"
+            >
+              {(trashSettings?.choices || ["until_needed", "day", "week", "month", "never"]).map(policy => (
+                <option key={policy} value={policy}>{labels[policy]}</option>
+              ))}
+            </select>
+          </label>
+          <div className="rounded-md border border-panel-strong bg-panel px-3 py-2 text-sm">
+            {descriptions[trashPolicy]}
+          </div>
+          {trashSettings && (
+            <p className="text-xs opacity-70">
+              {trashSettings.trash_count} model(s) currently in Trash · {(trashSettings.managed_bytes / (1024 * 1024)).toFixed(1)} MB managed
+            </p>
+          )}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="text-sm px-3 py-2 rounded-md bg-accent hover:bg-accent-strong disabled:opacity-60"
+              disabled={trashLoading || trashSaving || trashPolicy === trashSettings?.policy}
+              onClick={saveTrashPolicy}
+            >
+              {trashSaving ? "Saving..." : "Save retention"}
+            </button>
+            {trashLoading && <span className="text-xs opacity-70">Loading...</span>}
+          </div>
+          <p className="text-xs opacity-70">
+            Permanent delete and Empty Trash always require explicit confirmation. MakersVault never deletes external no-copy source files.
+          </p>
+          {trashSettings?.orphaned_quarantine.length ? (
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              Diagnostics found {trashSettings.orphaned_quarantine.length} unknown quarantine director{trashSettings.orphaned_quarantine.length === 1 ? "y" : "ies"}; no unknown files were deleted.
+            </p>
+          ) : null}
+          {trashMessage && <p className="text-xs opacity-80" aria-live="polite">{trashMessage}</p>}
+        </div>
+      </div>
+    );
+  }
+
   if (section === "previews") {
     const options: Array<{ id: PreviewMode; label: string; description: string }> = [
       {
@@ -1500,6 +1621,14 @@ export default function Settings({
           <div className="text-xs uppercase tracking-wide text-muted">Integrity</div>
           <div className="text-lg font-semibold">Content Identity</div>
           <div className="text-sm opacity-70">Verify files, resume large-library hashing, and find exact duplicates safely.</div>
+        </button>
+        <button
+          className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
+          onClick={() => setSection("trash")}
+        >
+          <div className="text-xs uppercase tracking-wide text-muted">Recovery</div>
+          <div className="text-lg font-semibold">Trash Retention</div>
+          <div className="text-sm opacity-70">Keep deleted models until space is needed, for a fixed time, or forever.</div>
         </button>
         <button
           className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"

@@ -4,6 +4,7 @@ import AssetGrid from "./AssetGrid";
 import Sidebar from "./Sidebar";
 import Login from "./Login";
 import Settings from "./Settings";
+import TrashView from "./TrashView";
 import { apiHealth, getApiBase, refreshToken, type HealthInfo } from "../lib/api";
 import { clearToken, readToken, storeToken } from "../lib/auth";
 import { type AppSettings, type ResolvedTheme, loadSettings, resolveTheme, saveSettings } from "../lib/settings";
@@ -32,7 +33,8 @@ export default function App() {
   const [health, setHealth] = React.useState<HealthInfo | null>(null);
   const [tokenTtl, setTokenTtl] = React.useState<number | null>(null);
   const [sessionExpired, setSessionExpired] = React.useState(false);
-  const [activeView, setActiveView] = React.useState<"library" | "settings">("library");
+  const [activeView, setActiveView] = React.useState<"library" | "settings" | "trash">("library");
+  const [settingsSection, setSettingsSection] = React.useState<"root" | "trash">("root");
   const [settings, setSettings] = React.useState<AppSettings>(() => loadSettings());
   const resolvedTheme = React.useMemo(
     () => resolveTheme(settings.theme.selected),
@@ -140,7 +142,8 @@ export default function App() {
         foldersVersion={folderVersion}
         onAssetsChanged={handleAssetsChanged}
         onUnauthorized={handleUnauthorized}
-        onOpenSettings={() => setActiveView("settings")}
+        onOpenSettings={() => { setSettingsSection("root"); setActiveView("settings"); }}
+        onOpenTrash={() => setActiveView("trash")}
         activeView={activeView}
       />
       <main className="flex-1 p-4 overflow-auto">
@@ -207,8 +210,15 @@ export default function App() {
             previewSettings={settings.previews}
             theme={resolvedTheme}
           />
+        ) : activeView === "trash" ? (
+          <TrashView
+            onAssetsChanged={handleAssetsChanged}
+            onUnauthorized={handleUnauthorized}
+            onOpenSettings={() => { setSettingsSection("trash"); setActiveView("settings"); }}
+          />
         ) : (
           <Settings
+            initialSection={settingsSection}
             settings={settings}
             onChange={setSettings}
             onAssetsChanged={handleAssetsChanged}

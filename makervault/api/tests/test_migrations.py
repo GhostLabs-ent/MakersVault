@@ -81,6 +81,7 @@ def test_fresh_database_reaches_current_schema(tmp_path: Path) -> None:
         "artifactrevision",
         "contenthashjob",
         "contenthashjobitem",
+        "trashpurgeoperation",
         "appconfig",
         "mountscan",
         "schema_migration",
@@ -112,6 +113,9 @@ def test_pre_v5_1_fixture_migrates_and_is_idempotent(tmp_path: Path) -> None:
         "preview_source",
         "current_revision_id",
         "current_thumb_path",
+        "deleted_at",
+        "trash_original_folder_id",
+        "trash_original_folder_name",
     }.issubset(table_columns(database_engine, "asset"))
     assert "parent_id" in table_columns(database_engine, "folder")
     assert {
@@ -140,6 +144,17 @@ def test_pre_v5_1_fixture_migrates_and_is_idempotent(tmp_path: Path) -> None:
         "preview_thumb_path",
     }.issubset(table_columns(database_engine, "artifactrevision"))
     assert "revision_id" in table_columns(database_engine, "assetfile")
+    assert {
+        "trigger",
+        "status",
+        "asset_ids_json",
+        "paths_json",
+        "results_json",
+        "quarantine_path",
+        "requested_bytes",
+        "managed_bytes",
+        "error",
+    }.issubset(table_columns(database_engine, "trashpurgeoperation"))
 
     with database_engine.connect() as conn:
         assets = conn.exec_driver_sql(
@@ -176,6 +191,14 @@ def test_pre_v5_1_fixture_migrates_and_is_idempotent(tmp_path: Path) -> None:
     assert thumb_paths == [
         ("asset-1", "thumbs/asset-1.jpg"),
         ("asset-2", "thumbs/asset-2.jpg"),
+    ]
+    with database_engine.connect() as conn:
+        trash_defaults = conn.exec_driver_sql(
+            "SELECT id, deleted_at, trash_original_folder_id FROM asset ORDER BY id"
+        ).fetchall()
+    assert trash_defaults == [
+        ("asset-1", None, None),
+        ("asset-2", None, None),
     ]
 
     with pytest.raises(IntegrityError):

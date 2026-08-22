@@ -60,6 +60,14 @@ def test_new_ingestion_creates_ready_revision_and_duplicate_suggestion() -> None
         finally:
             client.delete(f"/asset/{first['id']}", headers=headers)
             client.delete(f"/asset/{second['id']}", headers=headers)
+            client.post(
+                "/trash/permanent",
+                headers=headers,
+                json={
+                    "asset_ids": [first["id"], second["id"]],
+                    "confirmation": "PERMANENTLY DELETE",
+                },
+            )
 
     with Session(engine) as session:
         remaining = list(

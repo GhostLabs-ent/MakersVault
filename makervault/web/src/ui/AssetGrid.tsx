@@ -721,7 +721,7 @@ export default function AssetGrid({
   };
 
   const removeAsset = async (asset: Asset) => {
-    const confirmLabel = `Permanently delete "${asset.name || asset.filename}" and its primary and supporting files? This cannot be undone.`;
+    const confirmLabel = `Move "${asset.name || asset.filename}" to Trash? You can restore it later.`;
     if (!confirm(confirmLabel)) {
       return;
     }
@@ -730,7 +730,7 @@ export default function AssetGrid({
       await deleteAsset(asset.id);
       setSelectedIds(current => selectionAfterSuccess(current, [asset.id]));
       await refresh();
-      setBulkStatus({ label: "Deleting model", completed: 1, total: 1, failures: [], done: true });
+      setBulkStatus({ label: "Moved model to Trash", completed: 1, total: 1, failures: [], done: true });
     } catch (err) {
       handleApiError(err, err instanceof Error ? err.message : "Delete failed.");
     } finally {
@@ -746,6 +746,28 @@ export default function AssetGrid({
     }
     const selected = itemById[Array.from(selectedIds)[0]];
     if (selected) void removeAsset(selected);
+  };
+
+  const trashSelected = async () => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length || !window.confirm(`Move ${ids.length} selected models to Trash? You can restore them later.`)) return;
+    setBulkStatus({ label: "Moving models to Trash", completed: 0, total: ids.length, failures: [], done: false });
+    const failures: { id: string; name: string; reason: string }[] = [];
+    let completed = 0;
+    for (const id of ids) {
+      const asset = itemById[id];
+      try {
+        await deleteAsset(id);
+      } catch (err) {
+        failures.push({ id, name: asset?.name || asset?.filename || id, reason: err instanceof Error ? err.message : "Trash failed" });
+      }
+      completed += 1;
+      setBulkStatus({ label: "Moving models to Trash", completed, total: ids.length, failures: [...failures], done: false });
+    }
+    setSelectedIds(current => selectionAfterSuccess(current, ids.filter(id => !failures.some(failure => failure.id === id))));
+    setBulkStatus({ label: "Moving models to Trash", completed, total: ids.length, failures, done: true });
+    setBulkPanel(null);
+    await refresh();
   };
 
   const bulkBusy = Boolean(bulkStatus && !bulkStatus.done);
@@ -988,9 +1010,15 @@ export default function AssetGrid({
           )}
 
           {bulkPanel === "delete" && selectedIds.size > 1 && (
-            <div className="mt-3 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-900 dark:bg-red-950/30 dark:text-red-100">
-              <div className="font-semibold">Permanent bulk delete is unavailable.</div>
-              <p className="mt-1">Trash and restore support must exist before MakersVault can safely delete multiple models. Delete models individually for now.</p>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-panel bg-panel-soft p-3 text-sm">
+              <div>
+                <div className="font-semibold">Move {selectedIds.size} models to Trash?</div>
+                <p className="mt-1 text-xs text-muted">Every version and supporting file remains recoverable.</p>
+              </div>
+              <div className="flex gap-2">
+                <button type="button" className="rounded-md bg-accent px-3 py-2 text-sm font-medium" onClick={trashSelected}>Move to Trash</button>
+                <button type="button" className="rounded-md border border-panel-strong px-3 py-2 text-sm" onClick={() => setBulkPanel(null)}>Cancel</button>
+              </div>
             </div>
           )}
 

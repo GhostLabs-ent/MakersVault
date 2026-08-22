@@ -110,6 +110,49 @@ export type RevisionMutation = {
   created: boolean;
 };
 
+export type TrashItem = {
+  id: string;
+  name: string;
+  filename: string;
+  deleted_at: string;
+  original_folder_id?: string | null;
+  original_folder_name?: string | null;
+  managed_bytes: number;
+  managed_file_count: number;
+  revision_count: number;
+  supporting_file_count: number;
+  external_source: boolean;
+};
+
+export type TrashRetentionPolicy = "until_needed" | "day" | "week" | "month" | "never";
+
+export type TrashSettings = {
+  policy: TrashRetentionPolicy;
+  choices: TrashRetentionPolicy[];
+  trash_count: number;
+  managed_bytes: number;
+  orphaned_quarantine: string[];
+};
+
+export type TrashPurgeItem = {
+  asset_id: string;
+  name: string;
+  status: string;
+  managed_files: number;
+  managed_bytes: number;
+  external_source_preserved: boolean;
+};
+
+export class TrashConflictError extends Error {
+  code: string;
+
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = "TrashConflictError";
+    this.code = code;
+  }
+}
+
 export type ImportInspectInfo = {
   filename: string;
   mime: string;
@@ -636,6 +679,75 @@ export async function updateAssetMeta(id: string, payload: {
 export async function deleteAsset(id: string) {
   const res = await fetch(`${apiBase()}/asset/${id}`, { method: "DELETE", headers: authHeaders() });
   assertOk(res, "Delete asset failed");
+  return res.json();
+}
+
+export async function listTrash(): Promise<TrashItem[]> {
+  const res = await fetch(`${apiBase()}/trash`, { headers: authHeaders() });
+  assertOk(res, "Failed to load Trash");
+  return res.json();
+}
+
+export async function restoreTrashAsset(
+  id: string,
+  restoreUnassigned = false,
+): Promise<Asset> {
+  const res = await fetch(`${apiBase()}/trash/${id}/restore`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ restore_unassigned: restoreUnassigned }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (res.status === 409) {
+    const payload = await res.json().catch(() => null);
+    const detail = payload?.detail;
+    if (detail && typeof detail === "object") {
+      throw new TrashConflictError(detail.code || "conflict", detail.message || "Restore conflict");
+    }
+  }
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to restore model"));
+  return res.json();
+}
+
+export async function permanentlyDeleteTrash(
+  assetIds: string[],
+  confirmation: string,
+): Promise<TrashPurgeItem[]> {
+  const res = await fetch(`${apiBase()}/trash/permanent`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ asset_ids: assetIds, confirmation }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Permanent deletion failed"));
+  return res.json();
+}
+
+export async function emptyTrash(confirmation: string): Promise<TrashPurgeItem[]> {
+  const res = await fetch(`${apiBase()}/trash/empty`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ asset_ids: [], confirmation }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Empty Trash failed"));
+  return res.json();
+}
+
+export async function getTrashSettings(): Promise<TrashSettings> {
+  const res = await fetch(`${apiBase()}/settings/trash`, { headers: authHeaders() });
+  assertOk(res, "Failed to load Trash settings");
+  return res.json();
+}
+
+export async function updateTrashSettings(policy: TrashRetentionPolicy): Promise<TrashSettings> {
+  const res = await fetch(`${apiBase()}/settings/trash`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ policy }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to update Trash settings"));
   return res.json();
 }
 

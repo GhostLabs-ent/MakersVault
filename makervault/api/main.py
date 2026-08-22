@@ -114,6 +114,21 @@ from settings_service import (
     set_mount_import_copy,
     set_mount_import_enabled,
     set_storage_template,
+    get_trash_retention,
+    set_trash_retention,
+    TRASH_RETENTION_CHOICES,
+)
+from trash_service import (
+    EMPTY_TRASH_CONFIRMATION,
+    PERMANENT_DELETE_CONFIRMATION,
+    list_trash,
+    permanently_delete,
+    purge_expired_trash,
+    reconcile_trash_operations,
+    require_active_asset,
+    restore_asset,
+    soft_delete_asset,
+    start_trash_maintenance,
 )
 from schemas import (
     AssetOut,
@@ -147,6 +162,12 @@ from schemas import (
     ContentHashStartRequest,
     RevisionCreateOut,
     RevisionRestoreRequest,
+    TrashItemOut,
+    TrashPermanentDeleteRequest,
+    TrashPurgeItemOut,
+    TrashRestoreRequest,
+    TrashRetentionUpdate,
+    TrashSettingsOut,
     PreviewPolicyOut,
     PreviewStateUpdate,
 )
@@ -158,6 +179,7 @@ from url_utils import normalize_import_url
 async def lifespan(_app: FastAPI):
     validate_auth_config()
     run_migrations(engine)
+    trash_stop = start_trash_maintenance()
     recover_interrupted_mount_scans()
     recover_interrupted_content_hash_jobs()
     threading.Thread(target=backfill_embedded_thumbnails, daemon=True).start()
@@ -165,7 +187,10 @@ async def lifespan(_app: FastAPI):
     start_content_hash_job("startup")
     if MOUNT_IMPORT_PATH and get_mount_import_enabled(MOUNT_IMPORT_ENABLED):
         start_mount_scan("startup")
-    yield
+    try:
+        yield
+    finally:
+        trash_stop.set()
 
 
 app = FastAPI(title="MakerVault API", lifespan=lifespan)
@@ -718,12 +743,9 @@ def import_zip_entries(body: ImportZipExtractRequest, _: Optional[str] = Depends
 def get_file(asset_id: str, name: str, _: Optional[str] = Depends(require_auth)):
     media_type: Optional[str] = None
     with Session(engine) as s:
-        a = s.get(Asset, asset_id)
-        if a:
-            media_type = a.mime
-            p = resolve_asset_file(a)
-        else:
-            p = None
+        a = require_active_asset(s, asset_id)
+        media_type = a.mime
+        p = resolve_asset_file(a)
 
     if not p or not p.exists():
         raise HTTPException(404)
@@ -739,17 +761,14 @@ def get_file(asset_id: str, name: str, _: Optional[str] = Depends(require_auth))
 @app.get("/asset/{asset_id}/files", response_model=List[AssetFileOut])
 def get_supporting_files(asset_id: str, _: Optional[str] = Depends(require_auth)):
     with Session(engine) as session:
-        if not session.get(Asset, asset_id):
-            raise HTTPException(404)
+        require_active_asset(session, asset_id)
     return [asset_file_to_out(row) for row in list_supporting_files(asset_id)]
 
 
 @app.get("/asset/{asset_id}/revisions", response_model=List[ArtifactRevisionOut])
 def get_artifact_revisions(asset_id: str, _: Optional[str] = Depends(require_auth)):
     with Session(engine) as session:
-        asset = session.get(Asset, asset_id)
-        if not asset:
-            raise HTTPException(404)
+        asset = require_active_asset(session, asset_id)
         revisions = list(
             session.exec(
                 select(ArtifactRevision)
@@ -823,6 +842,7 @@ def download_artifact_revision(
     _: Optional[str] = Depends(require_auth),
 ):
     with Session(engine) as session:
+        require_active_asset(session, asset_id)
         revision = session.get(ArtifactRevision, revision_id)
         if not revision or revision.asset_id != asset_id:
             raise HTTPException(404)
@@ -851,6 +871,7 @@ def get_revision_thumbnail(
     _: Optional[str] = Depends(require_auth),
 ):
     with Session(engine) as session:
+        require_active_asset(session, asset_id)
         revision = session.get(ArtifactRevision, revision_id)
         if not revision or revision.asset_id != asset_id or not revision.preview_thumb_path:
             raise HTTPException(404)
@@ -863,9 +884,7 @@ def get_revision_thumbnail(
 @app.get("/asset/{asset_id}/duplicates", response_model=List[AssetOut])
 def get_duplicate_suggestions(asset_id: str, _: Optional[str] = Depends(require_auth)):
     with Session(engine) as session:
-        asset = session.get(Asset, asset_id)
-        if not asset:
-            raise HTTPException(404)
+        asset = require_active_asset(session, asset_id)
         revision = (
             session.get(ArtifactRevision, asset.current_revision_id)
             if asset.current_revision_id
@@ -890,6 +909,7 @@ def get_duplicate_suggestions(asset_id: str, _: Optional[str] = Depends(require_
                 select(Asset)
                 .where(
                     Asset.id != asset.id,
+                    Asset.deleted_at == None,  # noqa: E711
                     Asset.current_revision_id.in_(matching_revision_ids),
                 )
                 .order_by(Asset.name, Asset.id)
@@ -912,6 +932,7 @@ async def upload_related_file(
 @app.get("/asset/{asset_id}/files/{file_id}")
 def download_supporting_file(asset_id: str, file_id: str, _: Optional[str] = Depends(require_auth)):
     with Session(engine) as session:
+        require_active_asset(session, asset_id)
         record = session.get(AssetFile, file_id)
         if not record or record.asset_id != asset_id or record.role != "supporting":
             raise HTTPException(404)
@@ -936,8 +957,8 @@ def remove_supporting_file(asset_id: str, file_id: str, _: Optional[str] = Depen
 @app.get("/asset/{asset_id}/prepared-print")
 def get_prepared_print(asset_id: str, _: Optional[str] = Depends(require_auth)):
     with Session(engine) as session:
-        asset = session.get(Asset, asset_id)
-        if not asset or not asset.prepared_file_id:
+        asset = require_active_asset(session, asset_id)
+        if not asset.prepared_file_id:
             raise HTTPException(404)
         record = session.get(AssetFile, asset.prepared_file_id)
         if not record or record.asset_id != asset_id or record.role != "prepared":
@@ -963,9 +984,7 @@ def create_asset_handoff(
     _: Optional[str] = Depends(require_auth),
 ):
     with Session(engine) as session:
-        asset = session.get(Asset, asset_id)
-        if not asset:
-            raise HTTPException(404)
+        asset = require_active_asset(session, asset_id)
 
         file_kind = "primary"
         file_id = asset.id
@@ -1028,9 +1047,10 @@ def redeem_handoff(
         raise HTTPException(status_code=401, detail="Invalid handoff grant")
 
     with Session(engine) as session:
-        asset = session.get(Asset, asset_id)
-        if not asset:
-            raise HTTPException(status_code=404, detail="Handoff asset no longer exists")
+        try:
+            asset = require_active_asset(session, asset_id)
+        except HTTPException as exc:
+            raise HTTPException(status_code=404, detail="Handoff asset no longer exists") from exc
         if file_kind == "primary":
             if file_id != asset.id or filename != asset.filename or expected_size != int(asset.size or 0):
                 raise HTTPException(status_code=409, detail="Handoff file changed")
@@ -1077,6 +1097,8 @@ def remove_prepared_print(asset_id: str, _: Optional[str] = Depends(require_auth
 
 @app.get("/thumb/{asset_id}.jpg")
 def get_thumb(asset_id: str, _: Optional[str] = Depends(require_auth)):
+    with Session(engine) as session:
+        require_active_asset(session, asset_id)
     p = THUMBS / f"{asset_id}.jpg"
     if not p.exists():
         raise HTTPException(404)
@@ -1102,9 +1124,7 @@ async def save_generated_thumbnail(
             detail=f"Generated thumbnail exceeds {GENERATED_THUMBNAIL_MAX_MB} MB",
         )
     with Session(engine) as s:
-        asset = s.get(Asset, asset_id)
-        if not asset:
-            raise HTTPException(404)
+        asset = require_active_asset(s, asset_id)
         current_revision = (
             s.get(ArtifactRevision, asset.current_revision_id)
             if asset.current_revision_id else None
@@ -1139,9 +1159,7 @@ def update_preview_state(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     with Session(engine) as session:
-        asset = session.get(Asset, asset_id)
-        if not asset:
-            raise HTTPException(404)
+        asset = require_active_asset(session, asset_id)
         if (THUMBS / f"{asset_id}.jpg").exists():
             asset.preview_status = "ready"
             asset.preview_reason = None
@@ -1161,9 +1179,7 @@ def update_preview_state(
 @app.post("/asset/{asset_id}/preview-retry", response_model=AssetOut)
 def request_preview_retry(asset_id: str, _: Optional[str] = Depends(require_auth)):
     with Session(engine) as session:
-        asset = session.get(Asset, asset_id)
-        if not asset:
-            raise HTTPException(404)
+        asset = require_active_asset(session, asset_id)
         if (THUMBS / f"{asset_id}.jpg").exists():
             asset.preview_status = "ready"
         else:
@@ -1178,6 +1194,7 @@ def request_preview_retry(asset_id: str, _: Optional[str] = Depends(require_auth
 
 
 def apply_asset_filters(stmt, q: Optional[str], tags: Optional[str], folder_id: Optional[str]):
+    stmt = stmt.where(Asset.deleted_at == None)  # noqa: E711
     if q:
         qlike = f"%{q}%"
         stmt = stmt.where(
@@ -1261,7 +1278,7 @@ def download_zip(body: DownloadRequest, background: BackgroundTasks, _: Optional
         raise HTTPException(status_code=400, detail="Provide asset_ids, tag, or folder_id to download.")
 
     with Session(engine) as s:
-        stmt = select(Asset)
+        stmt = select(Asset).where(Asset.deleted_at == None)  # noqa: E711
         if body.asset_ids:
             stmt = stmt.where(Asset.id.in_(body.asset_ids))
         if body.folder_id:
@@ -1291,9 +1308,7 @@ def download_zip(body: DownloadRequest, background: BackgroundTasks, _: Optional
 @app.post("/asset/{asset_id}/tags", response_model=AssetOut)
 def set_tags(asset_id: str, body: TagUpdate, _: Optional[str] = Depends(require_auth)):
     with Session(engine) as s:
-        a = s.get(Asset, asset_id)
-        if not a:
-            raise HTTPException(404)
+        a = require_active_asset(s, asset_id)
         old_path = managed_asset_path(a)
         a.tags_json = json.dumps(body.tags)
         relocate_asset(a, s, old_path)
@@ -1306,9 +1321,7 @@ def set_tags(asset_id: str, body: TagUpdate, _: Optional[str] = Depends(require_
 @app.post("/asset/{asset_id}/meta", response_model=AssetOut)
 def update_asset_meta(asset_id: str, body: AssetMetaUpdate, _: Optional[str] = Depends(require_auth)):
     with organization_mutation_lock, Session(engine) as s:
-        a = s.get(Asset, asset_id)
-        if not a:
-            raise HTTPException(404)
+        a = require_active_asset(s, asset_id)
         old_path = managed_asset_path(a)
         requested_name = body.name if body.name is not None else body.title
         if requested_name is not None:
@@ -1338,9 +1351,7 @@ def rename_asset(asset_id: str, body: AssetRename, _: Optional[str] = Depends(re
         raise HTTPException(400, "Invalid filename")
 
     with organization_mutation_lock, Session(engine) as s:
-        a = s.get(Asset, asset_id)
-        if not a:
-            raise HTTPException(404)
+        a = require_active_asset(s, asset_id)
         old_path = managed_asset_path(a)
         if not old_path.exists():
             if a.source_path:
@@ -1360,47 +1371,74 @@ def rename_asset(asset_id: str, body: AssetRename, _: Optional[str] = Depends(re
 
 @app.delete("/asset/{asset_id}")
 def delete_asset(asset_id: str, _: Optional[str] = Depends(require_auth)):
-    managed_path: Optional[Path] = None
-    revision_paths: list[Path] = []
-    revision_thumb_paths: list[Path] = []
-    with Session(engine) as s:
-        a = s.get(Asset, asset_id)
-        if not a:
-            raise HTTPException(404)
-        managed_path = managed_asset_path(a)
-        for revision in s.exec(
-            select(ArtifactRevision).where(ArtifactRevision.asset_id == asset_id)
-        ):
-            path = managed_revision_path(revision)
-            if path:
-                revision_paths.append(path)
-            if revision.preview_thumb_path:
-                try:
-                    revision_thumb_paths.append(managed_thumbnail_path(revision.preview_thumb_path))
-                except HTTPException:
-                    pass
-    delete_all_asset_files(asset_id)
-    with Session(engine) as s:
-        a = s.get(Asset, asset_id)
-        if not a:
-            raise HTTPException(404)
-        delete_artifact_revisions(s, asset_id)
-        s.delete(a)
-        s.commit()
-    # best-effort cleanup
-    try:
-        if managed_path and managed_path.exists():
-            parent = managed_path.parent
-            managed_path.unlink(missing_ok=True)
-            prune_empty_storage_dirs(parent)
-        (THUMBS / f"{asset_id}.jpg").unlink(missing_ok=True)
-        for path in dict.fromkeys(revision_paths + revision_thumb_paths):
-            parent = path.parent
-            path.unlink(missing_ok=True)
-            prune_empty_storage_dirs(parent)
-    except Exception:
-        pass
-    return {"ok": True}
+    soft_delete_asset(asset_id)
+    return {"ok": True, "trashed": True}
+
+
+@app.get("/trash", response_model=List[TrashItemOut])
+def get_trash(_: Optional[str] = Depends(require_auth)):
+    return [TrashItemOut(**row) for row in list_trash()]
+
+
+@app.post("/trash/{asset_id}/restore", response_model=AssetOut)
+def restore_trashed_asset(
+    asset_id: str,
+    body: TrashRestoreRequest,
+    _: Optional[str] = Depends(require_auth),
+):
+    return to_out(restore_asset(asset_id, body.restore_unassigned))
+
+
+@app.post("/trash/permanent", response_model=List[TrashPurgeItemOut])
+def permanently_delete_trash(
+    body: TrashPermanentDeleteRequest,
+    _: Optional[str] = Depends(require_auth),
+):
+    return permanently_delete(
+        body.asset_ids,
+        trigger="manual",
+        confirmation=body.confirmation,
+    )
+
+
+@app.post("/trash/empty", response_model=List[TrashPurgeItemOut])
+def empty_trash(
+    body: TrashPermanentDeleteRequest,
+    _: Optional[str] = Depends(require_auth),
+):
+    asset_ids = [row["id"] for row in list_trash()]
+    return permanently_delete(
+        asset_ids,
+        trigger="empty",
+        confirmation=body.confirmation,
+    )
+
+
+def trash_settings_out() -> TrashSettingsOut:
+    reconciliation = reconcile_trash_operations()
+    items = list_trash()
+    return TrashSettingsOut(
+        policy=get_trash_retention(),
+        choices=["until_needed", "day", "week", "month", "never"],
+        trash_count=len(items),
+        managed_bytes=sum(row["managed_bytes"] for row in items),
+        orphaned_quarantine=reconciliation["orphaned"],
+    )
+
+
+@app.get("/settings/trash", response_model=TrashSettingsOut)
+def get_trash_settings(_: Optional[str] = Depends(require_auth)):
+    return trash_settings_out()
+
+
+@app.post("/settings/trash", response_model=TrashSettingsOut)
+def update_trash_settings(
+    body: TrashRetentionUpdate,
+    _: Optional[str] = Depends(require_auth),
+):
+    set_trash_retention(body.policy)
+    purge_expired_trash()
+    return trash_settings_out()
 
 
 # Folder endpoints ----------------------------------------------
@@ -1454,11 +1492,12 @@ def delete_folder(folder_id: str, _: Optional[str] = Depends(require_auth)):
             s.add(child)
         # Unassign assets in this folder
         for asset in s.exec(select(Asset).where(Asset.folder_id == folder_id)):
-            next_name = available_model_name(s, asset.name, None, exclude_id=asset.id)
-            if next_name != asset.name:
-                asset.name = next_name
-                asset.title = next_name
-                asset.filename = filename_for_model_name(next_name, asset.filename)
+            if not asset.deleted_at:
+                next_name = available_model_name(s, asset.name, None, exclude_id=asset.id)
+                if next_name != asset.name:
+                    asset.name = next_name
+                    asset.title = next_name
+                    asset.filename = filename_for_model_name(next_name, asset.filename)
             asset.folder_id = None
             s.add(asset)
         s.delete(f)
@@ -1473,7 +1512,10 @@ def download_folder(folder_id: str, background: BackgroundTasks, _: Optional[str
         folder = s.get(Folder, folder_id)
         if not folder:
             raise HTTPException(status_code=404, detail="Folder not found")
-        assets = list(s.exec(select(Asset).where(Asset.folder_id == folder_id)))
+        assets = list(s.exec(select(Asset).where(
+            Asset.folder_id == folder_id,
+            Asset.deleted_at == None,  # noqa: E711
+        )))
         folder_map = {folder_id: folder.name}
     download_name = f"{(folder.name or 'folder').replace(' ', '_')[:50] or 'folder'}.zip"
     return zip_assets_response(assets, download_name, background, folder_map)
@@ -1481,9 +1523,7 @@ def download_folder(folder_id: str, background: BackgroundTasks, _: Optional[str
 @app.post("/asset/{asset_id}/folder", response_model=AssetOut)
 def update_asset_folder(asset_id: str, body: AssetFolderUpdate, _: Optional[str] = Depends(require_auth)):
     with organization_mutation_lock, Session(engine) as s:
-        asset = s.get(Asset, asset_id)
-        if not asset:
-            raise HTTPException(404)
+        asset = require_active_asset(s, asset_id)
         old_path = managed_asset_path(asset)
         folder_id = body.folder_id or None
         if folder_id:
