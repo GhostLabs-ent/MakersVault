@@ -655,8 +655,10 @@ in [the Gate 6 baseline](evidence/gate-6/BASELINE.md). Subgate 6A content truth 
 revision expansion is implemented at local commit `c7e8743`; the complete repository
 harness and focused migration/content evidence pass. The owner accepted
 [the 6A results](evidence/gate-6/SUBGATE_6A_RESULTS.md) on 2026-08-22. Subgate 6B
-is now in progress under its
-[immutable workflow contract](evidence/gate-6/SUBGATE_6B_BASELINE.md).
+is implemented at local commit `c6ddcfe` under its
+[immutable workflow contract](evidence/gate-6/SUBGATE_6B_BASELINE.md); the full
+repository gate and focused workflow checks pass in
+[the 6B results](evidence/gate-6/SUBGATE_6B_RESULTS.md), pending owner acceptance.
 
 **Objective:** Add trustworthy history before adding the larger Project model.
 
