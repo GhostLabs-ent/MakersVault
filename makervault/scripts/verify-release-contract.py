@@ -78,6 +78,7 @@ def main() -> int:
         APP / "scripts/build-release.sh",
         APP / "scripts/release-metadata.py",
         APP / "scripts/verify-image-reproducibility.py",
+        APP / "scripts/release-candidate-smoke.sh",
         APP / "scripts/backup.sh",
         APP / "scripts/restore.sh",
     ):
