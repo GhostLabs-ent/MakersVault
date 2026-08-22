@@ -93,7 +93,7 @@ cleanup() {
   rm -rf -- "$temporary"
   if [ "$mutation_started" = false ] || { [ "$restore_complete" = true ] && [ "$leave_stopped" != true ]; }; then
     restart_services
-  elif [ "$services_stopped" = true ]; then
+  elif [ "$restore_complete" != true ] && [ "$services_stopped" = true ]; then
     echo "Restore failed after volume mutation began; services remain stopped for operator recovery." >&2
   fi
   exit "$status"

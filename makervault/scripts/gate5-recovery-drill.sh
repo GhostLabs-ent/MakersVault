@@ -61,6 +61,15 @@ compose() {
 cleanup() {
   status=$?
   trap - EXIT HUP INT TERM
+  if [ "$status" -ne 0 ]; then
+    echo "Gate 5 drill failed; collecting disposable API logs before cleanup" >&2
+    if [ -f "$env_file" ]; then
+      compose "$upgrade_project" "$env_file" logs --no-color --tail 120 api >&2 || true
+    fi
+    if [ -f "$clean_env_file" ]; then
+      compose "$clean_project" "$clean_env_file" logs --no-color --tail 120 api >&2 || true
+    fi
+  fi
   if [ -f "$env_file" ]; then
     compose "$upgrade_project" "$env_file" down -v --remove-orphans >/dev/null 2>&1 || true
   fi

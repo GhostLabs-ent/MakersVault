@@ -44,7 +44,8 @@ def wait_for_health(base_url: str) -> None:
     last_error: Exception | None = None
     for _ in range(60):
         try:
-            if request(base_url, "/health") == {"ok": True}:
+            health = request(base_url, "/health")
+            if health.get("ok") is True and health.get("auth_required") is True:
                 return
         except (OSError, urllib.error.URLError, ValueError) as exc:
             last_error = exc
