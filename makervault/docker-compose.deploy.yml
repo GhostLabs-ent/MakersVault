@@ -1,6 +1,6 @@
 services:
   api:
-    image: ${API_IMAGE:-shotgunwilly555/makersvault-api:latest}
+    image: ${API_IMAGE:-shotgunwilly555/makersvault-api:v5.1.0}
     restart: unless-stopped
     environment:
       - PUID=${PUID:-1000}
@@ -52,7 +52,7 @@ services:
       - "${API_PORT:-8000}:8000"
 
   web:
-    image: ${WEB_IMAGE:-shotgunwilly555/makersvault-web:latest}
+    image: ${WEB_IMAGE:-shotgunwilly555/makersvault-web:v5.1.0}
     restart: unless-stopped
     environment:
       - PUBLIC_URL=${PUBLIC_URL:-}

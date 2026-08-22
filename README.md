@@ -110,8 +110,16 @@ VITE_ALLOWED_HOSTS=
 
 <p>Remote access is supported through an HTTPS reverse proxy or a private network/VPN. Direct public exposure of the API or web ports is unsupported for v5.1.</p>
 
-<h2>Contributing</h2> 
-<p>Contributions are always welcome, whether it be bug fixes or feature improvements. For large changes, please open a discussion first!</p> <h2>Feature Requests and Bug Reporting</h2> <p>For bug reports or feature improvement requests, please open an issue or start a discussion thread.</p> 
+<h2>Project and operator documentation</h2>
+<ul>
+  <li><a href="makervault/docs/UPGRADE_V5.1.md">Upgrade to v5.1</a></li>
+  <li><a href="makervault/docs/BACKUP_AND_RECOVERY.md">Backup and recovery</a></li>
+  <li><a href="makervault/docs/SECURE_DEPLOYMENT.md">Secure deployment</a></li>
+  <li><a href="makervault/docs/KNOWN_LIMITATIONS.md">Known limitations</a></li>
+  <li><a href="CHANGELOG.md">Changelog</a> and <a href="makervault/docs/RELEASE_NOTES_v5.1.0.md">v5.1.0 release notes</a></li>
+</ul>
+<h2>Contributing</h2>
+<p>Contributions are welcome. Read <a href="CONTRIBUTING.md">CONTRIBUTING.md</a> before a large change and use the issue forms for reproducible bugs or focused feature requests. Report vulnerabilities privately according to <a href="SECURITY.md">SECURITY.md</a>; do not disclose them in a public issue.</p>
 <h2>Features, UI Walkthrough, and Supported File Types</h2> 
 <h3>Supported File Types</h3> <p>Makers Vault supports the following file types:</p>
 <h3>3D Print Files:</h3> 

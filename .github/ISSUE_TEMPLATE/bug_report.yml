@@ -1,0 +1,53 @@
+name: Bug report
+description: Report a reproducible MakersVault problem (not a security vulnerability)
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Security vulnerabilities must be reported privately using SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: MakersVault version and image tags
+      placeholder: v5.1.0 API, web, and bridge
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment
+      options:
+        - Production Docker Compose
+        - Source-development Docker Compose
+        - Other supported setup
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include expected behavior and exact steps to reproduce.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant sanitized logs
+      description: Remove passwords, tokens, cookies, .env values, model content, and private paths.
+      render: shell
+  - type: textarea
+    id: environment
+    attributes:
+      label: Browser, OS, architecture, and proxy/storage details
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety checks
+      options:
+        - label: I searched existing issues and known limitations.
+          required: true
+        - label: This report contains no credentials, tokens, cookies, private files, or undisclosed vulnerability details.
+          required: true

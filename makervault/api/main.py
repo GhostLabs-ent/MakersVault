@@ -375,7 +375,12 @@ def zip_assets_response(assets: List[Asset], download_name: str, background: Bac
 
 @app.get("/health")
 def health():
-    return {"ok": True, "auth_required": AUTH_ENABLED}
+    return {
+        "ok": True,
+        "auth_required": AUTH_ENABLED,
+        "version": os.getenv("MAKERSVAULT_VERSION", "development"),
+        "revision": os.getenv("MAKERSVAULT_REVISION", "unknown"),
+    }
 
 
 @app.get("/settings/mount-import", response_model=MountImportSettingsOut)

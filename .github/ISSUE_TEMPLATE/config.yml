@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Private security report
+    url: https://github.com/VincentCinque/MakersVault/security/advisories/new
+    about: Report vulnerabilities without disclosing them publicly.
+  - name: Questions and design discussion
+    url: https://github.com/VincentCinque/MakersVault/discussions
+    about: Ask for help or discuss larger ideas before implementation.

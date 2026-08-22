@@ -1,6 +1,6 @@
-.PHONY: verify verify-api verify-web verify-bridge verify-compose verify-smoke
+.PHONY: verify verify-api verify-web verify-bridge verify-compose verify-smoke verify-release
 
-verify: verify-api verify-web verify-bridge verify-compose verify-smoke
+verify: verify-api verify-web verify-bridge verify-compose verify-smoke verify-release
 
 verify-api:
 	docker build --target test -t makersvault-api-gate0-test makervault/api
@@ -27,3 +27,6 @@ verify-compose:
 
 verify-smoke:
 	./makervault/scripts/container-smoke.sh
+
+verify-release:
+	python3 makervault/scripts/verify-release-contract.py

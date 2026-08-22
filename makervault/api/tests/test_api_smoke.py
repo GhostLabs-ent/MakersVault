@@ -10,7 +10,12 @@ def test_health_and_authenticated_library_smoke() -> None:
     with TestClient(app) as client:
         health = client.get("/health")
         assert health.status_code == 200
-        assert health.json() == {"ok": True, "auth_required": True}
+        assert health.json() == {
+            "ok": True,
+            "auth_required": True,
+            "version": "development",
+            "revision": "unknown",
+        }
 
         assert client.get("/assets").status_code == 401
 

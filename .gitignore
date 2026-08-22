@@ -67,3 +67,6 @@ makervault/benchmarks/organization/.artifacts/
 
 # Local recovery archives may contain user files and deployment secrets
 makervault/backups/
+
+# Locally assembled release artifacts and SBOMs
+makervault/release/

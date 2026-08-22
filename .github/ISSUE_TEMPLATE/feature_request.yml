@@ -1,0 +1,36 @@
+name: Feature request
+description: Propose a focused user outcome for MakersVault
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: Describe the workshop task or failure, not only a proposed implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+    validations:
+      required: true
+  - type: textarea
+    id: examples
+    attributes:
+      label: Real examples and alternatives considered
+  - type: textarea
+    id: data
+    attributes:
+      label: Data, migration, storage, privacy, or rollback impact
+      description: Required for changes that persist content or metadata.
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: I reviewed the roadmap and known limitations.
+          required: true
+        - label: I understand a request is not a release commitment.
+          required: true

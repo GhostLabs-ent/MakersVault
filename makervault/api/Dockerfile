@@ -1,4 +1,4 @@
-FROM python:3.11-slim AS base
+FROM python:3.11-slim@sha256:a630a63cdb314e2d138a2fca3e375e319e8568346ffafac5b980f888630ac4f1 AS base
 WORKDIR /app
 
 COPY requirements.txt requirements.lock ./
@@ -14,10 +14,16 @@ ENV DB_URL=sqlite:////tmp/makersvault-test.db \
 CMD ["python", "-m", "pytest", "-q"]
 
 FROM base AS runtime
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends gosu \
-  && rm -rf /var/lib/apt/lists/*
-
+ARG MAKERSVAULT_VERSION=development
+ARG MAKERSVAULT_REVISION=unknown
+ARG MAKERSVAULT_CREATED=unknown
+LABEL org.opencontainers.image.title="MakersVault API" \
+  org.opencontainers.image.version="$MAKERSVAULT_VERSION" \
+  org.opencontainers.image.revision="$MAKERSVAULT_REVISION" \
+  org.opencontainers.image.created="$MAKERSVAULT_CREATED" \
+  org.opencontainers.image.source="https://github.com/VincentCinque/MakersVault"
+ENV MAKERSVAULT_VERSION="$MAKERSVAULT_VERSION" \
+  MAKERSVAULT_REVISION="$MAKERSVAULT_REVISION"
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 

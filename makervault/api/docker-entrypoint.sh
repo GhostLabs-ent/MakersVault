@@ -32,4 +32,4 @@ else
   chown "$PUID":"$PGID" /app/storage /app/data 2>/dev/null || true
 fi
 
-exec gosu "$APP_USER" "$@"
+exec setpriv --reuid="$PUID" --regid="$PGID" --init-groups -- "$@"

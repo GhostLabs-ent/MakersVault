@@ -1,0 +1,179 @@
+name: Publish versioned release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the tagged source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Verify source, migrations, browser build, bridge, Compose, and containers
+        run: make verify
+
+  publish:
+    if: github.repository == 'VincentCinque/MakersVault'
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      actions: read
+      artifact-metadata: write
+      attestations: write
+      contents: write
+      id-token: write
+    env:
+      API_IMAGE: docker.io/shotgunwilly555/makersvault-api
+      WEB_IMAGE: docker.io/shotgunwilly555/makersvault-web
+      RELEASE_DIR: makervault/release/${{ github.ref_name }}
+    steps:
+      - name: Check out the tagged source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Validate tag and package identity
+        id: identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_version=$(python3 -c 'import json; print(json.load(open("makervault/web/package.json", encoding="utf-8"))["version"])')
+          test "$GITHUB_REF_NAME" = "v$package_version"
+          echo "created=$(git show -s --format=%cI HEAD)" >> "$GITHUB_OUTPUT"
+          echo "tree=$(git rev-parse HEAD^{tree})" >> "$GITHUB_OUTPUT"
+
+      - name: Assemble local release artifacts and SBOMs
+        run: ./makervault/scripts/build-release.sh --version "$GITHUB_REF_NAME" --output-dir "$RELEASE_DIR"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
+      - name: Log in to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push API image
+        id: api
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: makervault/api
+          target: runtime
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.API_IMAGE }}:${{ github.ref_name }}
+          build-args: |
+            MAKERSVAULT_VERSION=${{ github.ref_name }}
+            MAKERSVAULT_REVISION=${{ github.sha }}
+            MAKERSVAULT_CREATED=${{ steps.identity.outputs.created }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Build and push web image
+        id: web
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: makervault/web
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.WEB_IMAGE }}:${{ github.ref_name }}
+          build-args: |
+            MAKERSVAULT_VERSION=${{ github.ref_name }}
+            MAKERSVAULT_REVISION=${{ github.sha }}
+            MAKERSVAULT_CREATED=${{ steps.identity.outputs.created }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Generate published API SPDX SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: ${{ env.API_IMAGE }}@${{ steps.api.outputs.digest }}
+          output-file: ${{ env.RELEASE_DIR }}/makersvault-api-published.spdx.json
+          format: spdx-json
+          syft-version: v1.50.0
+          upload-artifact: false
+          upload-release-assets: false
+      - name: Generate published web SPDX SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: ${{ env.WEB_IMAGE }}@${{ steps.web.outputs.digest }}
+          output-file: ${{ env.RELEASE_DIR }}/makersvault-web-published.spdx.json
+          format: spdx-json
+          syft-version: v1.50.0
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Refresh release inventory and checksums
+        run: |
+          python3 makervault/scripts/release-metadata.py \
+            --output-dir "$RELEASE_DIR" \
+            --version "$GITHUB_REF_NAME" \
+            --revision "$GITHUB_SHA" \
+            --tree "${{ steps.identity.outputs.tree }}" \
+            --created "${{ steps.identity.outputs.created }}"
+          (cd "$RELEASE_DIR" && sha256sum --check SHA256SUMS)
+
+      - name: Attest API image provenance
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-name: ${{ env.API_IMAGE }}
+          subject-digest: ${{ steps.api.outputs.digest }}
+          push-to-registry: true
+          create-storage-record: false
+      - name: Attest API image SBOM
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-name: ${{ env.API_IMAGE }}
+          subject-digest: ${{ steps.api.outputs.digest }}
+          sbom-path: ${{ env.RELEASE_DIR }}/makersvault-api-published.spdx.json
+          push-to-registry: true
+          create-storage-record: false
+      - name: Attest web image provenance
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-name: ${{ env.WEB_IMAGE }}
+          subject-digest: ${{ steps.web.outputs.digest }}
+          push-to-registry: true
+          create-storage-record: false
+      - name: Attest web image SBOM
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-name: ${{ env.WEB_IMAGE }}
+          subject-digest: ${{ steps.web.outputs.digest }}
+          sbom-path: ${{ env.RELEASE_DIR }}/makersvault-web-published.spdx.json
+          push-to-registry: true
+          create-storage-record: false
+      - name: Attest checksummed release files
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-checksums: ${{ env.RELEASE_DIR }}/SHA256SUMS
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: makersvault-${{ github.ref_name }}
+          path: ${{ env.RELEASE_DIR }}/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create immutable GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "$RELEASE_DIR"/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "MakersVault $GITHUB_REF_NAME" \
+            --notes-file makervault/docs/RELEASE_NOTES_v5.1.0.md \
+            --verify-tag

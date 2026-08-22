@@ -31,6 +31,11 @@ const (
 	engraveScheme = "makersvault-engrave"
 )
 
+var (
+	version  = "development"
+	revision = "unknown"
+)
+
 func main() {
 	if len(os.Args) < 2 {
 		target, err := installSelf()
@@ -48,6 +53,9 @@ func main() {
 	switch arg {
 	case "", "-h", "--help":
 		printUsage()
+		return
+	case "-v", "--version", "version":
+		fmt.Printf("MakersVault Bridge %s (%s)\n", version, revision)
 		return
 	case "install", "--install":
 		target, err := installSelf()
@@ -71,6 +79,7 @@ func main() {
 func printUsage() {
 	fmt.Println("Usage:")
 	fmt.Println("  slicer-bridge --install")
+	fmt.Println("  slicer-bridge --version")
 	fmt.Println("  slicer-bridge <makersvault-slicer://open?...>")
 	fmt.Println("  slicer-bridge <makersvault-engrave://open?...>")
 }
