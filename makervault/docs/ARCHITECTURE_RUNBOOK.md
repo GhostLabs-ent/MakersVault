@@ -659,11 +659,13 @@ is implemented at local commit `c6ddcfe` under its
 [immutable workflow contract](evidence/gate-6/SUBGATE_6B_BASELINE.md); the full
 repository gate and focused workflow checks pass in
 [the 6B results](evidence/gate-6/SUBGATE_6B_RESULTS.md), accepted by the owner on
-2026-08-22. Subgate 6C is in progress under its
+2026-08-22. Subgate 6C is complete under its
 [Trash implementation contract](evidence/gate-6/SUBGATE_6C_BASELINE.md). The
 implementation is complete at local commit `71c3d82`; focused safety tests and the
 full repository harness pass in
-[the 6C results](evidence/gate-6/SUBGATE_6C_RESULTS.md), pending owner acceptance.
+[the 6C results](evidence/gate-6/SUBGATE_6C_RESULTS.md), accepted by the owner on
+2026-08-22. Subgate 6D recovery, compatibility, and closeout is in progress under
+[its evidence contract](evidence/gate-6/SUBGATE_6D_BASELINE.md).
 
 **Objective:** Add trustworthy history before adding the larger Project model.
 

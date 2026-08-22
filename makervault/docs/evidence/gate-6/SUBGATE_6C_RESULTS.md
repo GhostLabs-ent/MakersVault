@@ -2,13 +2,15 @@
 
 **Gate:** 6C — Recoverable Trash, retention, and permanent deletion
 
-**Status:** Implementation complete; awaiting owner acceptance
+**Status:** Accepted by the owner
 
 **Date:** 2026-08-22
 
 **Entry commit:** `37400ad`
 
 **Implementation commit:** `71c3d82`
+
+**Accepted:** 2026-08-22
 
 ## Delivered truth
 
@@ -119,7 +121,7 @@ same class already recorded for the v5.1 candidate.
 
 ## Owner checkpoint
 
-Accept Gate 6C before beginning Gate 6D recovery, compatibility, and closeout.
-Acceptance confirms desktop-style metadata-only Trash, the five retention choices,
-oldest-complete-artifact capacity cleanup, explicit typed permanent deletion,
-external-source preservation, and durable quarantine/reconciliation semantics.
+Accepted on 2026-08-22. The owner approved desktop-style metadata-only Trash, the
+five retention choices, oldest-complete-artifact capacity cleanup, explicit typed
+permanent deletion, external-source preservation, and durable
+quarantine/reconciliation semantics. Gate 6D may proceed.
