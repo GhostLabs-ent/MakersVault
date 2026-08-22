@@ -5,7 +5,6 @@ services:
     volumes:
       - makersvault_preview_benchmark_storage:/app/storage
       - makersvault_preview_benchmark_db:/app/data
-      - ./api:/app
 
 volumes:
   makersvault_preview_benchmark_storage:

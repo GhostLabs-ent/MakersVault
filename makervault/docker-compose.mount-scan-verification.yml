@@ -9,7 +9,6 @@ services:
     volumes:
       - makersvault_mount_scan_storage:/app/storage
       - makersvault_mount_scan_db:/app/data
-      - ./api:/app
       - ${MAKERSVAULT_MOUNT_FIXTURE:-./benchmarks/mount-import/fixture}:/imports:ro
 
 volumes:
