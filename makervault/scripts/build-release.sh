@@ -66,10 +66,10 @@ build_args="--build-arg MAKERSVAULT_VERSION=$version --build-arg MAKERSVAULT_REV
 
 echo "Building $api_image"
 # shellcheck disable=SC2086
-docker build --target runtime $build_args -t "$api_image" "$app_dir/api"
+docker build --provenance=false --target runtime $build_args -t "$api_image" "$app_dir/api"
 echo "Building $web_image"
 # shellcheck disable=SC2086
-docker build $build_args -t "$web_image" "$app_dir/web"
+docker build --provenance=false $build_args -t "$web_image" "$app_dir/web"
 
 docker image inspect "$api_image" > "$output_dir/api-image-inspect.json"
 docker image inspect "$web_image" > "$output_dir/web-image-inspect.json"

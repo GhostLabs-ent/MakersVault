@@ -77,8 +77,8 @@ jobs:
             MAKERSVAULT_VERSION=${{ github.ref_name }}
             MAKERSVAULT_REVISION=${{ github.sha }}
             MAKERSVAULT_CREATED=${{ steps.identity.outputs.created }}
-          provenance: mode=max
-          sbom: true
+          provenance: false
+          sbom: false
 
       - name: Build and push web image
         id: web
@@ -92,8 +92,8 @@ jobs:
             MAKERSVAULT_VERSION=${{ github.ref_name }}
             MAKERSVAULT_REVISION=${{ github.sha }}
             MAKERSVAULT_CREATED=${{ steps.identity.outputs.created }}
-          provenance: mode=max
-          sbom: true
+          provenance: false
+          sbom: false
 
       - name: Generate published API SPDX SBOM
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
