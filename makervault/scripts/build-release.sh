@@ -40,6 +40,7 @@ numeric_version=${version#v}
 revision=$(git -C "$repo_dir" rev-parse HEAD)
 tree=$(git -C "$repo_dir" rev-parse HEAD^{tree})
 created=$(git -C "$repo_dir" show -s --format=%cI HEAD)
+source_epoch=$(git -C "$repo_dir" show -s --format=%ct HEAD)
 short_revision=$(git -C "$repo_dir" rev-parse --short=12 HEAD)
 
 if [ "$allow_dirty" != true ]; then
@@ -62,7 +63,7 @@ python3 -c \
 
 api_image="makersvault-api:${version}-${short_revision}"
 web_image="makersvault-web:${version}-${short_revision}"
-build_args="--build-arg MAKERSVAULT_VERSION=$version --build-arg MAKERSVAULT_REVISION=$revision --build-arg MAKERSVAULT_CREATED=$created"
+build_args="--build-arg SOURCE_DATE_EPOCH=$source_epoch --build-arg MAKERSVAULT_VERSION=$version --build-arg MAKERSVAULT_REVISION=$revision --build-arg MAKERSVAULT_CREATED=$created"
 
 echo "Building $api_image"
 # shellcheck disable=SC2086

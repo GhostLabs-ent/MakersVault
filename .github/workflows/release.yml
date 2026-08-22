@@ -48,6 +48,7 @@ jobs:
           package_version=$(python3 -c 'import json; print(json.load(open("makervault/web/package.json", encoding="utf-8"))["version"])')
           test "$GITHUB_REF_NAME" = "v$package_version"
           echo "created=$(git show -s --format=%cI HEAD)" >> "$GITHUB_OUTPUT"
+          echo "epoch=$(git show -s --format=%ct HEAD)" >> "$GITHUB_OUTPUT"
           echo "tree=$(git rev-parse HEAD^{tree})" >> "$GITHUB_OUTPUT"
 
       - name: Assemble local release artifacts and SBOMs
@@ -74,6 +75,7 @@ jobs:
           push: true
           tags: ${{ env.API_IMAGE }}:${{ github.ref_name }}
           build-args: |
+            SOURCE_DATE_EPOCH=${{ steps.identity.outputs.epoch }}
             MAKERSVAULT_VERSION=${{ github.ref_name }}
             MAKERSVAULT_REVISION=${{ github.sha }}
             MAKERSVAULT_CREATED=${{ steps.identity.outputs.created }}
@@ -89,6 +91,7 @@ jobs:
           push: true
           tags: ${{ env.WEB_IMAGE }}:${{ github.ref_name }}
           build-args: |
+            SOURCE_DATE_EPOCH=${{ steps.identity.outputs.epoch }}
             MAKERSVAULT_VERSION=${{ github.ref_name }}
             MAKERSVAULT_REVISION=${{ github.sha }}
             MAKERSVAULT_CREATED=${{ steps.identity.outputs.created }}

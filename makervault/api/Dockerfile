@@ -1,4 +1,6 @@
 FROM python:3.11-slim@sha256:a630a63cdb314e2d138a2fca3e375e319e8568346ffafac5b980f888630ac4f1 AS base
+ARG SOURCE_DATE_EPOCH=0
+ENV SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH"
 WORKDIR /app
 
 COPY requirements.txt requirements.lock ./
