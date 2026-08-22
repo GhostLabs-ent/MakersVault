@@ -2,11 +2,13 @@
 
 **Gate:** 6C — Recoverable Trash, retention, and permanent deletion
 
-**Status:** In progress
+**Status:** Implemented; awaiting owner acceptance
 
 **Opened:** 2026-08-22
 
 **Entry commit:** `37400ad`
+
+**Implementation commit:** `71c3d82`
 
 **Dependencies:** Gate 6B owner-accepted; ADR 0008 accepted with owner amendment
 
