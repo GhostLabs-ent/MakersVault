@@ -273,6 +273,21 @@ async function runDetailProbe(page, tracker, asset) {
   };
 }
 
+async function revealAssetCard(page, assetId) {
+  const card = page.locator(`[title="Double-click to open large preview"][data-asset-id="${assetId}"]`);
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    if (await card.isVisible()) return card;
+    const loadMore = page.getByRole("button", { name: "Load more", exact: true });
+    if (await loadMore.isVisible()) {
+      await loadMore.click();
+    }
+    await page.waitForTimeout(100);
+  }
+  await card.waitFor({ timeout: 1 });
+  return card;
+}
+
 async function runLightBurnProbe(page, tracker, token) {
   const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
   const data = new FormData();
@@ -291,8 +306,7 @@ async function runLightBurnProbe(page, tracker, token) {
     if (window.__mvBenchmark) window.__mvBenchmark.longTasks = [];
   });
   await page.reload({ waitUntil: "domcontentloaded" });
-  const card = page.locator(`[title="Double-click to open large preview"][data-asset-id="${asset.id}"]`);
-  await card.waitFor({ timeout: 30_000 });
+  const card = await revealAssetCard(page, asset.id);
   await card.scrollIntoViewIfNeeded();
   await card.locator("img").waitFor({ timeout: 30_000 });
   const persistenceStarted = Date.now();
@@ -310,8 +324,7 @@ async function runLightBurnProbe(page, tracker, token) {
 
   tracker.setPhase("lightburnWarm");
   await page.reload({ waitUntil: "domcontentloaded" });
-  const warmCard = page.locator(`[title="Double-click to open large preview"][data-asset-id="${asset.id}"]`);
-  await warmCard.waitFor({ timeout: 30_000 });
+  const warmCard = await revealAssetCard(page, asset.id);
   await warmCard.scrollIntoViewIfNeeded();
   await warmCard.locator("img").waitFor({ timeout: 30_000 });
   await page.waitForTimeout(500);
