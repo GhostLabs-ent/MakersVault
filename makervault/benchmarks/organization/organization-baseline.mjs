@@ -1,10 +1,13 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { chromium } from "playwright-core";
+import { chromium, firefox, webkit } from "playwright-core";
 
 const apiUrl = (process.env.MAKERSVAULT_BENCHMARK_API_URL || "http://localhost:18003").replace(/\/$/, "");
 const webUrl = (process.env.MAKERSVAULT_BENCHMARK_WEB_URL || "http://localhost:15176").replace(/\/$/, "");
 const outputPath = resolve(process.env.MAKERSVAULT_BENCHMARK_OUTPUT || ".artifacts/baseline.json");
+const browserName = process.env.MAKERSVAULT_BENCHMARK_BROWSER || "chromium";
+const browserType = { chromium, firefox, webkit }[browserName];
+if (!browserType) throw new Error(`Unsupported benchmark browser: ${browserName}`);
 const username = process.env.MAKERSVAULT_BENCHMARK_USERNAME || "admin";
 const password = process.env.MAKERSVAULT_BENCHMARK_PASSWORD || "local-development-only";
 const assetCount = Number(process.env.MAKERSVAULT_ORGANIZATION_ASSETS || 600);
@@ -220,7 +223,10 @@ async function main() {
     folders: await measureApi(token, "/folders"),
   };
 
-  const browser = await chromium.launch({ headless: true, args: ["--enable-precise-memory-info"] });
+  const launchOptions = browserName === "chromium"
+    ? { headless: true, args: ["--enable-precise-memory-info"] }
+    : { headless: true };
+  const browser = await browserType.launch(launchOptions);
   activeBrowser = browser;
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
@@ -268,7 +274,7 @@ async function main() {
   const selectedBeforeFilter = await page.locator('input[type="checkbox"]:checked').count();
   const visibleBulkToolbarBeforeFilter = await page.locator('[role="toolbar"]').count();
   await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "evidence-screenshot"; });
-  await page.screenshot({ path: resolve(dirname(outputPath), "selection-toolbar.png") });
+  await page.screenshot({ path: resolve(dirname(outputPath), `selection-toolbar-${browserName}.png`) });
 
   const librarySearch = page.getByPlaceholder("Search title, filename, notes...");
   await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "search"; });
@@ -360,10 +366,13 @@ async function main() {
   if (!parentBranch) throw new Error("Target leaf parent is missing");
   await page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("button", { name: parentBranch.name, exact: true }).click();
   await page.getByText("No models directly in this folder").waitFor();
-  const childFolderEmptyStateVisible = await page.locator("main").getByRole("button", { name: targetLeaf.name, exact: true }).isVisible();
-  const breadcrumbAncestorNavigationVisible = await page.getByRole("navigation", { name: "Breadcrumb" })
-    .getByRole("button", { name: parentBranch.name, exact: true })
-    .isVisible();
+  const childFolderButton = page.locator("main").getByRole("button", { name: targetLeaf.name, exact: true });
+  const parentBreadcrumbButton = page.getByRole("navigation", { name: "Breadcrumb" })
+    .getByRole("button", { name: parentBranch.name, exact: true });
+  await childFolderButton.waitFor();
+  await parentBreadcrumbButton.waitFor();
+  const childFolderEmptyStateVisible = await childFolderButton.isVisible();
+  const breadcrumbAncestorNavigationVisible = await parentBreadcrumbButton.isVisible();
 
   const browserMetrics = await page.evaluate(() => {
     const longTasks = window.__mvOrganizationBenchmark?.longTasks || [];
@@ -404,6 +413,8 @@ async function main() {
     },
     api,
     browser: {
+      engine: browserName,
+      performanceBudgetEnforced: browserName === "chromium",
       firstCardsMs,
       initialCardCount,
       loadMoreMs,
@@ -442,12 +453,14 @@ async function main() {
   for (const [name, probe] of Object.entries(api)) {
     if (probe.latencyMs.p95 >= 100) failures.push(`${name} API p95 was ${probe.latencyMs.p95.toFixed(1)} ms`);
   }
-  if (result.browser.firstCardsMs >= 1_000) failures.push(`first cards took ${result.browser.firstCardsMs.toFixed(1)} ms`);
-  if (result.browser.loadMoreMs >= 500) failures.push(`load more took ${result.browser.loadMoreMs.toFixed(1)} ms`);
-  if (result.browser.exactSearchMs >= 300) failures.push(`exact search took ${result.browser.exactSearchMs.toFixed(1)} ms`);
-  if (result.browser.folderSearchMs >= 300) failures.push(`folder search took ${result.browser.folderSearchMs.toFixed(1)} ms`);
-  if (result.browser.folderOpenMs >= 300) failures.push(`folder open took ${result.browser.folderOpenMs.toFixed(1)} ms`);
-  if (result.browser.maxInteractionLongTaskMs > 50) failures.push(`organization interaction long task reached ${result.browser.maxInteractionLongTaskMs.toFixed(1)} ms`);
+  if (browserName === "chromium") {
+    if (result.browser.firstCardsMs >= 1_000) failures.push(`first cards took ${result.browser.firstCardsMs.toFixed(1)} ms`);
+    if (result.browser.loadMoreMs >= 500) failures.push(`load more took ${result.browser.loadMoreMs.toFixed(1)} ms`);
+    if (result.browser.exactSearchMs >= 300) failures.push(`exact search took ${result.browser.exactSearchMs.toFixed(1)} ms`);
+    if (result.browser.folderSearchMs >= 300) failures.push(`folder search took ${result.browser.folderSearchMs.toFixed(1)} ms`);
+    if (result.browser.folderOpenMs >= 300) failures.push(`folder open took ${result.browser.folderOpenMs.toFixed(1)} ms`);
+    if (result.browser.maxInteractionLongTaskMs > 50) failures.push(`organization interaction long task reached ${result.browser.maxInteractionLongTaskMs.toFixed(1)} ms`);
+  }
   if (result.browser.selectedAfterLoadMore !== 2 || result.browser.selectedBeforeFilter !== 2 || result.browser.selectedAfterFilter !== 0) {
     failures.push("selection was not preserved by load-more and cleared by filter scope");
   }

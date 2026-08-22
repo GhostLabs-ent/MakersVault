@@ -6,7 +6,14 @@ app_dir=$(CDPATH= cd -- "$script_dir/.." && pwd)
 project_name=${MAKERSVAULT_BENCHMARK_PROJECT:-makersvault-gate3-benchmark}
 api_port=${MAKERSVAULT_BENCHMARK_API_PORT:-18003}
 web_port=${MAKERSVAULT_BENCHMARK_WEB_PORT:-15176}
-output_path="$app_dir/benchmarks/organization/.artifacts/baseline.json"
+browser_name=${MAKERSVAULT_BENCHMARK_BROWSER:-chromium}
+playwright_image=${MAKERSVAULT_BENCHMARK_PLAYWRIGHT_IMAGE:-}
+case "$browser_name" in
+  chromium) output_name=baseline.json ;;
+  firefox|webkit) output_name="baseline-$browser_name.json" ;;
+  *) echo "MAKERSVAULT_BENCHMARK_BROWSER must be chromium, firefox, or webkit" >&2; exit 2 ;;
+esac
+output_path="$app_dir/benchmarks/organization/.artifacts/$output_name"
 api_image=${MAKERSVAULT_BENCHMARK_API_IMAGE:-}
 web_image=${MAKERSVAULT_BENCHMARK_WEB_IMAGE:-}
 
@@ -75,8 +82,20 @@ if [ "$release_candidate" = true ]; then
     "$api_image" "$web_image" "$(compose ps -q api)" "$(compose ps -q web)"
 fi
 
-cd benchmarks/organization
-MAKERSVAULT_BENCHMARK_API_URL="http://localhost:$api_port" \
-MAKERSVAULT_BENCHMARK_WEB_URL="http://localhost:$web_port" \
-MAKERSVAULT_BENCHMARK_OUTPUT="$output_path" \
-  npm run baseline
+if [ -n "$playwright_image" ]; then
+  docker run --rm --network host --ipc=host \
+    -e MAKERSVAULT_BENCHMARK_API_URL="http://localhost:$api_port" \
+    -e MAKERSVAULT_BENCHMARK_WEB_URL="http://localhost:$web_port" \
+    -e MAKERSVAULT_BENCHMARK_OUTPUT="/work/.artifacts/$output_name" \
+    -e MAKERSVAULT_BENCHMARK_BROWSER="$browser_name" \
+    -v "$app_dir/benchmarks/organization:/work" \
+    -w /work \
+    "$playwright_image" npm run baseline
+else
+  cd benchmarks/organization
+  MAKERSVAULT_BENCHMARK_API_URL="http://localhost:$api_port" \
+  MAKERSVAULT_BENCHMARK_WEB_URL="http://localhost:$web_port" \
+  MAKERSVAULT_BENCHMARK_OUTPUT="$output_path" \
+  MAKERSVAULT_BENCHMARK_BROWSER="$browser_name" \
+    npm run baseline
+fi

@@ -27,9 +27,16 @@ def require(value: bool, message: str) -> None:
 def main() -> int:
     package = json.loads(read(APP / "web/package.json"))
     lock = json.loads(read(APP / "web/package-lock.json"))
+    benchmark_package = json.loads(read(APP / "benchmarks/organization/package.json"))
     require(package["version"] == VERSION, "Web package version drifted")
     require(lock["version"] == VERSION, "Web lock root version drifted")
     require(lock["packages"][""]["version"] == VERSION, "Web lock package version drifted")
+    playwright_version = benchmark_package["devDependencies"]["playwright-core"]
+    browser_matrix = read(APP / "scripts/browser-matrix.sh")
+    require(
+        f"mcr.microsoft.com/playwright:v{playwright_version}-noble@sha256:" in browser_matrix,
+        "Browser matrix image must match the locked Playwright version and use a digest",
+    )
 
     compose = read(APP / "docker-compose.deploy.yml")
     example = read(APP / ".env.example")
@@ -79,6 +86,7 @@ def main() -> int:
         APP / "scripts/release-metadata.py",
         APP / "scripts/verify-image-reproducibility.py",
         APP / "scripts/release-candidate-smoke.sh",
+        APP / "scripts/browser-matrix.sh",
         APP / "scripts/backup.sh",
         APP / "scripts/restore.sh",
     ):
