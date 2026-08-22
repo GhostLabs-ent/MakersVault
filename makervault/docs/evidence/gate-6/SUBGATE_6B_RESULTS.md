@@ -2,13 +2,15 @@
 
 **Gate:** 6B — Immutable revision creation, restore, and export
 
-**Status:** Implementation complete; awaiting owner acceptance
+**Status:** Accepted
 
 **Date:** 2026-08-22
 
 **Entry commit:** `45bbc22`
 
 **Implementation commit:** `c6ddcfe`
+
+**Accepted:** 2026-08-22
 
 ## Delivered truth
 

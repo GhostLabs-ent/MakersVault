@@ -658,7 +658,9 @@ harness and focused migration/content evidence pass. The owner accepted
 is implemented at local commit `c6ddcfe` under its
 [immutable workflow contract](evidence/gate-6/SUBGATE_6B_BASELINE.md); the full
 repository gate and focused workflow checks pass in
-[the 6B results](evidence/gate-6/SUBGATE_6B_RESULTS.md), pending owner acceptance.
+[the 6B results](evidence/gate-6/SUBGATE_6B_RESULTS.md), accepted by the owner on
+2026-08-22. Subgate 6C is in progress under its
+[Trash implementation contract](evidence/gate-6/SUBGATE_6C_BASELINE.md).
 
 **Objective:** Add trustworthy history before adding the larger Project model.
 
