@@ -2,11 +2,13 @@
 
 **Gate:** 6 — Establish revisions and recoverable deletion
 
-**Status:** Ready for owner acceptance
+**Status:** Accepted by the owner
 
 **Date:** 2026-08-22
 
 **Publication state:** Local commits only; nothing in Gate 6 has been pushed
+
+**Accepted:** 2026-08-22
 
 ## Exit-evidence traceability
 
@@ -39,7 +41,7 @@
 | 6A — content truth and revision expansion | `c7e8743` | Accepted 2026-08-22 | `SUBGATE_6A_RESULTS.md` |
 | 6B — immutable revision workflows | `c6ddcfe` | Accepted 2026-08-22 | `SUBGATE_6B_RESULTS.md` |
 | 6C — recoverable Trash | `71c3d82` | Accepted 2026-08-22 | `SUBGATE_6C_RESULTS.md` |
-| 6D — recovery and compatibility | `642735d` | Pending final acceptance | `SUBGATE_6D_RESULTS.md` |
+| 6D — recovery and compatibility | `642735d` | Accepted 2026-08-22 | `SUBGATE_6D_RESULTS.md` |
 
 Supporting evidence-only commits follow each implementation in local history. The
 immutable v5.1 release boundary remains source `f6ff55b`; Gate 6 is later local
@@ -64,6 +66,5 @@ check, non-root schema-8 container smoke, and the immutable v5.1 release contrac
 
 ## Final owner checkpoint
 
-Owner acceptance confirms that Gate 6 meets its exit evidence and authorizes the
-runbook to mark Gate 6 accepted. It does not authorize Gate 7 implementation; the
-next gate begins only on explicit owner direction.
+Accepted on 2026-08-22. The owner confirmed that Gate 6 meets its exit evidence and
+separately authorized Gate 7 to begin.

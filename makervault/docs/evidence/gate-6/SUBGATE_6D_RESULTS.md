@@ -2,13 +2,15 @@
 
 **Gate:** 6D — Recovery, compatibility, and Gate 6 closeout
 
-**Status:** Implementation complete; awaiting owner acceptance
+**Status:** Accepted by the owner
 
 **Date:** 2026-08-22
 
 **Entry commit:** `ae6f5ac`
 
 **Implementation commit:** `642735d`
+
+**Accepted:** 2026-08-22
 
 ## Delivered recovery truth
 
@@ -100,4 +102,5 @@ services left stopped during image selection.
 
 ## Owner checkpoint
 
-Accepting Gate 6D also accepts Gate 6 closeout. Gate 7 does not begin automatically.
+Accepted on 2026-08-22. This acceptance also closes Gate 6. The owner separately
+authorized Gate 7 to begin.

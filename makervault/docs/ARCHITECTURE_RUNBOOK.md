@@ -655,7 +655,7 @@ matched set. Never restore only one side of the pair.
 
 ### Gate 6 — Establish revisions and recoverable deletion
 
-**Current execution:** `READY FOR OWNER ACCEPTANCE`; the owner accepted ADRs 0006–0008 and
+**Current execution:** `ACCEPTED`; the owner accepted ADRs 0006–0008 and
 [the Gate 6 checkpoint](evidence/gate-6/OWNER_CHECKPOINT.md) on 2026-08-22, with
 capacity-aware Trash retention as the default. Current schema-5 behavior is recorded
 in [the Gate 6 baseline](evidence/gate-6/BASELINE.md). Subgate 6A content truth and
@@ -671,12 +671,13 @@ repository gate and focused workflow checks pass in
 implementation is complete at local commit `71c3d82`; focused safety tests and the
 full repository harness pass in
 [the 6C results](evidence/gate-6/SUBGATE_6C_RESULTS.md), accepted by the owner on
-2026-08-22. Subgate 6D recovery, compatibility, and closeout is in progress under
+2026-08-22. Subgate 6D recovery, compatibility, and closeout is complete under
 [its evidence contract](evidence/gate-6/SUBGATE_6D_BASELINE.md). Its implementation
 is complete at local commit `642735d`; schema-7 upgrade, format-1 compatibility,
 revision-aware backup/restore, and negative consistency evidence pass in
 [the 6D results](evidence/gate-6/SUBGATE_6D_RESULTS.md). All Gate 6 exit claims are
-mapped in [the Gate 6 closeout](evidence/gate-6/RESULTS.md), pending owner acceptance.
+mapped in [the Gate 6 closeout](evidence/gate-6/RESULTS.md). The owner accepted Gate
+6 and separately authorized Gate 7 to begin on 2026-08-22.
 
 **Objective:** Add trustworthy history before adding the larger Project model.
 
