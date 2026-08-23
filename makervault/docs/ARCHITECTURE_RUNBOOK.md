@@ -218,6 +218,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-022 | `VERIFIED` | The immutable v5.1/schema-5 boundary had one mutable primary-file state per Asset, no content digest or revisions, and immediate best-effort deletion outside a filesystem/database transaction. | Gate 6 source audit and `docs/evidence/gate-6/BASELINE.md` | This remains the measured migration baseline and pre-Gate-6 rollback boundary. |
 | T-023 | `DECIDED` | A bounded print-failure alert is a candidate experimental post-v5.1 track: disabled by default, advisory only, external-provider-first, and never a Gate 6 dependency. | `docs/EXPERIMENTAL_PRINT_MONITORING.md`, owner direction 2026-08-22 | Monitoring can be prototyped independently but cannot introduce printer-control authority or weaken active-gate evidence. |
 | T-024 | `VERIFIED` | Schema 8 provides content identity, immutable revision replacement/restore/export, metadata-only Trash, explicit retention/permanent deletion, and format-1 matched backup verification for every revision and purge journal. | `docs/evidence/gate-6/RESULTS.md`, Gate 6 API tests | Gate 7 may rely on stable artifact/revision ownership only after the owner accepts Gate 6 closeout. |
+| T-025 | `VERIFIED` | Schema 8 has no Project or artifact-relationship entity. Folders control browse/storage organization, `collection` is free-form metadata, and every current API/UI workflow addresses an Asset directly. | Gate 7 source audit and `docs/evidence/gate-7/BASELINE.md` | Projects must be additive and cannot reinterpret folders, collections, or existing Assets silently. |
 
 ### 5.4 Current storage invariants
 
@@ -706,6 +707,13 @@ implementation.
 until at least one stable release has proven the new read/write path.
 
 ### Gate 7 — Introduce Projects and relationships
+
+**Current execution:** `IN PROGRESS`; Gate 6 was accepted and the owner authorized
+Gate 7 to begin on 2026-08-22. Current schema-8 behavior and the proposed subgates
+are recorded in [the Gate 7 baseline](evidence/gate-7/BASELINE.md). The terminology,
+migration, membership, relationship, lifecycle, and export recommendations await
+the [Gate 7 owner checkpoint](evidence/gate-7/OWNER_CHECKPOINT.md); no Gate 7 schema
+implementation has begun.
 
 **Objective:** Represent the thing being built without creating an unnecessary
 grouping layer.
