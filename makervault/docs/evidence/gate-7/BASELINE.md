@@ -2,7 +2,7 @@
 
 **Gate:** 7 — Introduce Projects and relationships
 
-**Status:** In progress — subgate 7A evidence review
+**Status:** In progress — subgate 7B
 
 **Opened:** 2026-08-22
 
@@ -76,7 +76,7 @@ Gate 7 does not force a disruptive application-wide terminology rename.
 
 Implemented at local commit `6d06e6f`. Migration, API, membership, artifact Trash,
 and full-repository evidence are in [SUBGATE_7A_RESULTS.md](SUBGATE_7A_RESULTS.md),
-awaiting owner acceptance before 7B begins.
+accepted by the owner on 2026-08-23.
 
 ### 7B — Project workspace and retrieval
 
@@ -85,6 +85,9 @@ awaiting owner acceptance before 7B begins.
 - Let upload/import optionally add a new artifact to the current Project without
   changing its folder semantics.
 - Prove large Project lists and membership changes remain bounded.
+
+Opened after 7A acceptance under
+[the 7B implementation contract](SUBGATE_7B_BASELINE.md).
 
 ### 7C — Useful artifact relationships
 
@@ -142,5 +145,5 @@ The owner accepted [the decision package](OWNER_CHECKPOINT.md) and ADRs
 [0009](../../adr/0009-project-identity-and-membership.md),
 [0010](../../adr/0010-project-artifact-relationships.md), and
 [0011](../../adr/0011-project-lifecycle-export-and-recovery.md) on 2026-08-23.
-Subgate 7A is now in evidence review; later subgates retain their own
+Subgate 7A was accepted and 7B is in progress; later subgates retain their own
 evidence/acceptance stops.

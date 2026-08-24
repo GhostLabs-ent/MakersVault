@@ -2,13 +2,15 @@
 
 **Gate:** 7A — Project identity and membership expansion
 
-**Status:** Evidence review — awaiting owner acceptance
+**Status:** Accepted by the owner
 
 **Date:** 2026-08-23
 
 **Entry commit:** `7682971`
 
 **Implementation commit:** `6d06e6f`
+
+**Accepted:** 2026-08-23
 
 **Schema:** 8 -> 9
 
