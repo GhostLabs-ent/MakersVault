@@ -2,7 +2,7 @@
 
 **Gate:** 7B — Project workspace and retrieval
 
-**Status:** In progress
+**Status:** Implemented at `04c6b4c`; pending owner evidence acceptance
 
 **Opened:** 2026-08-23
 
@@ -80,3 +80,6 @@ is actually requested.
 
 Gate 7C relationships, 7D lifecycle/export, and 7E recovery closeout remain
 separate checkpoints. Nothing may be pushed, tagged, or published.
+
+Implementation and verification evidence are recorded in
+[SUBGATE_7B_RESULTS.md](SUBGATE_7B_RESULTS.md).

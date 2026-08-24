@@ -2,7 +2,7 @@
 
 **Gate:** 7 — Introduce Projects and relationships
 
-**Status:** In progress — subgate 7B
+**Status:** In progress — subgate 7B evidence review
 
 **Opened:** 2026-08-22
 
@@ -86,8 +86,11 @@ accepted by the owner on 2026-08-23.
   changing its folder semantics.
 - Prove large Project lists and membership changes remain bounded.
 
-Opened after 7A acceptance under
-[the 7B implementation contract](SUBGATE_7B_BASELINE.md).
+Implemented locally at `04c6b4c` under
+[the 7B implementation contract](SUBGATE_7B_BASELINE.md). Bounded retrieval,
+workspace, membership action, optional import association, cleanup, and the full
+repository gate pass are recorded in
+[SUBGATE_7B_RESULTS.md](SUBGATE_7B_RESULTS.md), pending owner acceptance.
 
 ### 7C — Useful artifact relationships
 
@@ -145,5 +148,5 @@ The owner accepted [the decision package](OWNER_CHECKPOINT.md) and ADRs
 [0009](../../adr/0009-project-identity-and-membership.md),
 [0010](../../adr/0010-project-artifact-relationships.md), and
 [0011](../../adr/0011-project-lifecycle-export-and-recovery.md) on 2026-08-23.
-Subgate 7A was accepted and 7B is in progress; later subgates retain their own
-evidence/acceptance stops.
+Subgate 7A was accepted. Subgate 7B is implemented and awaits owner evidence
+acceptance; later subgates retain their own evidence/acceptance stops.

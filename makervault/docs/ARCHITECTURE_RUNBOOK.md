@@ -219,7 +219,8 @@ be made explicit before deployment boundaries are multiplied.
 | T-023 | `DECIDED` | A bounded print-failure alert is a candidate experimental post-v5.1 track: disabled by default, advisory only, external-provider-first, and never a Gate 6 dependency. | `docs/EXPERIMENTAL_PRINT_MONITORING.md`, owner direction 2026-08-22 | Monitoring can be prototyped independently but cannot introduce printer-control authority or weaken active-gate evidence. |
 | T-024 | `VERIFIED` | Schema 8 provides content identity, immutable revision replacement/restore/export, metadata-only Trash, explicit retention/permanent deletion, and format-1 matched backup verification for every revision and purge journal. | `docs/evidence/gate-6/RESULTS.md`, Gate 6 API tests | Gate 7 may rely on stable artifact/revision ownership only after the owner accepts Gate 6 closeout. |
 | T-025 | `SUPERSEDED` | Schema 8 had no Project or artifact-relationship entity. Folders controlled browse/storage organization, `collection` was free-form metadata, and every API/UI workflow addressed an Asset directly. | Gate 7 source audit and `docs/evidence/gate-7/BASELINE.md` | This remains the measured pre-Project migration boundary. |
-| T-026 | `VERIFIED` | Schema 9 adds empty-by-default Project identity and explicit many-to-many artifact membership. Authenticated bounded APIs enforce active-name, metadata, membership, Trash-visibility, and artifact-purge ownership rules without changing artifact bytes or paths. | `docs/evidence/gate-7/SUBGATE_7A_RESULTS.md`, Project and migration tests | Gate 7B may now add retrieval UI on the accepted additive model. |
+| T-026 | `VERIFIED` | Schema 9 adds empty-by-default Project identity and explicit many-to-many artifact membership. Authenticated bounded APIs enforce active-name, metadata, membership, Trash-visibility, and artifact-purge ownership rules without changing artifact bytes or paths. | `docs/evidence/gate-7/SUBGATE_7A_RESULTS.md`, Project and migration tests | Gate 7B builds retrieval UI on the accepted additive model. |
+| T-027 | `VERIFIED` | Local Gate 7B implementation adds bounded Project navigation/workspaces, active-Project Unassigned retrieval, explicit membership actions, and optional Project-scoped ingestion while preserving standalone folders, artifact history, paths, bytes, and schema 9. | `docs/evidence/gate-7/SUBGATE_7B_RESULTS.md`, Project API/web workflow tests, full repository gate | Await owner evidence acceptance before relationship work; publication remains prohibited. |
 
 ### 5.4 Current storage invariants
 
@@ -714,8 +715,10 @@ membership, relationship, lifecycle, and export package plus ADRs 0009–0011 on
 2026-08-23. Subgate 7A is implemented at local commit `6d06e6f`; schema-8 migration,
 Project CRUD, many-to-many membership, artifact Trash interaction, and the complete
 repository gate pass in [the 7A results](evidence/gate-7/SUBGATE_7A_RESULTS.md),
-accepted by the owner on 2026-08-23. Subgate 7B is now open under
-[its implementation contract](evidence/gate-7/SUBGATE_7B_BASELINE.md).
+accepted by the owner on 2026-08-23. Subgate 7B is implemented locally at
+`04c6b4c`; its bounded workspace, retrieval, optional association, compensation,
+and full-gate evidence are in
+[the 7B results](evidence/gate-7/SUBGATE_7B_RESULTS.md), pending owner acceptance.
 
 **Objective:** Represent the thing being built without creating an unnecessary
 grouping layer.
@@ -739,7 +742,8 @@ organization; projects export and restore; relationships cannot orphan content;
 the UI improves retrieval rather than merely exposing a graph editor.
 
 **Owner checkpoint:** the architecture package and 7A evidence were approved on
-2026-08-23. Accept 7B workspace/retrieval evidence before relationship work begins.
+2026-08-23. Review and accept 7B workspace/retrieval evidence before relationship
+work begins.
 
 **Rollback:** legacy artifact browsing remains available through the compatibility
 window; project association is additive until verified.
@@ -1061,8 +1065,7 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Implement and verify [subgate 7B](evidence/gate-7/SUBGATE_7B_BASELINE.md) against
-the accepted schema-9 baseline, then stop for owner evidence review before 7C.
-Keep the
+Review [subgate 7B evidence](evidence/gate-7/SUBGATE_7B_RESULTS.md) and stop for
+owner acceptance before 7C relationship work. Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
 disabled by default; it is not part of Gate 7 acceptance.
