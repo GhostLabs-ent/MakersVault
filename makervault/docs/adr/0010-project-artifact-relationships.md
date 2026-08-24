@@ -1,8 +1,10 @@
 # ADR 0010: Project-scoped artifact relationships
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Proposed:** 2026-08-22
+
+**Accepted:** 2026-08-23
 
 ## Context
 
@@ -12,7 +14,7 @@ fact, duplicate existing attachment ownership, and leave assembly direction uncl
 A generic graph vocabulary would create UI and integrity work without a proven maker
 workflow.
 
-## Proposed decision
+## Decision
 
 Store three canonical directed relationship kinds inside one Project:
 

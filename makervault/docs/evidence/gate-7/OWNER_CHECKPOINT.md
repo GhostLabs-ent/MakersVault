@@ -1,11 +1,16 @@
 # Gate 7 Owner Checkpoint
 
-**Status:** Awaiting owner decision
+**Status:** Accepted by the owner
 
 **Prepared:** 2026-08-22
 
+**Accepted:** 2026-08-23
+
 Gate 7 changes how MakersVault represents the thing being built. These decisions
 must be accepted before schema implementation.
+
+The owner accepted the recommended package without amendments. This acceptance
+authorizes subgate 7A only; later subgates retain their evidence checkpoints.
 
 ## Recommended decision package
 

@@ -202,9 +202,9 @@ be made explicit before deployment boundaries are multiplied.
 | T-006 | `VERIFIED` | Auth is one environment-configured administrator with 12-hour HS256 JWTs. There is no user, role, revocation, or MFA model. | `api/auth.py`, models | Multi-user security is a later dedicated architecture gate. |
 | T-007 | `VERIFIED` | Some file handoffs place bearer material in URLs, including custom-protocol handoff. | API schemas/routes and bridge code | Replace broad reusable bearer URLs with narrow, short-lived grants. |
 | T-008 | `VERIFIED` | The bridge accepts custom protocol input, downloads a URL, caches the result, and launches a local application. | `slicer-bridge` source | The bridge is a workstation trust boundary and needs protocol hardening. |
-| T-009 | `VERIFIED` | Startup uses an ordered, immutable SQLite migration ledger at schema version 8, with dependency locking and fail-closed version/name checks. Schemas 6–8 add revision/content truth, immutable workflows, and recoverable Trash additively. | `api/migrations.py`, `api/db.py`, API migration tests | Larger model changes must extend this migration mechanism and retain old-database fixtures. |
+| T-009 | `VERIFIED` | Startup uses an ordered, immutable SQLite migration ledger at schema version 9, with dependency locking and fail-closed version/name checks. Schemas 6–9 add revision/content truth, immutable workflows, recoverable Trash, and Project membership additively. | `api/migrations.py`, `api/db.py`, API migration tests | Larger model changes must extend this migration mechanism and retain old-database fixtures. |
 | T-010 | `VERIFIED` | Metadata is split between SQLite and filesystem content; updates are not one atomic transaction. | API storage and asset services | File mutations require staging, compensation, and reconciliation. |
-| T-011 | `VERIFIED` | Current records include `Folder`, `Asset`, immutable `ArtifactRevision`, scoped `AssetFile`, durable content jobs, `TrashPurgeOperation`, and `AppConfig`; several bounded journal/result structures are stored as JSON text. | `api/models.py`, Gate 6 evidence | Project work must build on these records rather than replace data in place. |
+| T-011 | `VERIFIED` | Current records include `Folder`, `Asset`, `Project`, `ProjectMembership`, immutable `ArtifactRevision`, scoped `AssetFile`, durable content jobs, `TrashPurgeOperation`, and `AppConfig`; several bounded journal/result structures are stored as JSON text. | `api/models.py`, Gate 6 evidence, Gate 7A evidence | Relationships and workspace work must build on these records rather than replace data in place. |
 | T-012 | `VERIFIED` | Managed historical revisions, thumbnails, bundles, and purge quarantine use explicit storage layouts; no-copy revision records reference external paths. | revision/file/Trash services and Gate 6D recovery evidence | Backup completeness and storage invariants are enforced by schema-aware matched-pair verification. |
 | T-013 | `VERIFIED` | Mounted scans deduplicate primarily by source path and report details to process logs. | `api/mount_import.py` | A durable scan job/report is required for v5.1 observability. |
 | T-014 | `VERIFIED` | URL import performs important address checks, but redirect and DNS behavior still need adversarial tests. | `api/url_utils.py`, security review | SSRF safety is proven by tests at the security gate, not presumed. |
@@ -218,7 +218,8 @@ be made explicit before deployment boundaries are multiplied.
 | T-022 | `VERIFIED` | The immutable v5.1/schema-5 boundary had one mutable primary-file state per Asset, no content digest or revisions, and immediate best-effort deletion outside a filesystem/database transaction. | Gate 6 source audit and `docs/evidence/gate-6/BASELINE.md` | This remains the measured migration baseline and pre-Gate-6 rollback boundary. |
 | T-023 | `DECIDED` | A bounded print-failure alert is a candidate experimental post-v5.1 track: disabled by default, advisory only, external-provider-first, and never a Gate 6 dependency. | `docs/EXPERIMENTAL_PRINT_MONITORING.md`, owner direction 2026-08-22 | Monitoring can be prototyped independently but cannot introduce printer-control authority or weaken active-gate evidence. |
 | T-024 | `VERIFIED` | Schema 8 provides content identity, immutable revision replacement/restore/export, metadata-only Trash, explicit retention/permanent deletion, and format-1 matched backup verification for every revision and purge journal. | `docs/evidence/gate-6/RESULTS.md`, Gate 6 API tests | Gate 7 may rely on stable artifact/revision ownership only after the owner accepts Gate 6 closeout. |
-| T-025 | `VERIFIED` | Schema 8 has no Project or artifact-relationship entity. Folders control browse/storage organization, `collection` is free-form metadata, and every current API/UI workflow addresses an Asset directly. | Gate 7 source audit and `docs/evidence/gate-7/BASELINE.md` | Projects must be additive and cannot reinterpret folders, collections, or existing Assets silently. |
+| T-025 | `SUPERSEDED` | Schema 8 had no Project or artifact-relationship entity. Folders controlled browse/storage organization, `collection` was free-form metadata, and every API/UI workflow addressed an Asset directly. | Gate 7 source audit and `docs/evidence/gate-7/BASELINE.md` | This remains the measured pre-Project migration boundary. |
+| T-026 | `VERIFIED` | Schema 9 adds empty-by-default Project identity and explicit many-to-many artifact membership. Authenticated bounded APIs enforce active-name, metadata, membership, Trash-visibility, and artifact-purge ownership rules without changing artifact bytes or paths. | `docs/evidence/gate-7/SUBGATE_7A_RESULTS.md`, Project and migration tests | Gate 7B can add retrieval UI on the additive model after owner acceptance of 7A evidence. |
 
 ### 5.4 Current storage invariants
 
@@ -708,12 +709,12 @@ until at least one stable release has proven the new read/write path.
 
 ### Gate 7 — Introduce Projects and relationships
 
-**Current execution:** `IN PROGRESS`; Gate 6 was accepted and the owner authorized
-Gate 7 to begin on 2026-08-22. Current schema-8 behavior and the proposed subgates
-are recorded in [the Gate 7 baseline](evidence/gate-7/BASELINE.md). The terminology,
-migration, membership, relationship, lifecycle, and export recommendations await
-the [Gate 7 owner checkpoint](evidence/gate-7/OWNER_CHECKPOINT.md); no Gate 7 schema
-implementation has begun.
+**Current execution:** `IN PROGRESS`; the owner accepted the terminology, migration,
+membership, relationship, lifecycle, and export package plus ADRs 0009–0011 on
+2026-08-23. Subgate 7A is implemented at local commit `6d06e6f`; schema-8 migration,
+Project CRUD, many-to-many membership, artifact Trash interaction, and the complete
+repository gate pass in [the 7A results](evidence/gate-7/SUBGATE_7A_RESULTS.md).
+Those results await owner acceptance before 7B begins.
 
 **Objective:** Represent the thing being built without creating an unnecessary
 grouping layer.
@@ -736,8 +737,8 @@ grouping layer.
 organization; projects export and restore; relationships cannot orphan content;
 the UI improves retrieval rather than merely exposing a graph editor.
 
-**Owner checkpoint:** approve terminology, default migration experience, and first
-relationship set.
+**Owner checkpoint:** the architecture package was approved on 2026-08-23. Accept
+subgate 7A evidence before Project workspace/UI work begins in 7B.
 
 **Rollback:** legacy artifact browsing remains available through the compatibility
 window; project association is additive until verified.
@@ -1059,8 +1060,8 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Review and accept [subgate 6A evidence](evidence/gate-6/SUBGATE_6A_RESULTS.md).
-Once accepted, begin 6B with staged immutable primary replacement and a minimal
-current/history read path before adding restore or export. Keep the
+Review and accept [subgate 7A evidence](evidence/gate-7/SUBGATE_7A_RESULTS.md).
+Once accepted, open 7B with a measured Project workspace/navigation baseline before
+adding UI or optional upload/import membership. Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
-disabled by default; it is not part of Gate 6 acceptance.
+disabled by default; it is not part of Gate 7 acceptance.

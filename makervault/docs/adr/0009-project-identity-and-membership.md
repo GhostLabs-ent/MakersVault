@@ -1,8 +1,10 @@
 # ADR 0009: Project identity and artifact membership
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Proposed:** 2026-08-22
+
+**Accepted:** 2026-08-23
 
 ## Context
 
@@ -15,7 +17,7 @@ user intent. Requiring one Project per artifact would add empty hierarchy around
 the many useful standalone models already in a library. Restricting an artifact to
 one Project would force duplicate records for reusable components.
 
-## Proposed decision
+## Decision
 
 Add a stable `Project` identity and an explicit many-to-many Project/Asset membership
 join. `Asset` remains the compatibility table/API term for the domain Artifact.

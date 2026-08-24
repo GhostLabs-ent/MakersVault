@@ -1,8 +1,10 @@
 # ADR 0011: Project lifecycle, export, and recovery
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Proposed:** 2026-08-22
+
+**Accepted:** 2026-08-23
 
 ## Context
 
@@ -11,7 +13,7 @@ delete as recursive artifact deletion would be surprising and dangerous. Project
 export and backup must preserve relationship meaning without weakening the revision,
 prepared-payload, external ownership, or matched-pair contracts from Gate 6.
 
-## Proposed decision
+## Decision
 
 ### Trash and deletion
 

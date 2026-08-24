@@ -2,7 +2,7 @@
 
 **Gate:** 7 — Introduce Projects and relationships
 
-**Status:** In progress — architecture checkpoint pending
+**Status:** In progress — subgate 7A evidence review
 
 **Opened:** 2026-08-22
 
@@ -16,10 +16,10 @@ may be pushed until the owner changes the standing publication decision.
 ## Entry decision
 
 Gate 6 is accepted with stable artifact identity, immutable revisions, recoverable
-artifact Trash, and revision-aware matched backup. Gate 7 may design Projects on
-that foundation. Schema implementation waits for the owner to approve the terms,
-default migration experience, membership cardinality, relationship vocabulary, and
-Project lifecycle/export contract.
+artifact Trash, and revision-aware matched backup. On 2026-08-23 the owner accepted
+the Gate 7 terms, default migration experience, membership cardinality,
+relationship vocabulary, and Project lifecycle/export contract without amendment.
+That decision authorized subgate 7A implementation.
 
 ## Verified current truth
 
@@ -69,10 +69,14 @@ Gate 7 does not force a disruptive application-wide terminology rename.
 
 ### 7A — Project identity and membership expansion
 
-- Accept ADR 0009.
+- Accepted ADR 0009 on 2026-08-23.
 - Add Project and many-to-many Project membership without touching artifact bytes.
 - Leave every existing artifact Unassigned.
 - Add authenticated Project CRUD and membership APIs with strict validation.
+
+Implemented at local commit `6d06e6f`. Migration, API, membership, artifact Trash,
+and full-repository evidence are in [SUBGATE_7A_RESULTS.md](SUBGATE_7A_RESULTS.md),
+awaiting owner acceptance before 7B begins.
 
 ### 7B — Project workspace and retrieval
 
@@ -134,8 +138,9 @@ manual ledger edits are not authorized.
 
 ## Owner checkpoint
 
-The proposed decision package is [OWNER_CHECKPOINT.md](OWNER_CHECKPOINT.md), backed
-by proposed ADRs [0009](../../adr/0009-project-identity-and-membership.md),
+The owner accepted [the decision package](OWNER_CHECKPOINT.md) and ADRs
+[0009](../../adr/0009-project-identity-and-membership.md),
 [0010](../../adr/0010-project-artifact-relationships.md), and
-[0011](../../adr/0011-project-lifecycle-export-and-recovery.md). Approval authorizes
-7A only; later subgates retain their own evidence/acceptance stops.
+[0011](../../adr/0011-project-lifecycle-export-and-recovery.md) on 2026-08-23.
+Subgate 7A is now in evidence review; later subgates retain their own
+evidence/acceptance stops.
