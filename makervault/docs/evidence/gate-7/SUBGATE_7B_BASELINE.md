@@ -2,7 +2,7 @@
 
 **Gate:** 7B — Project workspace and retrieval
 
-**Status:** Implemented at `04c6b4c`; pending owner evidence acceptance
+**Status:** Accepted by the owner on 2026-08-23
 
 **Opened:** 2026-08-23
 

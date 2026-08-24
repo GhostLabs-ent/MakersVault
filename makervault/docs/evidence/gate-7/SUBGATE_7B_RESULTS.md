@@ -2,13 +2,15 @@
 
 **Gate:** 7B — Project workspace and retrieval
 
-**Status:** Implemented; pending owner evidence acceptance
+**Status:** Accepted by the owner
 
 **Date:** 2026-08-23
 
 **Entry commit:** `42e9397`
 
 **Implementation commit:** `04c6b4c`
+
+**Accepted:** 2026-08-23
 
 **Schema:** 9 (unchanged)
 
@@ -106,5 +108,5 @@ migration ledger or deleting files manually.
 - Gate 7E still owns schema-aware Project recovery checks, compatibility, and Gate
   7 closeout.
 
-Owner acceptance of this evidence may open Gate 7C planning/implementation. It does
-not authorize push, tag, publication, relationships, export, or later-gate work.
+The owner accepted this evidence on 2026-08-23 and authorized Gate 7C. The
+acceptance does not authorize push, tag, publication, export, or later-gate work.
