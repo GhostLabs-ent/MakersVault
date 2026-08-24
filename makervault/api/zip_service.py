@@ -19,6 +19,7 @@ from db import engine
 from file_utils import mime_from_content_type, sanitize_filename
 from folder_service import validate_parent_folder
 from models import Asset, Folder
+from project_service import add_project_membership, require_active_project
 from schemas import ImportZipExtractRequest
 from resource_limits import stream_reader_to_file
 
@@ -117,6 +118,8 @@ def extract_zip_entries_to_assets(zip_path: Path, selections: List[str], body: I
     with ZipFile(zip_path) as zf, Session(engine) as session:
         if body.folder_id:
             validate_parent_folder(session, body.folder_id)
+        if body.project_id:
+            require_active_project(session, body.project_id)
         folder_cache: dict = {}
         try:
             infos = bounded_archive_infos(zf)
@@ -156,7 +159,10 @@ def extract_zip_entries_to_assets(zip_path: Path, selections: List[str], body: I
                 elif dest.suffix.lower() == ".3mf":
                     ensure_model_thumbnail(asset.id, dest)
                 refreshed = finalize_asset_record(asset.id, size, mime, digest.hexdigest())
-                assets.append(refreshed or asset)
+                completed = refreshed or asset
+                if body.project_id:
+                    add_project_membership(session, body.project_id, completed.id)
+                assets.append(completed)
             except Exception:
                 cleanup_asset(asset.id)
                 failed.append(entry_name)

@@ -5,6 +5,7 @@ import Sidebar from "./Sidebar";
 import Login from "./Login";
 import Settings from "./Settings";
 import TrashView from "./TrashView";
+import ProjectWorkspace from "./ProjectWorkspace";
 import { apiHealth, getApiBase, refreshToken, type HealthInfo } from "../lib/api";
 import { clearToken, readToken, storeToken } from "../lib/auth";
 import { type AppSettings, type ResolvedTheme, loadSettings, resolveTheme, saveSettings } from "../lib/settings";
@@ -30,10 +31,12 @@ export default function App() {
   const [nonce, setNonce] = React.useState(0);
   const [folderId, setFolderId] = React.useState<string | null>(null);
   const [folderVersion, setFolderVersion] = React.useState(0);
+  const [projectId, setProjectId] = React.useState<string | null>(null);
+  const [projectsVersion, setProjectsVersion] = React.useState(0);
   const [health, setHealth] = React.useState<HealthInfo | null>(null);
   const [tokenTtl, setTokenTtl] = React.useState<number | null>(null);
   const [sessionExpired, setSessionExpired] = React.useState(false);
-  const [activeView, setActiveView] = React.useState<"library" | "settings" | "trash">("library");
+  const [activeView, setActiveView] = React.useState<"library" | "project" | "unassigned" | "settings" | "trash">("library");
   const [settingsSection, setSettingsSection] = React.useState<"root" | "trash">("root");
   const [settings, setSettings] = React.useState<AppSettings>(() => loadSettings());
   const resolvedTheme = React.useMemo(
@@ -82,11 +85,29 @@ export default function App() {
 
   const handleAssetsChanged = React.useCallback(() => {
     setNonce(n => n + 1);
+    setProjectsVersion(version => version + 1);
+  }, []);
+
+  const handleProjectsChanged = React.useCallback(() => {
+    setProjectsVersion(version => version + 1);
   }, []);
 
   const handleSelectFolder = React.useCallback((id: string | null) => {
     setFolderId(id);
+    setProjectId(null);
     setActiveView("library");
+  }, []);
+
+  const handleSelectProject = React.useCallback((id: string) => {
+    setFolderId(null);
+    setProjectId(id);
+    setActiveView("project");
+  }, []);
+
+  const handleSelectProjectUnassigned = React.useCallback(() => {
+    setFolderId(null);
+    setProjectId(null);
+    setActiveView("unassigned");
   }, []);
 
   const handleLogout = () => {
@@ -141,6 +162,11 @@ export default function App() {
         onFoldersChanged={handleFoldersChanged}
         foldersVersion={folderVersion}
         onAssetsChanged={handleAssetsChanged}
+        selectedProjectId={projectId}
+        onSelectProject={handleSelectProject}
+        onSelectProjectUnassigned={handleSelectProjectUnassigned}
+        projectsVersion={projectsVersion}
+        onProjectsChanged={handleProjectsChanged}
         onUnauthorized={handleUnauthorized}
         onOpenSettings={() => { setSettingsSection("root"); setActiveView("settings"); }}
         onOpenTrash={() => setActiveView("trash")}
@@ -170,9 +196,10 @@ export default function App() {
             />
           )}
           <div className="flex flex-wrap items-center gap-3">
-            {activeView === "library" ? (
+            {activeView === "library" || activeView === "project" || activeView === "unassigned" ? (
               <UploadBar
                 folderId={folderId}
+                projectId={activeView === "project" ? projectId : null}
                 makerworldCookie={settings.makerworld.cookie}
                 thingiverseCookie={settings.thingiverse.cookie}
                 onUploaded={handleAssetsChanged}
@@ -181,7 +208,7 @@ export default function App() {
             ) : (
               <button
                 className="px-3 py-2 rounded-md border border-panel-strong text-sm"
-                onClick={() => setActiveView("library")}
+                onClick={() => handleSelectFolder(null)}
               >
                 Back to library
               </button>
@@ -203,6 +230,29 @@ export default function App() {
             key={`${nonce + (folderId||'')}-${folderVersion}`}
             folderId={folderId}
             foldersVersion={folderVersion}
+            onSelectFolder={handleSelectFolder}
+            onUnauthorized={handleUnauthorized}
+            slicerSettings={settings.slicer}
+            engravingSettings={settings.engraving}
+            previewSettings={settings.previews}
+            theme={resolvedTheme}
+          />
+        ) : activeView === "project" && projectId ? (
+          <ProjectWorkspace
+            key={`${projectId}-${nonce}`}
+            projectId={projectId}
+            onProjectChanged={handleProjectsChanged}
+            onSelectFolder={handleSelectFolder}
+            onUnauthorized={handleUnauthorized}
+            slicerSettings={settings.slicer}
+            engravingSettings={settings.engraving}
+            previewSettings={settings.previews}
+            theme={resolvedTheme}
+          />
+        ) : activeView === "unassigned" ? (
+          <AssetGrid
+            key={`unassigned-${nonce}-${folderVersion}`}
+            projectUnassigned
             onSelectFolder={handleSelectFolder}
             onUnauthorized={handleUnauthorized}
             slicerSettings={settings.slicer}

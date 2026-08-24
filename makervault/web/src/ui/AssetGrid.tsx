@@ -3,6 +3,7 @@ import {
   CheckSquare2,
   ChevronRight,
   Download as DownloadIcon,
+  FolderMinus,
   FolderInput,
   FolderOpen,
   Tags as TagsIcon,
@@ -33,6 +34,7 @@ import {
   artifactHistoryExportUrl,
   listArtifactRevisions,
   restoreArtifactRevision,
+  removeProjectItem,
   uploadArtifactRevision,
 } from "../lib/api";
 import { buildHandoffProtocolUrl } from "../lib/handoff";
@@ -86,6 +88,10 @@ function rowsBatchSizeForWidth(width: number) {
 
 type Props = {
   folderId?: string | null;
+  projectId?: string | null;
+  projectName?: string | null;
+  projectUnassigned?: boolean;
+  onMembershipChanged?: () => void;
   foldersVersion?: number;
   onSelectFolder: (id: string | null) => void;
   onUnauthorized?: () => void;
@@ -109,6 +115,10 @@ type BulkStatus = {
 
 export default function AssetGrid({
   folderId,
+  projectId,
+  projectName,
+  projectUnassigned = false,
+  onMembershipChanged,
   foldersVersion = 0,
   onSelectFolder,
   onUnauthorized,
@@ -196,12 +206,16 @@ export default function AssetGrid({
         q: search,
         tags,
         folder_id: targetFolderId,
+        project_id: projectId || undefined,
+        project_unassigned: projectUnassigned,
         limit: pageSize,
         offset: 0,
       }),
       listTags({
         q: search,
         folder_id: targetFolderId,
+        project_id: projectId || undefined,
+        project_unassigned: projectUnassigned,
       }),
     ]);
 
@@ -231,6 +245,8 @@ export default function AssetGrid({
         q,
         tags: activeTags,
         folder_id: folderId || undefined,
+        project_id: projectId || undefined,
+        project_unassigned: projectUnassigned,
         limit: pageSize,
         offset,
       });
@@ -295,7 +311,7 @@ export default function AssetGrid({
       failed.push(...result.failed);
     };
     if (normalEntries.length) {
-      const result = await uploadEntriesToFolder(normalEntries, folderId || null, onUnauthorized);
+      const result = await uploadEntriesToFolder(normalEntries, folderId || null, onUnauthorized, projectId);
       applyResult(result);
     }
     for (const entry of zipEntries) {
@@ -306,7 +322,7 @@ export default function AssetGrid({
       await zipPrompt.prompt({
         label: entry.file.name,
         onImportAsZip: async () => {
-          const result = await uploadEntriesToFolder([entry], folderId || null, onUnauthorized);
+          const result = await uploadEntriesToFolder([entry], folderId || null, onUnauthorized, projectId);
           applyResult(result);
         },
         loadEntries: async () => {
@@ -320,13 +336,14 @@ export default function AssetGrid({
             zipData = result.data;
           }
           const unzipEntries = buildUploadEntriesFromZip(zipData || {}, selectedPaths, basePath);
-          const result = await uploadEntriesToFolder(unzipEntries, folderId || null, onUnauthorized);
+          const result = await uploadEntriesToFolder(unzipEntries, folderId || null, onUnauthorized, projectId);
           applyResult(result);
         },
       });
     }
     if (uploaded) {
       await refresh();
+      onMembershipChanged?.();
     }
     if (failed.length) {
       alert(`Failed to upload: ${failed.join(", ")}`);
@@ -337,7 +354,7 @@ export default function AssetGrid({
   useEffect(() => {
     clearSelection();
     void refresh();
-  }, [folderId]);
+  }, [folderId, projectId, projectUnassigned]);
   useEffect(() => {
     (async () => {
       try {
@@ -366,9 +383,11 @@ export default function AssetGrid({
   }, [folders]);
 
   const dropTargetName = useMemo(() => {
+    if (projectId) return projectName || "this Project";
+    if (projectUnassigned) return "Unassigned";
     if (!folderId) return "All Items";
     return folderById[folderId]?.name || "this folder";
-  }, [folderId, folderById]);
+  }, [folderId, folderById, projectId, projectName, projectUnassigned]);
 
   const folderNames = useMemo(() => {
     const m: Record<string, string> = {};
@@ -770,6 +789,19 @@ export default function AssetGrid({
     await refresh();
   };
 
+  const removeSelectedFromProject = async () => {
+    if (!projectId || !selectedIds.size) return;
+    if (!window.confirm(
+      `Remove ${selectedIds.size} selected Project item${selectedIds.size === 1 ? "" : "s"}? ` +
+      "The artifacts, folders, versions, and files will remain in the library."
+    )) return;
+    await runBulkMutation(
+      "Removing Project items",
+      asset => removeProjectItem(projectId, asset.id),
+    );
+    onMembershipChanged?.();
+  };
+
   const bulkBusy = Boolean(bulkStatus && !bulkStatus.done);
 
   const showDropOverlay = dragActive || dropUploading;
@@ -794,6 +826,16 @@ export default function AssetGrid({
       )}
       <div className="flex flex-col gap-4">
       <nav aria-label="Breadcrumb" className="flex min-h-9 items-center gap-1 overflow-x-auto text-sm text-muted">
+        {(projectId || projectUnassigned) ? (
+          <>
+            <span className="shrink-0 rounded-md px-2 py-1">Projects</span>
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-subtle" aria-hidden="true" />
+            <span className="shrink-0 rounded-md px-2 py-1 font-semibold text-foreground">
+              {projectUnassigned ? "Unassigned" : projectName || "Project"}
+            </span>
+          </>
+        ) : (
+          <>
         <button
           type="button"
           className={`shrink-0 rounded-md px-2 py-1 hover:bg-panel-soft hover:text-foreground ${!folderId ? "font-semibold text-foreground" : ""}`}
@@ -815,6 +857,8 @@ export default function AssetGrid({
             </button>
           </React.Fragment>
         ))}
+          </>
+        )}
       </nav>
       <div className="flex items-center gap-3 flex-wrap">
         <input
@@ -945,6 +989,16 @@ export default function AssetGrid({
               <DownloadIcon className="h-3.5 w-3.5" aria-hidden="true" />
               {bulkDownloading ? "Preparing…" : "Download"}
             </button>
+            {projectId && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-md border border-panel-strong px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
+                onClick={removeSelectedFromProject}
+                disabled={bulkBusy}
+              >
+                <FolderMinus className="h-3.5 w-3.5" aria-hidden="true" /> Remove from Project
+              </button>
+            )}
             <button
               type="button"
               className="inline-flex items-center gap-1.5 rounded-md border border-red-300 px-2.5 py-1.5 text-xs font-medium text-red-700 disabled:opacity-50 dark:text-red-300"
@@ -1031,9 +1085,17 @@ export default function AssetGrid({
         <div className="rounded-xl border border-dashed border-panel-strong bg-panel-soft px-6 py-10 text-center">
           <FolderOpen className="mx-auto h-8 w-8 text-subtle" aria-hidden="true" />
           <h2 className="mt-3 font-semibold">
-            {q || activeTags.length ? "No models match this view" : folderId ? "No models directly in this folder" : "Your vault is empty"}
+            {q || activeTags.length
+              ? "No Project items match this view"
+              : projectId
+                ? "No Project items yet"
+                : projectUnassigned
+                  ? "No Unassigned artifacts"
+                  : folderId
+                    ? "No models directly in this folder"
+                    : "Your vault is empty"}
           </h2>
-          {folderId && !q && !activeTags.length && childFolders.length > 0 ? (
+          {!projectId && !projectUnassigned && folderId && !q && !activeTags.length && childFolders.length > 0 ? (
             <div className="mt-3">
               <p className="text-sm text-muted">Continue into a subfolder:</p>
               <div className="mt-3 flex flex-wrap justify-center gap-2">

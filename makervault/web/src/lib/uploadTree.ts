@@ -86,7 +86,8 @@ export async function entriesFromDataTransfer(dataTransfer: DataTransfer): Promi
 export async function uploadEntriesToFolder(
   entries: UploadEntry[],
   parentFolderId: string | null,
-  onUnauthorized?: () => void
+  onUnauthorized?: () => void,
+  projectId?: string | null,
 ) {
   const failed: string[] = [];
   let uploaded = 0;
@@ -131,7 +132,10 @@ export async function uploadEntriesToFolder(
     if (aborted) break;
     if (targetFolderId === null && segments.length) continue;
     try {
-      await uploadAsset(entry.file, { folder_id: targetFolderId || undefined });
+      await uploadAsset(entry.file, {
+        folder_id: targetFolderId || undefined,
+        project_id: projectId || undefined,
+      });
       uploaded += 1;
       uploadedEntries.push(entry);
     } catch (err) {

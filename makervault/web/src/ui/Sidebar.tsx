@@ -15,7 +15,18 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { Folder, UnauthorizedError, createFolder, deleteFolder, downloadFolderZip, listFolders, updateFolder } from "../lib/api";
+import {
+  Folder,
+  Project,
+  UnauthorizedError,
+  createFolder,
+  createProject as createProjectRecord,
+  deleteFolder,
+  downloadFolderZip,
+  listFolders,
+  listProjects,
+  updateFolder,
+} from "../lib/api";
 import { entriesFromDataTransfer, uploadEntriesToFolder } from "../lib/uploadTree";
 import { buildUploadEntriesFromZip, isZipFile, readZipEntries } from "../lib/zipUtils";
 import TagInput from "./TagInput";
@@ -29,8 +40,13 @@ type Props = {
   onUnauthorized?: () => void;
   onOpenSettings?: () => void;
   onOpenTrash?: () => void;
-  activeView?: "library" | "settings" | "trash";
+  activeView?: "library" | "project" | "unassigned" | "settings" | "trash";
   onAssetsChanged?: () => void;
+  selectedProjectId?: string | null;
+  onSelectProject?: (id: string) => void;
+  onSelectProjectUnassigned?: () => void;
+  projectsVersion?: number;
+  onProjectsChanged?: () => void;
 };
 
 const DROP_ALL_ID = "__all";
@@ -45,6 +61,11 @@ export default function Sidebar({
   onOpenTrash,
   activeView = "library",
   onAssetsChanged,
+  selectedProjectId,
+  onSelectProject,
+  onSelectProjectUnassigned,
+  projectsVersion,
+  onProjectsChanged,
 }: Props) {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [creating, setCreating] = useState(false);
@@ -59,6 +80,13 @@ export default function Sidebar({
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [dropUploading, setDropUploading] = useState(false);
   const [query, setQuery] = useState("");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectQuery, setProjectQuery] = useState("");
+  const [projectOffset, setProjectOffset] = useState(0);
+  const [projectsHaveMore, setProjectsHaveMore] = useState(false);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
   const zipPrompt = useZipImportPrompt();
 
   const uploadWithZipPrompt = async (entries: Awaited<ReturnType<typeof entriesFromDataTransfer>>, folderId: string | null) => {
@@ -71,7 +99,12 @@ export default function Sidebar({
       failed.push(...result.failed);
     };
     if (normalEntries.length) {
-      const result = await uploadEntriesToFolder(normalEntries, folderId, onUnauthorized);
+      const result = await uploadEntriesToFolder(
+        normalEntries,
+        folderId,
+        onUnauthorized,
+        activeView === "project" ? selectedProjectId : null
+      );
       applyResult(result);
     }
     for (const entry of zipEntries) {
@@ -82,7 +115,12 @@ export default function Sidebar({
       await zipPrompt.prompt({
         label: entry.file.name,
         onImportAsZip: async () => {
-          const result = await uploadEntriesToFolder([entry], folderId, onUnauthorized);
+          const result = await uploadEntriesToFolder(
+            [entry],
+            folderId,
+            onUnauthorized,
+            activeView === "project" ? selectedProjectId : null
+          );
           applyResult(result);
         },
         loadEntries: async () => {
@@ -96,7 +134,12 @@ export default function Sidebar({
             zipData = result.data;
           }
           const unzipEntries = buildUploadEntriesFromZip(zipData || {}, selectedPaths, basePath);
-          const result = await uploadEntriesToFolder(unzipEntries, folderId, onUnauthorized);
+          const result = await uploadEntriesToFolder(
+            unzipEntries,
+            folderId,
+            onUnauthorized,
+            activeView === "project" ? selectedProjectId : null
+          );
           applyResult(result);
         },
       });
@@ -211,6 +254,48 @@ export default function Sidebar({
     }
   };
   useEffect(() => { refresh(); }, [foldersVersion]);
+
+  const refreshProjects = async (reset = true) => {
+    if (projectsLoading) return;
+    setProjectsLoading(true);
+    const offset = reset ? 0 : projectOffset;
+    try {
+      const result = await listProjects({
+        q: projectQuery.trim() || undefined,
+        limit: 50,
+        offset,
+      });
+      setProjects(current => reset ? result.items : [...current, ...result.items]);
+      setProjectOffset(result.nextOffset ?? offset + result.items.length);
+      setProjectsHaveMore(result.hasMore);
+    } catch (err) {
+      handleError(err, "Unable to load Projects.");
+    } finally {
+      setProjectsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void refreshProjects(true); }, 250);
+    return () => window.clearTimeout(timer);
+  }, [projectQuery, projectsVersion]);
+
+  const createProject = async () => {
+    const name = newProjectName.trim();
+    if (!name) return;
+    setBusy(true);
+    try {
+      const project = await createProjectRecord({ name });
+      setCreatingProject(false);
+      setNewProjectName("");
+      onProjectsChanged?.();
+      onSelectProject?.(project.id);
+    } catch (err) {
+      handleError(err, "Project creation failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const startCreate = (parentId: string | null = null) => {
     setEditing(null);
@@ -495,15 +580,63 @@ export default function Sidebar({
         <div className="min-w-0">
           <p className="sidebar-eyebrow">Makers Vault</p>
           <div className="flex items-center gap-2">
-            <h2 className="sidebar-title">Library</h2>
-            <span className="sidebar-count" title={`${folders.length} folders`}>{folders.length}</span>
+            <h2 className="sidebar-title">Workspace</h2>
+            <span className="sidebar-count" title={`${projects.length} loaded Projects`}>{projects.length}</span>
           </div>
         </div>
-        <button className="sidebar-new-button" onClick={() => startCreate(null)} title="New folder">
+        <button className="sidebar-new-button" onClick={() => setCreatingProject(true)} title="New Project">
           <Plus className="h-4 w-4" />
-          <span>New</span>
+          <span>Project</span>
         </button>
       </div>
+
+      <div className="min-h-0 max-h-[42%] overflow-y-auto overflow-x-hidden border-b border-panel pb-3 pr-0.5" aria-label="Projects">
+        <div className="sidebar-section-heading"><span>Projects</span><span>{projects.length}</span></div>
+        <label className="sidebar-search">
+          <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <input value={projectQuery} onChange={event => setProjectQuery(event.target.value)} placeholder="Search Projects" aria-label="Search Projects" />
+          {projectQuery && <button type="button" onClick={() => setProjectQuery("")} aria-label="Clear Project search"><X className="h-3.5 w-3.5" /></button>}
+        </label>
+        <button
+          className={`sidebar-all-items ${activeView === "unassigned" ? "is-selected" : ""}`}
+          onClick={onSelectProjectUnassigned}
+        >
+          <span className="sidebar-all-icon"><Layers3 className="h-4 w-4" /></span>
+          <span className="flex-1 text-left">Unassigned</span>
+        </button>
+        <div className="sidebar-tree">
+          {projects.map(project => (
+            <button
+              key={project.id}
+              type="button"
+              className={`sidebar-tree-row w-full ${selectedProjectId === project.id && activeView === "project" ? "is-selected" : ""}`}
+              onClick={() => onSelectProject?.(project.id)}
+              title={project.name}
+            >
+              <span className="sidebar-tree-spacer" aria-hidden="true" />
+              <span className="sidebar-tree-label min-w-0">
+                <Layers3 className="sidebar-folder-icon" aria-hidden="true" />
+                <span className="truncate">{project.name}</span>
+              </span>
+              <span className="sidebar-count">{project.member_count}</span>
+            </button>
+          ))}
+          {!projects.length && !projectsLoading && <div className="sidebar-empty"><Layers3 className="h-5 w-5" /><span>{projectQuery ? "No matching Projects" : "No Projects yet"}</span></div>}
+          {projectsHaveMore && <button type="button" className="sidebar-menu-item justify-center" disabled={projectsLoading} onClick={() => void refreshProjects(false)}>{projectsLoading ? "Loading…" : "Load more Projects"}</button>}
+        </div>
+      </div>
+
+      {creatingProject && (
+        <div className="sidebar-editor" role="dialog" aria-label="Create Project">
+          <div className="sidebar-editor-heading">
+            <span className="sidebar-editor-icon"><Layers3 className="h-4 w-4" /></span>
+            <div><strong>New Project</strong><small>The thing you are building</small></div>
+            <button onClick={() => setCreatingProject(false)} aria-label="Cancel"><X className="h-4 w-4" /></button>
+          </div>
+          <label><span>Name</span><input autoFocus value={newProjectName} onChange={event => setNewProjectName(event.target.value)} onKeyDown={event => { if (event.key === "Enter") void createProject(); if (event.key === "Escape") setCreatingProject(false); }} placeholder="Project name" /></label>
+          <div className="sidebar-editor-actions"><button className="primary" disabled={busy || !newProjectName.trim()} onClick={createProject}><Check className="h-4 w-4" /> Create</button><button onClick={() => setCreatingProject(false)}>Cancel</button></div>
+        </div>
+      )}
 
       <label className="sidebar-search">
         <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -522,7 +655,7 @@ export default function Sidebar({
 
       <nav className="sidebar-navigation" aria-label="Library folders">
         <button
-          className={`sidebar-all-items ${!selectedId ? "is-selected" : ""} ${dropTargetId === DROP_ALL_ID ? "is-drop-target" : ""}`}
+          className={`sidebar-all-items ${activeView === "library" && !selectedId ? "is-selected" : ""} ${dropTargetId === DROP_ALL_ID ? "is-drop-target" : ""}`}
           onClick={() => onSelect(null)}
           onDragOver={handleDragOverTarget(DROP_ALL_ID)}
           onDrop={handleDropFiles(null)}
@@ -534,7 +667,17 @@ export default function Sidebar({
 
         <div className="sidebar-section-heading">
           <span>Folders</span>
-          <span>{visibleFolderIds ? visibleFolderIds.size : folders.length}</span>
+          <span className="flex items-center gap-2">
+            <span>{visibleFolderIds ? visibleFolderIds.size : folders.length}</span>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 rounded px-1.5 py-1 normal-case tracking-normal hover:bg-panel-soft hover:text-foreground"
+              onClick={() => startCreate(null)}
+              title="New root folder"
+            >
+              <FolderPlus className="h-3.5 w-3.5" /> New
+            </button>
+          </span>
         </div>
 
         <div className="sidebar-tree">

@@ -13,12 +13,13 @@ import { useZipImportPrompt } from "./ZipImportModal";
 type Props = {
   onUploaded: () => void;
   folderId?: string | null;
+  projectId?: string | null;
   makerworldCookie?: string | null;
   thingiverseCookie?: string | null;
   onUnauthorized?: () => void;
 };
 
-export default function UploadBar({ onUploaded, folderId, makerworldCookie, thingiverseCookie, onUnauthorized }: Props) {
+export default function UploadBar({ onUploaded, folderId, projectId, makerworldCookie, thingiverseCookie, onUnauthorized }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -45,7 +46,7 @@ export default function UploadBar({ onUploaded, folderId, makerworldCookie, thin
       failed.push(...result.failed);
     };
     if (normalEntries.length) {
-      const result = await uploadEntriesToFolder(normalEntries, folderId || null, onUnauthorized);
+      const result = await uploadEntriesToFolder(normalEntries, folderId || null, onUnauthorized, projectId);
       applyResult(result);
     }
     for (const entry of zipEntries) {
@@ -56,7 +57,7 @@ export default function UploadBar({ onUploaded, folderId, makerworldCookie, thin
       await zipPrompt.prompt({
         label: entry.file.name,
         onImportAsZip: async () => {
-          const result = await uploadEntriesToFolder([entry], folderId || null, onUnauthorized);
+          const result = await uploadEntriesToFolder([entry], folderId || null, onUnauthorized, projectId);
           applyResult(result);
         },
         loadEntries: async () => {
@@ -70,7 +71,7 @@ export default function UploadBar({ onUploaded, folderId, makerworldCookie, thin
             zipData = result.data;
           }
           const unzipEntries = buildUploadEntriesFromZip(zipData || {}, selectedPaths, basePath);
-          const result = await uploadEntriesToFolder(unzipEntries, folderId || null, onUnauthorized);
+          const result = await uploadEntriesToFolder(unzipEntries, folderId || null, onUnauthorized, projectId);
           applyResult(result);
         },
       });
@@ -106,6 +107,7 @@ export default function UploadBar({ onUploaded, folderId, makerworldCookie, thin
       const payload = {
         url,
         folder_id: folderId || undefined,
+        project_id: projectId || undefined,
         makerworld_cookie: cookie || undefined,
         thingiverse_cookie: thingiverse || undefined,
       };
@@ -233,4 +235,3 @@ export default function UploadBar({ onUploaded, folderId, makerworldCookie, thin
     </>
   );
 }
-

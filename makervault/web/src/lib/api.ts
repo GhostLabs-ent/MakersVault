@@ -66,6 +66,41 @@ export type Asset = {
   current_revision_id?: string | null;
 };
 
+export type Project = {
+  id: string;
+  name: string;
+  notes?: string | null;
+  creator?: string | null;
+  source_url?: string | null;
+  license?: string | null;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+  member_count: number;
+};
+
+export type ProjectInput = {
+  name: string;
+  notes?: string | null;
+  creator?: string | null;
+  source_url?: string | null;
+  license?: string | null;
+  tags?: string[];
+};
+
+export type ProjectMembership = {
+  project_id: string;
+  asset_id: string;
+  created_at: string;
+};
+
+export type ListProjectsResult = {
+  items: Project[];
+  hasMore: boolean;
+  nextOffset?: number;
+};
+
 export type PreparedPrint = {
   printer?: string | null;
   material?: string | null;
@@ -332,6 +367,8 @@ export async function listAssets(params: {
   q?: string;
   tags?: string[];
   folder_id?: string;
+  project_id?: string;
+  project_unassigned?: boolean;
   limit?: number;
   offset?: number;
 } = {}): Promise<ListAssetsResult> {
@@ -339,6 +376,8 @@ export async function listAssets(params: {
   if (params.q) qs.set("q", params.q);
   if (params.tags && params.tags.length) qs.set("tags", params.tags.join(","));
   if (params.folder_id) qs.set("folder_id", params.folder_id);
+  if (params.project_id) qs.set("project_id", params.project_id);
+  if (params.project_unassigned) qs.set("project_unassigned", "true");
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
   if (typeof params.offset === "number") qs.set("offset", String(params.offset));
   const res = await fetch(`${apiBase()}/assets?${qs.toString()}`, {
@@ -356,11 +395,15 @@ export async function listTags(params: {
   q?: string;
   tags?: string[];
   folder_id?: string;
+  project_id?: string;
+  project_unassigned?: boolean;
 } = {}): Promise<string[]> {
   const qs = new URLSearchParams();
   if (params.q) qs.set("q", params.q);
   if (params.tags && params.tags.length) qs.set("tags", params.tags.join(","));
   if (params.folder_id) qs.set("folder_id", params.folder_id);
+  if (params.project_id) qs.set("project_id", params.project_id);
+  if (params.project_unassigned) qs.set("project_unassigned", "true");
   const res = await fetch(`${apiBase()}/tags?${qs.toString()}`, {
     headers: authHeaders(),
   });
@@ -370,7 +413,7 @@ export async function listTags(params: {
 
 export async function uploadAsset(
   file: File,
-  opts: { title?: string; notes?: string; tags?: string[]; folder_id?: string }
+  opts: { title?: string; notes?: string; tags?: string[]; folder_id?: string; project_id?: string }
  = {}
 ) {
   const fd = new FormData();
@@ -379,6 +422,7 @@ export async function uploadAsset(
   if (opts.notes) fd.set("notes", opts.notes);
   if (opts.tags && opts.tags.length) fd.set("tags", opts.tags.join(","));
   if (opts.folder_id) fd.set("folder_id", opts.folder_id);
+  if (opts.project_id) fd.set("project_id", opts.project_id);
   const res = await fetch(`${apiBase()}/upload`, {
     method: "POST",
     body: fd,
@@ -400,6 +444,7 @@ export async function importFromLink(payload: {
   notes?: string;
   tags?: string[];
   folder_id?: string;
+  project_id?: string;
   filename?: string;
   makerworld_cookie?: string;
   thingiverse_cookie?: string;
@@ -431,6 +476,7 @@ export async function inspectImportLink(payload: {
   notes?: string;
   tags?: string[];
   folder_id?: string;
+  project_id?: string;
   filename?: string;
   makerworld_cookie?: string;
   thingiverse_cookie?: string;
@@ -456,6 +502,7 @@ export async function listImportZipEntries(payload: {
   notes?: string;
   tags?: string[];
   folder_id?: string;
+  project_id?: string;
   filename?: string;
   makerworld_cookie?: string;
   thingiverse_cookie?: string;
@@ -482,6 +529,7 @@ export async function importZipFromLink(payload: {
   notes?: string;
   tags?: string[];
   folder_id?: string;
+  project_id?: string;
   filename?: string;
   makerworld_cookie?: string;
   thingiverse_cookie?: string;
@@ -795,6 +843,92 @@ export function fileUrl(rel: string) {
   // API returns relative URLs. Join with API base.
   if (!rel) return rel;
   return appendTokenToUrl(`${apiBase()}${rel}`);
+}
+
+// Projects ------------------------------------------------------
+
+function pageResult<T>(res: Response, items: T[]) {
+  const hasMore = (res.headers.get("X-Has-More") || "").toLowerCase() === "true";
+  const nextOffsetRaw = res.headers.get("X-Next-Offset");
+  const nextOffset = nextOffsetRaw ? Number(nextOffsetRaw) : undefined;
+  return { items, hasMore, nextOffset };
+}
+
+export async function listProjects(params: {
+  q?: string;
+  limit?: number;
+  offset?: number;
+} = {}): Promise<ListProjectsResult> {
+  const qs = new URLSearchParams();
+  if (params.q) qs.set("q", params.q);
+  if (typeof params.limit === "number") qs.set("limit", String(params.limit));
+  if (typeof params.offset === "number") qs.set("offset", String(params.offset));
+  const res = await fetch(`${apiBase()}/projects?${qs.toString()}`, { headers: authHeaders() });
+  assertOk(res, "Failed to list Projects");
+  return pageResult(res, await res.json());
+}
+
+export async function getProject(id: string): Promise<Project> {
+  const res = await fetch(`${apiBase()}/project/${id}`, { headers: authHeaders() });
+  assertOk(res, "Failed to load Project");
+  return res.json();
+}
+
+export async function createProject(payload: ProjectInput): Promise<Project> {
+  const res = await fetch(`${apiBase()}/projects`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Project creation failed"));
+  return res.json();
+}
+
+export async function updateProject(id: string, payload: Partial<ProjectInput>): Promise<Project> {
+  const res = await fetch(`${apiBase()}/project/${id}`, {
+    method: "PATCH",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Project update failed"));
+  return res.json();
+}
+
+export async function listProjectCandidates(
+  id: string,
+  params: { q?: string; tags?: string[]; limit?: number; offset?: number } = {},
+): Promise<ListAssetsResult> {
+  const qs = new URLSearchParams();
+  if (params.q) qs.set("q", params.q);
+  if (params.tags?.length) qs.set("tags", params.tags.join(","));
+  if (typeof params.limit === "number") qs.set("limit", String(params.limit));
+  if (typeof params.offset === "number") qs.set("offset", String(params.offset));
+  const res = await fetch(`${apiBase()}/project/${id}/candidates?${qs.toString()}`, {
+    headers: authHeaders(),
+  });
+  assertOk(res, "Failed to load Project candidates");
+  return pageResult(res, await res.json());
+}
+
+export async function addProjectItem(projectId: string, assetId: string): Promise<ProjectMembership> {
+  const res = await fetch(`${apiBase()}/project/${projectId}/items/${assetId}`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to add Project item"));
+  return res.json();
+}
+
+export async function removeProjectItem(projectId: string, assetId: string): Promise<void> {
+  const res = await fetch(`${apiBase()}/project/${projectId}/items/${assetId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to remove Project item"));
 }
 
 // Folders -------------------------------------------------------

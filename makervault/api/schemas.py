@@ -14,6 +14,7 @@ class ImportRequest(BaseModel):
   notes: Optional[str] = None
   tags: List[str] = []
   folder_id: Optional[str] = None
+  project_id: Optional[str] = None
   filename: Optional[str] = None
   makerworld_cookie: Optional[str] = None
   thingiverse_cookie: Optional[str] = None

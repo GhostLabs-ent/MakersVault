@@ -96,6 +96,7 @@ from models import (
     Folder,
     MountScan,
     Project,
+    ProjectMembership,
 )
 from migrations import run_migrations
 from prepared_print import prepared_filename
@@ -107,7 +108,6 @@ from preview_policy import (
 )
 from project_service import (
     active_member_counts,
-    active_project_members,
     add_project_membership,
     create_project,
     remove_project_membership,
@@ -350,6 +350,20 @@ def project_to_out(project: Project, member_count: int = 0) -> ProjectOut:
         deleted_at=project.deleted_at,
         member_count=member_count,
     )
+
+
+def validate_project_association(project_id: Optional[str]) -> None:
+    if not project_id:
+        return
+    with Session(engine) as session:
+        require_active_project(session, project_id)
+
+
+def associate_asset_with_project(asset_id: str, project_id: Optional[str]) -> None:
+    if not project_id:
+        return
+    with Session(engine) as session:
+        add_project_membership(session, project_id, asset_id)
 
 
 def to_out(a: Asset) -> AssetOut:
@@ -704,8 +718,10 @@ async def upload(
     notes: Optional[str] = Form(default=None),
     tags: Optional[str] = Form(default=None),  # comma-separated
     folder_id: Optional[str] = Form(default=None),
+    project_id: Optional[str] = Form(default=None),
     _: Optional[str] = Depends(require_auth),
 ):
+    validate_project_association(project_id)
     safe_name = sanitize_filename(file.filename)
     asset = create_asset_record(
         safe_name,
@@ -725,6 +741,7 @@ async def upload(
         elif dest.suffix.lower() == ".3mf":
             ensure_model_thumbnail(asset.id, dest)
         asset = finalize_asset_record(asset.id, size, asset.mime, digest.hexdigest()) or asset
+        associate_asset_with_project(asset.id, project_id)
         return to_out(asset)
     except Exception:
         cleanup_asset(asset.id)
@@ -733,9 +750,15 @@ async def upload(
 
 @app.post("/import", response_model=AssetOut)
 def import_from_link(body: ImportRequest, _: Optional[str] = Depends(require_auth)):
+    validate_project_association(body.project_id)
     url = normalize_import_url(body.url)
     asset = import_asset_from_url(url, body)
-    return to_out(asset)
+    try:
+        associate_asset_with_project(asset.id, body.project_id)
+        return to_out(asset)
+    except Exception:
+        cleanup_asset(asset.id)
+        raise
 
 
 @app.post("/import/inspect", response_model=ImportInspectOut)
@@ -769,6 +792,7 @@ def list_import_zip_entries(body: ImportZipEntriesRequest, _: Optional[str] = De
 
 @app.post("/import/zip", response_model=ImportZipResult)
 def import_zip_entries(body: ImportZipExtractRequest, _: Optional[str] = Depends(require_auth)):
+    validate_project_association(body.project_id)
     url = normalize_import_url(body.url)
     tmp_path, filename, _ = download_import_to_temp(url, body)
     try:
@@ -1237,8 +1261,31 @@ def request_preview_retry(asset_id: str, _: Optional[str] = Depends(require_auth
         return to_out(asset)
 
 
-def apply_asset_filters(stmt, q: Optional[str], tags: Optional[str], folder_id: Optional[str]):
+def apply_asset_filters(
+    stmt,
+    q: Optional[str],
+    tags: Optional[str],
+    folder_id: Optional[str],
+    project_id: Optional[str] = None,
+    project_unassigned: bool = False,
+):
     stmt = stmt.where(Asset.deleted_at == None)  # noqa: E711
+    if project_id:
+        stmt = stmt.join(
+            ProjectMembership,
+            ProjectMembership.asset_id == Asset.id,
+        ).where(ProjectMembership.project_id == project_id)
+    elif project_unassigned:
+        active_membership = (
+            select(ProjectMembership.asset_id)
+            .join(Project, Project.id == ProjectMembership.project_id)
+            .where(
+                ProjectMembership.asset_id == Asset.id,
+                Project.deleted_at == None,  # noqa: E711
+            )
+            .exists()
+        )
+        stmt = stmt.where(~active_membership)
     if q:
         qlike = f"%{q}%"
         stmt = stmt.where(
@@ -1263,12 +1310,25 @@ def list_assets(
     q: Optional[str] = None,
     tags: Optional[str] = Query(default=None, description="Comma-separated tags"),
     folder_id: Optional[str] = None,
+    project_id: Optional[str] = None,
+    project_unassigned: bool = False,
     limit: Optional[int] = Query(default=None, ge=1, le=1000),
     offset: Optional[int] = Query(default=None, ge=0),
     _: Optional[str] = Depends(require_auth),
 ):
+    if project_id and project_unassigned:
+        raise HTTPException(status_code=422, detail="Choose a Project or Unassigned, not both")
     with Session(engine) as s:
-        stmt = apply_asset_filters(select(Asset), q, tags, folder_id)
+        if project_id:
+            require_active_project(s, project_id)
+        stmt = apply_asset_filters(
+            select(Asset),
+            q,
+            tags,
+            folder_id,
+            project_id,
+            project_unassigned,
+        )
         stmt = stmt.order_by(Asset.name, Asset.filename, Asset.id)
         if limit is not None:
             stmt = stmt.limit(limit + 1)
@@ -1293,10 +1353,23 @@ def list_tags(
     q: Optional[str] = None,
     tags: Optional[str] = Query(default=None, description="Comma-separated tags"),
     folder_id: Optional[str] = None,
+    project_id: Optional[str] = None,
+    project_unassigned: bool = False,
     _: Optional[str] = Depends(require_auth),
 ):
+    if project_id and project_unassigned:
+        raise HTTPException(status_code=422, detail="Choose a Project or Unassigned, not both")
     with Session(engine) as s:
-        stmt = apply_asset_filters(select(Asset.tags_json), q, tags, folder_id)
+        if project_id:
+            require_active_project(s, project_id)
+        stmt = apply_asset_filters(
+            select(Asset.tags_json),
+            q,
+            tags,
+            folder_id,
+            project_id,
+            project_unassigned,
+        )
         rows = list(s.exec(stmt))
 
     found: set[str] = set()
@@ -1490,6 +1563,7 @@ def update_trash_settings(
 
 @app.get("/projects", response_model=List[ProjectOut])
 def list_projects(
+    response: Response,
     q: Optional[str] = Query(default=None, max_length=200),
     limit: int = Query(default=100, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
@@ -1508,9 +1582,14 @@ def list_projects(
             )
         projects = list(
             session.exec(
-                statement.order_by(Project.name, Project.id).offset(offset).limit(limit)
+                statement.order_by(Project.name, Project.id).offset(offset).limit(limit + 1)
             )
         )
+        has_more = len(projects) > limit
+        if has_more:
+            projects = projects[:limit]
+        response.headers["X-Has-More"] = "true" if has_more else "false"
+        response.headers["X-Next-Offset"] = str(offset + len(projects))
         counts = active_member_counts(session, [project.id for project in projects])
         return [project_to_out(project, counts.get(project.id, 0)) for project in projects]
 
@@ -1554,17 +1633,89 @@ def delete_project(project_id: str, _: Optional[str] = Depends(require_auth)):
 @app.get("/project/{project_id}/items", response_model=List[AssetOut])
 def list_project_items(
     project_id: str,
+    response: Response,
+    q: Optional[str] = Query(default=None, max_length=200),
+    tags: Optional[str] = Query(default=None, description="Comma-separated tags"),
     limit: int = Query(default=200, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     _: Optional[str] = Depends(require_auth),
 ):
     with Session(engine) as session:
-        assets = active_project_members(
-            session,
+        require_active_project(session, project_id)
+        statement = apply_asset_filters(
+            select(Asset),
+            q,
+            tags,
+            None,
             project_id,
-            limit=limit,
-            offset=offset,
         )
+        assets = list(session.exec(
+            statement.order_by(Asset.name, Asset.filename, Asset.id)
+            .offset(offset)
+            .limit(limit + 1)
+        ))
+        has_more = len(assets) > limit
+        if has_more:
+            assets = assets[:limit]
+        response.headers["X-Has-More"] = "true" if has_more else "false"
+        response.headers["X-Next-Offset"] = str(offset + len(assets))
+        return [to_out(asset) for asset in assets]
+
+
+@app.get("/project/{project_id}/tags", response_model=List[str])
+def list_project_tags(project_id: str, _: Optional[str] = Depends(require_auth)):
+    with Session(engine) as session:
+        require_active_project(session, project_id)
+        rows = list(session.exec(apply_asset_filters(
+            select(Asset.tags_json),
+            None,
+            None,
+            None,
+            project_id,
+        )))
+    found: set[str] = set()
+    for raw in rows:
+        try:
+            parsed = json.loads(raw or "[]")
+        except (TypeError, ValueError):
+            continue
+        if isinstance(parsed, list):
+            found.update(tag.strip() for tag in parsed if isinstance(tag, str) and tag.strip())
+    return sorted(found, key=str.casefold)
+
+
+@app.get("/project/{project_id}/candidates", response_model=List[AssetOut])
+def list_project_candidates(
+    project_id: str,
+    response: Response,
+    q: Optional[str] = Query(default=None, max_length=200),
+    tags: Optional[str] = Query(default=None, description="Comma-separated tags"),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        require_active_project(session, project_id)
+        membership_exists = select(ProjectMembership.asset_id).where(
+            ProjectMembership.project_id == project_id,
+            ProjectMembership.asset_id == Asset.id,
+        ).exists()
+        statement = apply_asset_filters(
+            select(Asset).where(~membership_exists),
+            q,
+            tags,
+            None,
+        )
+        assets = list(session.exec(
+            statement.order_by(Asset.name, Asset.filename, Asset.id)
+            .offset(offset)
+            .limit(limit + 1)
+        ))
+        has_more = len(assets) > limit
+        if has_more:
+            assets = assets[:limit]
+        response.headers["X-Has-More"] = "true" if has_more else "false"
+        response.headers["X-Next-Offset"] = str(offset + len(assets))
         return [to_out(asset) for asset in assets]
 
 
