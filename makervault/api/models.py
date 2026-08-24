@@ -40,6 +40,25 @@ class Asset(SQLModel, table=True):
   trash_original_folder_name: Optional[str] = None
 
 
+class Project(SQLModel, table=True):
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  name: str
+  notes: Optional[str] = None
+  creator: Optional[str] = None
+  source_url: Optional[str] = None
+  license: Optional[str] = None
+  tags_json: str = Field(default="[]")
+  created_at: str
+  updated_at: str
+  deleted_at: Optional[str] = Field(default=None, index=True)
+
+
+class ProjectMembership(SQLModel, table=True):
+  project_id: str = Field(foreign_key="project.id", primary_key=True)
+  asset_id: str = Field(foreign_key="asset.id", primary_key=True)
+  created_at: str
+
+
 class ArtifactRevision(SQLModel, table=True):
   id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
   asset_id: str = Field(foreign_key="asset.id", index=True)

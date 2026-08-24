@@ -82,10 +82,68 @@ def test_fresh_database_reaches_current_schema(tmp_path: Path) -> None:
         "contenthashjob",
         "contenthashjobitem",
         "trashpurgeoperation",
+        "project",
+        "projectmembership",
         "appconfig",
         "mountscan",
         "schema_migration",
     }.issubset(tables)
+
+
+def test_schema8_to_schema9_project_expansion_is_empty_and_preserves_artifacts(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "schema8.db"
+    create_pre_v5_1_fixture(db_path)
+    database_engine = sqlite_engine(db_path)
+    assert run_migrations(database_engine, MIGRATIONS[:8]) == 8
+
+    with database_engine.connect() as conn:
+        assets_before = conn.exec_driver_sql(
+            "SELECT id, name, filename, folder_id, source_path, storage_path, "
+            "current_revision_id, deleted_at FROM asset ORDER BY id"
+        ).fetchall()
+        revisions_before = conn.exec_driver_sql(
+            "SELECT id, asset_id, revision_number, filename, storage_path, source_path "
+            "FROM artifactrevision ORDER BY asset_id, revision_number"
+        ).fetchall()
+
+    assert run_migrations(database_engine) == 9
+    assert run_migrations(database_engine) == 9
+
+    with database_engine.connect() as conn:
+        assets_after = conn.exec_driver_sql(
+            "SELECT id, name, filename, folder_id, source_path, storage_path, "
+            "current_revision_id, deleted_at FROM asset ORDER BY id"
+        ).fetchall()
+        revisions_after = conn.exec_driver_sql(
+            "SELECT id, asset_id, revision_number, filename, storage_path, source_path "
+            "FROM artifactrevision ORDER BY asset_id, revision_number"
+        ).fetchall()
+        project_count = conn.exec_driver_sql("SELECT COUNT(*) FROM project").scalar_one()
+        membership_count = conn.exec_driver_sql(
+            "SELECT COUNT(*) FROM projectmembership"
+        ).scalar_one()
+        project_indexes = {
+            str(row[1])
+            for row in conn.exec_driver_sql("PRAGMA index_list(project)").fetchall()
+        }
+        membership_foreign_keys = {
+            (str(row[2]), str(row[3]), str(row[4]))
+            for row in conn.exec_driver_sql(
+                "PRAGMA foreign_key_list(projectmembership)"
+            ).fetchall()
+        }
+
+    assert assets_after == assets_before
+    assert revisions_after == revisions_before
+    assert project_count == 0
+    assert membership_count == 0
+    assert "idx_project_active_name_unique" in project_indexes
+    assert membership_foreign_keys == {
+        ("asset", "asset_id", "id"),
+        ("project", "project_id", "id"),
+    }
 
 
 def test_pre_v5_1_fixture_migrates_and_is_idempotent(tmp_path: Path) -> None:
@@ -233,8 +291,8 @@ def test_schema7_to_schema8_upgrade_preserves_identity_and_byte_paths(tmp_path: 
             "prepared_file_id, preview_thumb_path FROM artifactrevision ORDER BY asset_id"
         ).fetchall()
 
-    assert run_migrations(database_engine) == 8
-    assert run_migrations(database_engine) == 8
+    assert run_migrations(database_engine, MIGRATIONS[:8]) == 8
+    assert run_migrations(database_engine, MIGRATIONS[:8]) == 8
 
     with database_engine.connect() as conn:
         assets_after = conn.exec_driver_sql(

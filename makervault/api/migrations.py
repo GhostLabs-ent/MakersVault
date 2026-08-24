@@ -421,6 +421,51 @@ def _migration_008_recoverable_trash(conn: Connection) -> None:
     )
 
 
+def _migration_009_projects_and_membership(conn: Connection) -> None:
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS project (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            name VARCHAR NOT NULL,
+            notes VARCHAR,
+            creator VARCHAR,
+            source_url VARCHAR,
+            license VARCHAR,
+            tags_json VARCHAR NOT NULL DEFAULT '[]',
+            created_at VARCHAR NOT NULL,
+            updated_at VARCHAR NOT NULL,
+            deleted_at VARCHAR
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_project_active_name_unique "
+        "ON project(LOWER(name)) WHERE deleted_at IS NULL"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_project_deleted_at ON project(deleted_at)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_project_updated_at ON project(updated_at)"
+    )
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS projectmembership (
+            project_id VARCHAR NOT NULL,
+            asset_id VARCHAR NOT NULL,
+            created_at VARCHAR NOT NULL,
+            PRIMARY KEY(project_id, asset_id),
+            FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
+            FOREIGN KEY(asset_id) REFERENCES asset(id) ON DELETE CASCADE
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_projectmembership_asset_id "
+        "ON projectmembership(asset_id)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
@@ -430,6 +475,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(6, "artifact_revisions_and_content_identity", _migration_006_artifact_revisions_and_content_identity),
     Migration(7, "immutable_revision_workflows", _migration_007_immutable_revision_workflows),
     Migration(8, "recoverable_trash", _migration_008_recoverable_trash),
+    Migration(9, "projects_and_membership", _migration_009_projects_and_membership),
 )
 
 

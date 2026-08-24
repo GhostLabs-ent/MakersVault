@@ -17,6 +17,7 @@ from models import (
     AssetFile,
     ContentHashJobItem,
     Folder,
+    ProjectMembership,
     TrashPurgeOperation,
 )
 from settings_service import get_trash_retention
@@ -324,6 +325,12 @@ def _purge_operation(asset_ids: list[str], trigger: str, requested_bytes: int = 
                     select(AssetFile).where(AssetFile.asset_id == asset_id)
                 ):
                     session.delete(record)
+                for membership in session.exec(
+                    select(ProjectMembership).where(
+                        ProjectMembership.asset_id == asset_id
+                    )
+                ):
+                    session.delete(membership)
                 for revision in revisions:
                     session.delete(revision)
                 session.delete(asset)

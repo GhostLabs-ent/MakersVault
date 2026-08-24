@@ -88,7 +88,15 @@ from mount_import import (
     resolve_safe_mount_file,
     start_mount_scan,
 )
-from models import ArtifactRevision, Asset, AssetFile, ContentHashJob, Folder, MountScan
+from models import (
+    ArtifactRevision,
+    Asset,
+    AssetFile,
+    ContentHashJob,
+    Folder,
+    MountScan,
+    Project,
+)
 from migrations import run_migrations
 from prepared_print import prepared_filename
 from preview_policy import (
@@ -96,6 +104,16 @@ from preview_policy import (
     preview_policy_payload,
     preview_timestamp,
     validate_preview_state,
+)
+from project_service import (
+    active_member_counts,
+    active_project_members,
+    add_project_membership,
+    create_project,
+    remove_project_membership,
+    require_active_project,
+    soft_delete_project,
+    update_project,
 )
 from revision_service import delete_artifact_revisions, sync_current_revision
 from revision_workflow import (
@@ -170,6 +188,10 @@ from schemas import (
     TrashSettingsOut,
     PreviewPolicyOut,
     PreviewStateUpdate,
+    ProjectCreate,
+    ProjectMembershipOut,
+    ProjectOut,
+    ProjectUpdate,
 )
 from zip_service import extract_zip_entries_to_assets, list_zip_entries
 from url_utils import normalize_import_url
@@ -306,6 +328,28 @@ def validate_handoff_extension(filename: str, tool: str) -> None:
 
 def folder_to_out(f: Folder) -> "FolderOut":
     return FolderOut(id=f.id, name=f.name, tags=json.loads(f.tags_json or "[]"), parent_id=f.parent_id)
+
+
+def project_to_out(project: Project, member_count: int = 0) -> ProjectOut:
+    try:
+        tags = json.loads(project.tags_json or "[]")
+    except (TypeError, ValueError):
+        tags = []
+    if not isinstance(tags, list):
+        tags = []
+    return ProjectOut(
+        id=project.id,
+        name=project.name,
+        notes=project.notes,
+        creator=project.creator,
+        source_url=project.source_url,
+        license=project.license,
+        tags=[tag for tag in tags if isinstance(tag, str)],
+        created_at=project.created_at,
+        updated_at=project.updated_at,
+        deleted_at=project.deleted_at,
+        member_count=member_count,
+    )
 
 
 def to_out(a: Asset) -> AssetOut:
@@ -1439,6 +1483,119 @@ def update_trash_settings(
     set_trash_retention(body.policy)
     purge_expired_trash()
     return trash_settings_out()
+
+
+# Project endpoints ---------------------------------------------
+
+
+@app.get("/projects", response_model=List[ProjectOut])
+def list_projects(
+    q: Optional[str] = Query(default=None, max_length=200),
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        statement = select(Project).where(Project.deleted_at == None)  # noqa: E711
+        if q and q.strip():
+            pattern = f"%{q.strip()}%"
+            statement = statement.where(
+                (Project.name.like(pattern))
+                | (Project.notes.like(pattern))
+                | (Project.creator.like(pattern))
+                | (Project.license.like(pattern))
+                | (Project.tags_json.like(pattern))
+            )
+        projects = list(
+            session.exec(
+                statement.order_by(Project.name, Project.id).offset(offset).limit(limit)
+            )
+        )
+        counts = active_member_counts(session, [project.id for project in projects])
+        return [project_to_out(project, counts.get(project.id, 0)) for project in projects]
+
+
+@app.post("/projects", response_model=ProjectOut, status_code=201)
+def create_project_route(
+    body: ProjectCreate,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        return project_to_out(create_project(session, body))
+
+
+@app.get("/project/{project_id}", response_model=ProjectOut)
+def get_project(project_id: str, _: Optional[str] = Depends(require_auth)):
+    with Session(engine) as session:
+        project = require_active_project(session, project_id)
+        count = active_member_counts(session, [project_id]).get(project_id, 0)
+        return project_to_out(project, count)
+
+
+@app.patch("/project/{project_id}", response_model=ProjectOut)
+def update_project_route(
+    project_id: str,
+    body: ProjectUpdate,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        project = update_project(session, project_id, body)
+        count = active_member_counts(session, [project_id]).get(project_id, 0)
+        return project_to_out(project, count)
+
+
+@app.delete("/project/{project_id}")
+def delete_project(project_id: str, _: Optional[str] = Depends(require_auth)):
+    with Session(engine) as session:
+        soft_delete_project(session, project_id)
+    return {"ok": True}
+
+
+@app.get("/project/{project_id}/items", response_model=List[AssetOut])
+def list_project_items(
+    project_id: str,
+    limit: int = Query(default=200, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        assets = active_project_members(
+            session,
+            project_id,
+            limit=limit,
+            offset=offset,
+        )
+        return [to_out(asset) for asset in assets]
+
+
+@app.post(
+    "/project/{project_id}/items/{asset_id}",
+    response_model=ProjectMembershipOut,
+    status_code=201,
+)
+def add_project_item(
+    project_id: str,
+    asset_id: str,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        membership = add_project_membership(session, project_id, asset_id)
+        return ProjectMembershipOut(
+            project_id=membership.project_id,
+            asset_id=membership.asset_id,
+            created_at=membership.created_at,
+        )
+
+
+@app.delete("/project/{project_id}/items/{asset_id}")
+def remove_project_item(
+    project_id: str,
+    asset_id: str,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        remove_project_membership(session, project_id, asset_id)
+    return {"ok": True}
 
 
 # Folder endpoints ----------------------------------------------

@@ -1,5 +1,5 @@
 from typing import List, Literal, Optional
-from pydantic import BaseModel, Field
+from pydantic import AnyHttpUrl, BaseModel, Field
 
 
 class AssetCreate(BaseModel):
@@ -88,6 +88,44 @@ class AssetOut(BaseModel):
   preview_updated_at: Optional[str] = None
   preview_source: Optional[str] = None
   current_revision_id: Optional[str] = None
+
+
+class ProjectCreate(BaseModel):
+  name: str = Field(min_length=1, max_length=200)
+  notes: Optional[str] = Field(default=None, max_length=10000)
+  creator: Optional[str] = Field(default=None, max_length=500)
+  source_url: Optional[AnyHttpUrl] = None
+  license: Optional[str] = Field(default=None, max_length=500)
+  tags: List[str] = Field(default_factory=list, max_length=100)
+
+
+class ProjectUpdate(BaseModel):
+  name: Optional[str] = Field(default=None, min_length=1, max_length=200)
+  notes: Optional[str] = Field(default=None, max_length=10000)
+  creator: Optional[str] = Field(default=None, max_length=500)
+  source_url: Optional[AnyHttpUrl] = None
+  license: Optional[str] = Field(default=None, max_length=500)
+  tags: Optional[List[str]] = Field(default=None, max_length=100)
+
+
+class ProjectOut(BaseModel):
+  id: str
+  name: str
+  notes: Optional[str] = None
+  creator: Optional[str] = None
+  source_url: Optional[str] = None
+  license: Optional[str] = None
+  tags: List[str] = Field(default_factory=list)
+  created_at: str
+  updated_at: str
+  deleted_at: Optional[str] = None
+  member_count: int = 0
+
+
+class ProjectMembershipOut(BaseModel):
+  project_id: str
+  asset_id: str
+  created_at: str
 
 
 class PreviewStateUpdate(BaseModel):
