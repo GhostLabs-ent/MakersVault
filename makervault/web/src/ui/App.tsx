@@ -263,6 +263,7 @@ export default function App() {
         ) : activeView === "trash" ? (
           <TrashView
             onAssetsChanged={handleAssetsChanged}
+            onProjectsChanged={handleProjectsChanged}
             onUnauthorized={handleUnauthorized}
             onOpenSettings={() => { setSettingsSection("trash"); setActiveView("settings"); }}
           />

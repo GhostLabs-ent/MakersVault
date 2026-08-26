@@ -111,11 +111,15 @@ from project_service import (
     active_member_counts,
     add_project_membership,
     create_project,
+    list_trashed_projects,
+    permanently_delete_project,
     remove_project_membership,
     require_active_project,
+    restore_project,
     soft_delete_project,
     update_project,
 )
+from project_export import build_project_export
 from relationship_service import (
     create_relationship,
     delete_relationship,
@@ -198,8 +202,11 @@ from schemas import (
     ProjectCreate,
     ProjectMembershipOut,
     ProjectOut,
+    ProjectPermanentDeleteOut,
+    ProjectPermanentDeleteRequest,
     ProjectRelationshipCreate,
     ProjectRelationshipOut,
+    ProjectTrashOut,
     ProjectUpdate,
 )
 from zip_service import extract_zip_entries_to_assets, list_zip_entries
@@ -1623,6 +1630,23 @@ def list_projects(
         return [project_to_out(project, counts.get(project.id, 0)) for project in projects]
 
 
+@app.get("/projects/trash", response_model=List[ProjectTrashOut])
+def list_project_trash(
+    response: Response,
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        rows = list_trashed_projects(session, limit=limit + 1, offset=offset)
+    has_more = len(rows) > limit
+    if has_more:
+        rows = rows[:limit]
+    response.headers["X-Has-More"] = "true" if has_more else "false"
+    response.headers["X-Next-Offset"] = str(offset + len(rows))
+    return [ProjectTrashOut(**row) for row in rows]
+
+
 @app.post("/projects", response_model=ProjectOut, status_code=201)
 def create_project_route(
     body: ProjectCreate,
@@ -1657,6 +1681,51 @@ def delete_project(project_id: str, _: Optional[str] = Depends(require_auth)):
     with Session(engine) as session:
         soft_delete_project(session, project_id)
     return {"ok": True}
+
+
+@app.post("/project/{project_id}/restore", response_model=ProjectOut)
+def restore_project_route(
+    project_id: str,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        project = restore_project(session, project_id)
+        count = active_member_counts(session, [project_id]).get(project_id, 0)
+        return project_to_out(project, count)
+
+
+@app.post(
+    "/project/{project_id}/permanent",
+    response_model=ProjectPermanentDeleteOut,
+)
+def permanently_delete_project_route(
+    project_id: str,
+    body: ProjectPermanentDeleteRequest,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        return ProjectPermanentDeleteOut(**permanently_delete_project(
+            session,
+            project_id,
+            body.confirmation,
+        ))
+
+
+@app.get("/project/{project_id}/export")
+def export_project(
+    project_id: str,
+    background_tasks: BackgroundTasks,
+    _: Optional[str] = Depends(require_auth),
+):
+    path, filename = build_project_export(project_id)
+    background_tasks.add_task(path.unlink, missing_ok=True)
+    return FileResponse(
+        path,
+        media_type="application/zip",
+        filename=filename,
+        headers=PROTECTED_FILE_HEADERS,
+        background=background_tasks,
+    )
 
 
 @app.get("/project/{project_id}/items", response_model=List[AssetOut])

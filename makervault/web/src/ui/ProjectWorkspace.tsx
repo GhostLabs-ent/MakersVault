@@ -1,15 +1,17 @@
 import React from "react";
-import { ExternalLink, Pencil, Plus, Search, X } from "lucide-react";
+import { Download, ExternalLink, Pencil, Plus, Search, X } from "lucide-react";
 
 import {
   Asset,
   Project,
   UnauthorizedError,
   addProjectItem,
+  downloadProjectExport,
   getProject,
   listProjectCandidates,
   updateProject,
 } from "../lib/api";
+import { responseDownloadFilename } from "../lib/projectLifecycle";
 import {
   EngravingSettings,
   PreviewSettings,
@@ -64,6 +66,7 @@ export default function ProjectWorkspace({
   const [candidateLoading, setCandidateLoading] = React.useState(false);
   const [addingId, setAddingId] = React.useState<string | null>(null);
   const [membershipVersion, setMembershipVersion] = React.useState(0);
+  const [exporting, setExporting] = React.useState(false);
 
   const handleError = React.useCallback((error: unknown, fallback: string) => {
     if (error instanceof UnauthorizedError) {
@@ -174,6 +177,29 @@ export default function ProjectWorkspace({
     void refreshProject();
   };
 
+  const exportProject = async () => {
+    setExporting(true);
+    try {
+      const response = await downloadProjectExport(projectId);
+      const filename = responseDownloadFilename(
+        response.headers.get("content-disposition"),
+        `${project?.name || "makersvault"}-project.zip`,
+      );
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      handleError(error, "Unable to export Project");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (loading && !project) {
     return <div className="rounded-xl border border-panel bg-panel-soft p-6 text-sm text-muted">Loading Project…</div>;
   }
@@ -191,6 +217,14 @@ export default function ProjectWorkspace({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-md border border-panel-strong px-3 py-2 text-sm disabled:opacity-50"
+              disabled={exporting}
+              onClick={() => void exportProject()}
+            >
+              <Download className="h-4 w-4" /> {exporting ? "Exporting…" : "Export Project"}
+            </button>
             <button
               type="button"
               className="inline-flex items-center gap-2 rounded-md bg-accent px-3 py-2 text-sm font-medium"

@@ -14,6 +14,7 @@ from models import Asset, Project, ProjectMembership, ProjectRelationship
 PROJECT_NAME_MAX_LENGTH = 200
 PROJECT_TAG_MAX_LENGTH = 64
 PROJECT_TAG_MAX_COUNT = 100
+PROJECT_PERMANENT_DELETE_CONFIRMATION = "PERMANENTLY DELETE PROJECT"
 project_mutation_lock = threading.RLock()
 
 
@@ -60,6 +61,13 @@ def require_active_project(session: Session, project_id: str) -> Project:
     project = session.get(Project, project_id)
     if not project or project.deleted_at:
         raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+
+def require_trashed_project(session: Session, project_id: str) -> Project:
+    project = session.get(Project, project_id)
+    if not project or not project.deleted_at:
+        raise HTTPException(status_code=404, detail="Project not found in Trash")
     return project
 
 
@@ -116,6 +124,132 @@ def soft_delete_project(session: Session, project_id: str) -> None:
         project.updated_at = now
         session.add(project)
         session.commit()
+
+
+def list_trashed_projects(
+    session: Session,
+    *,
+    limit: int,
+    offset: int,
+) -> list[dict]:
+    projects = list(session.exec(
+        select(Project)
+        .where(Project.deleted_at != None)  # noqa: E711
+        .order_by(Project.deleted_at.desc(), Project.name, Project.id)
+        .offset(offset)
+        .limit(limit)
+    ))
+    project_ids = [project.id for project in projects]
+    if not project_ids:
+        return []
+
+    def counts(statement) -> dict[str, int]:
+        return {str(project_id): int(count) for project_id, count in session.exec(statement)}
+
+    member_counts = counts(
+        select(ProjectMembership.project_id, func.count(ProjectMembership.asset_id))
+        .where(ProjectMembership.project_id.in_(project_ids))
+        .group_by(ProjectMembership.project_id)
+    )
+    active_counts = counts(
+        select(ProjectMembership.project_id, func.count(ProjectMembership.asset_id))
+        .join(Asset, Asset.id == ProjectMembership.asset_id)
+        .where(
+            ProjectMembership.project_id.in_(project_ids),
+            Asset.deleted_at == None,  # noqa: E711
+        )
+        .group_by(ProjectMembership.project_id)
+    )
+    trashed_counts = counts(
+        select(ProjectMembership.project_id, func.count(ProjectMembership.asset_id))
+        .join(Asset, Asset.id == ProjectMembership.asset_id)
+        .where(
+            ProjectMembership.project_id.in_(project_ids),
+            Asset.deleted_at != None,  # noqa: E711
+        )
+        .group_by(ProjectMembership.project_id)
+    )
+    relationship_counts = counts(
+        select(ProjectRelationship.project_id, func.count(ProjectRelationship.id))
+        .where(ProjectRelationship.project_id.in_(project_ids))
+        .group_by(ProjectRelationship.project_id)
+    )
+    return [
+        {
+            "id": project.id,
+            "name": project.name,
+            "deleted_at": project.deleted_at,
+            "member_count": member_counts.get(project.id, 0),
+            "active_member_count": active_counts.get(project.id, 0),
+            "trashed_member_count": trashed_counts.get(project.id, 0),
+            "relationship_count": relationship_counts.get(project.id, 0),
+        }
+        for project in projects
+    ]
+
+
+def restore_project(session: Session, project_id: str) -> Project:
+    with project_mutation_lock:
+        project = require_trashed_project(session, project_id)
+        project.deleted_at = None
+        project.updated_at = project_timestamp()
+        session.add(project)
+        try:
+            session.commit()
+        except IntegrityError as exc:
+            session.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "project_name_conflict",
+                    "message": (
+                        "An active Project now uses this name; rename or remove "
+                        "that Project before restoring this one"
+                    ),
+                },
+            ) from exc
+        session.refresh(project)
+        return project
+
+
+def permanently_delete_project(
+    session: Session,
+    project_id: str,
+    confirmation: str,
+) -> dict:
+    if confirmation != PROJECT_PERMANENT_DELETE_CONFIRMATION:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Type {PROJECT_PERMANENT_DELETE_CONFIRMATION} to permanently "
+                "delete this Project"
+            ),
+        )
+    with project_mutation_lock:
+        project = require_trashed_project(session, project_id)
+        relationships = list(session.exec(
+            select(ProjectRelationship).where(
+                ProjectRelationship.project_id == project_id
+            )
+        ))
+        memberships = list(session.exec(
+            select(ProjectMembership).where(
+                ProjectMembership.project_id == project_id
+            )
+        ))
+        result = {
+            "project_id": project.id,
+            "name": project.name,
+            "memberships_deleted": len(memberships),
+            "relationships_deleted": len(relationships),
+        }
+        for relationship in relationships:
+            session.delete(relationship)
+        for membership in memberships:
+            session.delete(membership)
+        session.delete(project)
+        session.commit()
+        return result
 
 
 def add_project_membership(

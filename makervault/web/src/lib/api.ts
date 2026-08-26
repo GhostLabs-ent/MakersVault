@@ -98,6 +98,23 @@ export type ProjectMembership = {
   created_at: string;
 };
 
+export type ProjectTrashItem = {
+  id: string;
+  name: string;
+  deleted_at: string;
+  member_count: number;
+  active_member_count: number;
+  trashed_member_count: number;
+  relationship_count: number;
+};
+
+export type ProjectPermanentDeleteResult = {
+  project_id: string;
+  name: string;
+  memberships_deleted: number;
+  relationships_deleted: number;
+};
+
 export type RelationshipKind = "derived_from" | "documentation_for" | "component_of";
 
 export type ProjectRelationship = {
@@ -896,6 +913,20 @@ export async function listProjects(params: {
   return pageResult(res, await res.json());
 }
 
+export async function listProjectTrash(params: {
+  limit?: number;
+  offset?: number;
+} = {}): Promise<{ items: ProjectTrashItem[]; hasMore: boolean; nextOffset?: number }> {
+  const qs = new URLSearchParams();
+  if (typeof params.limit === "number") qs.set("limit", String(params.limit));
+  if (typeof params.offset === "number") qs.set("offset", String(params.offset));
+  const res = await fetch(`${apiBase()}/projects/trash?${qs.toString()}`, {
+    headers: authHeaders(),
+  });
+  assertOk(res, "Failed to list Project Trash");
+  return pageResult(res, await res.json());
+}
+
 export async function getProject(id: string): Promise<Project> {
   const res = await fetch(`${apiBase()}/project/${id}`, { headers: authHeaders() });
   assertOk(res, "Failed to load Project");
@@ -922,6 +953,39 @@ export async function updateProject(id: string, payload: Partial<ProjectInput>):
   if (res.status === 401) throw new UnauthorizedError();
   if (!res.ok) throw new Error(await readErrorMessage(res, "Project update failed"));
   return res.json();
+}
+
+export async function restoreProject(id: string): Promise<Project> {
+  const res = await fetch(`${apiBase()}/project/${id}/restore`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Project restore failed"));
+  return res.json();
+}
+
+export async function permanentlyDeleteProject(
+  id: string,
+  confirmation: string,
+): Promise<ProjectPermanentDeleteResult> {
+  const res = await fetch(`${apiBase()}/project/${id}/permanent`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ confirmation }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Permanent Project deletion failed"));
+  return res.json();
+}
+
+export async function downloadProjectExport(id: string): Promise<Response> {
+  const res = await fetch(`${apiBase()}/project/${id}/export`, {
+    headers: authHeaders(),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Project export failed"));
+  return res;
 }
 
 export async function listProjectCandidates(

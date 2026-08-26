@@ -129,6 +129,27 @@ class ProjectMembershipOut(BaseModel):
   created_at: str
 
 
+class ProjectTrashOut(BaseModel):
+  id: str
+  name: str
+  deleted_at: str
+  member_count: int
+  active_member_count: int
+  trashed_member_count: int
+  relationship_count: int
+
+
+class ProjectPermanentDeleteRequest(BaseModel):
+  confirmation: str = Field(max_length=64)
+
+
+class ProjectPermanentDeleteOut(BaseModel):
+  project_id: str
+  name: str
+  memberships_deleted: int
+  relationships_deleted: int
+
+
 RelationshipKind = Literal["derived_from", "documentation_for", "component_of"]
 
 

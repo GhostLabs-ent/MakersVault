@@ -3,14 +3,22 @@ import { RotateCcw, Trash2 } from "lucide-react";
 import {
   TrashConflictError,
   TrashItem,
+  ProjectTrashItem,
   TrashSettings,
   UnauthorizedError,
   emptyTrash,
   getTrashSettings,
   listTrash,
+  listProjectTrash,
+  permanentlyDeleteProject,
   permanentlyDeleteTrash,
+  restoreProject,
   restoreTrashAsset,
 } from "../lib/api";
+import {
+  PROJECT_PERMANENT_CONFIRMATION,
+  projectTrashCountsLabel,
+} from "../lib/projectLifecycle";
 
 
 const RETENTION_LABELS: Record<string, string> = {
@@ -30,14 +38,21 @@ function formatBytes(bytes: number) {
 
 export default function TrashView({
   onAssetsChanged,
+  onProjectsChanged,
   onUnauthorized,
   onOpenSettings,
 }: {
   onAssetsChanged?: () => void;
+  onProjectsChanged?: () => void;
   onUnauthorized?: () => void;
   onOpenSettings?: () => void;
 }) {
   const [items, setItems] = React.useState<TrashItem[]>([]);
+  const [projects, setProjects] = React.useState<ProjectTrashItem[]>([]);
+  const [projectOffset, setProjectOffset] = React.useState(0);
+  const [projectHasMore, setProjectHasMore] = React.useState(false);
+  const [projectBusyId, setProjectBusyId] = React.useState<string | null>(null);
+  const [projectLoadingMore, setProjectLoadingMore] = React.useState(false);
   const [settings, setSettings] = React.useState<TrashSettings | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [busyId, setBusyId] = React.useState<string | null>(null);
@@ -47,9 +62,16 @@ export default function TrashView({
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      const [trash, nextSettings] = await Promise.all([listTrash(), getTrashSettings()]);
+      const [trash, nextSettings, projectTrash] = await Promise.all([
+        listTrash(),
+        getTrashSettings(),
+        listProjectTrash({ limit: 100, offset: 0 }),
+      ]);
       setItems(trash);
       setSettings(nextSettings);
+      setProjects(projectTrash.items);
+      setProjectOffset(projectTrash.nextOffset ?? projectTrash.items.length);
+      setProjectHasMore(projectTrash.hasMore);
     } catch (error) {
       if (error instanceof UnauthorizedError) onUnauthorized?.();
       else setMessage(error instanceof Error ? error.message : "Failed to load Trash");
@@ -59,6 +81,57 @@ export default function TrashView({
   }, [onUnauthorized]);
 
   React.useEffect(() => { void load(); }, [load]);
+
+  const loadMoreProjects = async () => {
+    setProjectLoadingMore(true);
+    try {
+      const result = await listProjectTrash({ limit: 100, offset: projectOffset });
+      setProjects(current => [...current, ...result.items]);
+      setProjectOffset(result.nextOffset ?? projectOffset + result.items.length);
+      setProjectHasMore(result.hasMore);
+    } catch (error) {
+      if (error instanceof UnauthorizedError) onUnauthorized?.();
+      else setMessage(error instanceof Error ? error.message : "Failed to load more Project Trash");
+    } finally {
+      setProjectLoadingMore(false);
+    }
+  };
+
+  const restoreTrashedProject = async (project: ProjectTrashItem) => {
+    setProjectBusyId(project.id);
+    setMessage(null);
+    try {
+      await restoreProject(project.id);
+      setMessage(`Restored Project ${project.name}.`);
+      onProjectsChanged?.();
+      await load();
+    } catch (error) {
+      if (error instanceof UnauthorizedError) onUnauthorized?.();
+      else setMessage(error instanceof Error ? error.message : "Project restore failed");
+    } finally {
+      setProjectBusyId(null);
+    }
+  };
+
+  const permanentlyDeleteTrashedProject = async (project: ProjectTrashItem) => {
+    const confirmation = window.prompt(
+      `Permanently delete Project "${project.name}" metadata, memberships, and relationships?\n\nMember models and their histories will remain untouched. Type ${PROJECT_PERMANENT_CONFIRMATION} to continue.`,
+    );
+    if (confirmation !== PROJECT_PERMANENT_CONFIRMATION) return;
+    setProjectBusyId(project.id);
+    setMessage(null);
+    try {
+      await permanentlyDeleteProject(project.id, confirmation);
+      setMessage(`Permanently deleted Project ${project.name}. Member models were preserved.`);
+      onProjectsChanged?.();
+      await load();
+    } catch (error) {
+      if (error instanceof UnauthorizedError) onUnauthorized?.();
+      else setMessage(error instanceof Error ? error.message : "Permanent Project deletion failed");
+    } finally {
+      setProjectBusyId(null);
+    }
+  };
 
   const restore = async (item: TrashItem, restoreUnassigned = false) => {
     setBusyId(item.id);
@@ -130,7 +203,7 @@ export default function TrashView({
         <div>
           <h1 className="text-2xl font-semibold">Trash</h1>
           <p className="mt-1 text-sm text-muted">
-            Deleted models remain complete and recoverable until the retention policy removes them.
+            Restore Project organization or models independently. Model retention never deletes Projects.
           </p>
         </div>
         <button
@@ -160,6 +233,61 @@ export default function TrashView({
         </div>
       ) : null}
       {message && <div className="rounded-md border border-panel bg-panel-soft p-3 text-sm" aria-live="polite">{message}</div>}
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-lg font-semibold">Project Trash</h2>
+          <p className="text-xs text-muted">Projects retain memberships and relationships indefinitely and own no model bytes.</p>
+        </div>
+        {loading ? (
+          <div className="rounded-lg border border-panel bg-panel-soft p-4 text-sm text-muted">Loading Project Trash...</div>
+        ) : projects.length ? (
+          <div className="divide-y divide-panel overflow-hidden rounded-lg border border-panel bg-panel-soft">
+            {projects.map(project => (
+              <div key={project.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <div className="truncate font-medium" title={project.name}>{project.name}</div>
+                  <div className="mt-1 text-xs text-muted">Deleted {new Date(project.deleted_at).toLocaleString()}</div>
+                  <div className="mt-1 text-xs text-muted">{projectTrashCountsLabel(project)}</div>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    className="flex items-center gap-1 rounded-md border border-panel-strong px-2 py-1.5 text-xs disabled:opacity-50"
+                    disabled={projectBusyId !== null}
+                    onClick={() => void restoreTrashedProject(project)}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    {projectBusyId === project.id ? "Working..." : "Restore"}
+                  </button>
+                  <button
+                    type="button"
+                    className="flex items-center gap-1 rounded-md border border-red-500/60 px-2 py-1.5 text-xs text-red-700 disabled:opacity-50 dark:text-red-300"
+                    disabled={projectBusyId !== null}
+                    onClick={() => void permanentlyDeleteTrashedProject(project)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Permanent delete
+                  </button>
+                </div>
+              </div>
+            ))}
+            {projectHasMore && (
+              <div className="p-3 text-center">
+                <button type="button" className="rounded-md border border-panel-strong px-3 py-2 text-xs disabled:opacity-50" disabled={projectLoadingMore} onClick={() => void loadMoreProjects()}>
+                  {projectLoadingMore ? "Loading..." : "Load more Projects"}
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-panel-strong p-5 text-center text-sm text-muted">Project Trash is empty.</div>
+        )}
+      </section>
+
+      <div>
+        <h2 className="text-lg font-semibold">Model Trash</h2>
+        <p className="text-xs text-muted">The retention setting and Empty Trash apply only to models and managed bytes.</p>
+      </div>
 
       {loading ? (
         <div className="py-12 text-center text-sm text-muted">Loading Trash...</div>
@@ -206,7 +334,7 @@ export default function TrashView({
       ) : (
         <div className="rounded-lg border border-dashed border-panel-strong py-14 text-center">
           <Trash2 className="mx-auto mb-3 h-8 w-8 text-muted" />
-          <div className="font-medium">Trash is empty</div>
+          <div className="font-medium">Model Trash is empty</div>
           <div className="mt-1 text-sm text-muted">Deleted models will appear here and can be restored.</div>
         </div>
       )}
