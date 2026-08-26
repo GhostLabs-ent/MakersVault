@@ -2,7 +2,7 @@
 
 **Gate:** 7 — Introduce Projects and relationships
 
-**Status:** In progress — subgate 7E
+**Status:** Evidence review — subgate 7E verified; awaiting owner acceptance
 
 **Opened:** 2026-08-22
 
@@ -133,7 +133,11 @@ content truth, bounded UI, and the full repository gate pass are recorded in
 - Keep Asset and legacy projection compatibility; no contraction is authorized.
 
 Opened after 7D acceptance under
-[the 7E implementation contract](SUBGATE_7E_BASELINE.md).
+[the 7E implementation contract](SUBGATE_7E_BASELINE.md). Implemented locally at
+`2e71369`; Project-aware matched recovery, format-1 compatibility, corruption
+refusal, and the complete repository gate pass are recorded in
+[SUBGATE_7E_RESULTS.md](SUBGATE_7E_RESULTS.md). Gate 7 remains open until the owner
+accepts this closeout evidence.
 
 ## Migration and rollback contract
 
@@ -166,5 +170,5 @@ The owner accepted [the decision package](OWNER_CHECKPOINT.md) and ADRs
 [0009](../../adr/0009-project-identity-and-membership.md),
 [0010](../../adr/0010-project-artifact-relationships.md), and
 [0011](../../adr/0011-project-lifecycle-export-and-recovery.md) on 2026-08-23.
-Subgates 7A–7D were accepted. Subgate 7E is open under its own implementation
-contract and retains the final Gate 7 evidence/acceptance stop.
+Subgates 7A–7D were accepted. Subgate 7E is implemented and verified locally; its
+evidence retains the final Gate 7 owner-acceptance stop.

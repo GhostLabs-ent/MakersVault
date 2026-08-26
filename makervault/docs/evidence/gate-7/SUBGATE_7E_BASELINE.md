@@ -2,7 +2,7 @@
 
 **Gate:** 7E — Project recovery, compatibility, and Gate 7 closeout
 
-**Status:** In progress
+**Status:** Implemented at `2e71369`; awaiting owner closeout acceptance
 
 **Opened:** 2026-08-25
 
@@ -95,3 +95,6 @@ of a previously verified matched SQLite/storage pair with services stopped.
 
 Gate 7 closes only after the owner accepts 7E evidence. Gate 8, push, tag,
 publication, schema contraction, and Project-export import remain unauthorized.
+
+Implementation and verification evidence are recorded in
+[SUBGATE_7E_RESULTS.md](SUBGATE_7E_RESULTS.md).
