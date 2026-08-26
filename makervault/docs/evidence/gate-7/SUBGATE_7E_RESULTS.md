@@ -2,7 +2,7 @@
 
 **Gate:** 7E — Project recovery, compatibility, and Gate 7 closeout
 
-**Status:** Verified; awaiting owner closeout acceptance
+**Status:** Accepted by the owner
 
 **Date:** 2026-08-26
 
@@ -11,6 +11,8 @@
 **Contract commit:** `4c0f8f3`
 
 **Implementation commit:** `2e71369`
+
+**Accepted:** 2026-08-26
 
 **Schema:** 10 unchanged
 
@@ -128,7 +130,7 @@ unchanged. Newly created recovery-contract-3 manifests require a contract-3-awar
 verifier; operational rollback remains restoration of a previously verified
 matched SQLite/storage pair with services stopped.
 
-The unrelated untracked desktop architecture note remained untouched. Gate 7 is
-not yet accepted: owner review of this evidence is the final closeout stop. Gate 8,
-push, tag, release, publication, schema contraction, and Project-export import
-remain unauthorized.
+The unrelated untracked desktop architecture note remained untouched. The owner
+accepted this evidence and closed Gate 7 on 2026-08-26. Gate 8, push, tag, release,
+publication, schema contraction, and Project-export import remain unauthorized
+until separately opened or approved.

@@ -223,7 +223,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-027 | `VERIFIED` | Local Gate 7B implementation adds bounded Project navigation/workspaces, active-Project Unassigned retrieval, explicit membership actions, and optional Project-scoped ingestion while preserving standalone folders, artifact history, paths, bytes, and schema 9. | `docs/evidence/gate-7/SUBGATE_7B_RESULTS.md`, Project API/web workflow tests, full repository gate | Owner accepted 7B on 2026-08-23; Gate 7C may add the accepted relationship model. Publication remains prohibited. |
 | T-028 | `VERIFIED` | Local schema 10 stores only canonical Project-scoped artifact relationships, computes inverse labels, enforces same-active-Project membership and recursive cycle rules, and preserves relationships through ordinary Trash while cleaning incident rows on confirmed membership removal or permanent artifact purge. | `docs/evidence/gate-7/SUBGATE_7C_RESULTS.md`, relationship/migration/UI tests, full repository gate | Owner accepted 7C on 2026-08-25; Gate 7D may add the accepted lifecycle/export model. Publication remains prohibited. |
 | T-029 | `VERIFIED` | Local Gate 7D adds bounded Project metadata Trash, exact restore/permanent-delete ownership, and authenticated ZIP64 Project export that composes complete artifact histories with deterministic manifests and explicit missing/changed/external truth while leaving schema 10 and member bytes unchanged. | `docs/evidence/gate-7/SUBGATE_7D_RESULTS.md`, lifecycle/export/API/UI tests, full repository gate | Owner accepted 7D on 2026-08-25; Gate 7E may extend recovery verification and closeout evidence. Publication remains prohibited. |
-| T-030 | `VERIFIED` | Local Gate 7E advances new matched backups to recovery contract 3 and audits schema-10 Project, membership, and relationship ownership with deterministic corruption reports. Outer format 1 and schema 10 remain unchanged; legacy no-marker and contract-2 archives remain verifiable, including pre-7E schema-10 backups. | `docs/evidence/gate-7/SUBGATE_7E_RESULTS.md`, recovery/migration/Project/Trash tests, full repository gate | Implementation is complete at `2e71369`; Gate 7 awaits owner closeout acceptance. Gate 8 and publication remain unauthorized. |
+| T-030 | `VERIFIED` | Local Gate 7E advances new matched backups to recovery contract 3 and audits schema-10 Project, membership, and relationship ownership with deterministic corruption reports. Outer format 1 and schema 10 remain unchanged; legacy no-marker and contract-2 archives remain verifiable, including pre-7E schema-10 backups. | `docs/evidence/gate-7/SUBGATE_7E_RESULTS.md`, recovery/migration/Project/Trash tests, full repository gate | Owner accepted Gate 7 closeout on 2026-08-26. Gate 8 and publication remain unauthorized. |
 
 ### 5.4 Current storage invariants
 
@@ -713,7 +713,7 @@ until at least one stable release has proven the new read/write path.
 
 ### Gate 7 — Introduce Projects and relationships
 
-**Current execution:** `IN PROGRESS`; the owner accepted the terminology, migration,
+**Current execution:** `ACCEPTED`; the owner accepted the terminology, migration,
 membership, relationship, lifecycle, and export package plus ADRs 0009–0011 on
 2026-08-23. Subgate 7A is implemented at local commit `6d06e6f`; schema-8 migration,
 Project CRUD, many-to-many membership, artifact Trash interaction, and the complete
@@ -732,8 +732,8 @@ truth, bounded UI, and full-gate evidence are in
 [the 7D results](evidence/gate-7/SUBGATE_7D_RESULTS.md), accepted by the owner on
 2026-08-25. Subgate 7E is implemented locally at `2e71369`; Project-aware matched
 recovery, compatibility, corruption refusal, and full-gate evidence are in
-[the 7E results](evidence/gate-7/SUBGATE_7E_RESULTS.md). Gate 7 remains in evidence
-review pending owner closeout acceptance.
+[the 7E results](evidence/gate-7/SUBGATE_7E_RESULTS.md). The owner accepted the
+complete Gate 7 evidence and closed the gate on 2026-08-26.
 
 **Objective:** Represent the thing being built without creating an unnecessary
 grouping layer.
@@ -756,8 +756,8 @@ grouping layer.
 organization; projects export and restore; relationships cannot orphan content;
 the UI improves retrieval rather than merely exposing a graph editor.
 
-**Owner checkpoint:** the architecture package and 7A–7D evidence were approved.
-Accept the verified 7E recovery/compatibility evidence before Gate 7 is closed.
+**Owner checkpoint:** complete. The architecture package and 7A–7E evidence were
+approved; Gate 7 closed on 2026-08-26.
 
 **Rollback:** legacy artifact browsing remains available through the compatibility
 window; project association is additive until verified.
@@ -1079,7 +1079,7 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Review [subgate 7E evidence](evidence/gate-7/SUBGATE_7E_RESULTS.md) and stop for
-owner Gate 7 closeout acceptance. Do not open Gate 8 yet. Keep the
+Re-baseline the accepted Gate 7 state and present a bounded Gate 8 entry contract
+before implementation. Gate 8 remains unopened. Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
 disabled by default; it is not part of Gate 7 acceptance.
