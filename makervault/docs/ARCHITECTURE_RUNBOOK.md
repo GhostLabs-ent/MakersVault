@@ -221,7 +221,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-025 | `SUPERSEDED` | Schema 8 had no Project or artifact-relationship entity. Folders controlled browse/storage organization, `collection` was free-form metadata, and every API/UI workflow addressed an Asset directly. | Gate 7 source audit and `docs/evidence/gate-7/BASELINE.md` | This remains the measured pre-Project migration boundary. |
 | T-026 | `VERIFIED` | Schema 9 adds empty-by-default Project identity and explicit many-to-many artifact membership. Authenticated bounded APIs enforce active-name, metadata, membership, Trash-visibility, and artifact-purge ownership rules without changing artifact bytes or paths. | `docs/evidence/gate-7/SUBGATE_7A_RESULTS.md`, Project and migration tests | Gate 7B builds retrieval UI on the accepted additive model. |
 | T-027 | `VERIFIED` | Local Gate 7B implementation adds bounded Project navigation/workspaces, active-Project Unassigned retrieval, explicit membership actions, and optional Project-scoped ingestion while preserving standalone folders, artifact history, paths, bytes, and schema 9. | `docs/evidence/gate-7/SUBGATE_7B_RESULTS.md`, Project API/web workflow tests, full repository gate | Owner accepted 7B on 2026-08-23; Gate 7C may add the accepted relationship model. Publication remains prohibited. |
-| T-028 | `VERIFIED` | Local schema 10 stores only canonical Project-scoped artifact relationships, computes inverse labels, enforces same-active-Project membership and recursive cycle rules, and preserves relationships through ordinary Trash while cleaning incident rows on confirmed membership removal or permanent artifact purge. | `docs/evidence/gate-7/SUBGATE_7C_RESULTS.md`, relationship/migration/UI tests, full repository gate | Await owner evidence acceptance before lifecycle/export work; publication remains prohibited. |
+| T-028 | `VERIFIED` | Local schema 10 stores only canonical Project-scoped artifact relationships, computes inverse labels, enforces same-active-Project membership and recursive cycle rules, and preserves relationships through ordinary Trash while cleaning incident rows on confirmed membership removal or permanent artifact purge. | `docs/evidence/gate-7/SUBGATE_7C_RESULTS.md`, relationship/migration/UI tests, full repository gate | Owner accepted 7C on 2026-08-25; Gate 7D may add the accepted lifecycle/export model. Publication remains prohibited. |
 
 ### 5.4 Current storage invariants
 
@@ -723,7 +723,9 @@ and full-gate evidence are in
 2026-08-23. Subgate 7C is implemented locally at `e4746f3`; its additive schema-10
 migration, relationship invariants, bounded workspace UI, cleanup/Trash behavior,
 and full-gate evidence are in
-[the 7C results](evidence/gate-7/SUBGATE_7C_RESULTS.md), pending owner acceptance.
+[the 7C results](evidence/gate-7/SUBGATE_7C_RESULTS.md), accepted by the owner on
+2026-08-25. Subgate 7D is open under
+[its implementation contract](evidence/gate-7/SUBGATE_7D_BASELINE.md).
 
 **Objective:** Represent the thing being built without creating an unnecessary
 grouping layer.
@@ -746,8 +748,8 @@ grouping layer.
 organization; projects export and restore; relationships cannot orphan content;
 the UI improves retrieval rather than merely exposing a graph editor.
 
-**Owner checkpoint:** the architecture package and 7A/7B evidence were approved on
-2026-08-23. Accept 7C relationship evidence before lifecycle/export work begins.
+**Owner checkpoint:** the architecture package and 7A–7C evidence were approved.
+Accept 7D lifecycle/export evidence before Gate 7E recovery/closeout begins.
 
 **Rollback:** legacy artifact browsing remains available through the compatibility
 window; project association is additive until verified.
@@ -1069,7 +1071,7 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Review [subgate 7C evidence](evidence/gate-7/SUBGATE_7C_RESULTS.md) and stop for
-owner acceptance before 7D lifecycle/export work. Keep the
+Implement and verify [subgate 7D](evidence/gate-7/SUBGATE_7D_BASELINE.md), then stop
+for owner lifecycle/export evidence acceptance before 7E. Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
 disabled by default; it is not part of Gate 7 acceptance.

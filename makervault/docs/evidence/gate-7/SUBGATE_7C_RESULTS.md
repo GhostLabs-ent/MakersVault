@@ -2,13 +2,15 @@
 
 **Gate:** 7C — useful artifact relationships
 
-**Status:** Implemented; pending owner evidence acceptance
+**Status:** Accepted by the owner
 
 **Date:** 2026-08-25
 
 **Entry commit:** `8ed8798`
 
 **Implementation commit:** `e4746f3`
+
+**Accepted:** 2026-08-25
 
 **Schema:** 9 -> 10
 
@@ -117,5 +119,5 @@ manual relationship-table removal are unsupported.
 - Gate 7E still owns schema-aware relationship recovery checks, compatibility, and
   Gate 7 closeout.
 
-Owner acceptance of this evidence may open Gate 7D planning/implementation. It does
-not authorize push, tag, publication, export implementation, or Gate 7E work.
+The owner accepted this evidence on 2026-08-25 and authorized Gate 7D. The
+acceptance does not authorize push, tag, publication, or Gate 7E work.

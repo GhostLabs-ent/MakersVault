@@ -2,7 +2,7 @@
 
 **Gate:** 7C — useful artifact relationships
 
-**Status:** Implemented at `e4746f3`; pending owner evidence acceptance
+**Status:** Accepted by the owner on 2026-08-25
 
 **Opened:** 2026-08-23
 
