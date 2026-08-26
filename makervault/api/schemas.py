@@ -129,6 +129,28 @@ class ProjectMembershipOut(BaseModel):
   created_at: str
 
 
+RelationshipKind = Literal["derived_from", "documentation_for", "component_of"]
+
+
+class ProjectRelationshipCreate(BaseModel):
+  source_asset_id: str = Field(min_length=1, max_length=64)
+  target_asset_id: str = Field(min_length=1, max_length=64)
+  kind: RelationshipKind
+
+
+class ProjectRelationshipOut(BaseModel):
+  id: str
+  project_id: str
+  source_asset_id: str
+  target_asset_id: str
+  source_name: str
+  target_name: str
+  kind: RelationshipKind
+  created_at: str
+  forward_label: str
+  inverse_label: str
+
+
 class PreviewStateUpdate(BaseModel):
   status: Literal["pending", "failed", "skipped_policy"]
   reason: Optional[str] = Field(default=None, max_length=64)

@@ -466,6 +466,43 @@ def _migration_009_projects_and_membership(conn: Connection) -> None:
     )
 
 
+def _migration_010_project_relationships(conn: Connection) -> None:
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS projectrelationship (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            project_id VARCHAR NOT NULL,
+            source_asset_id VARCHAR NOT NULL,
+            target_asset_id VARCHAR NOT NULL,
+            kind VARCHAR NOT NULL CHECK (
+                kind IN ('derived_from', 'documentation_for', 'component_of')
+            ),
+            created_at VARCHAR NOT NULL,
+            CHECK (source_asset_id <> target_asset_id),
+            FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
+            FOREIGN KEY(source_asset_id) REFERENCES asset(id) ON DELETE CASCADE,
+            FOREIGN KEY(target_asset_id) REFERENCES asset(id) ON DELETE CASCADE
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_projectrelationship_canonical_unique "
+        "ON projectrelationship(project_id, source_asset_id, target_asset_id, kind)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_projectrelationship_project_id "
+        "ON projectrelationship(project_id)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_projectrelationship_source_asset_id "
+        "ON projectrelationship(source_asset_id)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_projectrelationship_target_asset_id "
+        "ON projectrelationship(target_asset_id)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
@@ -476,6 +513,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(7, "immutable_revision_workflows", _migration_007_immutable_revision_workflows),
     Migration(8, "recoverable_trash", _migration_008_recoverable_trash),
     Migration(9, "projects_and_membership", _migration_009_projects_and_membership),
+    Migration(10, "project_relationships", _migration_010_project_relationships),
 )
 
 

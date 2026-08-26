@@ -32,6 +32,9 @@ async function readErrorMessage(res: Response, fallback: string) {
     if (typeof data?.detail === "string" && data.detail.trim()) {
       return data.detail.trim();
     }
+    if (typeof data?.detail?.message === "string" && data.detail.message.trim()) {
+      return data.detail.message.trim();
+    }
   } catch {
     // ignore JSON parse errors
   }
@@ -94,6 +97,31 @@ export type ProjectMembership = {
   asset_id: string;
   created_at: string;
 };
+
+export type RelationshipKind = "derived_from" | "documentation_for" | "component_of";
+
+export type ProjectRelationship = {
+  id: string;
+  project_id: string;
+  source_asset_id: string;
+  target_asset_id: string;
+  source_name: string;
+  target_name: string;
+  kind: RelationshipKind;
+  created_at: string;
+  forward_label: string;
+  inverse_label: string;
+};
+
+export class RelationshipCleanupRequiredError extends Error {
+  relationshipCount: number;
+
+  constructor(relationshipCount: number, message: string) {
+    super(message);
+    this.name = "RelationshipCleanupRequiredError";
+    this.relationshipCount = relationshipCount;
+  }
+}
 
 export type ListProjectsResult = {
   items: Project[];
@@ -912,6 +940,22 @@ export async function listProjectCandidates(
   return pageResult(res, await res.json());
 }
 
+export async function listProjectItems(
+  id: string,
+  params: { q?: string; tags?: string[]; limit?: number; offset?: number } = {},
+): Promise<ListAssetsResult> {
+  const qs = new URLSearchParams();
+  if (params.q) qs.set("q", params.q);
+  if (params.tags?.length) qs.set("tags", params.tags.join(","));
+  if (typeof params.limit === "number") qs.set("limit", String(params.limit));
+  if (typeof params.offset === "number") qs.set("offset", String(params.offset));
+  const res = await fetch(`${apiBase()}/project/${id}/items?${qs.toString()}`, {
+    headers: authHeaders(),
+  });
+  assertOk(res, "Failed to load Project items");
+  return pageResult(res, await res.json());
+}
+
 export async function addProjectItem(projectId: string, assetId: string): Promise<ProjectMembership> {
   const res = await fetch(`${apiBase()}/project/${projectId}/items/${assetId}`, {
     method: "POST",
@@ -922,13 +966,71 @@ export async function addProjectItem(projectId: string, assetId: string): Promis
   return res.json();
 }
 
-export async function removeProjectItem(projectId: string, assetId: string): Promise<void> {
-  const res = await fetch(`${apiBase()}/project/${projectId}/items/${assetId}`, {
+export async function removeProjectItem(
+  projectId: string,
+  assetId: string,
+  confirmRelationshipCleanup = false,
+): Promise<void> {
+  const qs = confirmRelationshipCleanup ? "?confirm_relationship_cleanup=true" : "";
+  const res = await fetch(`${apiBase()}/project/${projectId}/items/${assetId}${qs}`, {
     method: "DELETE",
     headers: authHeaders(),
   });
   if (res.status === 401) throw new UnauthorizedError();
+  if (res.status === 409) {
+    const data = await res.clone().json().catch(() => null);
+    if (data?.detail?.code === "relationship_cleanup_confirmation_required") {
+      throw new RelationshipCleanupRequiredError(
+        Number(data.detail.relationship_count || 0),
+        String(data.detail.message || "Relationship cleanup confirmation is required"),
+      );
+    }
+  }
   if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to remove Project item"));
+}
+
+export async function listProjectRelationships(
+  projectId: string,
+  params: { limit?: number; offset?: number } = {},
+): Promise<{ items: ProjectRelationship[]; hasMore: boolean; nextOffset?: number }> {
+  const qs = new URLSearchParams();
+  if (typeof params.limit === "number") qs.set("limit", String(params.limit));
+  if (typeof params.offset === "number") qs.set("offset", String(params.offset));
+  const res = await fetch(`${apiBase()}/project/${projectId}/relationships?${qs.toString()}`, {
+    headers: authHeaders(),
+  });
+  assertOk(res, "Failed to load Project relationships");
+  return pageResult(res, await res.json());
+}
+
+export async function createProjectRelationship(
+  projectId: string,
+  payload: {
+    source_asset_id: string;
+    target_asset_id: string;
+    kind: RelationshipKind;
+  },
+): Promise<ProjectRelationship> {
+  const res = await fetch(`${apiBase()}/project/${projectId}/relationships`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to create relationship"));
+  return res.json();
+}
+
+export async function deleteProjectRelationship(
+  projectId: string,
+  relationshipId: string,
+): Promise<void> {
+  const res = await fetch(
+    `${apiBase()}/project/${projectId}/relationships/${relationshipId}`,
+    { method: "DELETE", headers: authHeaders() },
+  );
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to delete relationship"));
 }
 
 // Folders -------------------------------------------------------

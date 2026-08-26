@@ -16,6 +16,7 @@ import {
   ArtifactRevision,
   PreparedPrint,
   Folder,
+  RelationshipCleanupRequiredError,
   UnauthorizedError,
   deleteAsset,
   fileUrl,
@@ -797,7 +798,19 @@ export default function AssetGrid({
     )) return;
     await runBulkMutation(
       "Removing Project items",
-      asset => removeProjectItem(projectId, asset.id),
+      async asset => {
+        try {
+          await removeProjectItem(projectId, asset.id);
+        } catch (error) {
+          if (!(error instanceof RelationshipCleanupRequiredError)) throw error;
+          const count = error.relationshipCount;
+          if (!window.confirm(
+            `${asset.name || asset.filename} has ${count} Project relationship${count === 1 ? "" : "s"}. ` +
+            "Remove those relationships and the Project membership? The artifact and all files will remain in the library."
+          )) throw new Error("Relationship cleanup was not confirmed");
+          await removeProjectItem(projectId, asset.id, true);
+        }
+      },
     );
     onMembershipChanged?.();
   };
@@ -1086,7 +1099,9 @@ export default function AssetGrid({
           <FolderOpen className="mx-auto h-8 w-8 text-subtle" aria-hidden="true" />
           <h2 className="mt-3 font-semibold">
             {q || activeTags.length
-              ? "No Project items match this view"
+              ? projectId || projectUnassigned
+                ? "No Project items match this view"
+                : "No models match this view"
               : projectId
                 ? "No Project items yet"
                 : projectUnassigned

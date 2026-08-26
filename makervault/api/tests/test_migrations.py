@@ -84,6 +84,7 @@ def test_fresh_database_reaches_current_schema(tmp_path: Path) -> None:
         "trashpurgeoperation",
         "project",
         "projectmembership",
+        "projectrelationship",
         "appconfig",
         "mountscan",
         "schema_migration",
@@ -108,8 +109,8 @@ def test_schema8_to_schema9_project_expansion_is_empty_and_preserves_artifacts(
             "FROM artifactrevision ORDER BY asset_id, revision_number"
         ).fetchall()
 
-    assert run_migrations(database_engine) == 9
-    assert run_migrations(database_engine) == 9
+    assert run_migrations(database_engine, MIGRATIONS[:9]) == 9
+    assert run_migrations(database_engine, MIGRATIONS[:9]) == 9
 
     with database_engine.connect() as conn:
         assets_after = conn.exec_driver_sql(
@@ -144,6 +145,81 @@ def test_schema8_to_schema9_project_expansion_is_empty_and_preserves_artifacts(
         ("asset", "asset_id", "id"),
         ("project", "project_id", "id"),
     }
+
+
+def test_schema9_to_schema10_relationship_expansion_is_empty_and_preserves_state(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "schema9.db"
+    create_pre_v5_1_fixture(db_path)
+    database_engine = sqlite_engine(db_path)
+    assert run_migrations(database_engine, MIGRATIONS[:9]) == 9
+    with database_engine.begin() as conn:
+        conn.exec_driver_sql(
+            "INSERT INTO project(id, name, tags_json, created_at, updated_at) "
+            "VALUES ('project-1', 'Fixture Project', '[]', 'now', 'now')"
+        )
+        conn.exec_driver_sql(
+            "INSERT INTO projectmembership(project_id, asset_id, created_at) "
+            "VALUES ('project-1', 'asset-1', 'now')"
+        )
+    with database_engine.connect() as conn:
+        state_before = {
+            "assets": conn.exec_driver_sql(
+                "SELECT id, name, filename, folder_id, storage_path, current_revision_id, deleted_at "
+                "FROM asset ORDER BY id"
+            ).fetchall(),
+            "revisions": conn.exec_driver_sql(
+                "SELECT id, asset_id, revision_number, storage_path, source_path "
+                "FROM artifactrevision ORDER BY id"
+            ).fetchall(),
+            "projects": conn.exec_driver_sql("SELECT * FROM project ORDER BY id").fetchall(),
+            "memberships": conn.exec_driver_sql(
+                "SELECT * FROM projectmembership ORDER BY project_id, asset_id"
+            ).fetchall(),
+        }
+
+    assert run_migrations(database_engine) == 10
+    assert run_migrations(database_engine) == 10
+
+    with database_engine.connect() as conn:
+        assert conn.exec_driver_sql("SELECT COUNT(*) FROM projectrelationship").scalar_one() == 0
+        assert conn.exec_driver_sql(
+            "SELECT id, name, filename, folder_id, storage_path, current_revision_id, deleted_at "
+            "FROM asset ORDER BY id"
+        ).fetchall() == state_before["assets"]
+        assert conn.exec_driver_sql(
+            "SELECT id, asset_id, revision_number, storage_path, source_path "
+            "FROM artifactrevision ORDER BY id"
+        ).fetchall() == state_before["revisions"]
+        assert conn.exec_driver_sql("SELECT * FROM project ORDER BY id").fetchall() == state_before["projects"]
+        assert conn.exec_driver_sql(
+            "SELECT * FROM projectmembership ORDER BY project_id, asset_id"
+        ).fetchall() == state_before["memberships"]
+        indexes = {
+            str(row[1])
+            for row in conn.exec_driver_sql("PRAGMA index_list(projectrelationship)").fetchall()
+        }
+        foreign_keys = {
+            (str(row[2]), str(row[3]), str(row[4]))
+            for row in conn.exec_driver_sql(
+                "PRAGMA foreign_key_list(projectrelationship)"
+            ).fetchall()
+        }
+    assert "idx_projectrelationship_canonical_unique" in indexes
+    assert foreign_keys == {
+        ("asset", "target_asset_id", "id"),
+        ("asset", "source_asset_id", "id"),
+        ("project", "project_id", "id"),
+    }
+
+    with database_engine.begin() as conn:
+        with pytest.raises(IntegrityError):
+            conn.exec_driver_sql(
+                "INSERT INTO projectrelationship(id, project_id, source_asset_id, "
+                "target_asset_id, kind, created_at) VALUES "
+                "('bad-kind', 'project-1', 'asset-1', 'asset-2', 'source_of', 'now')"
+            )
 
 
 def test_pre_v5_1_fixture_migrates_and_is_idempotent(tmp_path: Path) -> None:

@@ -97,6 +97,7 @@ from models import (
     MountScan,
     Project,
     ProjectMembership,
+    ProjectRelationship,
 )
 from migrations import run_migrations
 from prepared_print import prepared_filename
@@ -114,6 +115,12 @@ from project_service import (
     require_active_project,
     soft_delete_project,
     update_project,
+)
+from relationship_service import (
+    create_relationship,
+    delete_relationship,
+    list_active_relationships,
+    relationship_labels,
 )
 from revision_service import delete_artifact_revisions, sync_current_revision
 from revision_workflow import (
@@ -191,6 +198,8 @@ from schemas import (
     ProjectCreate,
     ProjectMembershipOut,
     ProjectOut,
+    ProjectRelationshipCreate,
+    ProjectRelationshipOut,
     ProjectUpdate,
 )
 from zip_service import extract_zip_entries_to_assets, list_zip_entries
@@ -349,6 +358,26 @@ def project_to_out(project: Project, member_count: int = 0) -> ProjectOut:
         updated_at=project.updated_at,
         deleted_at=project.deleted_at,
         member_count=member_count,
+    )
+
+
+def relationship_to_out(
+    relationship: ProjectRelationship,
+    source: Asset,
+    target: Asset,
+) -> ProjectRelationshipOut:
+    forward_label, inverse_label = relationship_labels(relationship.kind)
+    return ProjectRelationshipOut(
+        id=relationship.id,
+        project_id=relationship.project_id,
+        source_asset_id=relationship.source_asset_id,
+        target_asset_id=relationship.target_asset_id,
+        source_name=source.name,
+        target_name=target.name,
+        kind=relationship.kind,
+        created_at=relationship.created_at,
+        forward_label=forward_label,
+        inverse_label=inverse_label,
     )
 
 
@@ -1742,10 +1771,73 @@ def add_project_item(
 def remove_project_item(
     project_id: str,
     asset_id: str,
+    confirm_relationship_cleanup: bool = Query(default=False),
     _: Optional[str] = Depends(require_auth),
 ):
     with Session(engine) as session:
-        remove_project_membership(session, project_id, asset_id)
+        remove_project_membership(
+            session,
+            project_id,
+            asset_id,
+            confirm_relationship_cleanup=confirm_relationship_cleanup,
+        )
+    return {"ok": True}
+
+
+@app.get(
+    "/project/{project_id}/relationships",
+    response_model=List[ProjectRelationshipOut],
+)
+def list_project_relationships(
+    project_id: str,
+    response: Response,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        rows = list_active_relationships(
+            session,
+            project_id,
+            limit=limit,
+            offset=offset,
+        )
+        has_more = len(rows) > limit
+        if has_more:
+            rows = rows[:limit]
+        response.headers["X-Has-More"] = "true" if has_more else "false"
+        response.headers["X-Next-Offset"] = str(offset + len(rows))
+        return [
+            relationship_to_out(relationship, source, target)
+            for relationship, source, target in rows
+        ]
+
+
+@app.post(
+    "/project/{project_id}/relationships",
+    response_model=ProjectRelationshipOut,
+    status_code=201,
+)
+def create_project_relationship(
+    project_id: str,
+    body: ProjectRelationshipCreate,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        relationship = create_relationship(session, project_id, body)
+        source = session.get(Asset, relationship.source_asset_id)
+        target = session.get(Asset, relationship.target_asset_id)
+        return relationship_to_out(relationship, source, target)
+
+
+@app.delete("/project/{project_id}/relationships/{relationship_id}")
+def delete_project_relationship(
+    project_id: str,
+    relationship_id: str,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        delete_relationship(session, project_id, relationship_id)
     return {"ok": True}
 
 

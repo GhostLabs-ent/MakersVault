@@ -1,4 +1,5 @@
 import json
+import threading
 from datetime import datetime, timezone
 from typing import Iterable, Optional
 
@@ -7,12 +8,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
 from sqlmodel import Session, select
 
-from models import Asset, Project, ProjectMembership
+from models import Asset, Project, ProjectMembership, ProjectRelationship
 
 
 PROJECT_NAME_MAX_LENGTH = 200
 PROJECT_TAG_MAX_LENGTH = 64
 PROJECT_TAG_MAX_COUNT = 100
+project_mutation_lock = threading.RLock()
 
 
 def project_timestamp() -> str:
@@ -107,12 +109,13 @@ def update_project(session: Session, project_id: str, body) -> Project:
 
 
 def soft_delete_project(session: Session, project_id: str) -> None:
-    project = require_active_project(session, project_id)
-    now = project_timestamp()
-    project.deleted_at = now
-    project.updated_at = now
-    session.add(project)
-    session.commit()
+    with project_mutation_lock:
+        project = require_active_project(session, project_id)
+        now = project_timestamp()
+        project.deleted_at = now
+        project.updated_at = now
+        session.add(project)
+        session.commit()
 
 
 def add_project_membership(
@@ -120,37 +123,69 @@ def add_project_membership(
     project_id: str,
     asset_id: str,
 ) -> ProjectMembership:
-    require_active_project(session, project_id)
-    asset = session.get(Asset, asset_id)
-    if not asset or asset.deleted_at:
-        raise HTTPException(status_code=404, detail="Artifact not found")
-    if session.get(ProjectMembership, (project_id, asset_id)):
-        raise HTTPException(status_code=409, detail="Artifact is already in this Project")
-    membership = ProjectMembership(
-        project_id=project_id,
-        asset_id=asset_id,
-        created_at=project_timestamp(),
-    )
-    session.add(membership)
-    try:
+    with project_mutation_lock:
+        require_active_project(session, project_id)
+        asset = session.get(Asset, asset_id)
+        if not asset or asset.deleted_at:
+            raise HTTPException(status_code=404, detail="Artifact not found")
+        if session.get(ProjectMembership, (project_id, asset_id)):
+            raise HTTPException(status_code=409, detail="Artifact is already in this Project")
+        membership = ProjectMembership(
+            project_id=project_id,
+            asset_id=asset_id,
+            created_at=project_timestamp(),
+        )
+        session.add(membership)
+        try:
+            session.commit()
+        except IntegrityError as exc:
+            session.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail="Artifact is already in this Project",
+            ) from exc
+        session.refresh(membership)
+        return membership
+
+
+def remove_project_membership(
+    session: Session,
+    project_id: str,
+    asset_id: str,
+    *,
+    confirm_relationship_cleanup: bool = False,
+) -> None:
+    with project_mutation_lock:
+        require_active_project(session, project_id)
+        membership = session.get(ProjectMembership, (project_id, asset_id))
+        if not membership:
+            raise HTTPException(status_code=404, detail="Project item not found")
+        incident = list(session.exec(
+            select(ProjectRelationship).where(
+                ProjectRelationship.project_id == project_id,
+                (
+                    (ProjectRelationship.source_asset_id == asset_id)
+                    | (ProjectRelationship.target_asset_id == asset_id)
+                ),
+            )
+        ))
+        if incident and not confirm_relationship_cleanup:
+            count = len(incident)
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "relationship_cleanup_confirmation_required",
+                    "relationship_count": count,
+                    "message": (
+                        "Removing this Project item will also remove "
+                        f"{count} relationship{'s' if count != 1 else ''}"
+                    ),
+                },
+            )
+        for relationship in incident:
+            session.delete(relationship)
+        session.delete(membership)
         session.commit()
-    except IntegrityError as exc:
-        session.rollback()
-        raise HTTPException(
-            status_code=409,
-            detail="Artifact is already in this Project",
-        ) from exc
-    session.refresh(membership)
-    return membership
-
-
-def remove_project_membership(session: Session, project_id: str, asset_id: str) -> None:
-    require_active_project(session, project_id)
-    membership = session.get(ProjectMembership, (project_id, asset_id))
-    if not membership:
-        raise HTTPException(status_code=404, detail="Project item not found")
-    session.delete(membership)
-    session.commit()
 
 
 def active_project_members(

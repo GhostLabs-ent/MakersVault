@@ -1,5 +1,6 @@
 import uuid
 from typing import Optional
+from sqlalchemy import CheckConstraint, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 
@@ -56,6 +57,32 @@ class Project(SQLModel, table=True):
 class ProjectMembership(SQLModel, table=True):
   project_id: str = Field(foreign_key="project.id", primary_key=True)
   asset_id: str = Field(foreign_key="asset.id", primary_key=True)
+  created_at: str
+
+
+class ProjectRelationship(SQLModel, table=True):
+  __table_args__ = (
+    UniqueConstraint(
+      "project_id",
+      "source_asset_id",
+      "target_asset_id",
+      "kind",
+      name="idx_projectrelationship_canonical_unique",
+    ),
+    CheckConstraint(
+      "kind IN ('derived_from', 'documentation_for', 'component_of')",
+      name="ck_projectrelationship_kind",
+    ),
+    CheckConstraint(
+      "source_asset_id <> target_asset_id",
+      name="ck_projectrelationship_distinct_endpoints",
+    ),
+  )
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  project_id: str = Field(foreign_key="project.id", index=True)
+  source_asset_id: str = Field(foreign_key="asset.id", index=True)
+  target_asset_id: str = Field(foreign_key="asset.id", index=True)
+  kind: str
   created_at: str
 
 

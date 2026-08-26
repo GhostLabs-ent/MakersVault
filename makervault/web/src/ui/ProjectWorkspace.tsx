@@ -17,6 +17,7 @@ import {
   SlicerSettings,
 } from "../lib/settings";
 import AssetGrid from "./AssetGrid";
+import ProjectRelationships from "./ProjectRelationships";
 import TagBadge from "./TagBadge";
 import TagInput from "./TagInput";
 
@@ -232,6 +233,12 @@ export default function ProjectWorkspace({
           </div>
         )}
       </section>
+
+      <ProjectRelationships
+        projectId={projectId}
+        membershipVersion={membershipVersion}
+        onUnauthorized={onUnauthorized}
+      />
 
       <AssetGrid
         key={`${projectId}-${membershipVersion}`}

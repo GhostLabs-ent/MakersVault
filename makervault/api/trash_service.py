@@ -18,8 +18,10 @@ from models import (
     ContentHashJobItem,
     Folder,
     ProjectMembership,
+    ProjectRelationship,
     TrashPurgeOperation,
 )
+from project_service import project_mutation_lock
 from settings_service import get_trash_retention
 
 
@@ -64,7 +66,7 @@ def _folder_location(session: Session, folder: Optional[Folder]) -> Optional[str
 
 
 def soft_delete_asset(asset_id: str) -> Asset:
-    with trash_mutation_lock, Session(engine) as session:
+    with trash_mutation_lock, project_mutation_lock, Session(engine) as session:
         asset = require_active_asset(session, asset_id)
         folder = session.get(Folder, asset.folder_id) if asset.folder_id else None
         asset.deleted_at = trash_timestamp()
@@ -77,7 +79,7 @@ def soft_delete_asset(asset_id: str) -> Asset:
 
 
 def restore_asset(asset_id: str, restore_unassigned: bool = False) -> Asset:
-    with trash_mutation_lock, Session(engine) as session:
+    with trash_mutation_lock, project_mutation_lock, Session(engine) as session:
         asset = require_trashed_asset(session, asset_id)
         target_folder_id = asset.trash_original_folder_id
         if target_folder_id and not session.get(Folder, target_folder_id):
@@ -307,7 +309,7 @@ def _purge_operation(asset_ids: list[str], trigger: str, requested_bytes: int = 
         raise
 
     try:
-        with Session(engine) as session:
+        with project_mutation_lock, Session(engine) as session:
             for asset_id in asset_ids:
                 asset = require_trashed_asset(session, asset_id)
                 revisions = list(session.exec(
@@ -331,6 +333,13 @@ def _purge_operation(asset_ids: list[str], trigger: str, requested_bytes: int = 
                     )
                 ):
                     session.delete(membership)
+                for relationship in session.exec(
+                    select(ProjectRelationship).where(
+                        (ProjectRelationship.source_asset_id == asset_id)
+                        | (ProjectRelationship.target_asset_id == asset_id)
+                    )
+                ):
+                    session.delete(relationship)
                 for revision in revisions:
                     session.delete(revision)
                 session.delete(asset)
