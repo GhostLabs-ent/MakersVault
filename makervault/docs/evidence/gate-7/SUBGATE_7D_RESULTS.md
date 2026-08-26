@@ -2,7 +2,7 @@
 
 **Gate:** 7D — Project lifecycle and complete-history export
 
-**Status:** Implemented; pending owner evidence acceptance
+**Status:** Accepted by the owner
 
 **Date:** 2026-08-25
 
@@ -11,6 +11,8 @@
 **Contract commit:** `76da76e`
 
 **Implementation commit:** `3c2edd2`
+
+**Accepted:** 2026-08-25
 
 **Schema:** 10 unchanged
 
@@ -129,5 +131,5 @@ Project export is a retrieval/portability archive, not a server backup or an
 authorized import format.
 
 Gate 7E still owns schema-aware Project/relationship recovery verification,
-compatibility proof, and Gate 7 closeout. This evidence must be owner-accepted
-before that work begins. Nothing may be pushed, tagged, or published.
+compatibility proof, and Gate 7 closeout. The owner accepted this evidence on
+2026-08-25 and authorized Gate 7E. Nothing may be pushed, tagged, or published.

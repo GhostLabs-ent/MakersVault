@@ -2,7 +2,7 @@
 
 **Gate:** 7D — Project lifecycle and complete-history export
 
-**Status:** Implemented at `3c2edd2`; pending owner evidence acceptance
+**Status:** Implemented at `3c2edd2`; accepted by the owner
 
 **Opened:** 2026-08-25
 
