@@ -2,7 +2,7 @@
 
 **Gate:** 7 — Introduce Projects and relationships
 
-**Status:** In progress — subgate 7C
+**Status:** In progress — subgate 7C evidence review
 
 **Opened:** 2026-08-22
 
@@ -102,8 +102,11 @@ repository gate pass are recorded in
 - Add a compact relationship editor and readable forward/inverse labels, not a
   general graph editor.
 
-Opened after 7B acceptance under
-[the 7C implementation contract](SUBGATE_7C_BASELINE.md).
+Implemented locally at `e4746f3` under
+[the 7C implementation contract](SUBGATE_7C_BASELINE.md). Schema-10 migration,
+relationship invariants, bounded UI, membership cleanup, Trash interaction, and
+the full repository gate pass are recorded in
+[SUBGATE_7C_RESULTS.md](SUBGATE_7C_RESULTS.md), pending owner acceptance.
 
 ### 7D — Project lifecycle and export
 
@@ -152,5 +155,5 @@ The owner accepted [the decision package](OWNER_CHECKPOINT.md) and ADRs
 [0009](../../adr/0009-project-identity-and-membership.md),
 [0010](../../adr/0010-project-artifact-relationships.md), and
 [0011](../../adr/0011-project-lifecycle-export-and-recovery.md) on 2026-08-23.
-Subgates 7A and 7B were accepted. Subgate 7C is open under its own implementation
-contract; later subgates retain their evidence/acceptance stops.
+Subgates 7A and 7B were accepted. Subgate 7C is implemented and awaits owner
+evidence acceptance; later subgates retain their evidence/acceptance stops.

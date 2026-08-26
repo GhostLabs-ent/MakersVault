@@ -2,7 +2,7 @@
 
 **Gate:** 7C — useful artifact relationships
 
-**Status:** In progress
+**Status:** Implemented at `e4746f3`; pending owner evidence acceptance
 
 **Opened:** 2026-08-23
 
@@ -80,3 +80,6 @@ filesystem migration or byte rollback exists.
 
 Gate 7D lifecycle/export and Gate 7E recovery/compatibility closeout remain separate
 checkpoints. Nothing may be pushed, tagged, or published.
+
+Implementation and verification evidence are recorded in
+[SUBGATE_7C_RESULTS.md](SUBGATE_7C_RESULTS.md).
