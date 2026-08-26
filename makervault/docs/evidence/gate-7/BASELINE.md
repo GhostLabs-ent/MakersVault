@@ -2,7 +2,7 @@
 
 **Gate:** 7 — Introduce Projects and relationships
 
-**Status:** In progress — subgate 7D
+**Status:** In progress — subgate 7D evidence review
 
 **Opened:** 2026-08-22
 
@@ -117,8 +117,11 @@ the full repository gate pass are recorded in
 - Export a Project manifest, relationships, and complete available artifact history
   with explicit external/missing states.
 
-Opened after 7C acceptance under
-[the 7D implementation contract](SUBGATE_7D_BASELINE.md).
+Implemented locally at `3c2edd2` under
+[the 7D implementation contract](SUBGATE_7D_BASELINE.md). Project metadata Trash,
+restore and isolated permanent deletion, complete-history Project export, explicit
+content truth, bounded UI, and the full repository gate pass are recorded in
+[SUBGATE_7D_RESULTS.md](SUBGATE_7D_RESULTS.md), pending owner acceptance.
 
 ### 7E — Recovery, compatibility, and closeout
 
@@ -159,5 +162,5 @@ The owner accepted [the decision package](OWNER_CHECKPOINT.md) and ADRs
 [0009](../../adr/0009-project-identity-and-membership.md),
 [0010](../../adr/0010-project-artifact-relationships.md), and
 [0011](../../adr/0011-project-lifecycle-export-and-recovery.md) on 2026-08-23.
-Subgates 7A–7C were accepted. Subgate 7D is open under its own implementation
-contract; Gate 7E retains its evidence/acceptance stop.
+Subgates 7A–7C were accepted. Subgate 7D is implemented and awaits owner evidence
+acceptance; Gate 7E retains its separate evidence/acceptance stop.

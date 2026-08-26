@@ -2,7 +2,7 @@
 
 **Gate:** 7D — Project lifecycle and complete-history export
 
-**Status:** In progress
+**Status:** Implemented at `3c2edd2`; pending owner evidence acceptance
 
 **Opened:** 2026-08-25
 
@@ -97,3 +97,6 @@ server backup or an authorized import format.
 
 Gate 7E recovery/compatibility and Gate 7 closeout remain separate. Nothing may be
 pushed, tagged, or published.
+
+Implementation and verification evidence are recorded in
+[SUBGATE_7D_RESULTS.md](SUBGATE_7D_RESULTS.md).
