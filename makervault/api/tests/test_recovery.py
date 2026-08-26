@@ -254,9 +254,95 @@ def schema8_fixture(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
     return database_dir, storage_dir, database_tar, storage_tar
 
 
+def schema10_fixture(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
+    database_dir, storage_dir, database_tar, storage_tar = schema8_fixture(tmp_path)
+    connection = sqlite3.connect(database_dir / "app.db")
+    try:
+        connection.executescript(
+            """
+            CREATE TABLE project (
+                id TEXT PRIMARY KEY, name TEXT NOT NULL, notes TEXT, creator TEXT,
+                source_url TEXT, license TEXT, tags_json TEXT NOT NULL,
+                created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT
+            );
+            CREATE TABLE projectmembership (
+                project_id TEXT NOT NULL, asset_id TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+            CREATE TABLE projectrelationship (
+                id TEXT PRIMARY KEY, project_id TEXT NOT NULL,
+                source_asset_id TEXT NOT NULL, target_asset_id TEXT NOT NULL,
+                kind TEXT NOT NULL, created_at TEXT NOT NULL
+            );
+            INSERT INTO schema_migration(version, name) VALUES
+                (9, 'project_identity_and_membership'),
+                (10, 'project_artifact_relationships');
+            INSERT INTO project VALUES
+                ('active-project', 'Active Project', NULL, NULL, NULL, NULL, '[]',
+                 '2026-08-23T00:00:00Z', '2026-08-23T00:00:00Z', NULL),
+                ('trash-project', 'Trash Project', NULL, NULL, NULL, NULL, '[]',
+                 '2026-08-23T00:00:00Z', '2026-08-24T00:00:00Z',
+                 '2026-08-24T00:00:00Z');
+            INSERT INTO projectmembership VALUES
+                ('active-project', 'active', '2026-08-23T00:00:00Z'),
+                ('active-project', 'trash', '2026-08-23T00:00:00Z'),
+                ('trash-project', 'trash', '2026-08-23T00:00:00Z'),
+                ('trash-project', 'external', '2026-08-23T00:00:00Z');
+            INSERT INTO projectrelationship VALUES
+                ('rel-active', 'active-project', 'active', 'trash',
+                 'component_of', '2026-08-23T00:00:00Z'),
+                ('rel-trash', 'trash-project', 'trash', 'external',
+                 'documentation_for', '2026-08-23T00:00:00Z');
+            """
+        )
+        connection.commit()
+    finally:
+        connection.close()
+    tar_directory(database_dir, database_tar)
+    tar_directory(storage_dir, storage_tar)
+    return database_dir, storage_dir, database_tar, storage_tar
+
+
 def tar_directory(source: Path, output: Path) -> None:
     with tarfile.open(output, "w") as archive:
         archive.add(source, arcname=".", recursive=True)
+
+
+def rewrite_backup_manifest(
+    source: Path,
+    output: Path,
+    workdir: Path,
+    mutate,
+) -> None:
+    unpacked = workdir / output.stem
+    unpacked.mkdir()
+    with tarfile.open(source, "r:gz") as archive:
+        archive.extractall(unpacked)
+    manifest_path = unpacked / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    mutate(manifest)
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    checksums_path = unpacked / "checksums.sha256"
+    manifest_digest = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+    checksums_path.write_text(
+        "\n".join(
+            f"{manifest_digest}  manifest.json" if line.endswith("  manifest.json") else line
+            for line in checksums_path.read_text(encoding="utf-8").splitlines()
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    with tarfile.open(output, "w:gz") as archive:
+        for name in (
+            "manifest.json",
+            "checksums.sha256",
+            "database.tar",
+            "storage.tar",
+        ):
+            archive.add(unpacked / name, arcname=name)
 
 
 def backup_fixture(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
@@ -414,7 +500,7 @@ def test_schema8_backup_round_trip_represents_revisions_trash_and_quarantine(
     )
 
     assert manifest["format_version"] == 1
-    assert manifest["recovery_contract_version"] == 2
+    assert manifest["recovery_contract_version"] == 3
     assert manifest["database"]["schema_version"] == 8
     assert manifest["database"]["row_counts"]["artifactrevision"] == 5
     assert manifest["database"]["row_counts"]["trashpurgeoperation"] == 1
@@ -438,6 +524,152 @@ def test_schema8_backup_round_trip_represents_revisions_trash_and_quarantine(
     )["matches_backup"] is True
     extracted = tmp_path / "schema8-extracted"
     assert extract_backup(archive, extracted) == manifest
+
+
+def test_schema10_backup_round_trip_represents_project_graph(tmp_path: Path) -> None:
+    _, _, database_tar, storage_tar = schema10_fixture(tmp_path)
+    archive = tmp_path / "makersvault-schema10.backup.tar.gz"
+
+    manifest = create_backup(
+        database_tar,
+        storage_tar,
+        archive,
+        "post-v5.1-gate7",
+        "gate7-fixture",
+    )
+
+    assert manifest["format_version"] == 1
+    assert manifest["recovery_contract_version"] == 3
+    assert manifest["database"]["schema_version"] == 10
+    assert manifest["database"]["row_counts"]["project"] == 2
+    assert manifest["database"]["row_counts"]["projectmembership"] == 4
+    assert manifest["database"]["row_counts"]["projectrelationship"] == 2
+    audit = manifest["consistency"]
+    assert audit["status"] == "ok"
+    assert audit["active_project_count"] == 1
+    assert audit["trashed_project_count"] == 1
+    assert audit["project_membership_count"] == 4
+    assert audit["project_relationship_count"] == 2
+    for key in (
+        "orphan_project_membership_keys",
+        "orphan_asset_membership_keys",
+        "orphan_relationship_project_ids",
+        "orphan_relationship_source_asset_ids",
+        "orphan_relationship_target_asset_ids",
+        "relationship_nonmember_source_ids",
+        "relationship_nonmember_target_ids",
+        "self_relationship_ids",
+        "invalid_relationship_kind_ids",
+        "duplicate_relationship_ids",
+    ):
+        assert audit[key] == []
+
+    assert verify_backup(archive) == manifest
+    assert verify_restored_components(
+        archive, database_tar, storage_tar
+    )["matches_backup"] is True
+    extracted = tmp_path / "schema10-extracted"
+    assert extract_backup(archive, extracted) == manifest
+
+
+@pytest.mark.parametrize(
+    ("mutation", "report_key", "expected"),
+    [
+        (
+            "UPDATE projectmembership SET project_id = 'missing-project' "
+            "WHERE project_id = 'active-project' AND asset_id = 'active'",
+            "orphan_project_membership_keys",
+            ["missing-project/active"],
+        ),
+        (
+            "UPDATE projectmembership SET asset_id = 'missing-asset' "
+            "WHERE project_id = 'active-project' AND asset_id = 'trash'",
+            "orphan_asset_membership_keys",
+            ["active-project/missing-asset"],
+        ),
+        (
+            "UPDATE projectrelationship SET project_id = 'missing-project' "
+            "WHERE id = 'rel-active'",
+            "orphan_relationship_project_ids",
+            ["rel-active"],
+        ),
+        (
+            "UPDATE projectrelationship SET source_asset_id = 'missing-asset' "
+            "WHERE id = 'rel-active'",
+            "orphan_relationship_source_asset_ids",
+            ["rel-active"],
+        ),
+        (
+            "UPDATE projectrelationship SET target_asset_id = 'missing-asset' "
+            "WHERE id = 'rel-active'",
+            "orphan_relationship_target_asset_ids",
+            ["rel-active"],
+        ),
+        (
+            "UPDATE projectrelationship SET target_asset_id = 'external' "
+            "WHERE id = 'rel-active'",
+            "relationship_nonmember_target_ids",
+            ["rel-active"],
+        ),
+        (
+            "UPDATE projectrelationship SET source_asset_id = 'external' "
+            "WHERE id = 'rel-active'",
+            "relationship_nonmember_source_ids",
+            ["rel-active"],
+        ),
+        (
+            "UPDATE projectrelationship SET target_asset_id = source_asset_id "
+            "WHERE id = 'rel-active'",
+            "self_relationship_ids",
+            ["rel-active"],
+        ),
+        (
+            "UPDATE projectrelationship SET kind = 'attached_to' "
+            "WHERE id = 'rel-active'",
+            "invalid_relationship_kind_ids",
+            ["rel-active"],
+        ),
+        (
+            "INSERT INTO projectrelationship VALUES "
+            "('rel-duplicate', 'active-project', 'active', 'trash', "
+            "'component_of', '2026-08-23T00:00:01Z')",
+            "duplicate_relationship_ids",
+            ["rel-duplicate"],
+        ),
+        (
+            "DROP TABLE projectrelationship",
+            "missing_project_tables",
+            ["projectrelationship"],
+        ),
+    ],
+)
+def test_schema10_audit_rejects_broken_project_ownership(
+    tmp_path: Path,
+    mutation: str,
+    report_key: str,
+    expected: list[str],
+) -> None:
+    database_dir, storage_dir, database_tar, storage_tar = schema10_fixture(tmp_path)
+    connection = sqlite3.connect(database_dir / "app.db")
+    try:
+        connection.execute(mutation)
+        connection.commit()
+    finally:
+        connection.close()
+
+    audit = audit_live_paths(database_dir / "app.db", storage_dir)["consistency"]
+
+    assert audit["status"] == "inconsistent"
+    assert audit[report_key] == expected
+    tar_directory(database_dir, database_tar)
+    with pytest.raises(RecoveryError, match="inconsistent"):
+        create_backup(
+            database_tar,
+            storage_tar,
+            tmp_path / "must-not-exist.tar.gz",
+            "gate7",
+            "broken-project-graph",
+        )
 
 
 def test_schema8_audit_rejects_missing_or_changed_history_and_broken_ownership(
@@ -505,6 +737,102 @@ def test_schema8_backup_rejects_revision_digest_mismatch(tmp_path: Path) -> None
             "gate6",
             "digest-mismatch",
         )
+
+
+def test_verifier_accepts_contract2_schema8_archive(tmp_path: Path) -> None:
+    _, _, database_tar, storage_tar = schema8_fixture(tmp_path)
+    current_archive = tmp_path / "current-schema8.tar.gz"
+    create_backup(
+        database_tar,
+        storage_tar,
+        current_archive,
+        "post-v5.1-gate6",
+        "contract2-fixture",
+    )
+    contract2_archive = tmp_path / "contract2-schema8.tar.gz"
+    rewrite_backup_manifest(
+        current_archive,
+        contract2_archive,
+        tmp_path,
+        lambda manifest: manifest.__setitem__("recovery_contract_version", 2),
+    )
+
+    verified = verify_backup(contract2_archive)
+
+    assert verified["recovery_contract_version"] == 2
+    assert verified["database"]["schema_version"] == 8
+
+
+def test_verifier_accepts_pre_gate7e_contract2_schema10_archive(
+    tmp_path: Path,
+) -> None:
+    _, _, database_tar, storage_tar = schema10_fixture(tmp_path)
+    current_archive = tmp_path / "current-schema10.tar.gz"
+    create_backup(
+        database_tar,
+        storage_tar,
+        current_archive,
+        "post-v5.1-gate7",
+        "pre-gate7e-contract2-fixture",
+    )
+    contract2_archive = tmp_path / "contract2-schema10.tar.gz"
+
+    def contract2_shape(manifest: dict) -> None:
+        manifest["recovery_contract_version"] = 2
+        for table in ("project", "projectmembership", "projectrelationship"):
+            manifest["database"]["row_counts"].pop(table)
+        for key in (
+            "active_project_count",
+            "trashed_project_count",
+            "project_membership_count",
+            "project_relationship_count",
+            "missing_project_tables",
+            "orphan_project_membership_keys",
+            "orphan_asset_membership_keys",
+            "orphan_relationship_project_ids",
+            "orphan_relationship_source_asset_ids",
+            "orphan_relationship_target_asset_ids",
+            "relationship_nonmember_source_ids",
+            "relationship_nonmember_target_ids",
+            "self_relationship_ids",
+            "invalid_relationship_kind_ids",
+            "duplicate_relationship_ids",
+        ):
+            manifest["consistency"].pop(key)
+
+    rewrite_backup_manifest(
+        current_archive,
+        contract2_archive,
+        tmp_path,
+        contract2_shape,
+    )
+
+    verified = verify_backup(contract2_archive)
+
+    assert verified["recovery_contract_version"] == 2
+    assert verified["database"]["schema_version"] == 10
+
+
+def test_verifier_rejects_future_recovery_contract(tmp_path: Path) -> None:
+    _, _, database_tar, storage_tar = schema8_fixture(tmp_path)
+    current_archive = tmp_path / "current-future.tar.gz"
+    create_backup(
+        database_tar,
+        storage_tar,
+        current_archive,
+        "post-v5.1-gate7",
+        "future-contract-fixture",
+    )
+    future_archive = tmp_path / "future-contract.tar.gz"
+    rewrite_backup_manifest(
+        current_archive,
+        future_archive,
+        tmp_path,
+        lambda manifest: manifest.__setitem__("recovery_contract_version", 999),
+    )
+
+    with pytest.raises(RecoveryError, match="recovery contract"):
+        verify_backup(future_archive)
 
 
 def test_verifier_accepts_legacy_format1_manifest_shape(tmp_path: Path) -> None:

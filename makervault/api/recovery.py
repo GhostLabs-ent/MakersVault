@@ -23,7 +23,8 @@ from typing import BinaryIO, Iterable, Optional
 
 BACKUP_FORMAT = "makersvault-backup"
 BACKUP_FORMAT_VERSION = 1
-RECOVERY_CONTRACT_VERSION = 2
+RECOVERY_CONTRACT_VERSION = 3
+SUPPORTED_RECOVERY_CONTRACT_VERSIONS = {2, RECOVERY_CONTRACT_VERSION}
 COMPONENT_NAMES = ("database.tar", "storage.tar")
 OPTIONAL_NAMES = ("config.env",)
 METADATA_NAMES = ("manifest.json", "checksums.sha256")
@@ -155,6 +156,9 @@ def database_summary(database: Path) -> dict:
                 "contenthashjob",
                 "contenthashjobitem",
                 "trashpurgeoperation",
+                "project",
+                "projectmembership",
+                "projectrelationship",
             )
             if table in tables
         )
@@ -241,6 +245,42 @@ def _select_purge_operations(connection: sqlite3.Connection) -> list[dict]:
     return [dict(zip(selected, row)) for row in rows]
 
 
+def _select_projects(connection: sqlite3.Connection) -> list[dict]:
+    if "project" not in table_names(connection):
+        return []
+    rows = connection.execute(
+        "SELECT id, deleted_at FROM project ORDER BY id"
+    ).fetchall()
+    return [dict(zip(("id", "deleted_at"), row)) for row in rows]
+
+
+def _select_project_memberships(connection: sqlite3.Connection) -> list[dict]:
+    if "projectmembership" not in table_names(connection):
+        return []
+    rows = connection.execute(
+        "SELECT project_id, asset_id FROM projectmembership "
+        "ORDER BY project_id, asset_id"
+    ).fetchall()
+    return [dict(zip(("project_id", "asset_id"), row)) for row in rows]
+
+
+def _select_project_relationships(connection: sqlite3.Connection) -> list[dict]:
+    if "projectrelationship" not in table_names(connection):
+        return []
+    columns = (
+        "id",
+        "project_id",
+        "source_asset_id",
+        "target_asset_id",
+        "kind",
+    )
+    rows = connection.execute(
+        f"SELECT {', '.join(columns)} FROM projectrelationship "
+        "ORDER BY project_id, source_asset_id, target_asset_id, kind, id"
+    ).fetchall()
+    return [dict(zip(columns, row)) for row in rows]
+
+
 def _external_state(
     source_path: str,
     container_root: Optional[Path],
@@ -283,12 +323,22 @@ def consistency_audit(
         asset_files = _select_asset_files(connection)
         revisions = _select_revisions(connection)
         purge_operations = _select_purge_operations(connection)
+        projects = _select_projects(connection)
+        project_memberships = _select_project_memberships(connection)
+        project_relationships = _select_project_relationships(connection)
+        schema_version = 0
+        if "schema_migration" in tables:
+            row = connection.execute(
+                "SELECT MAX(version) FROM schema_migration"
+            ).fetchone()
+            schema_version = int(row[0] or 0)
     finally:
         connection.close()
 
     asset_by_id = {str(row.get("id") or ""): row for row in assets}
     revision_by_id = {str(row.get("id") or ""): row for row in revisions}
     file_by_id = {str(row.get("id") or ""): row for row in asset_files}
+    project_by_id = {str(row.get("id") or ""): row for row in projects}
     referenced: set[str] = set()
     managed_present = 0
     missing_managed: list[str] = []
@@ -494,6 +544,78 @@ def consistency_audit(
         for name in storage
         if name not in referenced and not name.startswith("thumbs/")
     )
+
+    expected_project_tables: set[str] = set()
+    if schema_version >= 9:
+        expected_project_tables.update({"project", "projectmembership"})
+    if schema_version >= 10:
+        expected_project_tables.add("projectrelationship")
+    missing_project_tables = sorted(expected_project_tables - tables)
+    membership_keys = {
+        (
+            str(row.get("project_id") or ""),
+            str(row.get("asset_id") or ""),
+        )
+        for row in project_memberships
+    }
+    orphan_project_membership_keys = sorted(
+        f"{project_id}/{asset_id}"
+        for project_id, asset_id in membership_keys
+        if project_id not in project_by_id
+    )
+    orphan_asset_membership_keys = sorted(
+        f"{project_id}/{asset_id}"
+        for project_id, asset_id in membership_keys
+        if asset_id not in asset_by_id
+    )
+    orphan_relationship_project_ids: list[str] = []
+    orphan_relationship_source_asset_ids: list[str] = []
+    orphan_relationship_target_asset_ids: list[str] = []
+    relationship_nonmember_source_ids: list[str] = []
+    relationship_nonmember_target_ids: list[str] = []
+    self_relationship_ids: list[str] = []
+    invalid_relationship_kind_ids: list[str] = []
+    duplicate_relationship_ids: list[str] = []
+    canonical_relationships: set[tuple[str, str, str, str]] = set()
+    canonical_kinds = {"derived_from", "documentation_for", "component_of"}
+    for relationship in project_relationships:
+        relationship_id = str(relationship.get("id") or "")
+        project_id = str(relationship.get("project_id") or "")
+        source_id = str(relationship.get("source_asset_id") or "")
+        target_id = str(relationship.get("target_asset_id") or "")
+        kind = str(relationship.get("kind") or "")
+        if project_id not in project_by_id:
+            orphan_relationship_project_ids.append(relationship_id)
+        if source_id not in asset_by_id:
+            orphan_relationship_source_asset_ids.append(relationship_id)
+        elif project_id in project_by_id and (project_id, source_id) not in membership_keys:
+            relationship_nonmember_source_ids.append(relationship_id)
+        if target_id not in asset_by_id:
+            orphan_relationship_target_asset_ids.append(relationship_id)
+        elif project_id in project_by_id and (project_id, target_id) not in membership_keys:
+            relationship_nonmember_target_ids.append(relationship_id)
+        if source_id == target_id:
+            self_relationship_ids.append(relationship_id)
+        if kind not in canonical_kinds:
+            invalid_relationship_kind_ids.append(relationship_id)
+        canonical = (project_id, source_id, target_id, kind)
+        if canonical in canonical_relationships:
+            duplicate_relationship_ids.append(relationship_id)
+        canonical_relationships.add(canonical)
+
+    project_critical_lists = (
+        missing_project_tables,
+        orphan_project_membership_keys,
+        orphan_asset_membership_keys,
+        orphan_relationship_project_ids,
+        orphan_relationship_source_asset_ids,
+        orphan_relationship_target_asset_ids,
+        relationship_nonmember_source_ids,
+        relationship_nonmember_target_ids,
+        self_relationship_ids,
+        invalid_relationship_kind_ids,
+        duplicate_relationship_ids,
+    )
     critical_lists = (
         missing_managed,
         missing_managed_revision_ids,
@@ -509,9 +631,10 @@ def consistency_audit(
         invalid_revision_prepared_pointer_ids,
         malformed_purge_operation_ids,
         unknown_quarantine_paths,
+        *project_critical_lists,
     )
     critical_count = sum(len(items) for items in critical_lists)
-    return {
+    result = {
         "status": "ok" if critical_count == 0 else "inconsistent",
         "active_asset_count": sum(1 for row in assets if not row.get("deleted_at")),
         "trashed_asset_count": sum(1 for row in assets if row.get("deleted_at")),
@@ -544,6 +667,45 @@ def consistency_audit(
         "unreferenced_storage_files": orphans,
         "derived_thumbnail_files": sum(1 for name in storage if name.startswith("thumbs/")),
     }
+    project_domain_present = bool(
+        schema_version >= 9
+        or {"project", "projectmembership", "projectrelationship"} & tables
+    )
+    if project_domain_present:
+        result.update({
+            "active_project_count": sum(
+                1 for row in projects if not row.get("deleted_at")
+            ),
+            "trashed_project_count": sum(
+                1 for row in projects if row.get("deleted_at")
+            ),
+            "project_membership_count": len(project_memberships),
+            "project_relationship_count": len(project_relationships),
+            "missing_project_tables": missing_project_tables,
+            "orphan_project_membership_keys": orphan_project_membership_keys,
+            "orphan_asset_membership_keys": orphan_asset_membership_keys,
+            "orphan_relationship_project_ids": sorted(
+                orphan_relationship_project_ids
+            ),
+            "orphan_relationship_source_asset_ids": sorted(
+                orphan_relationship_source_asset_ids
+            ),
+            "orphan_relationship_target_asset_ids": sorted(
+                orphan_relationship_target_asset_ids
+            ),
+            "relationship_nonmember_source_ids": sorted(
+                relationship_nonmember_source_ids
+            ),
+            "relationship_nonmember_target_ids": sorted(
+                relationship_nonmember_target_ids
+            ),
+            "self_relationship_ids": sorted(self_relationship_ids),
+            "invalid_relationship_kind_ids": sorted(
+                invalid_relationship_kind_ids
+            ),
+            "duplicate_relationship_ids": sorted(duplicate_relationship_ids),
+        })
+    return result
 
 
 def _component_metadata(path: Path, members: list[dict]) -> dict:
@@ -713,6 +875,13 @@ def verify_extracted_backup(directory: Path, seen: set[str]) -> dict:
         raise RecoveryError("Backup manifest is not valid JSON") from exc
     if manifest.get("format") != BACKUP_FORMAT or manifest.get("format_version") != BACKUP_FORMAT_VERSION:
         raise RecoveryError("Backup format or version is unsupported")
+    recovery_contract = manifest.get("recovery_contract_version")
+    if recovery_contract is not None and (
+        not isinstance(recovery_contract, int)
+        or isinstance(recovery_contract, bool)
+        or recovery_contract not in SUPPORTED_RECOVERY_CONTRACT_VERSIONS
+    ):
+        raise RecoveryError("Backup recovery contract is unsupported")
     checksums = parse_checksums(directory / "checksums.sha256")
     expected_components = set(COMPONENT_NAMES)
     if "config.env" in seen:
@@ -750,10 +919,18 @@ def verify_extracted_backup(directory: Path, seen: set[str]) -> dict:
             return recorded == actual
         return recorded == actual
 
-    legacy_contract = manifest.get("recovery_contract_version") is None
-    if not report_matches(manifest.get("database"), summary, legacy_contract):
+    compatible_older_contract = recovery_contract in {None, 2}
+    if not report_matches(
+        manifest.get("database"),
+        summary,
+        compatible_older_contract,
+    ):
         raise RecoveryError("Backup database summary does not match its manifest")
-    if not report_matches(manifest.get("consistency"), audit, legacy_contract):
+    if not report_matches(
+        manifest.get("consistency"),
+        audit,
+        compatible_older_contract,
+    ):
         raise RecoveryError("Backup consistency report does not match its contents")
     if audit["status"] != "ok":
         raise RecoveryError("Backup contains an inconsistent database/storage snapshot")
