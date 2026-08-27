@@ -2,9 +2,11 @@
 
 **Gate:** 8 — Generalize trusted local application adapters
 
-**Status:** Owner checkpoint
+**Status:** Owner-approved; subgate 8A authorized
 
 **Opened:** 2026-08-26
+
+**Approved:** 2026-08-26
 
 **Entry commit:** `df62abf`
 
@@ -181,5 +183,8 @@ settings until its replacement passes compatibility evidence. Rollback restores 
 previous matched API/web/bridge version; local trust/config entries may remain but
 must be ignored safely by older code.
 
-Implementation starts only after the owner accepts or amends the built-in catalog,
-custom-command, and platform recommendations above.
+The owner accepted the built-in catalog, constrained local custom-command, and
+Windows/Linux/macOS recommendations without amendment on 2026-08-26. ADR 0012
+records the accepted architecture. Subgate 8A may implement the versioned catalog,
+configuration validation, diagnostics, revocation, and legacy-scheme compatibility
+before any generalized API/web flow.

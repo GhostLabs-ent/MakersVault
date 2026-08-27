@@ -764,11 +764,13 @@ window; project association is additive until verified.
 
 ### Gate 8 — Generalize trusted local application adapters
 
-**Current execution:** `OWNER CHECKPOINT`. Gate 7 was accepted on 2026-08-26 and
+**Current execution:** `IN PROGRESS — 8A`. Gate 7 was accepted on 2026-08-26 and
 the untouched `df62abf` entry harness passed. Current bridge/API/web behavior and
-the proposed built-in, custom-command, platform, compatibility, and subgate
-contract are recorded in
-[the Gate 8 baseline](evidence/gate-8/BASELINE.md). Implementation has not started.
+the owner-approved built-in, local custom-command, Windows/Linux/macOS,
+compatibility, and subgate contract are recorded in
+[the Gate 8 baseline](evidence/gate-8/BASELINE.md) and
+[ADR 0012](adr/0012-versioned-local-application-adapters.md). Subgate 8A is
+authorized; no later subgate or publication is implied.
 
 **Objective:** Evolve slicer/LightBurn handoff into a safe `Open with` contract for
 workshop applications.
@@ -1085,7 +1087,8 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Obtain the owner decisions in [the Gate 8 baseline](evidence/gate-8/BASELINE.md)
-before adapter implementation. Keep the
+Implement subgate 8A's versioned embedded adapter catalog, validation, safe local
+diagnostics/revocation, and legacy-scheme compatibility under
+[ADR 0012](adr/0012-versioned-local-application-adapters.md). Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
 disabled by default; it is not part of Gate 7 acceptance.
