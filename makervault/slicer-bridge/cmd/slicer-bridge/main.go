@@ -1,14 +1,13 @@
 package main
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 )
 
@@ -18,17 +17,20 @@ type SlicerConfig struct {
 }
 
 type Config struct {
-	DownloadDir    string                  `json:"download_dir,omitempty"`
-	LogFile        string                  `json:"log_file,omitempty"`
-	TrustedOrigins []string                `json:"trusted_origins,omitempty"`
-	MaxDownloadMB  int                     `json:"max_download_mb,omitempty"`
-	Slicers        map[string]SlicerConfig `json:"slicers,omitempty"`
-	Engravers      map[string]SlicerConfig `json:"engravers,omitempty"`
+	Version        int                            `json:"version,omitempty"`
+	DownloadDir    string                         `json:"download_dir,omitempty"`
+	LogFile        string                         `json:"log_file,omitempty"`
+	TrustedOrigins []string                       `json:"trusted_origins,omitempty"`
+	MaxDownloadMB  int                            `json:"max_download_mb,omitempty"`
+	Slicers        map[string]SlicerConfig        `json:"slicers,omitempty"`
+	Engravers      map[string]SlicerConfig        `json:"engravers,omitempty"`
+	Adapters       map[string]CustomAdapterConfig `json:"adapters,omitempty"`
 }
 
 const (
 	slicerScheme  = "makersvault-slicer"
 	engraveScheme = "makersvault-engrave"
+	generalScheme = "makersvault-open"
 )
 
 var (
@@ -66,10 +68,55 @@ func main() {
 		fmt.Printf("Installed MakerVault Bridge at %s\n", target)
 		fmt.Println("You can now use Open in Slicer and Open in Engraving Software from MakerVault.")
 		return
+	case "uninstall", "--uninstall":
+		target, err := uninstallSelf()
+		if err != nil {
+			fmt.Printf("Uninstall failed: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Uninstalled MakerVault Bridge from %s\n", target)
+		return
 	}
 
-	cfg, cfgDir := loadConfig()
+	cfg, cfgDir, err := loadConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Bridge configuration error: %v\n", err)
+		os.Exit(1)
+	}
 	setupLogging(cfg, cfgDir)
+	switch arg {
+	case "list":
+		if err := writeAdapterList(os.Stdout, cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "Adapter listing failed: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	case "doctor":
+		if err := writeDoctorReport(os.Stdout, cfg); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	case "trust":
+		if len(os.Args) < 3 || os.Args[2] == "list" {
+			writeTrustList(os.Stdout, cfg)
+			return
+		}
+		if os.Args[2] != "revoke" || len(os.Args) != 4 {
+			fmt.Fprintln(os.Stderr, "Usage: slicer-bridge trust list | trust revoke <origin>")
+			os.Exit(1)
+		}
+		if !revokeTrustedOrigin(&cfg, os.Args[3]) {
+			fmt.Fprintln(os.Stderr, "Trusted origin was not found.")
+			os.Exit(1)
+		}
+		if err := saveConfig(cfg, cfgDir); err != nil {
+			fmt.Fprintf(os.Stderr, "Could not save trust revocation: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Fprintln(os.Stdout, "Trusted origin revoked.")
+		return
+	}
 
 	if err := handleProtocol(arg, cfg); err != nil {
 		log.Printf("error: %v", err)
@@ -79,9 +126,15 @@ func main() {
 func printUsage() {
 	fmt.Println("Usage:")
 	fmt.Println("  slicer-bridge --install")
+	fmt.Println("  slicer-bridge --uninstall (macOS)")
 	fmt.Println("  slicer-bridge --version")
+	fmt.Println("  slicer-bridge list")
+	fmt.Println("  slicer-bridge doctor")
+	fmt.Println("  slicer-bridge trust list")
+	fmt.Println("  slicer-bridge trust revoke <origin>")
 	fmt.Println("  slicer-bridge <makersvault-slicer://open?...>")
 	fmt.Println("  slicer-bridge <makersvault-engrave://open?...>")
+	fmt.Println("  slicer-bridge <makersvault-open://open?...>")
 }
 
 func handleProtocol(raw string, cfg Config) error {
@@ -91,16 +144,17 @@ func handleProtocol(raw string, cfg Config) error {
 	}
 	log.Printf("open request tool=%s app=%s origin=%s filename=%s", request.Tool, request.AppID, request.Origin, request.Filename)
 
-	var cmd string
-	var args []string
-	if request.Tool == "engraver" {
-		cmd, args = resolveEngraverCommand(request.AppID, cfg)
-	} else {
-		cmd, args = resolveSlicerCommand(request.AppID, cfg)
+	adapter, err := resolveAdapter(request.AppID, request.Tool, cfg)
+	if err != nil {
+		return err
 	}
-	if cmd == "" {
+	if adapter.Command == "" {
 		return fmt.Errorf("configured %s application is unavailable: %s", request.Tool, request.AppID)
 	}
+	if request.Tool == "open" && !adapterAllows(adapter.Manifest, request.ContentRole, request.Filename) {
+		return fmt.Errorf("adapter %s does not allow the requested file role or type", request.AppID)
+	}
+	request.Adapter = adapter.Manifest
 
 	cfgDir := configDir()
 	if err := ensureTrustedOrigin(request.Origin, &cfg, cfgDir); err != nil {
@@ -115,8 +169,8 @@ func handleProtocol(raw string, cfg Config) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("launch %s command=%s args=%v", request.Tool, cmd, args)
-	return launchCommand(cmd, args, targetPath)
+	log.Printf("launch tool=%s adapter=%s", request.Tool, adapter.Manifest.ID)
+	return launchCommand(adapter.Command, adapter.Args, targetPath)
 }
 
 func setupLogging(cfg Config, cfgDir string) {
@@ -136,27 +190,26 @@ func setupLogging(cfg Config, cfgDir string) {
 	log.SetOutput(f)
 }
 
-func loadConfig() (Config, string) {
+func loadConfig() (Config, string, error) {
 	cfgDir := configDir()
 	cfgPath := filepath.Join(cfgDir, "config.json")
 	cfg := Config{
 		Slicers:   map[string]SlicerConfig{},
 		Engravers: map[string]SlicerConfig{},
+		Adapters:  map[string]CustomAdapterConfig{},
 	}
 	data, err := os.ReadFile(cfgPath)
 	if err != nil {
-		return cfg, cfgDir
+		if os.IsNotExist(err) {
+			return cfg, cfgDir, nil
+		}
+		return Config{}, cfgDir, errors.New("bridge config could not be read")
 	}
-	if err := json.Unmarshal(data, &cfg); err != nil {
-		return cfg, cfgDir
+	cfg, err = decodeConfig(data)
+	if err != nil {
+		return Config{}, cfgDir, err
 	}
-	if cfg.Slicers == nil {
-		cfg.Slicers = map[string]SlicerConfig{}
-	}
-	if cfg.Engravers == nil {
-		cfg.Engravers = map[string]SlicerConfig{}
-	}
-	return cfg, cfgDir
+	return cfg, cfgDir, nil
 }
 
 func configDir() string {
@@ -213,157 +266,11 @@ func fileExists(path string) bool {
 	return err == nil
 }
 
-func resolveSlicerCommand(id string, cfg Config) (string, []string) {
-	id = strings.ToLower(strings.TrimSpace(id))
-	if id == "" || id == "other" {
-		return "", nil
-	}
-
-	if cfg.Slicers != nil {
-		if sc, ok := cfg.Slicers[id]; ok && sc.Command != "" {
-			return sc.Command, sc.Args
-		}
-	}
-
-	envKey := "MAKERVAULT_SLICER_" + strings.ToUpper(strings.ReplaceAll(id, "-", "_"))
-	if val := strings.TrimSpace(os.Getenv(envKey)); val != "" {
-		return val, nil
-	}
-
-	switch runtime.GOOS {
-	case "windows":
-		return findWindowsCommand(id, windowsCandidates()), nil
-	case "linux":
-		return findLinuxCommand(id, linuxCandidates()), nil
-	default:
-		return "", nil
-	}
-}
-
-func resolveEngraverCommand(id string, cfg Config) (string, []string) {
-	id = strings.ToLower(strings.TrimSpace(id))
-	if id == "" || id == "other" {
-		return "", nil
-	}
-
-	if cfg.Engravers != nil {
-		if sc, ok := cfg.Engravers[id]; ok && sc.Command != "" {
-			return sc.Command, sc.Args
-		}
-	}
-
-	envKey := "MAKERVAULT_ENGRAVER_" + strings.ToUpper(strings.ReplaceAll(id, "-", "_"))
-	if val := strings.TrimSpace(os.Getenv(envKey)); val != "" {
-		return val, nil
-	}
-
-	switch runtime.GOOS {
-	case "windows":
-		return findWindowsCommand(id, engraverWindowsCandidates()), nil
-	case "linux":
-		return findLinuxCommand(id, engraverLinuxCandidates()), nil
-	default:
-		return "", nil
-	}
-}
-
-func findWindowsCommand(id string, candidates map[string][]string) string {
-	paths := candidates[id]
-	if len(paths) == 0 {
-		return ""
-	}
-	var bases []string
-	if pf := os.Getenv("ProgramFiles"); pf != "" {
-		bases = append(bases, pf)
-	}
-	if pf86 := os.Getenv("ProgramFiles(x86)"); pf86 != "" {
-		bases = append(bases, pf86)
-	}
-	if la := os.Getenv("LOCALAPPDATA"); la != "" {
-		bases = append(bases, la, filepath.Join(la, "Programs"))
-	}
-
-	for _, rel := range paths {
-		if filepath.IsAbs(rel) && fileExists(rel) {
-			return rel
-		}
-		for _, base := range bases {
-			full := filepath.Join(base, rel)
-			if fileExists(full) {
-				return full
-			}
-		}
-	}
-	return ""
-}
-
-func findLinuxCommand(id string, candidates map[string][]string) string {
-	paths := candidates[id]
-	for _, name := range paths {
-		if path, err := exec.LookPath(name); err == nil {
-			return path
-		}
-	}
-	return ""
-}
-
-func windowsCandidates() map[string][]string {
-	return map[string][]string{
-		"orca":        {"OrcaSlicer\\OrcaSlicer.exe"},
-		"bambu":       {"Bambu Studio\\BambuStudio.exe"},
-		"prusa":       {"PrusaSlicer\\PrusaSlicer.exe"},
-		"superslicer": {"SuperSlicer\\SuperSlicer.exe"},
-		"cura":        {"UltiMaker Cura\\UltiMaker Cura.exe", "Ultimaker Cura\\Ultimaker Cura.exe"},
-		"ideamaker":   {"ideaMaker\\ideaMaker.exe"},
-		"simplify3d":  {"Simplify3D\\Simplify3D.exe"},
-		"kisslicer":   {"KISSlicer\\KISSlicer.exe"},
-		"repetier":    {"Repetier-Host\\RepetierHost.exe"},
-		"chitubox":    {"CHITUBOX\\CHITUBOX.exe"},
-		"lychee":      {"LycheeSlicer\\LycheeSlicer.exe"},
-		"photon":      {"Photon Workshop\\PhotonWorkshop.exe"},
-		"creality":    {"Creality Print\\CrealityPrint.exe"},
-	}
-}
-
-func linuxCandidates() map[string][]string {
-	return map[string][]string{
-		"orca":        {"orca-slicer", "OrcaSlicer"},
-		"bambu":       {"bambu-studio", "BambuStudio"},
-		"prusa":       {"prusa-slicer", "PrusaSlicer"},
-		"superslicer": {"superslicer", "SuperSlicer"},
-		"cura":        {"cura", "UltiMaker-Cura", "Cura"},
-		"ideamaker":   {"ideamaker", "ideaMaker"},
-		"simplify3d":  {"simplify3d", "Simplify3D"},
-		"kisslicer":   {"KISSlicer"},
-		"repetier":    {"repetier-host", "RepetierHost"},
-		"chitubox":    {"chitubox", "CHITUBOX"},
-		"lychee":      {"lychee-slicer", "LycheeSlicer"},
-		"photon":      {"photon-workshop", "PhotonWorkshop"},
-		"creality":    {"creality-print", "CrealityPrint"},
-	}
-}
-
-func engraverWindowsCandidates() map[string][]string {
-	return map[string][]string{
-		"lightburn": {"LightBurn\\LightBurn.exe"},
-		"ezcad": {
-			"EZCAD\\EZCAD.exe",
-			"EZCAD2\\EZCAD2.exe",
-			"EZCAD2\\EZCAD.exe",
-		},
-	}
-}
-
-func engraverLinuxCandidates() map[string][]string {
-	return map[string][]string{
-		"lightburn": {"lightburn", "LightBurn"},
-		"ezcad":     {"ezcad", "EZCAD"},
-	}
-}
-
 func launchCommand(cmd string, args []string, filePath string) error {
-	allArgs := append([]string{}, args...)
-	allArgs = append(allArgs, filePath)
+	allArgs, err := expandFileArgument(args, filePath)
+	if err != nil {
+		return fmt.Errorf("invalid adapter arguments: %w", err)
+	}
 	c := exec.Command(cmd, allArgs...)
 	return c.Start()
 }

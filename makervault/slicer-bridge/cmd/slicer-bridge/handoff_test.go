@@ -41,6 +41,68 @@ func TestParseProtocolRequestAcceptsOnlyScopedShape(t *testing.T) {
 	}
 }
 
+func TestParseGeneralOpenRequestBindsAdapterAndContentRole(t *testing.T) {
+	redeem := url.QueryEscape("https://vault.example/api/handoff/redeem")
+	raw := "makersvault-open://open?redeem=" + redeem + "&grant=" + testGrant + "&adapter=freecad&role=revision_primary&filename=part.step"
+	request, err := parseProtocolRequest(raw)
+	if err != nil {
+		t.Fatalf("general protocol request returned error: %v", err)
+	}
+	if request.Tool != "open" || request.AppID != "freecad" || request.ContentRole != "revision_primary" {
+		t.Fatalf("general protocol identity was not preserved: %+v", request)
+	}
+
+	rejected := []string{
+		"makersvault-open://open?redeem=" + redeem + "&grant=" + testGrant + "&adapter=freecad&filename=part.step",
+		"makersvault-open://open?redeem=" + redeem + "&grant=" + testGrant + "&adapter=freecad&role=machine-control&filename=part.step",
+		"makersvault-open://open?redeem=" + redeem + "&grant=" + testGrant + "&adapter=other&role=primary&filename=part.step",
+	}
+	for _, candidate := range rejected {
+		if _, err := parseProtocolRequest(candidate); err == nil {
+			t.Fatalf("unsafe general request was accepted: %s", candidate)
+		}
+	}
+}
+
+func TestGeneralAdapterAuthorizationNarrowsRoleAndExtension(t *testing.T) {
+	freecad, _ := builtInAdapter("freecad")
+	if !adapterAllows(freecad, "revision_primary", "part.step") {
+		t.Fatal("FreeCAD rejected its approved historical STEP role")
+	}
+	if adapterAllows(freecad, "prepared", "plate.gcode") {
+		t.Fatal("FreeCAD accepted a prepared toolpath")
+	}
+	if adapterAllows(freecad, "primary", "design.svg") {
+		t.Fatal("FreeCAD accepted an undeclared SVG extension")
+	}
+	inkscape, _ := builtInAdapter("inkscape")
+	if !adapterAllows(inkscape, "supporting", "drawing.svg") {
+		t.Fatal("Inkscape rejected its approved supporting SVG role")
+	}
+}
+
+func TestGeneralDownloadSendsBoundRoleAndAdapterHeaders(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Header.Get("X-MakerVault-Handoff-Tool") != "open" ||
+			request.Header.Get("X-MakerVault-Handoff-Role") != "primary" ||
+			request.Header.Get("X-MakerVault-Handoff-Adapter") != "freecad" {
+			t.Errorf("general handoff headers were not bound: %v", request.Header)
+		}
+		response.Header().Set("Content-Disposition", `attachment; filename="part.step"`)
+		_, _ = response.Write([]byte("STEP fixture"))
+	}))
+	defer server.Close()
+	manifest, _ := builtInAdapter("freecad")
+	request := ProtocolRequest{
+		Tool: "open", AppID: "freecad", ContentRole: "primary",
+		RedeemURL: server.URL + "/handoff/redeem", Grant: testGrant,
+		Filename: "part.step", Adapter: manifest,
+	}
+	if _, err := downloadGrantedFile(request, Config{}, t.TempDir()); err != nil {
+		t.Fatalf("general adapter download failed: %v", err)
+	}
+}
+
 func TestUnavailableApplicationFailsBeforePairOrDownload(t *testing.T) {
 	redeem := url.QueryEscape("https://vault.example/api/handoff/redeem")
 	raw := "makersvault-slicer://open?redeem=" + redeem + "&grant=" + testGrant + "&slicer=not-installed&filename=model.stl"

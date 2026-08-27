@@ -36,14 +36,17 @@ func installSelf() (string, error) {
 		}
 	}
 
-	if err := registerProtocol("makersvault-slicer", "MakerVault Slicer Bridge", targetExe); err != nil {
-		return "", err
-	}
-	if err := registerProtocol("makersvault-engrave", "MakerVault Engraving Bridge", targetExe); err != nil {
-		return "", err
+	for _, scheme := range registeredProtocolSchemes {
+		if err := registerProtocol(scheme, "MakerVault Bridge", targetExe); err != nil {
+			return "", err
+		}
 	}
 
 	return targetExe, nil
+}
+
+func uninstallSelf() (string, error) {
+	return "", fmt.Errorf("automatic uninstall is currently supported only on macOS")
 }
 
 func registerProtocol(scheme, label, targetExe string) error {

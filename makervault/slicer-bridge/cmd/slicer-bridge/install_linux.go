@@ -39,7 +39,7 @@ func installSelf() (string, error) {
 	}
 	desktopFile := filepath.Join(desktopDir, "makersvault-slicer.desktop")
 	desktop := fmt.Sprintf(
-		"[Desktop Entry]\nName=MakerVault Bridge\nExec=%s %%u\nType=Application\nTerminal=false\nMimeType=x-scheme-handler/makersvault-slicer;x-scheme-handler/makersvault-engrave;\n",
+		"[Desktop Entry]\nName=MakerVault Bridge\nExec=%s %%u\nType=Application\nTerminal=false\nMimeType=x-scheme-handler/makersvault-slicer;x-scheme-handler/makersvault-engrave;x-scheme-handler/makersvault-open;\n",
 		targetPath,
 	)
 	if err := os.WriteFile(desktopFile, []byte(desktop), 0644); err != nil {
@@ -47,9 +47,14 @@ func installSelf() (string, error) {
 	}
 
 	if xdgMime, err := exec.LookPath("xdg-mime"); err == nil {
-		_ = exec.Command(xdgMime, "default", "makersvault-slicer.desktop", "x-scheme-handler/makersvault-slicer").Run()
-		_ = exec.Command(xdgMime, "default", "makersvault-slicer.desktop", "x-scheme-handler/makersvault-engrave").Run()
+		for _, scheme := range registeredProtocolSchemes {
+			_ = exec.Command(xdgMime, "default", "makersvault-slicer.desktop", "x-scheme-handler/"+scheme).Run()
+		}
 	}
 
 	return targetPath, nil
+}
+
+func uninstallSelf() (string, error) {
+	return "", fmt.Errorf("automatic uninstall is currently supported only on macOS")
 }

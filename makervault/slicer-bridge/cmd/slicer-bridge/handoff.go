@@ -33,12 +33,14 @@ var engraverExtensions = map[string]bool{
 }
 
 type ProtocolRequest struct {
-	Tool      string
-	AppID     string
-	RedeemURL string
-	Origin    string
-	Grant     string
-	Filename  string
+	Tool        string
+	AppID       string
+	ContentRole string
+	Adapter     AdapterManifest
+	RedeemURL   string
+	Origin      string
+	Grant       string
+	Filename    string
 }
 
 func parseProtocolRequest(raw string) (ProtocolRequest, error) {
@@ -55,6 +57,9 @@ func parseProtocolRequest(raw string) (ProtocolRequest, error) {
 	case engraveScheme:
 		tool = "engraver"
 		idParam = "engraver"
+	case generalScheme:
+		tool = "open"
+		idParam = "adapter"
 	default:
 		return ProtocolRequest{}, fmt.Errorf("unexpected scheme: %s", parsed.Scheme)
 	}
@@ -82,10 +87,19 @@ func parseProtocolRequest(raw string) (ProtocolRequest, error) {
 	if !validApplicationID(appID) || appID == "other" {
 		return ProtocolRequest{}, errors.New("a specific configured application is required")
 	}
+	contentRole := ""
+	if tool == "open" {
+		contentRole = strings.ToLower(strings.TrimSpace(query.Get("role")))
+		if !allowedContentRoles[contentRole] {
+			return ProtocolRequest{}, errors.New("a supported content role is required")
+		}
+	} else if query.Has("role") || query.Has("adapter") {
+		return ProtocolRequest{}, errors.New("general adapter fields are not allowed for legacy handoffs")
+	}
 	filename := sanitizeFilename(query.Get("filename"))
 	return ProtocolRequest{
-		Tool: tool, AppID: appID, RedeemURL: redeemURL, Origin: origin,
-		Grant: grant, Filename: filename,
+		Tool: tool, AppID: appID, ContentRole: contentRole,
+		RedeemURL: redeemURL, Origin: origin, Grant: grant, Filename: filename,
 	}, nil
 }
 
@@ -167,6 +181,13 @@ func extensionAllowed(tool, filename string) bool {
 	return engraverExtensions[extension]
 }
 
+func adapterAllows(adapter AdapterManifest, contentRole, filename string) bool {
+	if !stringSliceContains(adapter.ContentRoles, contentRole) {
+		return false
+	}
+	return stringSliceContains(adapter.Extensions, strings.ToLower(filepath.Ext(filename)))
+}
+
 func downloadGrantedFile(request ProtocolRequest, cfg Config, downloadDir string) (targetPath string, resultErr error) {
 	maxMB := cfg.MaxDownloadMB
 	if maxMB <= 0 {
@@ -192,6 +213,13 @@ func downloadGrantedFile(request ProtocolRequest, cfg Config, downloadDir string
 	}
 	httpRequest.Header.Set("Authorization", "MakerVault-Handoff "+request.Grant)
 	httpRequest.Header.Set("X-MakerVault-Handoff-Tool", request.Tool)
+	if request.Tool == "open" {
+		if request.Adapter.ID != request.AppID || !adapterAllows(request.Adapter, request.ContentRole, request.Filename) {
+			return "", errors.New("general adapter request is not authorized for the requested file")
+		}
+		httpRequest.Header.Set("X-MakerVault-Handoff-Role", request.ContentRole)
+		httpRequest.Header.Set("X-MakerVault-Handoff-Adapter", request.Adapter.ID)
+	}
 	httpRequest.Header.Set("User-Agent", "MakerVault-Bridge/5.1")
 	response, err := client.Do(httpRequest)
 	if err != nil {
@@ -206,7 +234,11 @@ func downloadGrantedFile(request ProtocolRequest, cfg Config, downloadDir string
 	}
 
 	filename := filenameFromResponse(response, request.Filename)
-	if !extensionAllowed(request.Tool, filename) {
+	allowed := extensionAllowed(request.Tool, filename)
+	if request.Tool == "open" {
+		allowed = adapterAllows(request.Adapter, request.ContentRole, filename)
+	}
+	if !allowed {
 		return "", fmt.Errorf("file type is not allowed for %s handoff: %s", request.Tool, filename)
 	}
 	targetPath, output, err := createUniqueDownload(downloadDir, filename)
