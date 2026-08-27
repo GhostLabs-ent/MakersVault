@@ -85,6 +85,7 @@ def test_fresh_database_reaches_current_schema(tmp_path: Path) -> None:
         "project",
         "projectmembership",
         "projectrelationship",
+        "machineprofile",
         "appconfig",
         "mountscan",
         "schema_migration",
@@ -179,8 +180,8 @@ def test_schema9_to_schema10_relationship_expansion_is_empty_and_preserves_state
             ).fetchall(),
         }
 
-    assert run_migrations(database_engine) == 10
-    assert run_migrations(database_engine) == 10
+    assert run_migrations(database_engine, MIGRATIONS[:10]) == 10
+    assert run_migrations(database_engine, MIGRATIONS[:10]) == 10
 
     with database_engine.connect() as conn:
         assert conn.exec_driver_sql("SELECT COUNT(*) FROM projectrelationship").scalar_one() == 0
@@ -219,6 +220,104 @@ def test_schema9_to_schema10_relationship_expansion_is_empty_and_preserves_state
                 "INSERT INTO projectrelationship(id, project_id, source_asset_id, "
                 "target_asset_id, kind, created_at) VALUES "
                 "('bad-kind', 'project-1', 'asset-1', 'asset-2', 'source_of', 'now')"
+            )
+
+
+def test_schema10_to_schema11_machine_expansion_is_empty_and_preserves_state(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "schema10.db"
+    create_pre_v5_1_fixture(db_path)
+    database_engine = sqlite_engine(db_path)
+    assert run_migrations(database_engine, MIGRATIONS[:10]) == 10
+    with database_engine.begin() as conn:
+        conn.exec_driver_sql(
+            "INSERT INTO project(id, name, tags_json, created_at, updated_at) "
+            "VALUES ('project-1', 'Fixture Project', '[]', 'now', 'now')"
+        )
+        conn.exec_driver_sql(
+            "INSERT INTO projectmembership(project_id, asset_id, created_at) "
+            "VALUES ('project-1', 'asset-1', 'now')"
+        )
+        conn.exec_driver_sql(
+            "INSERT INTO projectrelationship(id, project_id, source_asset_id, "
+            "target_asset_id, kind, created_at) VALUES "
+            "('relationship-1', 'project-1', 'asset-1', 'asset-2', "
+            "'derived_from', 'now')"
+        )
+    with database_engine.connect() as conn:
+        state_before = {
+            "assets": conn.exec_driver_sql(
+                "SELECT * FROM asset ORDER BY id"
+            ).fetchall(),
+            "revisions": conn.exec_driver_sql(
+                "SELECT * FROM artifactrevision ORDER BY id"
+            ).fetchall(),
+            "projects": conn.exec_driver_sql(
+                "SELECT * FROM project ORDER BY id"
+            ).fetchall(),
+            "memberships": conn.exec_driver_sql(
+                "SELECT * FROM projectmembership ORDER BY project_id, asset_id"
+            ).fetchall(),
+            "relationships": conn.exec_driver_sql(
+                "SELECT * FROM projectrelationship ORDER BY id"
+            ).fetchall(),
+        }
+
+    assert run_migrations(database_engine) == 11
+    assert run_migrations(database_engine) == 11
+
+    with database_engine.connect() as conn:
+        assert conn.exec_driver_sql(
+            "SELECT COUNT(*) FROM machineprofile"
+        ).scalar_one() == 0
+        assert conn.exec_driver_sql(
+            "SELECT * FROM asset ORDER BY id"
+        ).fetchall() == state_before["assets"]
+        assert conn.exec_driver_sql(
+            "SELECT * FROM artifactrevision ORDER BY id"
+        ).fetchall() == state_before["revisions"]
+        assert conn.exec_driver_sql(
+            "SELECT * FROM project ORDER BY id"
+        ).fetchall() == state_before["projects"]
+        assert conn.exec_driver_sql(
+            "SELECT * FROM projectmembership ORDER BY project_id, asset_id"
+        ).fetchall() == state_before["memberships"]
+        assert conn.exec_driver_sql(
+            "SELECT * FROM projectrelationship ORDER BY id"
+        ).fetchall() == state_before["relationships"]
+        indexes = {
+            str(row[1])
+            for row in conn.exec_driver_sql(
+                "PRAGMA index_list(machineprofile)"
+            ).fetchall()
+        }
+    assert "idx_machineprofile_active_name_unique" in indexes
+
+    with database_engine.begin() as conn:
+        conn.exec_driver_sql(
+            "INSERT INTO machineprofile(id, name, category, created_at, updated_at) "
+            "VALUES ('machine-1', 'Printer', 'fdm_printer', 'now', 'now')"
+        )
+    with pytest.raises(IntegrityError):
+        with database_engine.begin() as conn:
+            conn.exec_driver_sql(
+                "INSERT INTO machineprofile(id, name, category, created_at, updated_at) "
+                "VALUES ('machine-2', 'printer', 'other', 'now', 'now')"
+            )
+    with database_engine.begin() as conn:
+        conn.exec_driver_sql(
+            "UPDATE machineprofile SET archived_at = 'later' WHERE id = 'machine-1'"
+        )
+        conn.exec_driver_sql(
+            "INSERT INTO machineprofile(id, name, category, created_at, updated_at) "
+            "VALUES ('machine-2', 'printer', 'other', 'now', 'now')"
+        )
+    with pytest.raises(IntegrityError):
+        with database_engine.begin() as conn:
+            conn.exec_driver_sql(
+                "INSERT INTO machineprofile(id, name, category, created_at, updated_at) "
+                "VALUES ('bad-category', 'Bad', 'robot', 'now', 'now')"
             )
 
 

@@ -150,6 +150,64 @@ class ProjectPermanentDeleteOut(BaseModel):
   relationships_deleted: int
 
 
+MachineCategory = Literal[
+  "fdm_printer",
+  "resin_printer",
+  "laser",
+  "cnc",
+  "pcb",
+  "other",
+]
+
+
+class MachineCreate(BaseModel):
+  model_config = ConfigDict(extra="forbid")
+
+  name: str = Field(min_length=1, max_length=200)
+  category: MachineCategory
+  manufacturer: Optional[str] = Field(default=None, max_length=500)
+  model: Optional[str] = Field(default=None, max_length=500)
+  location: Optional[str] = Field(default=None, max_length=500)
+  notes: Optional[str] = Field(default=None, max_length=10000)
+
+
+class MachineUpdate(BaseModel):
+  model_config = ConfigDict(extra="forbid")
+
+  name: Optional[str] = Field(default=None, min_length=1, max_length=200)
+  category: Optional[MachineCategory] = None
+  manufacturer: Optional[str] = Field(default=None, max_length=500)
+  model: Optional[str] = Field(default=None, max_length=500)
+  location: Optional[str] = Field(default=None, max_length=500)
+  notes: Optional[str] = Field(default=None, max_length=10000)
+
+
+class MachineOut(BaseModel):
+  id: str
+  name: str
+  category: MachineCategory
+  manufacturer: Optional[str] = None
+  model: Optional[str] = None
+  location: Optional[str] = None
+  notes: Optional[str] = None
+  created_at: str
+  updated_at: str
+  archived_at: Optional[str] = None
+
+
+class MachinePermanentDeleteRequest(BaseModel):
+  model_config = ConfigDict(extra="forbid")
+
+  confirmation: str = Field(max_length=64)
+
+
+class MachinePermanentDeleteOut(BaseModel):
+  machine_id: str
+  name: str
+  associations_deleted: int
+  prepared_references_cleared: int
+
+
 RelationshipKind = Literal["derived_from", "documentation_for", "component_of"]
 
 

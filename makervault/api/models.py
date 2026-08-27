@@ -86,6 +86,25 @@ class ProjectRelationship(SQLModel, table=True):
   created_at: str
 
 
+class MachineProfile(SQLModel, table=True):
+  __table_args__ = (
+    CheckConstraint(
+      "category IN ('fdm_printer', 'resin_printer', 'laser', 'cnc', 'pcb', 'other')",
+      name="ck_machineprofile_category",
+    ),
+  )
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  name: str
+  category: str = Field(index=True)
+  manufacturer: Optional[str] = None
+  model: Optional[str] = None
+  location: Optional[str] = None
+  notes: Optional[str] = None
+  created_at: str
+  updated_at: str = Field(index=True)
+  archived_at: Optional[str] = Field(default=None, index=True)
+
+
 class ArtifactRevision(SQLModel, table=True):
   id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
   asset_id: str = Field(foreign_key="asset.id", index=True)

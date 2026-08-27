@@ -95,9 +95,18 @@ from models import (
     ContentHashJob,
     Folder,
     MountScan,
+    MachineProfile,
     Project,
     ProjectMembership,
     ProjectRelationship,
+)
+from machine_service import (
+    archive_machine,
+    create_machine,
+    permanently_delete_machine,
+    require_machine,
+    restore_machine,
+    update_machine,
 )
 from migrations import run_migrations
 from prepared_print import prepared_filename
@@ -183,6 +192,12 @@ from schemas import (
     MountImportSettingsOut,
     MountScanOut,
     MountScanStartOut,
+    MachineCategory,
+    MachineCreate,
+    MachineOut,
+    MachinePermanentDeleteOut,
+    MachinePermanentDeleteRequest,
+    MachineUpdate,
     StorageSettings,
     StorageSettingsOut,
     ArtifactRevisionOut,
@@ -370,6 +385,21 @@ def project_to_out(project: Project, member_count: int = 0) -> ProjectOut:
         updated_at=project.updated_at,
         deleted_at=project.deleted_at,
         member_count=member_count,
+    )
+
+
+def machine_to_out(machine: MachineProfile) -> MachineOut:
+    return MachineOut(
+        id=machine.id,
+        name=machine.name,
+        category=machine.category,
+        manufacturer=machine.manufacturer,
+        model=machine.model,
+        location=machine.location,
+        notes=machine.notes,
+        created_at=machine.created_at,
+        updated_at=machine.updated_at,
+        archived_at=machine.archived_at,
     )
 
 
@@ -1659,6 +1689,107 @@ def update_trash_settings(
     set_trash_retention(body.policy)
     purge_expired_trash()
     return trash_settings_out()
+
+
+# Machine endpoints ---------------------------------------------
+
+
+@app.get("/machines", response_model=List[MachineOut])
+def list_machines(
+    response: Response,
+    q: Optional[str] = Query(default=None, max_length=200),
+    category: Optional[MachineCategory] = Query(default=None),
+    include_archived: bool = Query(default=False),
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        statement = select(MachineProfile)
+        if not include_archived:
+            statement = statement.where(MachineProfile.archived_at == None)  # noqa: E711
+        if category:
+            statement = statement.where(MachineProfile.category == category)
+        if q and q.strip():
+            pattern = f"%{q.strip()}%"
+            statement = statement.where(
+                (MachineProfile.name.like(pattern))
+                | (MachineProfile.manufacturer.like(pattern))
+                | (MachineProfile.model.like(pattern))
+                | (MachineProfile.location.like(pattern))
+                | (MachineProfile.notes.like(pattern))
+            )
+        machines = list(session.exec(
+            statement.order_by(MachineProfile.name, MachineProfile.id)
+            .offset(offset)
+            .limit(limit + 1)
+        ))
+        has_more = len(machines) > limit
+        if has_more:
+            machines = machines[:limit]
+        response.headers["X-Has-More"] = "true" if has_more else "false"
+        response.headers["X-Next-Offset"] = str(offset + len(machines))
+        return [machine_to_out(machine) for machine in machines]
+
+
+@app.post("/machines", response_model=MachineOut, status_code=201)
+def create_machine_route(
+    body: MachineCreate,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        return machine_to_out(create_machine(session, body))
+
+
+@app.get("/machine/{machine_id}", response_model=MachineOut)
+def get_machine(machine_id: str, _: Optional[str] = Depends(require_auth)):
+    with Session(engine) as session:
+        return machine_to_out(require_machine(session, machine_id))
+
+
+@app.patch("/machine/{machine_id}", response_model=MachineOut)
+def update_machine_route(
+    machine_id: str,
+    body: MachineUpdate,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        return machine_to_out(update_machine(session, machine_id, body))
+
+
+@app.post("/machine/{machine_id}/archive", response_model=MachineOut)
+def archive_machine_route(
+    machine_id: str,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        return machine_to_out(archive_machine(session, machine_id))
+
+
+@app.post("/machine/{machine_id}/restore", response_model=MachineOut)
+def restore_machine_route(
+    machine_id: str,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        return machine_to_out(restore_machine(session, machine_id))
+
+
+@app.post(
+    "/machine/{machine_id}/permanent",
+    response_model=MachinePermanentDeleteOut,
+)
+def permanently_delete_machine_route(
+    machine_id: str,
+    body: MachinePermanentDeleteRequest,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        return MachinePermanentDeleteOut(**permanently_delete_machine(
+            session,
+            machine_id,
+            body.confirmation,
+        ))
 
 
 # Project endpoints ---------------------------------------------

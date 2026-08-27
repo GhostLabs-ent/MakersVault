@@ -503,6 +503,46 @@ def _migration_010_project_relationships(conn: Connection) -> None:
     )
 
 
+def _migration_011_machine_profiles(conn: Connection) -> None:
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS machineprofile (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            name VARCHAR NOT NULL,
+            category VARCHAR NOT NULL CHECK (
+                category IN (
+                    'fdm_printer', 'resin_printer', 'laser',
+                    'cnc', 'pcb', 'other'
+                )
+            ),
+            manufacturer VARCHAR,
+            model VARCHAR,
+            location VARCHAR,
+            notes VARCHAR,
+            created_at VARCHAR NOT NULL,
+            updated_at VARCHAR NOT NULL,
+            archived_at VARCHAR
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_machineprofile_active_name_unique "
+        "ON machineprofile(name COLLATE NOCASE) WHERE archived_at IS NULL"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_machineprofile_category "
+        "ON machineprofile(category)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_machineprofile_updated_at "
+        "ON machineprofile(updated_at)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_machineprofile_archived_at "
+        "ON machineprofile(archived_at)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
@@ -514,6 +554,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(8, "recoverable_trash", _migration_008_recoverable_trash),
     Migration(9, "projects_and_membership", _migration_009_projects_and_membership),
     Migration(10, "project_relationships", _migration_010_project_relationships),
+    Migration(11, "machine_profiles", _migration_011_machine_profiles),
 )
 
 
