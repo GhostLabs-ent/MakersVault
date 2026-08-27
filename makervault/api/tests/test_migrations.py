@@ -86,6 +86,7 @@ def test_fresh_database_reaches_current_schema(tmp_path: Path) -> None:
         "projectmembership",
         "projectrelationship",
         "machineprofile",
+        "artifactmachine",
         "appconfig",
         "mountscan",
         "schema_migration",
@@ -264,8 +265,8 @@ def test_schema10_to_schema11_machine_expansion_is_empty_and_preserves_state(
             ).fetchall(),
         }
 
-    assert run_migrations(database_engine) == 11
-    assert run_migrations(database_engine) == 11
+    assert run_migrations(database_engine, MIGRATIONS[:11]) == 11
+    assert run_migrations(database_engine, MIGRATIONS[:11]) == 11
 
     with database_engine.connect() as conn:
         assert conn.exec_driver_sql(
@@ -318,6 +319,98 @@ def test_schema10_to_schema11_machine_expansion_is_empty_and_preserves_state(
             conn.exec_driver_sql(
                 "INSERT INTO machineprofile(id, name, category, created_at, updated_at) "
                 "VALUES ('bad-category', 'Bad', 'robot', 'now', 'now')"
+            )
+
+
+def test_schema11_to_schema12_machine_context_is_empty_and_preserves_state(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "schema11.db"
+    create_pre_v5_1_fixture(db_path)
+    database_engine = sqlite_engine(db_path)
+    assert run_migrations(database_engine, MIGRATIONS[:11]) == 11
+    with database_engine.begin() as conn:
+        conn.exec_driver_sql(
+            "INSERT INTO machineprofile(id, name, category, created_at, updated_at) "
+            "VALUES ('machine-1', 'Fixture Printer', 'fdm_printer', 'now', 'now')"
+        )
+    with database_engine.connect() as conn:
+        state_before = {
+            "assets": conn.exec_driver_sql(
+                "SELECT id, name, filename FROM asset ORDER BY id"
+            ).fetchall(),
+            "revisions": conn.exec_driver_sql(
+                "SELECT id, asset_id, revision_number FROM artifactrevision ORDER BY id"
+            ).fetchall(),
+            "machines": conn.exec_driver_sql(
+                "SELECT * FROM machineprofile ORDER BY id"
+            ).fetchall(),
+        }
+
+    assert run_migrations(database_engine) == 12
+    assert run_migrations(database_engine) == 12
+
+    with database_engine.connect() as conn:
+        assert conn.exec_driver_sql(
+            "SELECT COUNT(*) FROM artifactmachine"
+        ).scalar_one() == 0
+        assert conn.exec_driver_sql(
+            "SELECT id, name, filename FROM asset ORDER BY id"
+        ).fetchall() == state_before["assets"]
+        assert conn.exec_driver_sql(
+            "SELECT id, asset_id, revision_number FROM artifactrevision ORDER BY id"
+        ).fetchall() == state_before["revisions"]
+        assert conn.exec_driver_sql(
+            "SELECT * FROM machineprofile ORDER BY id"
+        ).fetchall() == state_before["machines"]
+        assert conn.exec_driver_sql(
+            "SELECT COUNT(*) FROM asset WHERE prepared_machine_id IS NOT NULL"
+        ).scalar_one() == 0
+        assert conn.exec_driver_sql(
+            "SELECT COUNT(*) FROM artifactrevision WHERE prepared_machine_id IS NOT NULL"
+        ).scalar_one() == 0
+        association_indexes = {
+            str(row[1])
+            for row in conn.exec_driver_sql(
+                "PRAGMA index_list(artifactmachine)"
+            ).fetchall()
+        }
+        association_foreign_keys = {
+            (str(row[2]), str(row[3]), str(row[4]))
+            for row in conn.exec_driver_sql(
+                "PRAGMA foreign_key_list(artifactmachine)"
+            ).fetchall()
+        }
+        asset_foreign_keys = {
+            (str(row[2]), str(row[3]), str(row[4]))
+            for row in conn.exec_driver_sql("PRAGMA foreign_key_list(asset)").fetchall()
+        }
+        revision_foreign_keys = {
+            (str(row[2]), str(row[3]), str(row[4]))
+            for row in conn.exec_driver_sql(
+                "PRAGMA foreign_key_list(artifactrevision)"
+            ).fetchall()
+        }
+    assert "idx_artifactmachine_machine_id" in association_indexes
+    assert association_foreign_keys == {
+        ("asset", "asset_id", "id"),
+        ("machineprofile", "machine_id", "id"),
+    }
+    assert ("machineprofile", "prepared_machine_id", "id") in asset_foreign_keys
+    assert (
+        "machineprofile", "prepared_machine_id", "id"
+    ) in revision_foreign_keys
+
+    with database_engine.begin() as conn:
+        conn.exec_driver_sql(
+            "INSERT INTO artifactmachine(asset_id, machine_id, created_at) "
+            "VALUES ('asset-1', 'machine-1', 'now')"
+        )
+    with pytest.raises(IntegrityError):
+        with database_engine.begin() as conn:
+            conn.exec_driver_sql(
+                "INSERT INTO artifactmachine(asset_id, machine_id, created_at) "
+                "VALUES ('asset-1', 'machine-1', 'later')"
             )
 
 

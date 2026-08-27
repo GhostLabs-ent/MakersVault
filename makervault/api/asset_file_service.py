@@ -85,6 +85,7 @@ async def save_asset_file(
                         old_prepared_path = managed_asset_file_path(old_prepared)
                 asset.prepared_file_id = db_record.id
                 asset.prepared_metadata_json = db_record.metadata_json or json.dumps({"format": "gcode"})
+                asset.prepared_machine_id = None
             else:
                 asset.supporting_file_count = int(asset.supporting_file_count or 0) + 1
             session.add(db_record)
@@ -165,6 +166,7 @@ def delete_prepared_file(asset_id: str) -> Asset:
         embedded = inspect_asset_prepared_print(asset)
         asset.prepared_file_id = None
         asset.prepared_metadata_json = json.dumps(embedded) if embedded else None
+        asset.prepared_machine_id = None
         sync_current_revision(session, asset)
         session.delete(record)
         session.commit()

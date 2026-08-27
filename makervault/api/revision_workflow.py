@@ -19,7 +19,7 @@ from asset_service import (
 from config import FILE_MAX_BYTES, PREVIEW_POLICY_VERSION
 from db import STORAGE, engine
 from file_utils import mime_from_content_type, sanitize_filename
-from models import ArtifactRevision, Asset, AssetFile
+from models import ArtifactRevision, Asset, AssetFile, MachineProfile
 from prepared_print import inspect_prepared_print
 from preview_policy import automatic_preview_disposition
 from resource_limits import stream_reader_to_file, stream_upload_to_file
@@ -149,6 +149,7 @@ def _apply_current_projection(asset: Asset, revision: ArtifactRevision) -> None:
     asset.source_path = revision.source_path
     asset.prepared_file_id = revision.prepared_file_id
     asset.prepared_metadata_json = revision.prepared_metadata_json
+    asset.prepared_machine_id = revision.prepared_machine_id
     asset.preview_status = revision.preview_status
     asset.preview_reason = revision.preview_reason
     asset.preview_attempts = revision.preview_attempts
@@ -170,6 +171,7 @@ def _finalize_staged_revision(
     change_note: Optional[str],
     origin_revision_id: Optional[str] = None,
     prepared_metadata_json: Optional[str] = None,
+    prepared_machine_id: Optional[str] = None,
     copied_thumbnail: Optional[Path] = None,
     prepared_source: Optional[AssetFile] = None,
 ) -> RevisionMutationResult:
@@ -258,6 +260,7 @@ def _finalize_staged_revision(
                 change_note=(change_note or "").strip() or None,
                 prepared_file_id=prepared_record.id if prepared_record else None,
                 prepared_metadata_json=prepared_metadata,
+                prepared_machine_id=prepared_machine_id,
                 preview_status=preview_status,
                 preview_reason=preview_reason,
                 preview_attempts=0,
@@ -376,6 +379,12 @@ def restore_revision(
             if target.id == current.id:
                 return RevisionMutationResult(asset=asset, revision=current, created=False)
             target_snapshot = target.model_copy(deep=True)
+            prepared_machine_id = (
+                target.prepared_machine_id
+                if target.prepared_machine_id
+                and session.get(MachineProfile, target.prepared_machine_id)
+                else None
+            )
             prepared_snapshot = None
             if target.prepared_file_id:
                 prepared = session.get(AssetFile, target.prepared_file_id)
@@ -421,6 +430,7 @@ def restore_revision(
                 change_note=change_note or f"Restored revision {target_snapshot.revision_number}",
                 origin_revision_id=target_snapshot.id,
                 prepared_metadata_json=target_snapshot.prepared_metadata_json,
+                prepared_machine_id=prepared_machine_id,
                 copied_thumbnail=target_thumb if target_thumb and target_thumb.is_file() else None,
                 prepared_source=prepared_snapshot,
             )

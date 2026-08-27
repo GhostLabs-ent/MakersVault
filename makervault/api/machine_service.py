@@ -4,9 +4,9 @@ from typing import Optional
 
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session
+from sqlmodel import Session, select
 
-from models import MachineProfile
+from models import ArtifactMachine, ArtifactRevision, Asset, MachineProfile
 
 
 MACHINE_NAME_MAX_LENGTH = 200
@@ -160,12 +160,31 @@ def permanently_delete_machine(
         )
     with machine_mutation_lock:
         machine = require_archived_machine(session, machine_id)
+        associations = list(session.exec(
+            select(ArtifactMachine).where(ArtifactMachine.machine_id == machine_id)
+        ))
+        assets = list(session.exec(
+            select(Asset).where(Asset.prepared_machine_id == machine_id)
+        ))
+        revisions = list(session.exec(
+            select(ArtifactRevision).where(
+                ArtifactRevision.prepared_machine_id == machine_id
+            )
+        ))
         result = {
             "machine_id": machine.id,
             "name": machine.name,
-            "associations_deleted": 0,
-            "prepared_references_cleared": 0,
+            "associations_deleted": len(associations),
+            "prepared_references_cleared": len(assets) + len(revisions),
         }
+        for association in associations:
+            session.delete(association)
+        for asset in assets:
+            asset.prepared_machine_id = None
+            session.add(asset)
+        for revision in revisions:
+            revision.prepared_machine_id = None
+            session.add(revision)
         session.delete(machine)
         session.commit()
         return result

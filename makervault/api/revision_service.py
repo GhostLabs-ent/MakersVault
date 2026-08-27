@@ -22,6 +22,7 @@ def initial_revision_for_asset(asset: Asset) -> ArtifactRevision:
         source_path=asset.source_path,
         prepared_file_id=asset.prepared_file_id,
         prepared_metadata_json=asset.prepared_metadata_json,
+        prepared_machine_id=asset.prepared_machine_id,
         preview_status=asset.preview_status,
         preview_reason=asset.preview_reason,
         preview_attempts=int(asset.preview_attempts or 0),
@@ -61,6 +62,7 @@ def sync_current_revision(
         revision.source_path = asset.source_path
     revision.prepared_file_id = asset.prepared_file_id
     revision.prepared_metadata_json = asset.prepared_metadata_json
+    revision.prepared_machine_id = asset.prepared_machine_id
     revision.preview_status = asset.preview_status
     revision.preview_reason = asset.preview_reason
     revision.preview_attempts = int(asset.preview_attempts or 0)

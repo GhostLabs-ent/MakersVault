@@ -54,7 +54,7 @@ fi
 
 schema_output=$(compose exec -T api python -m migrations)
 case "$schema_output" in
-  *"schema version: 11"*) ;;
+  *"schema version: 12"*) ;;
   *)
     echo "Smoke test failed: unexpected schema output: $schema_output" >&2
     exit 1
@@ -94,4 +94,4 @@ for expected_header in \
   fi
 done
 
-echo "Container smoke test passed (direct and same-origin API, security headers, 512 MiB file policy, API UID $api_uid, web UID $web_uid, schema 11)."
+echo "Container smoke test passed (direct and same-origin API, security headers, 512 MiB file policy, API UID $api_uid, web UID $web_uid, schema 12)."

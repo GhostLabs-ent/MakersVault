@@ -108,6 +108,13 @@ from machine_service import (
     restore_machine,
     update_machine,
 )
+from machine_context_service import (
+    DESCRIPTIVE_CONTEXT_NOTICE,
+    add_machine_association,
+    list_machine_context,
+    remove_machine_association,
+    set_prepared_machine,
+)
 from migrations import run_migrations
 from prepared_print import prepared_filename
 from preview_policy import (
@@ -169,6 +176,7 @@ from trash_service import (
     start_trash_maintenance,
 )
 from schemas import (
+    AssetMachineContextOut,
     AssetOut,
     AssetFileOut,
     FolderIn,
@@ -193,11 +201,13 @@ from schemas import (
     MountScanOut,
     MountScanStartOut,
     MachineCategory,
+    MachineAssociationOut,
     MachineCreate,
     MachineOut,
     MachinePermanentDeleteOut,
     MachinePermanentDeleteRequest,
     MachineUpdate,
+    PreparedMachineUpdate,
     StorageSettings,
     StorageSettingsOut,
     ArtifactRevisionOut,
@@ -403,6 +413,27 @@ def machine_to_out(machine: MachineProfile) -> MachineOut:
     )
 
 
+def machine_context_to_out(session: Session, asset_id: str) -> AssetMachineContextOut:
+    asset, associations, prepared_machine = list_machine_context(session, asset_id)
+    return AssetMachineContextOut(
+        asset_id=asset.id,
+        associations=[
+            MachineAssociationOut(
+                machine=machine_to_out(machine),
+                created_at=association.created_at,
+            )
+            for association, machine in associations
+        ],
+        prepared_machine=(
+            machine_to_out(prepared_machine) if prepared_machine else None
+        ),
+        prepared_revision_id=(
+            asset.current_revision_id if prepared_machine else None
+        ),
+        notice=DESCRIPTIVE_CONTEXT_NOTICE,
+    )
+
+
 def relationship_to_out(
     relationship: ProjectRelationship,
     source: Asset,
@@ -480,6 +511,7 @@ def to_out(a: Asset) -> AssetOut:
         storage_path=a.storage_path,
         supporting_file_count=int(a.supporting_file_count or 0),
         prepared_print=prepared,
+        prepared_machine_id=a.prepared_machine_id,
         slicer_url=slicer_url,
         slicer_filename=(prepared_filename(a.name, prepared) if a.prepared_file_id else a.filename),
         preview_status=("ready" if thumb_path and thumb_path.exists() else a.preview_status),
@@ -535,6 +567,7 @@ def revision_to_out(revision: ArtifactRevision, current_revision_id: Optional[st
         content_checked_at=revision.content_checked_at,
         change_note=revision.change_note,
         prepared_print=prepared,
+        prepared_machine_id=revision.prepared_machine_id,
         url=f"/asset/{revision.asset_id}/revisions/{revision.id}/file",
         thumb_url=thumb_url,
         is_current=revision.id == current_revision_id,
@@ -1692,6 +1725,61 @@ def update_trash_settings(
 
 
 # Machine endpoints ---------------------------------------------
+
+
+@app.get(
+    "/asset/{asset_id}/machines",
+    response_model=AssetMachineContextOut,
+)
+def get_asset_machine_context(
+    asset_id: str,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        return machine_context_to_out(session, asset_id)
+
+
+@app.post(
+    "/asset/{asset_id}/machines/{machine_id}",
+    response_model=AssetMachineContextOut,
+    status_code=201,
+)
+def associate_machine_with_asset(
+    asset_id: str,
+    machine_id: str,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        add_machine_association(session, asset_id, machine_id)
+        return machine_context_to_out(session, asset_id)
+
+
+@app.delete(
+    "/asset/{asset_id}/machines/{machine_id}",
+    response_model=AssetMachineContextOut,
+)
+def remove_machine_from_asset(
+    asset_id: str,
+    machine_id: str,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        remove_machine_association(session, asset_id, machine_id)
+        return machine_context_to_out(session, asset_id)
+
+
+@app.put(
+    "/asset/{asset_id}/prepared-machine",
+    response_model=AssetMachineContextOut,
+)
+def update_asset_prepared_machine(
+    asset_id: str,
+    body: PreparedMachineUpdate,
+    _: Optional[str] = Depends(require_auth),
+):
+    with Session(engine) as session:
+        set_prepared_machine(session, asset_id, body.machine_id)
+        return machine_context_to_out(session, asset_id)
 
 
 @app.get("/machines", response_model=List[MachineOut])

@@ -543,6 +543,45 @@ def _migration_011_machine_profiles(conn: Connection) -> None:
     )
 
 
+def _migration_012_artifact_machine_context(conn: Connection) -> None:
+    _add_column(
+        conn,
+        "asset",
+        "prepared_machine_id",
+        "TEXT REFERENCES machineprofile(id) ON DELETE SET NULL",
+    )
+    _add_column(
+        conn,
+        "artifactrevision",
+        "prepared_machine_id",
+        "TEXT REFERENCES machineprofile(id) ON DELETE SET NULL",
+    )
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS artifactmachine (
+            asset_id VARCHAR NOT NULL,
+            machine_id VARCHAR NOT NULL,
+            created_at VARCHAR NOT NULL,
+            PRIMARY KEY (asset_id, machine_id),
+            FOREIGN KEY(asset_id) REFERENCES asset(id) ON DELETE CASCADE,
+            FOREIGN KEY(machine_id) REFERENCES machineprofile(id) ON DELETE CASCADE
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_artifactmachine_machine_id "
+        "ON artifactmachine(machine_id)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_asset_prepared_machine_id "
+        "ON asset(prepared_machine_id)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_artifactrevision_prepared_machine_id "
+        "ON artifactrevision(prepared_machine_id)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
@@ -555,6 +594,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(9, "projects_and_membership", _migration_009_projects_and_membership),
     Migration(10, "project_relationships", _migration_010_project_relationships),
     Migration(11, "machine_profiles", _migration_011_machine_profiles),
+    Migration(12, "artifact_machine_context", _migration_012_artifact_machine_context),
 )
 
 

@@ -12,6 +12,7 @@ from sqlmodel import Session, select
 
 from db import STORAGE, engine
 from models import (
+    ArtifactMachine,
     ArtifactRevision,
     Asset,
     AssetFile,
@@ -21,6 +22,7 @@ from models import (
     ProjectRelationship,
     TrashPurgeOperation,
 )
+from machine_service import machine_mutation_lock
 from project_service import project_mutation_lock
 from settings_service import get_trash_retention
 
@@ -309,7 +311,7 @@ def _purge_operation(asset_ids: list[str], trigger: str, requested_bytes: int = 
         raise
 
     try:
-        with project_mutation_lock, Session(engine) as session:
+        with machine_mutation_lock, project_mutation_lock, Session(engine) as session:
             for asset_id in asset_ids:
                 asset = require_trashed_asset(session, asset_id)
                 revisions = list(session.exec(
@@ -327,6 +329,12 @@ def _purge_operation(asset_ids: list[str], trigger: str, requested_bytes: int = 
                     select(AssetFile).where(AssetFile.asset_id == asset_id)
                 ):
                     session.delete(record)
+                for association in session.exec(
+                    select(ArtifactMachine).where(
+                        ArtifactMachine.asset_id == asset_id
+                    )
+                ):
+                    session.delete(association)
                 for membership in session.exec(
                     select(ProjectMembership).where(
                         ProjectMembership.asset_id == asset_id

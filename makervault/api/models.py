@@ -28,6 +28,9 @@ class Asset(SQLModel, table=True):
   supporting_file_count: int = Field(default=0)
   prepared_file_id: Optional[str] = None
   prepared_metadata_json: Optional[str] = None
+  prepared_machine_id: Optional[str] = Field(
+    default=None, foreign_key="machineprofile.id", index=True
+  )
   preview_status: str = Field(default="pending", index=True)
   preview_reason: Optional[str] = None
   preview_attempts: int = Field(default=0)
@@ -105,6 +108,12 @@ class MachineProfile(SQLModel, table=True):
   archived_at: Optional[str] = Field(default=None, index=True)
 
 
+class ArtifactMachine(SQLModel, table=True):
+  asset_id: str = Field(foreign_key="asset.id", primary_key=True)
+  machine_id: str = Field(foreign_key="machineprofile.id", primary_key=True)
+  created_at: str
+
+
 class ArtifactRevision(SQLModel, table=True):
   id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
   asset_id: str = Field(foreign_key="asset.id", index=True)
@@ -124,6 +133,9 @@ class ArtifactRevision(SQLModel, table=True):
   change_note: Optional[str] = None
   prepared_file_id: Optional[str] = None
   prepared_metadata_json: Optional[str] = None
+  prepared_machine_id: Optional[str] = Field(
+    default=None, foreign_key="machineprofile.id", index=True
+  )
   preview_status: str = Field(default="pending", index=True)
   preview_reason: Optional[str] = None
   preview_attempts: int = Field(default=0)

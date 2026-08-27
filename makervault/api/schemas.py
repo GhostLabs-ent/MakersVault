@@ -80,6 +80,7 @@ class AssetOut(BaseModel):
   storage_path: Optional[str]
   supporting_file_count: int = 0
   prepared_print: Optional[PreparedPrintOut] = None
+  prepared_machine_id: Optional[str] = None
   slicer_url: Optional[str] = None
   slicer_filename: Optional[str] = None
   preview_status: Literal["pending", "ready", "failed", "skipped_policy", "retry_requested"] = "pending"
@@ -206,6 +207,27 @@ class MachinePermanentDeleteOut(BaseModel):
   name: str
   associations_deleted: int
   prepared_references_cleared: int
+
+
+class MachineAssociationOut(BaseModel):
+  machine: MachineOut
+  created_at: str
+
+
+class AssetMachineContextOut(BaseModel):
+  asset_id: str
+  associations: List[MachineAssociationOut]
+  prepared_machine: Optional[MachineOut] = None
+  prepared_revision_id: Optional[str] = None
+  notice: Literal["Descriptive context only. No job was sent."] = (
+    "Descriptive context only. No job was sent."
+  )
+
+
+class PreparedMachineUpdate(BaseModel):
+  model_config = ConfigDict(extra="forbid")
+
+  machine_id: Optional[str] = None
 
 
 RelationshipKind = Literal["derived_from", "documentation_for", "component_of"]
@@ -416,6 +438,7 @@ class ArtifactRevisionOut(BaseModel):
   content_checked_at: Optional[str] = None
   change_note: Optional[str] = None
   prepared_print: Optional[PreparedPrintOut] = None
+  prepared_machine_id: Optional[str] = None
   url: str
   thumb_url: Optional[str] = None
   is_current: bool
