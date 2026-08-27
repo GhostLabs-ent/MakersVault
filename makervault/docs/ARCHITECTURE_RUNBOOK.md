@@ -202,9 +202,9 @@ be made explicit before deployment boundaries are multiplied.
 | T-006 | `VERIFIED` | Auth is one environment-configured administrator with 12-hour HS256 JWTs. There is no user, role, revocation, or MFA model. | `api/auth.py`, models | Multi-user security is a later dedicated architecture gate. |
 | T-007 | `VERIFIED` | Some file handoffs place bearer material in URLs, including custom-protocol handoff. | API schemas/routes and bridge code | Replace broad reusable bearer URLs with narrow, short-lived grants. |
 | T-008 | `VERIFIED` | The bridge accepts custom protocol input, downloads a URL, caches the result, and launches a local application. | `slicer-bridge` source | The bridge is a workstation trust boundary and needs protocol hardening. |
-| T-009 | `VERIFIED` | Startup uses an ordered, immutable SQLite migration ledger at schema version 10, with dependency locking and fail-closed version/name checks. Schemas 6–10 add revision/content truth, immutable workflows, recoverable Trash, Project membership, and Project relationships additively. | `api/migrations.py`, `api/db.py`, API migration tests | Larger model changes must extend this migration mechanism and retain old-database fixtures. |
+| T-009 | `VERIFIED` | Startup uses an ordered, immutable SQLite migration ledger at schema version 12, with dependency locking and fail-closed version/name checks. Schemas 6–12 add revision/content truth, immutable workflows, recoverable Trash, Projects, descriptive Machine profiles, and optional Artifact-machine context additively. | `api/migrations.py`, `api/db.py`, API migration tests | Larger model changes must extend this migration mechanism and retain old-database fixtures. |
 | T-010 | `VERIFIED` | Metadata is split between SQLite and filesystem content; updates are not one atomic transaction. | API storage and asset services | File mutations require staging, compensation, and reconciliation. |
-| T-011 | `VERIFIED` | Current records include `Folder`, `Asset`, `Project`, `ProjectMembership`, `ProjectRelationship`, immutable `ArtifactRevision`, scoped `AssetFile`, durable content jobs, `TrashPurgeOperation`, and `AppConfig`; several bounded journal/result structures are stored as JSON text. | `api/models.py`, Gate 6 evidence, Gate 7A/7C evidence | Lifecycle/export work must build on these records rather than replace data in place. |
+| T-011 | `VERIFIED` | Current records include `Folder`, `Asset`, `Project`, `ProjectMembership`, `ProjectRelationship`, `MachineProfile`, `ArtifactMachine`, immutable `ArtifactRevision`, scoped `AssetFile`, durable content jobs, `TrashPurgeOperation`, and `AppConfig`; several bounded journal/result structures are stored as JSON text. | `api/models.py`, Gate 6 evidence, Gate 7A/7C evidence, Gate 9A/9B evidence | Lifecycle/export work must build on these records rather than replace data in place. |
 | T-012 | `VERIFIED` | Managed historical revisions, thumbnails, bundles, and purge quarantine use explicit storage layouts; no-copy revision records reference external paths. | revision/file/Trash services and Gate 6D recovery evidence | Backup completeness and storage invariants are enforced by schema-aware matched-pair verification. |
 | T-013 | `VERIFIED` | Mounted scans deduplicate primarily by source path and report details to process logs. | `api/mount_import.py` | A durable scan job/report is required for v5.1 observability. |
 | T-014 | `VERIFIED` | URL import performs important address checks, but redirect and DNS behavior still need adversarial tests. | `api/url_utils.py`, security review | SSRF safety is proven by tests at the security gate, not presumed. |
@@ -226,6 +226,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-030 | `VERIFIED` | Local Gate 7E advances new matched backups to recovery contract 3 and audits schema-10 Project, membership, and relationship ownership with deterministic corruption reports. Outer format 1 and schema 10 remain unchanged; legacy no-marker and contract-2 archives remain verifiable, including pre-7E schema-10 backups. | `docs/evidence/gate-7/SUBGATE_7E_RESULTS.md`, recovery/migration/Project/Trash tests, full repository gate | Owner accepted Gate 7 closeout on 2026-08-26. Gate 8 and publication remain unauthorized. |
 | T-031 | `VERIFIED` | Gate 8 generalizes the local bridge through an embedded version-1 adapter catalog, exact-file adapter/role grants, constrained local custom adapters, diagnostics/revocation, file-sensitive FreeCAD/Inkscape UI, preserved legacy schemes, and Windows/Linux/macOS platform contracts without changing schema 10 or stored bytes. | `docs/evidence/gate-8/GATE_8_RESULTS.md`, ADR 0012, API/web/bridge regressions, platform cross-builds, full repository gate | Owner accepted Gate 8 closeout on 2026-08-26. Gate 9 and any push, tag, release, deployment, SDK, marketplace, or publication remain separately gated. |
 | T-032 | `VERIFIED` | Local schema 11 adds empty-by-default descriptive Machine profiles with six bounded categories, strict common fields, case-insensitive active-name identity, authenticated retrieval/lifecycle, archive-first permanent deletion, and no device or stored-byte authority. | `docs/evidence/gate-9/SUBGATE_9A_RESULTS.md`, Machine API/migration regressions, full repository gate | Owner accepted 9A and additive schema 12 for 9B on 2026-08-27. Gate 9B is authorized; publication remains unauthorized. |
+| T-033 | `VERIFIED` | Local schema 12 adds explicit neutral Artifact-machine associations and nullable exact prepared-machine references on current Assets and immutable Revisions. Authenticated APIs never auto-match supplied printer text; new exact targets require active FDM/resin profiles. Trash retains context, while transactional permanent deletion removes only owned associations or nullable references and never rewrites prepared metadata, payloads, paths, or stored bytes. | `docs/evidence/gate-9/SUBGATE_9B_RESULTS.md`, machine-context/migration/revision/Trash regressions, full repository gate | Gate 9B implementation is ready for owner acceptance. Gate 9C export/retrieval/UI and all publication remain unauthorized. |
 
 ### 5.4 Current storage invariants
 
@@ -799,7 +800,7 @@ remain available until replacements pass compatibility evidence.
 
 ### Gate 9 — Add descriptive machine context
 
-**Current execution:** `IN PROGRESS — 9B AUTHORIZED`. Gate 8 was accepted on
+**Current execution:** `IN PROGRESS — 9B VERIFIED; OWNER ACCEPTANCE REQUIRED`. Gate 8 was accepted on
 2026-08-26 and the untouched `fc29837` entry harness passed. Current prepared
 metadata, export, and recovery behavior plus the approved descriptive-only profile,
 relationship, lifecycle, and versioning boundaries are recorded in
@@ -811,7 +812,9 @@ lifecycle implementation and full verification are recorded in
 recorded on 2026-08-27. The 9B schema gap and additive schema-12 recommendation are
 recorded in [the Gate 9B baseline](evidence/gate-9/SUBGATE_9B_BASELINE.md). The
 owner approved that amendment on 2026-08-27, and 9B is authorized. Publication
-remains prohibited.
+remains prohibited. The schema-12 implementation and complete repository evidence
+are recorded in [the Gate 9B results](evidence/gate-9/SUBGATE_9B_RESULTS.md) and
+await owner acceptance before 9C.
 
 **Objective:** Let MakersVault describe relevant workshop machines without
 becoming a machine controller.
@@ -825,7 +828,8 @@ and start/stop controls out of scope.
 **Exit evidence:** deleting or changing a profile does not damage prepared files;
 exports preserve references; the interface never implies a job was sent.
 
-**Owner checkpoint:** architecture, 9A, and the 9B migration decision complete.
+**Owner checkpoint:** architecture, 9A, and the 9B migration decision complete;
+verified 9B implementation awaits acceptance.
 The minimal common fields and categories, neutral Artifact association, exact
 prepared target, explicit matching, archive/delete lifecycle, export/recovery
 versioning, and 9A–9D sequence were approved without amendment on 2026-08-26. The
@@ -1112,9 +1116,8 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Implement 9B's optional neutral Artifact associations, exact prepared-machine
-references, and transactional cleanup through additive schema 12 under
-[ADR 0013](adr/0013-descriptive-machine-profiles.md). Do not begin later
-export/UI/recovery work. Keep the
+Review and accept or reject the verified Gate 9B schema-12 implementation in
+[the Gate 9B results](evidence/gate-9/SUBGATE_9B_RESULTS.md). Do not begin 9C's
+export/retrieval/UI work before that owner checkpoint. Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
 disabled by default; it is not part of Gate 9.

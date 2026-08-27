@@ -24,6 +24,9 @@ for versioned release artifacts beginning with v5.1.0.
   and a representative upgrade/recovery drill.
 - Versioned API/web image identity, six bridge platform binaries, SPDX SBOMs,
   SHA-256 inventories, and tag-gated artifact attestations.
+- Descriptive Machine profiles, explicit neutral Artifact associations, and exact
+  revision-scoped prepared targets through additive schema 12, without device
+  discovery, dispatch, telemetry, or control authority.
 
 ### Changed
 
