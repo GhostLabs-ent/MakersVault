@@ -2,9 +2,11 @@
 
 **Gate:** 9B — Artifact associations and exact prepared-machine targets
 
-**Status:** Owner checkpoint open; migration version amendment required
+**Status:** Owner-approved; implementation authorized
 
 **Date:** 2026-08-27
+
+**Approved:** 2026-08-27
 
 **Entry commit:** `1467607`
 
@@ -86,6 +88,7 @@ and recovery contract 4 remain unchanged recommendations for 9C–9D.
 - Operational rollback remains a matched schema-11 SQLite/storage restore. No
   filesystem migration or stored-byte move exists.
 
-Implementation is paused until the owner approves the schema-12 amendment. That
-approval authorizes only 9B; it does not authorize 9C export/UI work, 9D recovery
-changes, machine control, push, tag, release, deployment, or publication.
+The owner approved the schema-12 amendment without modification on 2026-08-27.
+Implementation is authorized only for 9B; this does not authorize 9C export/UI
+work, 9D recovery changes, machine control, push, tag, release, deployment, or
+publication.

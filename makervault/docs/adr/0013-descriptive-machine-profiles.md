@@ -76,6 +76,15 @@ existing stored byte moves. Implementation proceeds as 9A profile lifecycle, 9B
 relationships/prepared targets, 9C export/retrieval/UI, and 9D recovery/full
 evidence.
 
+### Accepted schema-version amendment
+
+Gate 9A implemented and proved schema 11 before the 9B association table and
+prepared-target columns existed. On 2026-08-27 the owner approved additive schema
+12 for those 9B structures. Accepted migration 11 remains immutable; rewriting it
+would allow two databases with different layouts to claim the same version. This
+amendment does not change the approved relationship semantics, export format 2,
+server-backup outer format 1, recovery contract 4, or any product boundary.
+
 ## Alternatives considered
 
 - **Use supplied printer text as identity:** rejected because untrusted metadata is

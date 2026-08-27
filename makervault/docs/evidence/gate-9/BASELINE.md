@@ -169,3 +169,8 @@ amendment on 2026-08-26. [ADR 0013](../../adr/0013-descriptive-machine-profiles.
 records the accepted architecture. Subgate 9A may implement schema 11 and the
 bounded Machine profile lifecycle before any artifact association, prepared-target,
 export, retrieval UI, or recovery-contract work.
+
+On 2026-08-27, after accepting the schema-11 profile lifecycle, the owner approved
+additive schema 12 for Gate 9B's association table and prepared-target columns.
+Migration 11 remains immutable. Export format 2, server-backup outer format 1, and
+recovery contract 4 remain unchanged.
