@@ -224,6 +224,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-028 | `VERIFIED` | Local schema 10 stores only canonical Project-scoped artifact relationships, computes inverse labels, enforces same-active-Project membership and recursive cycle rules, and preserves relationships through ordinary Trash while cleaning incident rows on confirmed membership removal or permanent artifact purge. | `docs/evidence/gate-7/SUBGATE_7C_RESULTS.md`, relationship/migration/UI tests, full repository gate | Owner accepted 7C on 2026-08-25; Gate 7D may add the accepted lifecycle/export model. Publication remains prohibited. |
 | T-029 | `VERIFIED` | Local Gate 7D adds bounded Project metadata Trash, exact restore/permanent-delete ownership, and authenticated ZIP64 Project export that composes complete artifact histories with deterministic manifests and explicit missing/changed/external truth while leaving schema 10 and member bytes unchanged. | `docs/evidence/gate-7/SUBGATE_7D_RESULTS.md`, lifecycle/export/API/UI tests, full repository gate | Owner accepted 7D on 2026-08-25; Gate 7E may extend recovery verification and closeout evidence. Publication remains prohibited. |
 | T-030 | `VERIFIED` | Local Gate 7E advances new matched backups to recovery contract 3 and audits schema-10 Project, membership, and relationship ownership with deterministic corruption reports. Outer format 1 and schema 10 remain unchanged; legacy no-marker and contract-2 archives remain verifiable, including pre-7E schema-10 backups. | `docs/evidence/gate-7/SUBGATE_7E_RESULTS.md`, recovery/migration/Project/Trash tests, full repository gate | Owner accepted Gate 7 closeout on 2026-08-26. Gate 8 and publication remain unauthorized. |
+| T-031 | `VERIFIED` | Gate 8 generalizes the local bridge through an embedded version-1 adapter catalog, exact-file adapter/role grants, constrained local custom adapters, diagnostics/revocation, file-sensitive FreeCAD/Inkscape UI, preserved legacy schemes, and Windows/Linux/macOS platform contracts without changing schema 10 or stored bytes. | `docs/evidence/gate-8/GATE_8_RESULTS.md`, ADR 0012, API/web/bridge regressions, platform cross-builds, full repository gate | Owner accepted Gate 8 closeout on 2026-08-26. Gate 9 and any push, tag, release, deployment, SDK, marketplace, or publication remain separately gated. |
 
 ### 5.4 Current storage invariants
 
@@ -764,15 +765,16 @@ window; project association is additive until verified.
 
 ### Gate 8 — Generalize trusted local application adapters
 
-**Current execution:** `VERIFIED — OWNER ACCEPTANCE CHECKPOINT`. Gate 7 was
-accepted on 2026-08-26 and the untouched `df62abf` entry harness passed. Current
-bridge/API/web behavior and the owner-approved built-in, local custom-command,
+**Current execution:** `COMPLETE — ACCEPTED 2026-08-26`. Gate 7 was accepted on
+2026-08-26 and the untouched `df62abf` entry harness passed. Current bridge/API/web
+behavior and the owner-approved built-in, local custom-command,
 Windows/Linux/macOS, compatibility, and subgate contract are recorded in
 [the Gate 8 baseline](evidence/gate-8/BASELINE.md) and
 [ADR 0012](adr/0012-versioned-local-application-adapters.md). The matched 8A–8C
 implementation and full verification are recorded in
-[the Gate 8 results](evidence/gate-8/GATE_8_RESULTS.md). Final owner acceptance is
-required to close Gate 8; publication remains prohibited.
+[the Gate 8 results](evidence/gate-8/GATE_8_RESULTS.md). The owner accepted the
+complete verified Gate 8 implementation on 2026-08-26. Publication remains
+prohibited.
 
 **Objective:** Evolve slicer/LightBurn handoff into a safe `Open with` contract for
 workshop applications.
@@ -787,9 +789,9 @@ contract with several built-in adapters before publishing an SDK.
 or launch unapproved executables silently; slicer and LightBurn behavior remains
 compatible; failures are diagnosable without exposing secrets.
 
-**Owner checkpoint:** built-in applications, constrained custom commands, and the
-three-platform scope were approved on 2026-08-26. The verified implementation now
-awaits final owner acceptance and Gate 8 closeout.
+**Owner checkpoint:** complete. Built-in applications, constrained custom commands,
+and the three-platform scope were approved, and the verified Gate 8 implementation
+was accepted on 2026-08-26.
 
 **Rollback:** adapter versions are explicit; the existing supported handoffs
 remain available until replacements pass compatibility evidence.

@@ -2,9 +2,11 @@
 
 **Gate:** 8 — Generalize trusted local application adapters
 
-**Status:** Verified; awaiting final owner acceptance
+**Status:** Accepted by the owner
 
 **Date:** 2026-08-26
+
+**Accepted:** 2026-08-26
 
 **Entry commit:** `df62abf`
 
@@ -114,7 +116,7 @@ adapter configuration while the preserved legacy schemes remain available. The
 macOS bundle and local trust/config state can be removed independently without
 mutating MakersVault data.
 
-The unrelated untracked desktop architecture note remained untouched. Final owner
-acceptance is still required to close Gate 8. No push, tag, release, deployment,
-marketplace, SDK, remote manifest, auto-install, machine control, or publication is
-authorized by this evidence.
+The unrelated untracked desktop architecture note remained untouched. The owner
+accepted this evidence and closed Gate 8 on 2026-08-26. No push, tag, release,
+deployment, marketplace, SDK, remote manifest, auto-install, machine control, or
+publication is authorized by this acceptance.
