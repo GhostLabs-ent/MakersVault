@@ -2,9 +2,11 @@
 
 **Gate:** 9A — Minimal descriptive profiles and lifecycle
 
-**Status:** Verified; awaiting owner acceptance
+**Status:** Accepted by the owner
 
 **Date:** 2026-08-27
+
+**Accepted:** 2026-08-27
 
 **Gate entry commit:** `fc29837`
 
@@ -112,6 +114,7 @@ supported.
 - Gate 9C owns export format 2, retrieval, and the Settings/artifact interface.
 - Gate 9D owns recovery contract 4, compatibility proof, and Gate 9 closeout.
 
-Owner acceptance of this evidence authorizes 9B. It does not authorize machine
-control, telemetry, device/network fields, export/UI/recovery work, push, tag,
-release, deployment, or publication.
+The owner accepted this evidence on 2026-08-27. Gate 9B may proceed after its
+additive migration-version checkpoint is resolved. Acceptance does not authorize
+machine control, telemetry, device/network fields, export/UI/recovery work, push,
+tag, release, deployment, or publication.
