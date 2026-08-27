@@ -798,13 +798,15 @@ remain available until replacements pass compatibility evidence.
 
 ### Gate 9 — Add descriptive machine context
 
-**Current execution:** `OWNER CHECKPOINT`. Gate 8 was accepted on 2026-08-26 and
-the untouched `fc29837` entry harness passed. Current prepared metadata, export,
+**Current execution:** `IN PROGRESS — 9A AUTHORIZED`. Gate 8 was accepted on
+2026-08-26 and the untouched `fc29837` entry harness passed. Current prepared
+metadata, export,
 and recovery behavior plus the proposed descriptive-only profile, relationship,
 lifecycle, and versioning boundaries are recorded in
-[the Gate 9 baseline](evidence/gate-9/BASELINE.md). No Gate 9 implementation is
-authorized until the owner approves or amends those recommendations. Publication
-remains prohibited.
+[the Gate 9 baseline](evidence/gate-9/BASELINE.md). The owner approved those
+recommendations without amendment on 2026-08-26; the accepted contract is recorded
+in [ADR 0013](adr/0013-descriptive-machine-profiles.md). Subgate 9A is authorized.
+Publication remains prohibited.
 
 **Objective:** Let MakersVault describe relevant workshop machines without
 becoming a machine controller.
@@ -818,10 +820,10 @@ and start/stop controls out of scope.
 **Exit evidence:** deleting or changing a profile does not damage prepared files;
 exports preserve references; the interface never implies a job was sent.
 
-**Owner checkpoint:** open. Approve or amend the minimal common fields and
-categories, neutral Artifact association, exact prepared target, explicit matching,
-archive/delete lifecycle, export/recovery versioning, and 9A–9D subgate sequence in
-the Gate 9 baseline.
+**Owner checkpoint:** complete. The minimal common fields and categories, neutral
+Artifact association, exact prepared target, explicit matching, archive/delete
+lifecycle, export/recovery versioning, and 9A–9D sequence were approved without
+amendment on 2026-08-26.
 
 **Rollback:** machine references are optional and nullable.
 
@@ -1103,9 +1105,9 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Review and approve or amend Gate 9's minimal descriptive Machine vocabulary,
-relationship semantics, lifecycle, export/recovery versioning, and 9A–9D sequence
-in [the Gate 9 baseline](evidence/gate-9/BASELINE.md). Do not implement Gate 9 or
-publish Gate 8 while that owner checkpoint remains open. Keep the
+Implement subgate 9A's additive schema-11 Machine profile and bounded authenticated
+lifecycle under [ADR 0013](adr/0013-descriptive-machine-profiles.md). Do not add
+artifact associations, prepared targets, export/retrieval UI, or recovery-contract
+changes before their approved subgates. Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
 disabled by default; it is not part of Gate 9.

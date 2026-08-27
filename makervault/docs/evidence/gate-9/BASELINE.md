@@ -2,9 +2,11 @@
 
 **Gate:** 9 — Add descriptive machine context
 
-**Status:** Owner checkpoint open; no implementation authorized
+**Status:** Owner-approved; subgate 9A authorized
 
 **Opened:** 2026-08-26
+
+**Approved:** 2026-08-26
 
 **Entry commit:** `fc29837`
 
@@ -161,6 +163,9 @@ leaves profiles inert; a schema-aware rollback may remove only the new associati
 and profile data after proving no artifact, revision, prepared metadata, prepared
 payload, Project, or stored byte will be changed.
 
-Implementation remains blocked at the owner checkpoint. Approval must cover the
-field/category vocabulary, relationship semantics, manual matching rule, lifecycle,
-contract versioning, and subgate sequence above.
+The owner approved the field/category vocabulary, relationship semantics, manual
+matching rule, lifecycle, contract versioning, and subgate sequence without
+amendment on 2026-08-26. [ADR 0013](../../adr/0013-descriptive-machine-profiles.md)
+records the accepted architecture. Subgate 9A may implement schema 11 and the
+bounded Machine profile lifecycle before any artifact association, prepared-target,
+export, retrieval UI, or recovery-contract work.
