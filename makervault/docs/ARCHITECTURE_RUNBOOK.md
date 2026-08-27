@@ -764,13 +764,15 @@ window; project association is additive until verified.
 
 ### Gate 8 — Generalize trusted local application adapters
 
-**Current execution:** `IN PROGRESS — 8A`. Gate 7 was accepted on 2026-08-26 and
-the untouched `df62abf` entry harness passed. Current bridge/API/web behavior and
-the owner-approved built-in, local custom-command, Windows/Linux/macOS,
-compatibility, and subgate contract are recorded in
+**Current execution:** `VERIFIED — OWNER ACCEPTANCE CHECKPOINT`. Gate 7 was
+accepted on 2026-08-26 and the untouched `df62abf` entry harness passed. Current
+bridge/API/web behavior and the owner-approved built-in, local custom-command,
+Windows/Linux/macOS, compatibility, and subgate contract are recorded in
 [the Gate 8 baseline](evidence/gate-8/BASELINE.md) and
-[ADR 0012](adr/0012-versioned-local-application-adapters.md). Subgate 8A is
-authorized; no later subgate or publication is implied.
+[ADR 0012](adr/0012-versioned-local-application-adapters.md). The matched 8A–8C
+implementation and full verification are recorded in
+[the Gate 8 results](evidence/gate-8/GATE_8_RESULTS.md). Final owner acceptance is
+required to close Gate 8; publication remains prohibited.
 
 **Objective:** Evolve slicer/LightBurn handoff into a safe `Open with` contract for
 workshop applications.
@@ -785,8 +787,9 @@ contract with several built-in adapters before publishing an SDK.
 or launch unapproved executables silently; slicer and LightBurn behavior remains
 compatible; failures are diagnosable without exposing secrets.
 
-**Owner checkpoint:** approve which applications qualify as built-in and whether
-custom commands are permitted.
+**Owner checkpoint:** built-in applications, constrained custom commands, and the
+three-platform scope were approved on 2026-08-26. The verified implementation now
+awaits final owner acceptance and Gate 8 closeout.
 
 **Rollback:** adapter versions are explicit; the existing supported handoffs
 remain available until replacements pass compatibility evidence.
