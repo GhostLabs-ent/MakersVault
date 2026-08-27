@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildHandoffProtocolUrl } from "./handoff";
+import { buildGeneralHandoffProtocolUrl, buildHandoffProtocolUrl } from "./handoff";
 
 
 describe("bridge handoff protocol", () => {
@@ -41,5 +41,24 @@ describe("bridge handoff protocol", () => {
     expect(parsed.protocol).toBe("makersvault-engrave:");
     expect(parsed.searchParams.get("engraver")).toBe("lightburn");
     expect(parsed.searchParams.has("slicer")).toBe(false);
+  });
+
+  it("builds a role-bound general adapter URL without file or session authority", () => {
+    const protocol = buildGeneralHandoffProtocolUrl({
+      redeem_url: "https://vault.example/api/handoff/redeem",
+      grant: "one.file.grant",
+      filename: "historical.step",
+      expires_in: 90,
+      adapter_id: "freecad",
+      content_role: "revision_primary",
+    });
+    const parsed = new URL(protocol);
+
+    expect(parsed.protocol).toBe("makersvault-open:");
+    expect(parsed.searchParams.get("adapter")).toBe("freecad");
+    expect(parsed.searchParams.get("role")).toBe("revision_primary");
+    expect(parsed.searchParams.get("filename")).toBe("historical.step");
+    expect(parsed.searchParams.has("url")).toBe(false);
+    expect(parsed.searchParams.has("token")).toBe(false);
   });
 });

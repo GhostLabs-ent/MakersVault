@@ -128,6 +128,152 @@ def test_slicer_handoff_prefers_attached_prepared_file() -> None:
             client.delete(f"/asset/{asset['id']}", headers=headers)
 
 
+def redeem_general(
+    client: TestClient,
+    grant: dict,
+    *,
+    adapter_id: str,
+    content_role: str,
+):
+    return client.get(
+        grant["redeem_url"],
+        headers={
+            "Authorization": f"MakerVault-Handoff {grant['grant']}",
+            "X-MakerVault-Handoff-Tool": "open",
+            "X-MakerVault-Handoff-Adapter": adapter_id,
+            "X-MakerVault-Handoff-Role": content_role,
+        },
+    )
+
+
+def test_general_handoff_binds_adapter_role_and_exact_primary_file() -> None:
+    client, headers = authenticated_client()
+    with client:
+        asset = upload_asset(client, headers, "editable.step", b"STEP primary")
+        try:
+            issued = client.post(
+                f"/asset/{asset['id']}/handoff",
+                headers=headers,
+                json={"adapter_id": "freecad", "content_role": "primary"},
+            )
+            assert issued.status_code == 200
+            body = issued.json()
+            assert body["adapter_id"] == "freecad"
+            assert body["content_role"] == "primary"
+
+            assert redeem_general(
+                client, body, adapter_id="inkscape", content_role="primary"
+            ).status_code == 403
+            assert redeem_general(
+                client, body, adapter_id="freecad", content_role="supporting"
+            ).status_code == 403
+            redeemed = redeem_general(
+                client, body, adapter_id="freecad", content_role="primary"
+            )
+            assert redeemed.status_code == 200
+            assert redeemed.content == b"STEP primary"
+        finally:
+            client.delete(f"/asset/{asset['id']}", headers=headers)
+
+
+def test_general_handoff_selects_historical_supporting_and_prepared_files() -> None:
+    client, headers = authenticated_client()
+    with client:
+        asset = upload_asset(client, headers, "versioned.stl", b"first revision")
+        try:
+            first_revision = client.get(
+                f"/asset/{asset['id']}/revisions", headers=headers
+            ).json()[0]
+            replaced = client.post(
+                f"/asset/{asset['id']}/revisions",
+                headers=headers,
+                files={"file": ("versioned.stl", b"second revision", "model/stl")},
+            )
+            assert replaced.status_code == 200
+
+            historical = client.post(
+                f"/asset/{asset['id']}/handoff",
+                headers=headers,
+                json={
+                    "adapter_id": "freecad",
+                    "content_role": "revision_primary",
+                    "revision_id": first_revision["id"],
+                },
+            )
+            assert historical.status_code == 200
+            assert redeem_general(
+                client,
+                historical.json(),
+                adapter_id="freecad",
+                content_role="revision_primary",
+            ).content == b"first revision"
+
+            supporting_upload = client.post(
+                f"/asset/{asset['id']}/files",
+                headers=headers,
+                files={"file": ("drawing.svg", b"<svg/>", "image/svg+xml")},
+            )
+            assert supporting_upload.status_code == 200
+            supporting_id = client.get(
+                f"/asset/{asset['id']}/files", headers=headers
+            ).json()[0]["id"]
+            supporting = client.post(
+                f"/asset/{asset['id']}/handoff",
+                headers=headers,
+                json={
+                    "adapter_id": "inkscape",
+                    "content_role": "supporting",
+                    "file_id": supporting_id,
+                },
+            )
+            assert supporting.status_code == 200
+            assert redeem_general(
+                client,
+                supporting.json(),
+                adapter_id="inkscape",
+                content_role="supporting",
+            ).content == b"<svg/>"
+
+            prepared_upload = client.post(
+                f"/asset/{asset['id']}/files",
+                headers=headers,
+                files={"file": ("plate.gcode", b"G1 X20", "text/plain")},
+            )
+            assert prepared_upload.status_code == 200
+            prepared = client.post(
+                f"/asset/{asset['id']}/handoff",
+                headers=headers,
+                json={"adapter_id": "orca", "content_role": "prepared"},
+            )
+            assert prepared.status_code == 200
+            assert redeem_general(
+                client, prepared.json(), adapter_id="orca", content_role="prepared"
+            ).content == b"G1 X20"
+        finally:
+            client.delete(f"/asset/{asset['id']}", headers=headers)
+
+
+def test_general_handoff_rejects_ambiguous_or_unbounded_selection() -> None:
+    client, headers = authenticated_client()
+    with client:
+        asset = upload_asset(client, headers, "bounded.step", b"STEP")
+        try:
+            invalid_bodies = [
+                {"tool": "slicer", "adapter_id": "freecad", "content_role": "primary"},
+                {"adapter_id": "freecad", "content_role": "revision_primary"},
+                {"adapter_id": "inkscape", "content_role": "supporting"},
+                {"adapter_id": "freecad", "content_role": "other"},
+                {"adapter_id": "other", "content_role": "primary"},
+            ]
+            for body in invalid_bodies:
+                response = client.post(
+                    f"/asset/{asset['id']}/handoff", headers=headers, json=body
+                )
+                assert response.status_code == 422, body
+        finally:
+            client.delete(f"/asset/{asset['id']}", headers=headers)
+
+
 def test_expired_and_tampered_handoff_grants_fail(monkeypatch) -> None:
     with monkeypatch.context() as patch:
         patch.setattr(auth.time, "time", lambda: 1)
@@ -155,6 +301,25 @@ def test_expired_and_tampered_handoff_grants_fail(monkeypatch) -> None:
     )
     with pytest.raises(HTTPException, match="Invalid"):
         auth.decode_handoff_token(wrong_audience)
+
+    unbound_general = auth.create_handoff_token(
+        "asset", "primary", "asset", "open", "model.stl", 5
+    )
+    with pytest.raises(HTTPException, match="Invalid"):
+        auth.decode_handoff_token(unbound_general)
+
+    widened_legacy = auth.create_handoff_token(
+        "asset",
+        "primary",
+        "asset",
+        "slicer",
+        "model.stl",
+        5,
+        "primary",
+        "freecad",
+    )
+    with pytest.raises(HTTPException, match="Invalid"):
+        auth.decode_handoff_token(widened_legacy)
 
 
 def test_grant_for_unknown_file_cannot_redeem() -> None:

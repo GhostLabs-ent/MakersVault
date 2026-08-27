@@ -1,5 +1,5 @@
 from typing import List, Literal, Optional
-from pydantic import AnyHttpUrl, BaseModel, Field
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, model_validator
 
 
 class AssetCreate(BaseModel):
@@ -225,7 +225,38 @@ class LoginResponse(BaseModel):
 
 
 class HandoffGrantRequest(BaseModel):
-  tool: Literal["slicer", "engraver"]
+  model_config = ConfigDict(extra="forbid")
+
+  tool: Optional[Literal["slicer", "engraver"]] = None
+  adapter_id: Optional[str] = Field(
+    default=None, min_length=1, max_length=64, pattern=r"^[a-z0-9][a-z0-9-]*$"
+  )
+  content_role: Optional[Literal[
+    "primary", "revision_primary", "supporting", "prepared"
+  ]] = None
+  revision_id: Optional[str] = Field(default=None, min_length=1, max_length=64)
+  file_id: Optional[str] = Field(default=None, min_length=1, max_length=64)
+
+  @model_validator(mode="after")
+  def validate_selection(self):
+    general_fields = (
+      self.adapter_id, self.content_role, self.revision_id, self.file_id
+    )
+    if self.tool is not None:
+      if any(value is not None for value in general_fields):
+        raise ValueError("legacy and general handoff fields are mutually exclusive")
+      return self
+    if self.adapter_id is None or self.adapter_id == "other" or self.content_role is None:
+      raise ValueError("adapter_id and content_role are required")
+    if self.content_role == "revision_primary":
+      if self.revision_id is None or self.file_id is not None:
+        raise ValueError("revision_primary requires only revision_id")
+    elif self.content_role == "supporting":
+      if self.file_id is None or self.revision_id is not None:
+        raise ValueError("supporting requires only file_id")
+    elif self.revision_id is not None or self.file_id is not None:
+      raise ValueError("the selected content role does not accept a file identifier")
+    return self
 
 
 class HandoffGrantOut(BaseModel):
@@ -233,6 +264,8 @@ class HandoffGrantOut(BaseModel):
   grant: str
   filename: str
   expires_in: int
+  adapter_id: Optional[str] = None
+  content_role: Optional[str] = None
 
 
 class DownloadRequest(BaseModel):

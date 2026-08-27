@@ -1,6 +1,6 @@
 import { appendTokenToUrl, authHeaders } from "./auth";
 import { loadSettings } from "./settings";
-import { HandoffGrant, HandoffTool } from "./handoff";
+import { GeneralHandoffGrant, HandoffContentRole, HandoffGrant, HandoffTool } from "./handoff";
 
 export class UnauthorizedError extends Error {
   constructor(message = "Unauthorized") {
@@ -878,6 +878,32 @@ export async function createHandoff(id: string, tool: HandoffTool): Promise<Hand
     throw new Error(await readErrorMessage(res, "Unable to create bridge handoff"));
   }
   const handoff = await res.json() as HandoffGrant;
+  return {
+    ...handoff,
+    redeem_url: `${apiBase()}${handoff.redeem_url}`,
+  };
+}
+
+export async function createGeneralHandoff(
+  id: string,
+  adapterId: string,
+  contentRole: HandoffContentRole,
+  selection: { revision_id?: string; file_id?: string } = {},
+): Promise<GeneralHandoffGrant> {
+  const res = await fetch(`${apiBase()}/asset/${id}/handoff`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      adapter_id: adapterId,
+      content_role: contentRole,
+      ...selection,
+    }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Unable to create bridge handoff"));
+  }
+  const handoff = await res.json() as GeneralHandoffGrant;
   return {
     ...handoff,
     redeem_url: `${apiBase()}${handoff.redeem_url}`,

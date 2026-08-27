@@ -30,6 +30,7 @@ import {
   deleteAssetFile,
   deletePreparedPrint,
   createHandoff,
+  createGeneralHandoff,
   listAssetFiles,
   uploadAssetFile,
   artifactHistoryExportUrl,
@@ -38,7 +39,7 @@ import {
   removeProjectItem,
   uploadArtifactRevision,
 } from "../lib/api";
-import { buildHandoffProtocolUrl } from "../lib/handoff";
+import { buildGeneralHandoffProtocolUrl, buildHandoffProtocolUrl, HandoffContentRole } from "../lib/handoff";
 import ModelViewer, { ModelSnapshot } from "./ModelViewer";
 import LightBurnPreview from "./LightBurnPreview";
 import TagBadge from "./TagBadge";
@@ -76,6 +77,15 @@ const ENGRAVING_EXTS = new Set([
   "lbrn2",
   "ezd",
 ]);
+const FREECAD_EXTS = new Set(["step", "stp", "stl", "obj", "dxf"]);
+const INKSCAPE_EXTS = new Set(["svg", "dxf", "pdf", "eps", "ai", "png"]);
+
+function generalAdapterFor(filename: string): { id: "freecad" | "inkscape"; label: string } | null {
+  const extension = extOf(filename);
+  if (FREECAD_EXTS.has(extension)) return { id: "freecad", label: "FreeCAD" };
+  if (INKSCAPE_EXTS.has(extension)) return { id: "inkscape", label: "Inkscape" };
+  return null;
+}
 
 const ROWS_PER_BATCH = 5;
 const CARD_MIN_WIDTH_PX = 260;
@@ -707,6 +717,24 @@ export default function AssetGrid({
     }
   };
 
+  const openWithAdapter = async (
+    asset: Asset,
+    filename: string,
+    contentRole: HandoffContentRole,
+    selection: { revision_id?: string; file_id?: string } = {},
+  ) => {
+    const adapter = generalAdapterFor(filename);
+    if (!adapter) return;
+    try {
+      const handoff = await createGeneralHandoff(asset.id, adapter.id, contentRole, selection);
+      window.location.href = buildGeneralHandoffProtocolUrl(handoff);
+    } catch (err) {
+      if (!handleApiError(err, `Unable to open this file in ${adapter.label}.`)) {
+        console.error(err);
+      }
+    }
+  };
+
   const downloadSelected = async () => {
     if (!selectedIds.size) {
       alert("Select at least one item to download.");
@@ -1176,6 +1204,7 @@ export default function AssetGrid({
                             engravingEnabled={engravingEnabled}
                             engraverLabel={engraverLabel}
                             onOpenInEngraving={openInEngraving}
+                            onOpenWithAdapter={openWithAdapter}
                             theme={theme}
                             previewMode={previewSettings?.mode || "automatic"}
                             onAssetChanged={replaceAsset}
@@ -1219,6 +1248,7 @@ export default function AssetGrid({
               engravingEnabled={engravingEnabled}
               engraverLabel={engraverLabel}
               onOpenInEngraving={openInEngraving}
+              onOpenWithAdapter={openWithAdapter}
               theme={theme}
               previewMode={previewSettings?.mode || "automatic"}
               onAssetChanged={replaceAsset}
@@ -1294,6 +1324,7 @@ const AssetCard = React.memo(function AssetCard({
   engravingEnabled,
   engraverLabel,
   onOpenInEngraving,
+  onOpenWithAdapter,
   theme,
   previewMode,
   onAssetChanged,
@@ -1320,6 +1351,12 @@ const AssetCard = React.memo(function AssetCard({
   engravingEnabled: boolean;
   engraverLabel: string;
   onOpenInEngraving: (asset: Asset) => void;
+  onOpenWithAdapter: (
+    asset: Asset,
+    filename: string,
+    contentRole: HandoffContentRole,
+    selection?: { revision_id?: string; file_id?: string },
+  ) => void;
   theme: ResolvedTheme;
   previewMode: PreviewSettings["mode"];
   onAssetChanged: (asset: Asset) => void;
@@ -1584,6 +1621,7 @@ const AssetCard = React.memo(function AssetCard({
 
   const canOpenInSlicer = slicerEnabled && (Boolean(item.prepared_print) || MODEL_EXTS.has(extOf(item.filename)));
   const canOpenInEngraving = engravingEnabled && ENGRAVING_EXTS.has(extOf(item.filename));
+  const generalAdapter = generalAdapterFor(item.filename);
 
   return (
     <div className="rounded-lg border border-panel overflow-hidden bg-panel-soft">
@@ -1633,7 +1671,7 @@ const AssetCard = React.memo(function AssetCard({
             )}
           </div>
         </div>
-        {(canOpenInSlicer || canOpenInEngraving) && (
+        {(canOpenInSlicer || canOpenInEngraving || generalAdapter) && (
           <div className="flex flex-wrap gap-2 justify-end">
             {canOpenInSlicer && (
               <button
@@ -1651,6 +1689,15 @@ const AssetCard = React.memo(function AssetCard({
                 disabled={downloading || bulkDownloading}
               >
                 Open in {engraverLabel}
+              </button>
+            )}
+            {generalAdapter && (
+              <button
+                className="text-xs px-2 py-1 rounded-md border border-panel-strong disabled:opacity-60"
+                onClick={() => onOpenWithAdapter(item, item.filename, "primary")}
+                disabled={downloading || bulkDownloading}
+              >
+                Open with {generalAdapter.label}
               </button>
             )}
           </div>
@@ -1767,13 +1814,29 @@ const AssetCard = React.memo(function AssetCard({
                       >
                         {file.filename}
                       </a>
-                      <button
-                        type="button"
-                        className="text-[11px] text-red-700 dark:text-red-300"
-                        onClick={() => removeRelatedFile(file)}
-                      >
-                        Remove
-                      </button>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {generalAdapterFor(file.filename) && (
+                          <button
+                            type="button"
+                            className="text-[11px] text-blue-700 dark:text-blue-300"
+                            onClick={() => onOpenWithAdapter(
+                              item,
+                              file.filename,
+                              "supporting",
+                              { file_id: file.id },
+                            )}
+                          >
+                            Open with {generalAdapterFor(file.filename)?.label}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="text-[11px] text-red-700 dark:text-red-300"
+                          onClick={() => removeRelatedFile(file)}
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1855,6 +1918,20 @@ const AssetCard = React.memo(function AssetCard({
                         <div className="flex shrink-0 flex-col items-end gap-1">
                           {revision.content_state === "ready" && (
                             <a className="underline-offset-2 hover:underline" href={fileUrl(revision.url)} download={revision.filename}>Download</a>
+                          )}
+                          {revision.content_state === "ready" && generalAdapterFor(revision.filename) && (
+                            <button
+                              type="button"
+                              className="text-blue-700 dark:text-blue-300"
+                              onClick={() => onOpenWithAdapter(
+                                item,
+                                revision.filename,
+                                "revision_primary",
+                                { revision_id: revision.id },
+                              )}
+                            >
+                              Open with {generalAdapterFor(revision.filename)?.label}
+                            </button>
                           )}
                           {!revision.is_current && revision.content_state === "ready" && (
                             <button

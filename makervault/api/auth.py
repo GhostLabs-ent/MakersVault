@@ -48,6 +48,8 @@ def create_handoff_token(
   tool: str,
   filename: str,
   size: int,
+  content_role: Optional[str] = None,
+  adapter_id: Optional[str] = None,
 ) -> str:
   now = int(time.time())
   payload = {
@@ -65,6 +67,10 @@ def create_handoff_token(
     "nbf": now,
     "exp": now + HANDOFF_TOKEN_TTL,
   }
+  if content_role is not None:
+    payload["content_role"] = content_role
+  if adapter_id is not None:
+    payload["adapter_id"] = adapter_id
   return jwt.encode(payload, _handoff_signing_key(), algorithm=AUTH_ALGO)
 
 
@@ -85,9 +91,26 @@ def decode_handoff_token(token: str) -> dict:
     )
   except PyJWTError as exc:
     raise HTTPException(status_code=401, detail="Invalid or expired handoff grant") from exc
-  if payload.get("typ") != "handoff" or payload.get("tool") not in {"slicer", "engraver"}:
+  tool = payload.get("tool")
+  if payload.get("typ") != "handoff" or tool not in {"slicer", "engraver", "open"}:
     raise HTTPException(status_code=401, detail="Invalid handoff grant")
-  if payload.get("file_kind") not in {"primary", "prepared"}:
+  file_kind = payload.get("file_kind")
+  if file_kind not in {"primary", "revision_primary", "supporting", "prepared"}:
+    raise HTTPException(status_code=401, detail="Invalid handoff grant")
+  if tool == "open":
+    content_role = payload.get("content_role")
+    adapter_id = payload.get("adapter_id")
+    if (
+      content_role != file_kind
+      or content_role not in {"primary", "revision_primary", "supporting", "prepared"}
+      or not isinstance(adapter_id, str)
+      or not adapter_id
+      or len(adapter_id) > 64
+      or adapter_id == "other"
+      or any(character not in "abcdefghijklmnopqrstuvwxyz0123456789-" for character in adapter_id)
+    ):
+      raise HTTPException(status_code=401, detail="Invalid handoff grant")
+  elif file_kind not in {"primary", "prepared"} or payload.get("content_role") is not None or payload.get("adapter_id") is not None:
     raise HTTPException(status_code=401, detail="Invalid handoff grant")
   return payload
 

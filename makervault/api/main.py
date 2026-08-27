@@ -337,7 +337,12 @@ def resolve_asset_file(asset: Asset) -> Optional[Path]:
 
 
 def validate_handoff_extension(filename: str, tool: str) -> None:
-    allowed = SLICER_HANDOFF_EXTS if tool == "slicer" else ENGRAVER_HANDOFF_EXTS
+    if tool == "slicer":
+        allowed = SLICER_HANDOFF_EXTS
+    elif tool == "engraver":
+        allowed = ENGRAVER_HANDOFF_EXTS
+    else:
+        allowed = SLICER_HANDOFF_EXTS | ENGRAVER_HANDOFF_EXTS
     if Path(filename or "").suffix.lower() not in allowed:
         raise HTTPException(status_code=415, detail=f"File type is not supported for {tool} handoff")
 
@@ -1090,7 +1095,8 @@ def create_asset_handoff(
     with Session(engine) as session:
         asset = require_active_asset(session, asset_id)
 
-        file_kind = "primary"
+        tool = body.tool or "open"
+        file_kind = body.content_role or "primary"
         file_id = asset.id
         filename = asset.filename
         size = int(asset.size or 0)
@@ -1104,8 +1110,38 @@ def create_asset_handoff(
             filename = record.filename
             size = int(record.size or 0)
             path = managed_asset_file_path(record)
+        elif body.content_role == "revision_primary":
+            revision = session.get(ArtifactRevision, body.revision_id)
+            if (
+                not revision
+                or revision.asset_id != asset.id
+                or revision.content_state != "ready"
+            ):
+                raise HTTPException(status_code=404, detail="Revision content is unavailable")
+            file_id = revision.id
+            filename = revision.filename
+            size = int(revision.size or 0)
+            path = resolve_revision_content_path(revision)
+        elif body.content_role == "supporting":
+            record = session.get(AssetFile, body.file_id)
+            if not record or record.asset_id != asset.id or record.role != "supporting":
+                raise HTTPException(status_code=404, detail="Supporting file is unavailable")
+            file_id = record.id
+            filename = record.filename
+            size = int(record.size or 0)
+            path = managed_asset_file_path(record)
+        elif body.content_role == "prepared":
+            if not asset.prepared_file_id:
+                raise HTTPException(status_code=404, detail="Prepared file is unavailable")
+            record = session.get(AssetFile, asset.prepared_file_id)
+            if not record or record.asset_id != asset.id or record.role != "prepared":
+                raise HTTPException(status_code=409, detail="Prepared file record is unavailable")
+            file_id = record.id
+            filename = record.filename
+            size = int(record.size or 0)
+            path = managed_asset_file_path(record)
 
-    validate_handoff_extension(filename, body.tool)
+    validate_handoff_extension(filename, tool)
     if not path or not path.exists() or not path.is_file():
         raise HTTPException(status_code=404, detail="Handoff file is unavailable")
     try:
@@ -1115,7 +1151,16 @@ def create_asset_handoff(
     if actual_size != size:
         raise HTTPException(status_code=409, detail="Handoff file changed; refresh the asset and try again")
 
-    grant = create_handoff_token(asset_id, file_kind, file_id, body.tool, filename, size)
+    grant = create_handoff_token(
+        asset_id,
+        file_kind,
+        file_id,
+        tool,
+        filename,
+        size,
+        body.content_role,
+        body.adapter_id,
+    )
     response.headers["Cache-Control"] = "private, no-store"
     response.headers["Pragma"] = "no-cache"
     return HandoffGrantOut(
@@ -1123,6 +1168,8 @@ def create_asset_handoff(
         grant=grant,
         filename=filename,
         expires_in=HANDOFF_TOKEN_TTL,
+        adapter_id=body.adapter_id,
+        content_role=body.content_role,
     )
 
 
@@ -1130,15 +1177,22 @@ def create_asset_handoff(
 def redeem_handoff(
     authorization: Optional[str] = Header(default=None, alias="Authorization"),
     tool: Optional[str] = Header(default=None, alias="X-MakerVault-Handoff-Tool"),
+    adapter_id: Optional[str] = Header(default=None, alias="X-MakerVault-Handoff-Adapter"),
+    content_role: Optional[str] = Header(default=None, alias="X-MakerVault-Handoff-Role"),
 ):
     prefix = "MakerVault-Handoff "
     if not authorization or not authorization.startswith(prefix):
         raise HTTPException(status_code=401, detail="Handoff grant is required")
-    if tool not in {"slicer", "engraver"}:
+    if tool not in {"slicer", "engraver", "open"}:
         raise HTTPException(status_code=400, detail="Handoff tool is required")
     payload = decode_handoff_token(authorization[len(prefix):].strip())
     if payload.get("tool") != tool:
         raise HTTPException(status_code=403, detail="Handoff grant is not valid for this tool")
+    if tool == "open":
+        if payload.get("adapter_id") != adapter_id or payload.get("content_role") != content_role:
+            raise HTTPException(status_code=403, detail="Handoff grant is not valid for this adapter or role")
+    elif adapter_id is not None or content_role is not None:
+        raise HTTPException(status_code=403, detail="General adapter headers are not valid for this tool")
 
     asset_id = payload.get("sub")
     file_kind = payload.get("file_kind")
@@ -1160,13 +1214,26 @@ def redeem_handoff(
                 raise HTTPException(status_code=409, detail="Handoff file changed")
             path = resolve_asset_file(asset)
             mime = asset.mime
+        elif file_kind == "revision_primary":
+            revision = session.get(ArtifactRevision, file_id)
+            if (
+                not revision
+                or revision.asset_id != asset.id
+                or revision.content_state != "ready"
+                or filename != revision.filename
+                or expected_size != int(revision.size or 0)
+            ):
+                raise HTTPException(status_code=409, detail="Handoff file changed")
+            path = resolve_revision_content_path(revision)
+            mime = revision.mime
         else:
             record = session.get(AssetFile, file_id)
+            expected_role = "supporting" if file_kind == "supporting" else "prepared"
             if (
                 not record
                 or record.asset_id != asset.id
-                or record.role != "prepared"
-                or asset.prepared_file_id != record.id
+                or record.role != expected_role
+                or (expected_role == "prepared" and asset.prepared_file_id != record.id)
                 or filename != record.filename
                 or expected_size != int(record.size or 0)
             ):
