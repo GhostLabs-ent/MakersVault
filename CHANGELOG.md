@@ -27,6 +27,8 @@ for versioned release artifacts beginning with v5.1.0.
 - Descriptive Machine profiles, explicit neutral Artifact associations, and exact
   revision-scoped prepared targets through additive schema 12, without device
   discovery, dispatch, telemetry, or control authority.
+- Machine management, lazy Artifact context editing, and bounded current-state
+  retrieval by associated or exact prepared Machine.
 
 ### Changed
 
@@ -37,6 +39,8 @@ for versioned release artifacts beginning with v5.1.0.
   the moving `latest` tag.
 - The bridge requires local origin confirmation and no longer receives the browser
   administrator token.
+- Artifact-history and Project exports use format 2 with deterministic Machine
+  snapshots, stable references, and explicit unresolved-identity reporting.
 
 ### Security
 

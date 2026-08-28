@@ -226,7 +226,8 @@ be made explicit before deployment boundaries are multiplied.
 | T-030 | `VERIFIED` | Local Gate 7E advances new matched backups to recovery contract 3 and audits schema-10 Project, membership, and relationship ownership with deterministic corruption reports. Outer format 1 and schema 10 remain unchanged; legacy no-marker and contract-2 archives remain verifiable, including pre-7E schema-10 backups. | `docs/evidence/gate-7/SUBGATE_7E_RESULTS.md`, recovery/migration/Project/Trash tests, full repository gate | Owner accepted Gate 7 closeout on 2026-08-26. Gate 8 and publication remain unauthorized. |
 | T-031 | `VERIFIED` | Gate 8 generalizes the local bridge through an embedded version-1 adapter catalog, exact-file adapter/role grants, constrained local custom adapters, diagnostics/revocation, file-sensitive FreeCAD/Inkscape UI, preserved legacy schemes, and Windows/Linux/macOS platform contracts without changing schema 10 or stored bytes. | `docs/evidence/gate-8/GATE_8_RESULTS.md`, ADR 0012, API/web/bridge regressions, platform cross-builds, full repository gate | Owner accepted Gate 8 closeout on 2026-08-26. Gate 9 and any push, tag, release, deployment, SDK, marketplace, or publication remain separately gated. |
 | T-032 | `VERIFIED` | Local schema 11 adds empty-by-default descriptive Machine profiles with six bounded categories, strict common fields, case-insensitive active-name identity, authenticated retrieval/lifecycle, archive-first permanent deletion, and no device or stored-byte authority. | `docs/evidence/gate-9/SUBGATE_9A_RESULTS.md`, Machine API/migration regressions, full repository gate | Owner accepted 9A and additive schema 12 for 9B on 2026-08-27. Gate 9B is authorized; publication remains unauthorized. |
-| T-033 | `VERIFIED` | Local schema 12 adds explicit neutral Artifact-machine associations and nullable exact prepared-machine references on current Assets and immutable Revisions. Authenticated APIs never auto-match supplied printer text; new exact targets require active FDM/resin profiles. Trash retains context, while transactional permanent deletion removes only owned associations or nullable references and never rewrites prepared metadata, payloads, paths, or stored bytes. | `docs/evidence/gate-9/SUBGATE_9B_RESULTS.md`, machine-context/migration/revision/Trash regressions, full repository gate | Owner accepted Gate 9B on 2026-08-28. Gate 9C is at its export/retrieval/UI owner checkpoint; publication remains unauthorized. |
+| T-033 | `VERIFIED` | Local schema 12 adds explicit neutral Artifact-machine associations and nullable exact prepared-machine references on current Assets and immutable Revisions. Authenticated APIs never auto-match supplied printer text; new exact targets require active FDM/resin profiles. Trash retains context, while transactional permanent deletion removes only owned associations or nullable references and never rewrites prepared metadata, payloads, paths, or stored bytes. | `docs/evidence/gate-9/SUBGATE_9B_RESULTS.md`, machine-context/migration/revision/Trash regressions, full repository gate | Owner accepted Gate 9B on 2026-08-28. Publication remains unauthorized. |
+| T-034 | `VERIFIED` | Local Gate 9C advances Artifact-history and Project exports to format 2 with deterministic Machine snapshots and unresolved-ID truth, adds duplicate-safe current-state Machine retrieval, and exposes bounded Settings/detail workflows with no per-card context fan-out or device authority. Schema 12 and recovery contract 3 are unchanged. | `docs/evidence/gate-9/SUBGATE_9C_RESULTS.md`, portability/retrieval/web regressions, full repository gate | Gate 9C implementation is verified at `0485184` and awaits owner acceptance. Gate 9D and publication remain unauthorized. |
 
 ### 5.4 Current storage invariants
 
@@ -800,7 +801,7 @@ remain available until replacements pass compatibility evidence.
 
 ### Gate 9 — Add descriptive machine context
 
-**Current execution:** `IN PROGRESS — 9C AUTHORIZED`. Gate 8 was accepted on
+**Current execution:** `EVIDENCE REVIEW — 9C IMPLEMENTATION VERIFIED`. Gate 8 was accepted on
 2026-08-26 and the untouched `fc29837` entry harness passed. Current prepared
 metadata, export, and recovery behavior plus the approved descriptive-only profile,
 relationship, lifecycle, and versioning boundaries are recorded in
@@ -818,6 +819,10 @@ owner accepted 9B on 2026-08-28. The bounded export, retrieval, and interface
 recommendations are recorded in
 [the Gate 9C baseline](evidence/gate-9/SUBGATE_9C_BASELINE.md). The owner approved
 them without amendment on 2026-08-28; 9C implementation is authorized.
+The format-2 exports, current-state Machine retrieval, Settings lifecycle, lazy
+Artifact context, and complete repository verification are recorded in
+[the Gate 9C results](evidence/gate-9/SUBGATE_9C_RESULTS.md). Owner acceptance is
+required before Gate 9D begins.
 
 **Objective:** Let MakersVault describe relevant workshop machines without
 becoming a machine controller.
@@ -832,7 +837,8 @@ and start/stop controls out of scope.
 exports preserve references; the interface never implies a job was sent.
 
 **Owner checkpoint:** architecture, 9A, 9B, and the 9C export/retrieval/interface
-contract are complete. Gate 9C implementation is authorized.
+contract are complete. Gate 9C implementation is verified and awaits owner
+acceptance; Gate 9D is not authorized.
 The minimal common fields and categories, neutral Artifact association, exact
 prepared target, explicit matching, archive/delete lifecycle, export/recovery
 versioning, and 9A–9D sequence were approved without amendment on 2026-08-26. The
@@ -1120,9 +1126,8 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Implement the approved Gate 9C format-2 exports, current-state Machine retrieval,
-Settings management, and lazy Artifact-detail context under
-[the Gate 9C baseline](evidence/gate-9/SUBGATE_9C_BASELINE.md). Do not begin Gate
-9D recovery work. Keep the
+Review the verified Gate 9C implementation and evidence at `0485184` in
+[the Gate 9C results](evidence/gate-9/SUBGATE_9C_RESULTS.md). Do not begin Gate 9D
+recovery work without owner acceptance. Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
 disabled by default; it is not part of Gate 9.
