@@ -41,6 +41,8 @@ for versioned release artifacts beginning with v5.1.0.
   administrator token.
 - Artifact-history and Project exports use format 2 with deterministic Machine
   snapshots, stable references, and explicit unresolved-identity reporting.
+- New matched backups use recovery contract 4 with deterministic schema-12
+  Machine integrity reporting while preserving verified historical backup shapes.
 
 ### Security
 

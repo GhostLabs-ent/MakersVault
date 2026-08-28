@@ -228,6 +228,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-032 | `VERIFIED` | Local schema 11 adds empty-by-default descriptive Machine profiles with six bounded categories, strict common fields, case-insensitive active-name identity, authenticated retrieval/lifecycle, archive-first permanent deletion, and no device or stored-byte authority. | `docs/evidence/gate-9/SUBGATE_9A_RESULTS.md`, Machine API/migration regressions, full repository gate | Owner accepted 9A and additive schema 12 for 9B on 2026-08-27. Gate 9B is authorized; publication remains unauthorized. |
 | T-033 | `VERIFIED` | Local schema 12 adds explicit neutral Artifact-machine associations and nullable exact prepared-machine references on current Assets and immutable Revisions. Authenticated APIs never auto-match supplied printer text; new exact targets require active FDM/resin profiles. Trash retains context, while transactional permanent deletion removes only owned associations or nullable references and never rewrites prepared metadata, payloads, paths, or stored bytes. | `docs/evidence/gate-9/SUBGATE_9B_RESULTS.md`, machine-context/migration/revision/Trash regressions, full repository gate | Owner accepted Gate 9B on 2026-08-28. Publication remains unauthorized. |
 | T-034 | `VERIFIED` | Local Gate 9C advances Artifact-history and Project exports to format 2 with deterministic Machine snapshots and unresolved-ID truth, adds duplicate-safe current-state Machine retrieval, and exposes bounded Settings/detail workflows with no per-card context fan-out or device authority. Schema 12 and recovery contract 3 are unchanged. | `docs/evidence/gate-9/SUBGATE_9C_RESULTS.md`, portability/retrieval/web regressions, full repository gate | Owner accepted Gate 9C at `0485184` on 2026-08-28. Gate 9D is at its recovery/closeout owner checkpoint; publication remains unauthorized. |
+| T-035 | `VERIFIED` | Local Gate 9D advances new matched backups to recovery contract 4 and audits schema-12 Machine structures, identities, associations, current and historical exact targets, and current/revision mirror truth with deterministic critical findings. Outer format 1, schema 12, export formats, paths, and stored bytes remain unchanged; historical no-marker, contract-2, and pre-9D contract-3 report subsets remain supported only when current content audit passes. | `docs/evidence/gate-9/SUBGATE_9D_RESULTS.md`, recovery/corruption/compatibility regressions, full repository gate | Implementation is verified at `002a5e7`; owner acceptance is required to close Gate 9. Gate 10 and publication remain unauthorized. |
 
 ### 5.4 Current storage invariants
 
@@ -801,7 +802,7 @@ remain available until replacements pass compatibility evidence.
 
 ### Gate 9 — Add descriptive machine context
 
-**Current execution:** `IN PROGRESS — 9D AUTHORIZED`. Gate 8 was accepted on
+**Current execution:** `EVIDENCE REVIEW — 9D VERIFIED; GATE 9 CLOSEOUT ACCEPTANCE REQUIRED`. Gate 8 was accepted on
 2026-08-26 and the untouched `fc29837` entry harness passed. Current prepared
 metadata, export, and recovery behavior plus the approved descriptive-only profile,
 relationship, lifecycle, and versioning boundaries are recorded in
@@ -825,7 +826,11 @@ Artifact context, and complete repository verification are recorded in
 recorded on 2026-08-28. The recovery-contract-4, compatibility, and closeout
 recommendations are recorded in
 [the Gate 9D baseline](evidence/gate-9/SUBGATE_9D_BASELINE.md). The owner approved
-them without amendment on 2026-08-28; 9D implementation is authorized.
+them without amendment on 2026-08-28. Recovery contract 4, Machine integrity and
+historical-compatibility regressions, and the complete repository verification are
+recorded in [the Gate 9D results](evidence/gate-9/SUBGATE_9D_RESULTS.md).
+Implementation is verified at `002a5e7`; Gate 9 remains open until owner
+acceptance.
 
 **Objective:** Let MakersVault describe relevant workshop machines without
 becoming a machine controller.
@@ -839,16 +844,17 @@ and start/stop controls out of scope.
 **Exit evidence:** deleting or changing a profile does not damage prepared files;
 exports preserve references; the interface never implies a job was sent.
 
-**Owner checkpoint:** architecture, 9A, 9B, and the 9C export/retrieval/interface
-contract and implementation are complete. Gate 9D's recovery and closeout
-contract is approved; implementation is authorized.
+**Owner checkpoint:** architecture and the 9A–9D contracts and implementations are
+complete. Review and accept the Gate 9D evidence to close Gate 9. Gate 10 remains
+separately gated and is not authorized by this review.
 The minimal common fields and categories, neutral Artifact association, exact
 prepared target, explicit matching, archive/delete lifecycle, export/recovery
 versioning, and 9A–9D sequence were approved without amendment on 2026-08-26. The
 verified 9A implementation and additive schema 12 for 9B were accepted on
 2026-08-27. The verified 9B implementation was accepted on 2026-08-28. The
 verified 9C implementation was accepted on 2026-08-28. The
-accepted schema-11 and schema-12 migrations will not be rewritten.
+accepted schema-11 and schema-12 migrations will not be rewritten. Gate 9D is
+verified at `002a5e7` and awaits owner acceptance.
 
 **Rollback:** machine references are optional and nullable.
 
@@ -1130,8 +1136,7 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Implement the approved Gate 9D recovery-contract-4 Machine integrity audit,
-historical compatibility proof, and Gate 9 closeout evidence under
-[the Gate 9D baseline](evidence/gate-9/SUBGATE_9D_BASELINE.md). Keep the
+Review [the verified Gate 9D results](evidence/gate-9/SUBGATE_9D_RESULTS.md) and
+accept Gate 9 closeout before opening Gate 10. Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
 disabled by default; it is not part of Gate 9.
