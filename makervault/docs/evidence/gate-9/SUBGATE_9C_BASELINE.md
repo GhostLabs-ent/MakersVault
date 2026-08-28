@@ -2,9 +2,11 @@
 
 **Gate:** 9C — Portable machine references, retrieval, and descriptive interface
 
-**Status:** Owner checkpoint required; implementation not authorized
+**Status:** Owner-approved; implementation authorized
 
 **Date:** 2026-08-28
+
+**Approved:** 2026-08-28
 
 **Entry commit:** `d375cd2`
 
@@ -146,3 +148,7 @@ not modified.
 Recommendation: approve all six decisions without amendment. They make the
 accepted descriptive context portable and usable while preserving the boundary
 between metadata and machine authority.
+
+The owner approved all six recommendations without amendment on 2026-08-28.
+Implementation is authorized only for Gate 9C. Gate 9D, import, device control,
+push, tag, release, deployment, and publication remain unauthorized.

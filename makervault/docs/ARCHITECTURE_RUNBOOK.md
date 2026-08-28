@@ -800,7 +800,7 @@ remain available until replacements pass compatibility evidence.
 
 ### Gate 9 — Add descriptive machine context
 
-**Current execution:** `IN PROGRESS — 9B ACCEPTED; 9C OWNER CHECKPOINT`. Gate 8 was accepted on
+**Current execution:** `IN PROGRESS — 9C AUTHORIZED`. Gate 8 was accepted on
 2026-08-26 and the untouched `fc29837` entry harness passed. Current prepared
 metadata, export, and recovery behavior plus the approved descriptive-only profile,
 relationship, lifecycle, and versioning boundaries are recorded in
@@ -816,7 +816,8 @@ remains prohibited. The schema-12 implementation and complete repository evidenc
 are recorded in [the Gate 9B results](evidence/gate-9/SUBGATE_9B_RESULTS.md); the
 owner accepted 9B on 2026-08-28. The bounded export, retrieval, and interface
 recommendations are recorded in
-[the Gate 9C baseline](evidence/gate-9/SUBGATE_9C_BASELINE.md) and await approval.
+[the Gate 9C baseline](evidence/gate-9/SUBGATE_9C_BASELINE.md). The owner approved
+them without amendment on 2026-08-28; 9C implementation is authorized.
 
 **Objective:** Let MakersVault describe relevant workshop machines without
 becoming a machine controller.
@@ -830,8 +831,8 @@ and start/stop controls out of scope.
 **Exit evidence:** deleting or changing a profile does not damage prepared files;
 exports preserve references; the interface never implies a job was sent.
 
-**Owner checkpoint:** architecture, 9A, and 9B complete; the 9C export,
-retrieval, and interface contract awaits approval.
+**Owner checkpoint:** architecture, 9A, 9B, and the 9C export/retrieval/interface
+contract are complete. Gate 9C implementation is authorized.
 The minimal common fields and categories, neutral Artifact association, exact
 prepared target, explicit matching, archive/delete lifecycle, export/recovery
 versioning, and 9A–9D sequence were approved without amendment on 2026-08-26. The
@@ -1119,8 +1120,9 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Review and approve or amend the bounded Gate 9C export/retrieval/UI recommendations
-in [the Gate 9C baseline](evidence/gate-9/SUBGATE_9C_BASELINE.md). Do not begin
-implementation before that owner checkpoint. Keep the
+Implement the approved Gate 9C format-2 exports, current-state Machine retrieval,
+Settings management, and lazy Artifact-detail context under
+[the Gate 9C baseline](evidence/gate-9/SUBGATE_9C_BASELINE.md). Do not begin Gate
+9D recovery work. Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
 disabled by default; it is not part of Gate 9.
