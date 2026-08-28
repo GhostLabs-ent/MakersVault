@@ -2,9 +2,11 @@
 
 **Gate:** 9C — Portable machine references, retrieval, and descriptive interface
 
-**Status:** Implementation verified; owner acceptance required
+**Status:** Accepted by the owner
 
 **Date:** 2026-08-28
+
+**Accepted:** 2026-08-28
 
 **Entry commit:** `9826070`
 
@@ -123,6 +125,7 @@ outside Gate 9 and was not modified or committed.
   queues, file transfer, slicing, job history, and machine commands remain
   excluded.
 
-Recommendation: accept Gate 9C at `0485184` and authorize only Gate 9D recovery
-and closeout work. Acceptance does not authorize push, tag, release, deployment,
-device connection, import, machine control, or publication.
+The owner accepted Gate 9C at implementation commit `0485184` with evidence commit
+`d1fb8a7` on 2026-08-28. Gate 9D may proceed only after its separate recovery and
+closeout recommendations are approved. Acceptance does not authorize push, tag,
+release, deployment, device connection, import, machine control, or publication.
