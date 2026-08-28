@@ -23,8 +23,8 @@ from typing import BinaryIO, Iterable, Optional
 
 BACKUP_FORMAT = "makersvault-backup"
 BACKUP_FORMAT_VERSION = 1
-RECOVERY_CONTRACT_VERSION = 3
-SUPPORTED_RECOVERY_CONTRACT_VERSIONS = {2, RECOVERY_CONTRACT_VERSION}
+RECOVERY_CONTRACT_VERSION = 4
+SUPPORTED_RECOVERY_CONTRACT_VERSIONS = {2, 3, RECOVERY_CONTRACT_VERSION}
 COMPONENT_NAMES = ("database.tar", "storage.tar")
 OPTIONAL_NAMES = ("config.env",)
 METADATA_NAMES = ("manifest.json", "checksums.sha256")
@@ -159,6 +159,8 @@ def database_summary(database: Path) -> dict:
                 "project",
                 "projectmembership",
                 "projectrelationship",
+                "machineprofile",
+                "artifactmachine",
             )
             if table in tables
         )
@@ -195,6 +197,7 @@ def _select_assets(connection: sqlite3.Connection) -> list[dict]:
         "current_revision_id",
         "current_thumb_path",
         "deleted_at",
+        "prepared_machine_id",
     ]
     selected = [name for name in wanted if name in columns]
     rows = connection.execute(f"SELECT {', '.join(selected)} FROM asset").fetchall()
@@ -228,6 +231,7 @@ def _select_revisions(connection: sqlite3.Connection) -> list[dict]:
         "source_path",
         "prepared_file_id",
         "preview_thumb_path",
+        "prepared_machine_id",
     ]
     selected = [name for name in wanted if name in columns]
     rows = connection.execute(f"SELECT {', '.join(selected)} FROM artifactrevision").fetchall()
@@ -281,6 +285,27 @@ def _select_project_relationships(connection: sqlite3.Connection) -> list[dict]:
     return [dict(zip(columns, row)) for row in rows]
 
 
+def _select_machines(connection: sqlite3.Connection) -> list[dict]:
+    if "machineprofile" not in table_names(connection):
+        return []
+    columns = ("id", "name", "category", "archived_at")
+    rows = connection.execute(
+        f"SELECT {', '.join(columns)} FROM machineprofile ORDER BY id"
+    ).fetchall()
+    return [dict(zip(columns, row)) for row in rows]
+
+
+def _select_machine_associations(connection: sqlite3.Connection) -> list[dict]:
+    if "artifactmachine" not in table_names(connection):
+        return []
+    columns = ("asset_id", "machine_id")
+    rows = connection.execute(
+        f"SELECT {', '.join(columns)} FROM artifactmachine "
+        "ORDER BY asset_id, machine_id"
+    ).fetchall()
+    return [dict(zip(columns, row)) for row in rows]
+
+
 def _external_state(
     source_path: str,
     container_root: Optional[Path],
@@ -326,6 +351,14 @@ def consistency_audit(
         projects = _select_projects(connection)
         project_memberships = _select_project_memberships(connection)
         project_relationships = _select_project_relationships(connection)
+        machines = _select_machines(connection)
+        machine_associations = _select_machine_associations(connection)
+        asset_columns = table_columns(connection, "asset") if "asset" in tables else set()
+        revision_columns = (
+            table_columns(connection, "artifactrevision")
+            if "artifactrevision" in tables
+            else set()
+        )
         schema_version = 0
         if "schema_migration" in tables:
             row = connection.execute(
@@ -339,6 +372,7 @@ def consistency_audit(
     revision_by_id = {str(row.get("id") or ""): row for row in revisions}
     file_by_id = {str(row.get("id") or ""): row for row in asset_files}
     project_by_id = {str(row.get("id") or ""): row for row in projects}
+    machine_by_id = {str(row.get("id") or ""): row for row in machines}
     referenced: set[str] = set()
     managed_present = 0
     missing_managed: list[str] = []
@@ -603,6 +637,91 @@ def consistency_audit(
             duplicate_relationship_ids.append(relationship_id)
         canonical_relationships.add(canonical)
 
+    expected_machine_tables: set[str] = set()
+    if schema_version >= 11:
+        expected_machine_tables.add("machineprofile")
+    if schema_version >= 12:
+        expected_machine_tables.add("artifactmachine")
+    missing_machine_tables = sorted(expected_machine_tables - tables)
+    missing_machine_reference_columns: list[str] = []
+    if schema_version >= 12:
+        if "prepared_machine_id" not in asset_columns:
+            missing_machine_reference_columns.append("asset.prepared_machine_id")
+        if "prepared_machine_id" not in revision_columns:
+            missing_machine_reference_columns.append(
+                "artifactrevision.prepared_machine_id"
+            )
+
+    valid_machine_categories = {
+        "fdm_printer",
+        "resin_printer",
+        "laser",
+        "cnc",
+        "pcb",
+        "other",
+    }
+    invalid_machine_category_ids = sorted(
+        str(machine.get("id") or "")
+        for machine in machines
+        if str(machine.get("category") or "") not in valid_machine_categories
+    )
+    active_name_ids: dict[str, list[str]] = {}
+    for machine in machines:
+        if machine.get("archived_at"):
+            continue
+        name_key = str(machine.get("name") or "").casefold()
+        active_name_ids.setdefault(name_key, []).append(
+            str(machine.get("id") or "")
+        )
+    duplicate_active_machine_name_ids = sorted({
+        machine_id
+        for machine_ids in active_name_ids.values()
+        if len(machine_ids) > 1
+        for machine_id in machine_ids
+    })
+
+    association_keys: set[tuple[str, str]] = set()
+    duplicate_machine_association_keys: set[str] = set()
+    orphan_machine_association_asset_keys: set[str] = set()
+    orphan_machine_association_machine_keys: set[str] = set()
+    for association in machine_associations:
+        asset_id = str(association.get("asset_id") or "")
+        machine_id = str(association.get("machine_id") or "")
+        display_key = f"{asset_id}/{machine_id}"
+        key = (asset_id, machine_id)
+        if key in association_keys:
+            duplicate_machine_association_keys.add(display_key)
+        association_keys.add(key)
+        if asset_id not in asset_by_id:
+            orphan_machine_association_asset_keys.add(display_key)
+        if machine_id not in machine_by_id:
+            orphan_machine_association_machine_keys.add(display_key)
+
+    orphan_asset_prepared_machine_ids = sorted(
+        str(asset.get("id") or "")
+        for asset in assets
+        if asset.get("prepared_machine_id")
+        and str(asset.get("prepared_machine_id")) not in machine_by_id
+    )
+    orphan_revision_prepared_machine_ids = sorted(
+        str(revision.get("id") or "")
+        for revision in revisions
+        if revision.get("prepared_machine_id")
+        and str(revision.get("prepared_machine_id")) not in machine_by_id
+    )
+    prepared_machine_mirror_mismatch_asset_ids: list[str] = []
+    if uses_revisions:
+        for asset in assets:
+            asset_id = str(asset.get("id") or "")
+            current_revision_id = str(asset.get("current_revision_id") or "")
+            revision = revision_by_id.get(current_revision_id)
+            if not revision or str(revision.get("asset_id") or "") != asset_id:
+                continue
+            asset_target = str(asset.get("prepared_machine_id") or "")
+            revision_target = str(revision.get("prepared_machine_id") or "")
+            if asset_target != revision_target:
+                prepared_machine_mirror_mismatch_asset_ids.append(asset_id)
+
     project_critical_lists = (
         missing_project_tables,
         orphan_project_membership_keys,
@@ -615,6 +734,18 @@ def consistency_audit(
         self_relationship_ids,
         invalid_relationship_kind_ids,
         duplicate_relationship_ids,
+    )
+    machine_critical_lists = (
+        missing_machine_tables,
+        missing_machine_reference_columns,
+        invalid_machine_category_ids,
+        duplicate_active_machine_name_ids,
+        sorted(orphan_machine_association_asset_keys),
+        sorted(orphan_machine_association_machine_keys),
+        sorted(duplicate_machine_association_keys),
+        orphan_asset_prepared_machine_ids,
+        orphan_revision_prepared_machine_ids,
+        prepared_machine_mirror_mismatch_asset_ids,
     )
     critical_lists = (
         missing_managed,
@@ -632,6 +763,7 @@ def consistency_audit(
         malformed_purge_operation_ids,
         unknown_quarantine_paths,
         *project_critical_lists,
+        *machine_critical_lists,
     )
     critical_count = sum(len(items) for items in critical_lists)
     result = {
@@ -704,6 +836,55 @@ def consistency_audit(
                 invalid_relationship_kind_ids
             ),
             "duplicate_relationship_ids": sorted(duplicate_relationship_ids),
+        })
+    machine_domain_present = bool(
+        schema_version >= 11
+        or {"machineprofile", "artifactmachine"} & tables
+        or "prepared_machine_id" in asset_columns
+        or "prepared_machine_id" in revision_columns
+    )
+    if machine_domain_present:
+        result.update({
+            "active_machine_count": sum(
+                1 for machine in machines if not machine.get("archived_at")
+            ),
+            "archived_machine_count": sum(
+                1 for machine in machines if machine.get("archived_at")
+            ),
+            "machine_association_count": len(machine_associations),
+            "current_prepared_machine_count": sum(
+                1 for asset in assets if asset.get("prepared_machine_id")
+            ),
+            "revision_prepared_machine_count": sum(
+                1 for revision in revisions
+                if revision.get("prepared_machine_id")
+            ),
+            "missing_machine_tables": missing_machine_tables,
+            "missing_machine_reference_columns": sorted(
+                missing_machine_reference_columns
+            ),
+            "invalid_machine_category_ids": invalid_machine_category_ids,
+            "duplicate_active_machine_name_ids": (
+                duplicate_active_machine_name_ids
+            ),
+            "orphan_machine_association_asset_keys": sorted(
+                orphan_machine_association_asset_keys
+            ),
+            "orphan_machine_association_machine_keys": sorted(
+                orphan_machine_association_machine_keys
+            ),
+            "duplicate_machine_association_keys": sorted(
+                duplicate_machine_association_keys
+            ),
+            "orphan_asset_prepared_machine_ids": (
+                orphan_asset_prepared_machine_ids
+            ),
+            "orphan_revision_prepared_machine_ids": (
+                orphan_revision_prepared_machine_ids
+            ),
+            "prepared_machine_mirror_mismatch_asset_ids": sorted(
+                prepared_machine_mirror_mismatch_asset_ids
+            ),
         })
     return result
 
@@ -919,7 +1100,7 @@ def verify_extracted_backup(directory: Path, seen: set[str]) -> dict:
             return recorded == actual
         return recorded == actual
 
-    compatible_older_contract = recovery_contract in {None, 2}
+    compatible_older_contract = recovery_contract in {None, 2, 3}
     if not report_matches(
         manifest.get("database"),
         summary,

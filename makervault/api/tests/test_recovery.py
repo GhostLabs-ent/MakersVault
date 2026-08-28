@@ -19,6 +19,25 @@ from recovery import (
 )
 
 
+MACHINE_REPORT_KEYS = (
+    "active_machine_count",
+    "archived_machine_count",
+    "machine_association_count",
+    "current_prepared_machine_count",
+    "revision_prepared_machine_count",
+    "missing_machine_tables",
+    "missing_machine_reference_columns",
+    "invalid_machine_category_ids",
+    "duplicate_active_machine_name_ids",
+    "orphan_machine_association_asset_keys",
+    "orphan_machine_association_machine_keys",
+    "duplicate_machine_association_keys",
+    "orphan_asset_prepared_machine_ids",
+    "orphan_revision_prepared_machine_ids",
+    "prepared_machine_mirror_mismatch_asset_ids",
+)
+
+
 def make_database(path: Path) -> None:
     connection = sqlite3.connect(path)
     try:
@@ -303,6 +322,68 @@ def schema10_fixture(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
     return database_dir, storage_dir, database_tar, storage_tar
 
 
+def schema12_fixture(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
+    database_dir, storage_dir, database_tar, storage_tar = schema10_fixture(tmp_path)
+    connection = sqlite3.connect(database_dir / "app.db")
+    try:
+        connection.executescript(
+            """
+            ALTER TABLE asset ADD COLUMN prepared_machine_id TEXT;
+            ALTER TABLE artifactrevision ADD COLUMN prepared_machine_id TEXT;
+            CREATE TABLE machineprofile (
+                id TEXT PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL,
+                manufacturer TEXT, model TEXT, location TEXT, notes TEXT,
+                created_at TEXT NOT NULL, updated_at TEXT NOT NULL, archived_at TEXT
+            );
+            CREATE TABLE artifactmachine (
+                asset_id TEXT NOT NULL, machine_id TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+            INSERT INTO schema_migration(version, name) VALUES
+                (11, 'machine_profiles'),
+                (12, 'artifact_machine_context');
+            INSERT INTO machineprofile VALUES
+                ('machine-active', 'Active Printer', 'fdm_printer', 'Fixture',
+                 'Model A', 'Bench', 'Current exact target',
+                 '2026-08-27T00:00:00Z', '2026-08-27T00:00:00Z', NULL),
+                ('machine-archived', 'Archived Printer', 'resin_printer', 'Fixture',
+                 'Model B', 'Shelf', 'Historical exact target',
+                 '2026-08-27T00:00:00Z', '2026-08-28T00:00:00Z',
+                 '2026-08-28T00:00:00Z'),
+                ('machine-laser', 'Workshop Laser', 'laser', 'Fixture',
+                 'Model C', 'Bench', 'Neutral association only',
+                 '2026-08-27T00:00:00Z', '2026-08-27T00:00:00Z', NULL);
+            INSERT INTO artifactmachine VALUES
+                ('active', 'machine-active', '2026-08-27T00:00:00Z'),
+                ('trash', 'machine-archived', '2026-08-27T00:00:00Z'),
+                ('external', 'machine-laser', '2026-08-27T00:00:00Z');
+            INSERT INTO assetfile VALUES
+                ('active-prepared-old', 'active', 'old.gcode', 'prepared',
+                 'bundles/active/revisions/active-r1/prepared/old.gcode',
+                 'active-r1');
+            UPDATE artifactrevision
+            SET prepared_file_id = 'active-prepared-old',
+                prepared_machine_id = 'machine-archived'
+            WHERE id = 'active-r1';
+            UPDATE artifactrevision
+            SET prepared_machine_id = 'machine-active'
+            WHERE id = 'active-r2';
+            UPDATE asset
+            SET prepared_machine_id = 'machine-active'
+            WHERE id = 'active';
+            """
+        )
+        connection.commit()
+    finally:
+        connection.close()
+    old_prepared = storage_dir / "bundles/active/revisions/active-r1/prepared/old.gcode"
+    old_prepared.parent.mkdir(parents=True)
+    old_prepared.write_bytes(b"old prepared")
+    tar_directory(database_dir, database_tar)
+    tar_directory(storage_dir, storage_tar)
+    return database_dir, storage_dir, database_tar, storage_tar
+
+
 def tar_directory(source: Path, output: Path) -> None:
     with tarfile.open(output, "w") as archive:
         archive.add(source, arcname=".", recursive=True)
@@ -333,6 +414,63 @@ def rewrite_backup_manifest(
             for line in checksums_path.read_text(encoding="utf-8").splitlines()
         )
         + "\n",
+        encoding="utf-8",
+    )
+    with tarfile.open(output, "w:gz") as archive:
+        for name in (
+            "manifest.json",
+            "checksums.sha256",
+            "database.tar",
+            "storage.tar",
+        ):
+            archive.add(unpacked / name, arcname=name)
+
+
+def rewrite_backup_database(
+    source: Path,
+    output: Path,
+    workdir: Path,
+    mutation: str,
+) -> None:
+    unpacked = workdir / f"{output.stem}-outer"
+    unpacked.mkdir()
+    with tarfile.open(source, "r:gz") as archive:
+        archive.extractall(unpacked)
+    database_dir = workdir / f"{output.stem}-database"
+    database_dir.mkdir()
+    with tarfile.open(unpacked / "database.tar", "r") as archive:
+        archive.extractall(database_dir)
+    connection = sqlite3.connect(database_dir / "app.db")
+    try:
+        connection.execute(mutation)
+        connection.commit()
+    finally:
+        connection.close()
+    tar_directory(database_dir, unpacked / "database.tar")
+
+    manifest_path = unpacked / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    database_members = validate_component_tar(unpacked / "database.tar")
+    database_digest = hashlib.sha256(
+        (unpacked / "database.tar").read_bytes()
+    ).hexdigest()
+    manifest["components"]["database.tar"] = {
+        "sha256": database_digest,
+        "bytes": (unpacked / "database.tar").stat().st_size,
+        "file_count": len(database_members),
+        "expanded_bytes": sum(int(item["size"]) for item in database_members),
+        "files": database_members,
+    }
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    storage_digest = hashlib.sha256((unpacked / "storage.tar").read_bytes()).hexdigest()
+    manifest_digest = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+    (unpacked / "checksums.sha256").write_text(
+        f"{database_digest}  database.tar\n"
+        f"{storage_digest}  storage.tar\n"
+        f"{manifest_digest}  manifest.json\n",
         encoding="utf-8",
     )
     with tarfile.open(output, "w:gz") as archive:
@@ -500,7 +638,7 @@ def test_schema8_backup_round_trip_represents_revisions_trash_and_quarantine(
     )
 
     assert manifest["format_version"] == 1
-    assert manifest["recovery_contract_version"] == 3
+    assert manifest["recovery_contract_version"] == 4
     assert manifest["database"]["schema_version"] == 8
     assert manifest["database"]["row_counts"]["artifactrevision"] == 5
     assert manifest["database"]["row_counts"]["trashpurgeoperation"] == 1
@@ -539,7 +677,7 @@ def test_schema10_backup_round_trip_represents_project_graph(tmp_path: Path) -> 
     )
 
     assert manifest["format_version"] == 1
-    assert manifest["recovery_contract_version"] == 3
+    assert manifest["recovery_contract_version"] == 4
     assert manifest["database"]["schema_version"] == 10
     assert manifest["database"]["row_counts"]["project"] == 2
     assert manifest["database"]["row_counts"]["projectmembership"] == 4
@@ -570,6 +708,143 @@ def test_schema10_backup_round_trip_represents_project_graph(tmp_path: Path) -> 
     )["matches_backup"] is True
     extracted = tmp_path / "schema10-extracted"
     assert extract_backup(archive, extracted) == manifest
+
+
+def test_schema12_backup_round_trip_represents_machine_context(tmp_path: Path) -> None:
+    _, _, database_tar, storage_tar = schema12_fixture(tmp_path)
+    archive = tmp_path / "makersvault-schema12.backup.tar.gz"
+
+    manifest = create_backup(
+        database_tar,
+        storage_tar,
+        archive,
+        "post-v5.1-gate9",
+        "gate9-fixture",
+    )
+
+    assert manifest["format_version"] == 1
+    assert manifest["recovery_contract_version"] == 4
+    assert manifest["database"]["schema_version"] == 12
+    assert manifest["database"]["row_counts"]["machineprofile"] == 3
+    assert manifest["database"]["row_counts"]["artifactmachine"] == 3
+    audit = manifest["consistency"]
+    assert audit["status"] == "ok"
+    assert audit["active_machine_count"] == 2
+    assert audit["archived_machine_count"] == 1
+    assert audit["machine_association_count"] == 3
+    assert audit["current_prepared_machine_count"] == 1
+    assert audit["revision_prepared_machine_count"] == 2
+    for key in MACHINE_REPORT_KEYS[5:]:
+        assert audit[key] == []
+
+    assert verify_backup(archive) == manifest
+    assert verify_restored_components(
+        archive, database_tar, storage_tar
+    )["matches_backup"] is True
+    extracted = tmp_path / "schema12-extracted"
+    assert extract_backup(archive, extracted) == manifest
+
+
+@pytest.mark.parametrize(
+    ("mutation", "report_key", "expected"),
+    [
+        (
+            "DROP TABLE machineprofile",
+            "missing_machine_tables",
+            ["machineprofile"],
+        ),
+        (
+            "DROP TABLE artifactmachine",
+            "missing_machine_tables",
+            ["artifactmachine"],
+        ),
+        (
+            "ALTER TABLE asset DROP COLUMN prepared_machine_id",
+            "missing_machine_reference_columns",
+            ["asset.prepared_machine_id"],
+        ),
+        (
+            "ALTER TABLE artifactrevision DROP COLUMN prepared_machine_id",
+            "missing_machine_reference_columns",
+            ["artifactrevision.prepared_machine_id"],
+        ),
+        (
+            "UPDATE machineprofile SET category = 'router' "
+            "WHERE id = 'machine-laser'",
+            "invalid_machine_category_ids",
+            ["machine-laser"],
+        ),
+        (
+            "UPDATE machineprofile SET name = 'Active Printer' "
+            "WHERE id = 'machine-laser'",
+            "duplicate_active_machine_name_ids",
+            ["machine-active", "machine-laser"],
+        ),
+        (
+            "UPDATE artifactmachine SET asset_id = 'missing-asset' "
+            "WHERE asset_id = 'active' AND machine_id = 'machine-active'",
+            "orphan_machine_association_asset_keys",
+            ["missing-asset/machine-active"],
+        ),
+        (
+            "UPDATE artifactmachine SET machine_id = 'missing-machine' "
+            "WHERE asset_id = 'external' AND machine_id = 'machine-laser'",
+            "orphan_machine_association_machine_keys",
+            ["external/missing-machine"],
+        ),
+        (
+            "INSERT INTO artifactmachine VALUES "
+            "('active', 'machine-active', '2026-08-28T00:00:00Z')",
+            "duplicate_machine_association_keys",
+            ["active/machine-active"],
+        ),
+        (
+            "UPDATE asset SET prepared_machine_id = 'missing-machine' "
+            "WHERE id = 'active'",
+            "orphan_asset_prepared_machine_ids",
+            ["active"],
+        ),
+        (
+            "UPDATE artifactrevision SET prepared_machine_id = 'missing-machine' "
+            "WHERE id = 'active-r1'",
+            "orphan_revision_prepared_machine_ids",
+            ["active-r1"],
+        ),
+        (
+            "UPDATE asset SET prepared_machine_id = 'machine-archived' "
+            "WHERE id = 'active'",
+            "prepared_machine_mirror_mismatch_asset_ids",
+            ["active"],
+        ),
+    ],
+)
+def test_schema12_audit_rejects_broken_machine_context(
+    tmp_path: Path,
+    mutation: str,
+    report_key: str,
+    expected: list[str],
+) -> None:
+    database_dir, storage_dir, database_tar, storage_tar = schema12_fixture(tmp_path)
+    connection = sqlite3.connect(database_dir / "app.db")
+    try:
+        connection.execute(mutation)
+        connection.commit()
+    finally:
+        connection.close()
+
+    audit = audit_live_paths(database_dir / "app.db", storage_dir)["consistency"]
+
+    assert audit["status"] == "inconsistent"
+    assert audit[report_key] == expected
+    tar_directory(database_dir, database_tar)
+    with pytest.raises(RecoveryError, match="inconsistent"):
+        create_backup(
+            database_tar,
+            storage_tar,
+            tmp_path / "must-not-exist-machine.tar.gz",
+            "gate9",
+            "broken-machine-context",
+        )
 
 
 @pytest.mark.parametrize(
@@ -811,6 +1086,52 @@ def test_verifier_accepts_pre_gate7e_contract2_schema10_archive(
 
     assert verified["recovery_contract_version"] == 2
     assert verified["database"]["schema_version"] == 10
+
+
+def test_verifier_accepts_pre_gate9d_contract3_schema12_and_reaudits_it(
+    tmp_path: Path,
+) -> None:
+    _, _, database_tar, storage_tar = schema12_fixture(tmp_path)
+    current_archive = tmp_path / "current-schema12.tar.gz"
+    current = create_backup(
+        database_tar,
+        storage_tar,
+        current_archive,
+        "post-v5.1-gate9",
+        "pre-gate9d-contract3-fixture",
+    )
+    assert current["recovery_contract_version"] == 4
+    contract3_archive = tmp_path / "contract3-schema12.tar.gz"
+
+    def contract3_shape(manifest: dict) -> None:
+        manifest["recovery_contract_version"] = 3
+        for table in ("machineprofile", "artifactmachine"):
+            manifest["database"]["row_counts"].pop(table)
+        for key in MACHINE_REPORT_KEYS:
+            manifest["consistency"].pop(key)
+
+    rewrite_backup_manifest(
+        current_archive,
+        contract3_archive,
+        tmp_path,
+        contract3_shape,
+    )
+
+    verified = verify_backup(contract3_archive)
+
+    assert verified["recovery_contract_version"] == 3
+    assert verified["database"]["schema_version"] == 12
+
+    corrupt_archive = tmp_path / "contract3-schema12-corrupt.tar.gz"
+    rewrite_backup_database(
+        contract3_archive,
+        corrupt_archive,
+        tmp_path,
+        "UPDATE asset SET prepared_machine_id = 'missing-machine' "
+        "WHERE id = 'active'",
+    )
+    with pytest.raises(RecoveryError, match="consistency|inconsistent"):
+        verify_backup(corrupt_archive)
 
 
 def test_verifier_rejects_future_recovery_contract(tmp_path: Path) -> None:
