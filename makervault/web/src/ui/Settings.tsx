@@ -20,6 +20,7 @@ import {
 } from "../lib/api";
 import { entriesFromFileList, uploadEntriesToFolder, type UploadEntry } from "../lib/uploadTree";
 import { mountOwnership, mountScanStatusLabel } from "../lib/mountImport";
+import MachineSettings from "./MachineSettings";
 
 type Props = {
   initialSection?: "root" | "trash";
@@ -31,7 +32,7 @@ type Props = {
   onSelectFolder?: (id: string | null) => void;
 };
 
-type Section = "root" | "slicer" | "engraving" | "theme" | "network" | "previews" | "storage" | "imports" | "content" | "trash";
+type Section = "root" | "slicer" | "engraving" | "theme" | "network" | "previews" | "storage" | "imports" | "content" | "trash" | "machines";
 
 const THEME_SWATCHES: Record<ThemeId, string> = {
   system: "linear-gradient(135deg, #f8fafc 0%, #f8fafc 50%, #0b0f19 50%, #0b0f19 100%)",
@@ -665,6 +666,16 @@ export default function Settings({
           </p>
         </div>
       </div>
+    );
+  }
+
+  if (section === "machines") {
+    return (
+      <MachineSettings
+        onBack={() => setSection("root")}
+        onAssetsChanged={onAssetsChanged}
+        onUnauthorized={onUnauthorized}
+      />
     );
   }
 
@@ -1566,6 +1577,14 @@ export default function Settings({
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-3 sm:grid-cols-2">
+        <button
+          className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
+          onClick={() => setSection("machines")}
+        >
+          <div className="text-xs uppercase tracking-wide text-muted">Workshop</div>
+          <div className="text-lg font-semibold">Machines</div>
+          <div className="text-sm opacity-70">Manage descriptive profiles without connecting to or controlling devices.</div>
+        </button>
         <button
           className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
           onClick={() => setSection("slicer")}

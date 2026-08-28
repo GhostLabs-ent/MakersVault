@@ -58,6 +58,7 @@ export type Asset = {
   storage_path?: string | null;
   supporting_file_count: number;
   prepared_print?: PreparedPrint | null;
+  prepared_machine_id?: string | null;
   slicer_url?: string | null;
   slicer_filename?: string | null;
   preview_status: "pending" | "ready" | "failed" | "skipped_policy" | "retry_requested";
@@ -81,6 +82,58 @@ export type Project = {
   updated_at: string;
   deleted_at?: string | null;
   member_count: number;
+};
+
+export type MachineCategory =
+  | "fdm_printer"
+  | "resin_printer"
+  | "laser"
+  | "cnc"
+  | "pcb"
+  | "other";
+
+export type MachineScope = "any" | "associated" | "prepared";
+
+export type Machine = {
+  id: string;
+  name: string;
+  category: MachineCategory;
+  manufacturer?: string | null;
+  model?: string | null;
+  location?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+  archived_at?: string | null;
+};
+
+export type MachineInput = {
+  name: string;
+  category: MachineCategory;
+  manufacturer?: string | null;
+  model?: string | null;
+  location?: string | null;
+  notes?: string | null;
+};
+
+export type MachineAssociation = {
+  machine: Machine;
+  created_at: string;
+};
+
+export type AssetMachineContext = {
+  asset_id: string;
+  associations: MachineAssociation[];
+  prepared_machine?: Machine | null;
+  prepared_revision_id?: string | null;
+  notice: "Descriptive context only. No job was sent.";
+};
+
+export type MachinePermanentDeleteResult = {
+  machine_id: string;
+  name: string;
+  associations_deleted: number;
+  prepared_references_cleared: number;
 };
 
 export type ProjectInput = {
@@ -179,6 +232,7 @@ export type ArtifactRevision = {
   content_checked_at?: string | null;
   change_note?: string | null;
   prepared_print?: PreparedPrint | null;
+  prepared_machine_id?: string | null;
   url: string;
   thumb_url?: string | null;
   is_current: boolean;
@@ -414,6 +468,8 @@ export async function listAssets(params: {
   folder_id?: string;
   project_id?: string;
   project_unassigned?: boolean;
+  machine_id?: string;
+  machine_scope?: MachineScope;
   limit?: number;
   offset?: number;
 } = {}): Promise<ListAssetsResult> {
@@ -423,6 +479,8 @@ export async function listAssets(params: {
   if (params.folder_id) qs.set("folder_id", params.folder_id);
   if (params.project_id) qs.set("project_id", params.project_id);
   if (params.project_unassigned) qs.set("project_unassigned", "true");
+  if (params.machine_id) qs.set("machine_id", params.machine_id);
+  if (params.machine_scope) qs.set("machine_scope", params.machine_scope);
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
   if (typeof params.offset === "number") qs.set("offset", String(params.offset));
   const res = await fetch(`${apiBase()}/assets?${qs.toString()}`, {
@@ -442,6 +500,8 @@ export async function listTags(params: {
   folder_id?: string;
   project_id?: string;
   project_unassigned?: boolean;
+  machine_id?: string;
+  machine_scope?: MachineScope;
 } = {}): Promise<string[]> {
   const qs = new URLSearchParams();
   if (params.q) qs.set("q", params.q);
@@ -449,6 +509,8 @@ export async function listTags(params: {
   if (params.folder_id) qs.set("folder_id", params.folder_id);
   if (params.project_id) qs.set("project_id", params.project_id);
   if (params.project_unassigned) qs.set("project_unassigned", "true");
+  if (params.machine_id) qs.set("machine_id", params.machine_id);
+  if (params.machine_scope) qs.set("machine_scope", params.machine_scope);
   const res = await fetch(`${apiBase()}/tags?${qs.toString()}`, {
     headers: authHeaders(),
   });
@@ -925,6 +987,135 @@ function pageResult<T>(res: Response, items: T[]) {
   return { items, hasMore, nextOffset };
 }
 
+export async function listMachines(params: {
+  q?: string;
+  category?: MachineCategory;
+  include_archived?: boolean;
+  limit?: number;
+  offset?: number;
+} = {}): Promise<{ items: Machine[]; hasMore: boolean; nextOffset?: number }> {
+  const qs = new URLSearchParams();
+  if (params.q) qs.set("q", params.q);
+  if (params.category) qs.set("category", params.category);
+  if (params.include_archived) qs.set("include_archived", "true");
+  if (typeof params.limit === "number") qs.set("limit", String(params.limit));
+  if (typeof params.offset === "number") qs.set("offset", String(params.offset));
+  const res = await fetch(`${apiBase()}/machines?${qs.toString()}`, {
+    headers: authHeaders(),
+  });
+  assertOk(res, "Failed to load Machines");
+  return pageResult(res, await res.json());
+}
+
+export async function createMachine(payload: MachineInput): Promise<Machine> {
+  const res = await fetch(`${apiBase()}/machines`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to create Machine"));
+  return res.json();
+}
+
+export async function updateMachine(
+  id: string,
+  payload: Partial<MachineInput>,
+): Promise<Machine> {
+  const res = await fetch(`${apiBase()}/machine/${id}`, {
+    method: "PATCH",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to update Machine"));
+  return res.json();
+}
+
+export async function archiveMachine(id: string): Promise<Machine> {
+  const res = await fetch(`${apiBase()}/machine/${id}/archive`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to archive Machine"));
+  return res.json();
+}
+
+export async function restoreMachine(id: string): Promise<Machine> {
+  const res = await fetch(`${apiBase()}/machine/${id}/restore`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to restore Machine"));
+  return res.json();
+}
+
+export async function permanentlyDeleteMachine(
+  id: string,
+  confirmation: string,
+): Promise<MachinePermanentDeleteResult> {
+  const res = await fetch(`${apiBase()}/machine/${id}/permanent`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ confirmation }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Permanent Machine deletion failed"));
+  return res.json();
+}
+
+export async function getAssetMachineContext(
+  assetId: string,
+): Promise<AssetMachineContext> {
+  const res = await fetch(`${apiBase()}/asset/${assetId}/machines`, {
+    headers: authHeaders(),
+  });
+  assertOk(res, "Failed to load Machine context");
+  return res.json();
+}
+
+export async function addAssetMachine(
+  assetId: string,
+  machineId: string,
+): Promise<AssetMachineContext> {
+  const res = await fetch(`${apiBase()}/asset/${assetId}/machines/${machineId}`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to associate Machine"));
+  return res.json();
+}
+
+export async function removeAssetMachine(
+  assetId: string,
+  machineId: string,
+): Promise<AssetMachineContext> {
+  const res = await fetch(`${apiBase()}/asset/${assetId}/machines/${machineId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to remove Machine association"));
+  return res.json();
+}
+
+export async function setAssetPreparedMachine(
+  assetId: string,
+  machineId: string | null,
+): Promise<AssetMachineContext> {
+  const res = await fetch(`${apiBase()}/asset/${assetId}/prepared-machine`, {
+    method: "PUT",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ machine_id: machineId }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to update prepared Machine"));
+  return res.json();
+}
+
 export async function listProjects(params: {
   q?: string;
   limit?: number;
@@ -1016,11 +1207,13 @@ export async function downloadProjectExport(id: string): Promise<Response> {
 
 export async function listProjectCandidates(
   id: string,
-  params: { q?: string; tags?: string[]; limit?: number; offset?: number } = {},
+  params: { q?: string; tags?: string[]; machine_id?: string; machine_scope?: MachineScope; limit?: number; offset?: number } = {},
 ): Promise<ListAssetsResult> {
   const qs = new URLSearchParams();
   if (params.q) qs.set("q", params.q);
   if (params.tags?.length) qs.set("tags", params.tags.join(","));
+  if (params.machine_id) qs.set("machine_id", params.machine_id);
+  if (params.machine_scope) qs.set("machine_scope", params.machine_scope);
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
   if (typeof params.offset === "number") qs.set("offset", String(params.offset));
   const res = await fetch(`${apiBase()}/project/${id}/candidates?${qs.toString()}`, {
@@ -1032,11 +1225,13 @@ export async function listProjectCandidates(
 
 export async function listProjectItems(
   id: string,
-  params: { q?: string; tags?: string[]; limit?: number; offset?: number } = {},
+  params: { q?: string; tags?: string[]; machine_id?: string; machine_scope?: MachineScope; limit?: number; offset?: number } = {},
 ): Promise<ListAssetsResult> {
   const qs = new URLSearchParams();
   if (params.q) qs.set("q", params.q);
   if (params.tags?.length) qs.set("tags", params.tags.join(","));
+  if (params.machine_id) qs.set("machine_id", params.machine_id);
+  if (params.machine_scope) qs.set("machine_scope", params.machine_scope);
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
   if (typeof params.offset === "number") qs.set("offset", String(params.offset));
   const res = await fetch(`${apiBase()}/project/${id}/items?${qs.toString()}`, {

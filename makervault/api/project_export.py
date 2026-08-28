@@ -94,7 +94,7 @@ def _build_project_export(project_id: str) -> tuple[Path, str]:
     export_path = Path(raw_path)
     manifest = {
         "format": "makersvault-project-export",
-        "version": 1,
+        "version": 2,
         "project": {
             "id": project.id,
             "name": project.name,
@@ -117,8 +117,12 @@ def _build_project_export(project_id: str) -> tuple[Path, str]:
             }
             for relationship in relationships
         ],
+        "machines": [],
+        "unresolved_machine_ids": [],
         "artifacts": [],
     }
+    machine_snapshots: dict[str, dict] = {}
+    unresolved_machine_ids: set[str] = set()
     try:
         with ZipFile(
             export_path,
@@ -148,15 +152,36 @@ def _build_project_export(project_id: str) -> tuple[Path, str]:
                         "state": state,
                         "export_status": "unavailable",
                         "history_manifest_entry": None,
+                        "machine_ids": [],
+                        "unresolved_machine_ids": [],
                     })
                     continue
                 prefix = f"artifacts/{asset.id}"
-                _, status = write_artifact_history(
+                artifact_manifest, status = write_artifact_history(
                     archive,
                     asset.id,
                     prefix=prefix,
                     include_trashed=True,
                 )
+                artifact_machine_ids = sorted({
+                    machine_id
+                    for machine_id in [
+                        artifact_manifest["artifact"].get("prepared_machine_id"),
+                        *(
+                            row["machine_id"]
+                            for row in artifact_manifest["machine_associations"]
+                        ),
+                        *(
+                            row.get("prepared_machine_id")
+                            for row in artifact_manifest["revisions"]
+                        ),
+                    ]
+                    if machine_id
+                })
+                for snapshot in artifact_manifest["machines"]:
+                    machine_snapshots[snapshot["id"]] = snapshot
+                unresolved = artifact_manifest["unresolved_machine_ids"]
+                unresolved_machine_ids.update(unresolved)
                 manifest["artifacts"].append({
                     "id": asset.id,
                     "name": asset.name,
@@ -164,7 +189,14 @@ def _build_project_export(project_id: str) -> tuple[Path, str]:
                     "state": state,
                     "export_status": status,
                     "history_manifest_entry": f"{prefix}/manifest.json",
+                    "machine_ids": artifact_machine_ids,
+                    "unresolved_machine_ids": unresolved,
                 })
+            manifest["machines"] = [
+                machine_snapshots[machine_id]
+                for machine_id in sorted(machine_snapshots)
+            ]
+            manifest["unresolved_machine_ids"] = sorted(unresolved_machine_ids)
             archive.writestr(
                 "manifest.json",
                 json.dumps(manifest, indent=2, sort_keys=True),

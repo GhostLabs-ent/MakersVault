@@ -14,6 +14,8 @@ import {
   Asset,
   AssetFile,
   ArtifactRevision,
+  Machine,
+  MachineScope,
   PreparedPrint,
   Folder,
   RelationshipCleanupRequiredError,
@@ -23,6 +25,7 @@ import {
   listAssets,
   listTags,
   listFolders,
+  listMachines,
   setTags,
   updateAssetFolder,
   updateAssetMeta,
@@ -50,6 +53,8 @@ import { entriesFromDataTransfer, uploadEntriesToFolder } from "../lib/uploadTre
 import { buildUploadEntriesFromZip, isZipFile, readZipEntries } from "../lib/zipUtils";
 import { useZipImportPrompt } from "./ZipImportModal";
 import { buildFolderTrail, mutateTags, selectionAfterSuccess, type TagMutationMode } from "../lib/organization";
+import { machineCategoryLabel, shouldLoadMachineContext } from "../lib/machineContext";
+import MachineContextPanel from "./MachineContextPanel";
 
 function extOf(name: string) {
   const m = /\.([^.]+)$/.exec(name);
@@ -112,7 +117,12 @@ type Props = {
   theme: ResolvedTheme;
 };
 
-type RefreshOpts = { tags?: string[]; search?: string };
+type RefreshOpts = {
+  tags?: string[];
+  search?: string;
+  machineId?: string;
+  machineScope?: MachineScope;
+};
 type GroupBucket = { id: string; title: string; items: Asset[] };
 type BulkPanel = "move" | "tags" | "delete" | null;
 type BulkFailure = { id: string; name: string; reason: string };
@@ -144,6 +154,9 @@ export default function AssetGrid({
   const [q, setQ] = useState("");
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
+  const [machines, setMachines] = useState<Machine[]>([]);
+  const [machineId, setMachineId] = useState("");
+  const [machineScope, setMachineScope] = useState<MachineScope>("any");
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [offset, setOffset] = useState(0);
@@ -211,6 +224,8 @@ export default function AssetGrid({
     setOffset(0);
     const search = opts.search ?? q;
     const tags = opts.tags ?? activeTags;
+    const selectedMachineId = opts.machineId ?? machineId;
+    const selectedMachineScope = opts.machineScope ?? machineScope;
     const targetFolderId = folderId || undefined;
     const [assetsResult, tagsResult] = await Promise.allSettled([
       listAssets({
@@ -219,6 +234,8 @@ export default function AssetGrid({
         folder_id: targetFolderId,
         project_id: projectId || undefined,
         project_unassigned: projectUnassigned,
+        machine_id: selectedMachineId || undefined,
+        machine_scope: selectedMachineId ? selectedMachineScope : undefined,
         limit: pageSize,
         offset: 0,
       }),
@@ -227,6 +244,8 @@ export default function AssetGrid({
         folder_id: targetFolderId,
         project_id: projectId || undefined,
         project_unassigned: projectUnassigned,
+        machine_id: selectedMachineId || undefined,
+        machine_scope: selectedMachineId ? selectedMachineScope : undefined,
       }),
     ]);
 
@@ -258,6 +277,8 @@ export default function AssetGrid({
         folder_id: folderId || undefined,
         project_id: projectId || undefined,
         project_unassigned: projectUnassigned,
+        machine_id: machineId || undefined,
+        machine_scope: machineId ? machineScope : undefined,
         limit: pageSize,
         offset,
       });
@@ -366,6 +387,15 @@ export default function AssetGrid({
     clearSelection();
     void refresh();
   }, [folderId, projectId, projectUnassigned]);
+  useEffect(() => {
+    let cancelled = false;
+    void listMachines({ include_archived: true, limit: 200 }).then(result => {
+      if (!cancelled) setMachines(result.items);
+    }).catch(error => {
+      if (!cancelled) handleApiError(error);
+    });
+    return () => { cancelled = true; };
+  }, []);
   useEffect(() => {
     (async () => {
       try {
@@ -921,6 +951,38 @@ export default function AssetGrid({
         >
           Search
         </button>
+        <select
+          aria-label="Filter by Machine"
+          className="max-w-64 px-2 py-2 rounded-md border border-panel-strong bg-panel-soft text-sm"
+          value={machineId}
+          onChange={event => {
+            const next = event.target.value;
+            setMachineId(next);
+            refreshScope({ machineId: next, machineScope });
+          }}
+        >
+          <option value="">All Machines</option>
+          {machines.map(machine => (
+            <option key={machine.id} value={machine.id}>
+              {machine.name} · {machineCategoryLabel(machine.category)}{machine.archived_at ? " (Archived)" : ""}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Machine match"
+          className="px-2 py-2 rounded-md border border-panel-strong bg-panel-soft text-sm disabled:opacity-60"
+          value={machineScope}
+          disabled={!machineId}
+          onChange={event => {
+            const next = event.target.value as MachineScope;
+            setMachineScope(next);
+            refreshScope({ machineId, machineScope: next });
+          }}
+        >
+          <option value="any">Any relationship</option>
+          <option value="associated">Associated</option>
+          <option value="prepared">Prepared for</option>
+        </select>
         {loading && <span className="text-sm opacity-70">Loading...</span>}
         <div className="flex items-center gap-2 text-sm">
           <span className="opacity-70">Sort loaded</span>
@@ -1126,7 +1188,7 @@ export default function AssetGrid({
         <div className="rounded-xl border border-dashed border-panel-strong bg-panel-soft px-6 py-10 text-center">
           <FolderOpen className="mx-auto h-8 w-8 text-subtle" aria-hidden="true" />
           <h2 className="mt-3 font-semibold">
-            {q || activeTags.length
+            {q || activeTags.length || machineId
               ? projectId || projectUnassigned
                 ? "No Project items match this view"
                 : "No models match this view"
@@ -1138,7 +1200,7 @@ export default function AssetGrid({
                     ? "No models directly in this folder"
                     : "Your vault is empty"}
           </h2>
-          {!projectId && !projectUnassigned && folderId && !q && !activeTags.length && childFolders.length > 0 ? (
+          {!projectId && !projectUnassigned && folderId && !q && !activeTags.length && !machineId && childFolders.length > 0 ? (
             <div className="mt-3">
               <p className="text-sm text-muted">Continue into a subfolder:</p>
               <div className="mt-3 flex flex-wrap justify-center gap-2">
@@ -1151,7 +1213,7 @@ export default function AssetGrid({
             </div>
           ) : (
             <p className="mt-2 text-sm text-muted">
-              {q || activeTags.length ? "Try changing the search or tag filters." : "Upload files or drop a folder here to get started."}
+              {q || activeTags.length || machineId ? "Try changing the search, tag, or Machine filters." : "Upload files or drop a folder here to get started."}
             </p>
           )}
         </div>
@@ -1268,7 +1330,14 @@ export default function AssetGrid({
         </div>
       )}
       {previewItem && (
-        <AssetPreviewModal asset={previewItem} theme={theme} onClose={() => setPreviewItem(null)} />
+        <AssetPreviewModal
+          asset={previewItem}
+          theme={theme}
+          onAssetChanged={replaceAsset}
+          onContextChanged={() => void refresh()}
+          onUnauthorized={onUnauthorized}
+          onClose={() => setPreviewItem(null)}
+        />
       )}
       {zipPrompt.modal}
       </div>
@@ -2221,7 +2290,21 @@ function renderPreviewContent(
   );
 }
 
-function AssetPreviewModal({ asset, theme, onClose }: { asset: Asset; theme: ResolvedTheme; onClose: () => void }) {
+function AssetPreviewModal({
+  asset,
+  theme,
+  onAssetChanged,
+  onContextChanged,
+  onUnauthorized,
+  onClose,
+}: {
+  asset: Asset;
+  theme: ResolvedTheme;
+  onAssetChanged?: (asset: Asset) => void;
+  onContextChanged?: () => void;
+  onUnauthorized?: () => void;
+  onClose: () => void;
+}) {
   const stop = (e: React.MouseEvent) => e.stopPropagation();
   return (
     <div
@@ -2271,6 +2354,14 @@ function AssetPreviewModal({ asset, theme, onClose }: { asset: Asset; theme: Res
             <div className="text-sm border border-dashed border-panel-strong rounded-md p-3 whitespace-pre-wrap">
               {asset.notes}
             </div>
+          )}
+          {shouldLoadMachineContext(true) && (
+            <MachineContextPanel
+              asset={asset}
+              onAssetChanged={onAssetChanged}
+              onContextChanged={onContextChanged}
+              onUnauthorized={onUnauthorized}
+            />
           )}
           <div className="flex gap-3">
             <a

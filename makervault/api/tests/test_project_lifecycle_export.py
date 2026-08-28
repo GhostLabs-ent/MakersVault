@@ -435,7 +435,7 @@ def test_project_export_preserves_history_roles_relationships_and_unavailable_tr
                 assert names == sorted(names)
                 manifest = json.loads(archive.read("manifest.json"))
                 assert manifest["format"] == "makersvault-project-export"
-                assert manifest["version"] == 1
+                assert manifest["version"] == 2
                 assert manifest["project"] == {
                     "id": project["id"],
                     "name": project["name"],

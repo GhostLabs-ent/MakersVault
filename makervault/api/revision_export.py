@@ -11,7 +11,13 @@ from sqlmodel import Session, select
 from asset_file_service import managed_asset_file_path
 from db import STORAGE, engine
 from file_utils import sanitize_filename
-from models import ArtifactRevision, Asset, AssetFile
+from models import (
+    ArtifactMachine,
+    ArtifactRevision,
+    Asset,
+    AssetFile,
+    MachineProfile,
+)
 from resource_limits import ensure_storage_reserve
 from revision_workflow import resolve_revision_content_path
 
@@ -41,11 +47,32 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def machine_profile_snapshot(machine: MachineProfile) -> dict:
+    return {
+        "id": machine.id,
+        "name": machine.name,
+        "category": machine.category,
+        "manufacturer": machine.manufacturer,
+        "model": machine.model,
+        "location": machine.location,
+        "notes": machine.notes,
+        "created_at": machine.created_at,
+        "updated_at": machine.updated_at,
+        "archived_at": machine.archived_at,
+    }
+
+
 def artifact_history_snapshot(
     asset_id: str,
     *,
     include_trashed: bool = False,
-) -> tuple[Asset, list[ArtifactRevision], list[AssetFile]]:
+) -> tuple[
+    Asset,
+    list[ArtifactRevision],
+    list[AssetFile],
+    list[ArtifactMachine],
+    list[MachineProfile],
+]:
     with Session(engine) as session:
         asset = session.get(Asset, asset_id)
         if not asset or (asset.deleted_at and not include_trashed):
@@ -60,10 +87,35 @@ def artifact_history_snapshot(
             .where(AssetFile.asset_id == asset_id)
             .order_by(AssetFile.filename, AssetFile.id)
         ))
+        associations = list(session.exec(
+            select(ArtifactMachine)
+            .where(ArtifactMachine.asset_id == asset_id)
+            .order_by(ArtifactMachine.machine_id)
+        ))
+        referenced_machine_ids = {
+            machine_id
+            for machine_id in [
+                asset.prepared_machine_id,
+                *(revision.prepared_machine_id for revision in revisions),
+                *(association.machine_id for association in associations),
+            ]
+            if machine_id
+        }
+        machines = (
+            list(session.exec(
+                select(MachineProfile)
+                .where(MachineProfile.id.in_(referenced_machine_ids))
+                .order_by(MachineProfile.id)
+            ))
+            if referenced_machine_ids
+            else []
+        )
         return (
             asset.model_copy(deep=True),
             [row.model_copy(deep=True) for row in revisions],
             [row.model_copy(deep=True) for row in files],
+            [row.model_copy(deep=True) for row in associations],
+            [row.model_copy(deep=True) for row in machines],
         )
 
 
@@ -74,7 +126,7 @@ def write_artifact_history(
     prefix: str = "",
     include_trashed: bool = False,
 ) -> tuple[dict, str]:
-    asset, revisions, files = artifact_history_snapshot(
+    asset, revisions, files, associations, machines = artifact_history_snapshot(
         asset_id,
         include_trashed=include_trashed,
     )
@@ -85,7 +137,7 @@ def write_artifact_history(
     related_paths = {record.id: managed_asset_file_path(record) for record in files}
     manifest = {
         "format": "makersvault-artifact-history",
-        "version": 1,
+        "version": 2,
         "artifact": {
             "id": asset.id,
             "name": asset.name,
@@ -93,8 +145,18 @@ def write_artifact_history(
             "creator": asset.creator,
             "collection": asset.collection,
             "current_revision_id": asset.current_revision_id,
+            "prepared_machine_id": asset.prepared_machine_id,
             "deleted_at": asset.deleted_at,
         },
+        "machines": [machine_profile_snapshot(machine) for machine in machines],
+        "machine_associations": [
+            {
+                "machine_id": association.machine_id,
+                "created_at": association.created_at,
+            }
+            for association in associations
+        ],
+        "unresolved_machine_ids": [],
         "revisions": [],
         "artifact_files": [],
     }
@@ -126,8 +188,23 @@ def write_artifact_history(
             "change_note": revision.change_note,
             "primary_entry": primary_entry,
             "prepared_metadata": _json_or_none(revision.prepared_metadata_json),
+            "prepared_machine_id": revision.prepared_machine_id,
             "files": [],
         })
+
+    referenced_machine_ids = {
+        machine_id
+        for machine_id in [
+            asset.prepared_machine_id,
+            *(revision.prepared_machine_id for revision in revisions),
+            *(association.machine_id for association in associations),
+        ]
+        if machine_id
+    }
+    resolved_machine_ids = {machine.id for machine in machines}
+    manifest["unresolved_machine_ids"] = sorted(
+        referenced_machine_ids - resolved_machine_ids
+    )
 
     revisions_by_id = {row["id"]: row for row in manifest["revisions"]}
     for record in files:
@@ -198,7 +275,9 @@ def write_artifact_history(
 
 
 def build_history_export(asset_id: str) -> tuple[Path, str]:
-    asset, revisions, files = artifact_history_snapshot(asset_id)
+    asset, revisions, files, _associations, _machines = artifact_history_snapshot(
+        asset_id
+    )
     expected_bytes = sum(int(row.size or 0) for row in revisions) + sum(
         int(row.size or 0) for row in files
     )

@@ -89,6 +89,7 @@ from mount_import import (
     start_mount_scan,
 )
 from models import (
+    ArtifactMachine,
     ArtifactRevision,
     Asset,
     AssetFile,
@@ -201,6 +202,7 @@ from schemas import (
     MountScanOut,
     MountScanStartOut,
     MachineCategory,
+    MachineScope,
     MachineAssociationOut,
     MachineCreate,
     MachineOut,
@@ -1434,6 +1436,8 @@ def apply_asset_filters(
     folder_id: Optional[str],
     project_id: Optional[str] = None,
     project_unassigned: bool = False,
+    machine_id: Optional[str] = None,
+    machine_scope: Optional[MachineScope] = None,
 ):
     stmt = stmt.where(Asset.deleted_at == None)  # noqa: E711
     if project_id:
@@ -1467,7 +1471,34 @@ def apply_asset_filters(
     tag_filter = [t.strip() for t in (tags or "").split(",") if t.strip()]
     for tag in tag_filter:
         stmt = stmt.where(Asset.tags_json.like(f'%"{tag}"%'))
+    if machine_id:
+        associated = select(ArtifactMachine.asset_id).where(
+            ArtifactMachine.asset_id == Asset.id,
+            ArtifactMachine.machine_id == machine_id,
+        ).exists()
+        if machine_scope == "associated":
+            stmt = stmt.where(associated)
+        elif machine_scope == "prepared":
+            stmt = stmt.where(Asset.prepared_machine_id == machine_id)
+        else:
+            stmt = stmt.where(
+                associated | (Asset.prepared_machine_id == machine_id)
+            )
     return stmt
+
+
+def validate_machine_filter(
+    session: Session,
+    machine_id: Optional[str],
+    machine_scope: Optional[MachineScope],
+) -> None:
+    if machine_scope and not machine_id:
+        raise HTTPException(
+            status_code=422,
+            detail="machine_scope requires machine_id",
+        )
+    if machine_id:
+        require_machine(session, machine_id)
 
 
 @app.get("/assets", response_model=List[AssetOut])
@@ -1478,6 +1509,8 @@ def list_assets(
     folder_id: Optional[str] = None,
     project_id: Optional[str] = None,
     project_unassigned: bool = False,
+    machine_id: Optional[str] = None,
+    machine_scope: Optional[MachineScope] = None,
     limit: Optional[int] = Query(default=None, ge=1, le=1000),
     offset: Optional[int] = Query(default=None, ge=0),
     _: Optional[str] = Depends(require_auth),
@@ -1487,6 +1520,7 @@ def list_assets(
     with Session(engine) as s:
         if project_id:
             require_active_project(s, project_id)
+        validate_machine_filter(s, machine_id, machine_scope)
         stmt = apply_asset_filters(
             select(Asset),
             q,
@@ -1494,6 +1528,8 @@ def list_assets(
             folder_id,
             project_id,
             project_unassigned,
+            machine_id,
+            machine_scope,
         )
         stmt = stmt.order_by(Asset.name, Asset.filename, Asset.id)
         if limit is not None:
@@ -1521,6 +1557,8 @@ def list_tags(
     folder_id: Optional[str] = None,
     project_id: Optional[str] = None,
     project_unassigned: bool = False,
+    machine_id: Optional[str] = None,
+    machine_scope: Optional[MachineScope] = None,
     _: Optional[str] = Depends(require_auth),
 ):
     if project_id and project_unassigned:
@@ -1528,6 +1566,7 @@ def list_tags(
     with Session(engine) as s:
         if project_id:
             require_active_project(s, project_id)
+        validate_machine_filter(s, machine_id, machine_scope)
         stmt = apply_asset_filters(
             select(Asset.tags_json),
             q,
@@ -1535,6 +1574,8 @@ def list_tags(
             folder_id,
             project_id,
             project_unassigned,
+            machine_id,
+            machine_scope,
         )
         rows = list(s.exec(stmt))
 
@@ -2020,18 +2061,24 @@ def list_project_items(
     response: Response,
     q: Optional[str] = Query(default=None, max_length=200),
     tags: Optional[str] = Query(default=None, description="Comma-separated tags"),
+    machine_id: Optional[str] = None,
+    machine_scope: Optional[MachineScope] = None,
     limit: int = Query(default=200, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     _: Optional[str] = Depends(require_auth),
 ):
     with Session(engine) as session:
         require_active_project(session, project_id)
+        validate_machine_filter(session, machine_id, machine_scope)
         statement = apply_asset_filters(
             select(Asset),
             q,
             tags,
             None,
             project_id,
+            False,
+            machine_id,
+            machine_scope,
         )
         assets = list(session.exec(
             statement.order_by(Asset.name, Asset.filename, Asset.id)
@@ -2047,15 +2094,24 @@ def list_project_items(
 
 
 @app.get("/project/{project_id}/tags", response_model=List[str])
-def list_project_tags(project_id: str, _: Optional[str] = Depends(require_auth)):
+def list_project_tags(
+    project_id: str,
+    machine_id: Optional[str] = None,
+    machine_scope: Optional[MachineScope] = None,
+    _: Optional[str] = Depends(require_auth),
+):
     with Session(engine) as session:
         require_active_project(session, project_id)
+        validate_machine_filter(session, machine_id, machine_scope)
         rows = list(session.exec(apply_asset_filters(
             select(Asset.tags_json),
             None,
             None,
             None,
             project_id,
+            False,
+            machine_id,
+            machine_scope,
         )))
     found: set[str] = set()
     for raw in rows:
@@ -2074,12 +2130,15 @@ def list_project_candidates(
     response: Response,
     q: Optional[str] = Query(default=None, max_length=200),
     tags: Optional[str] = Query(default=None, description="Comma-separated tags"),
+    machine_id: Optional[str] = None,
+    machine_scope: Optional[MachineScope] = None,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     _: Optional[str] = Depends(require_auth),
 ):
     with Session(engine) as session:
         require_active_project(session, project_id)
+        validate_machine_filter(session, machine_id, machine_scope)
         membership_exists = select(ProjectMembership.asset_id).where(
             ProjectMembership.project_id == project_id,
             ProjectMembership.asset_id == Asset.id,
@@ -2089,6 +2148,10 @@ def list_project_candidates(
             q,
             tags,
             None,
+            None,
+            False,
+            machine_id,
+            machine_scope,
         )
         assets = list(session.exec(
             statement.order_by(Asset.name, Asset.filename, Asset.id)

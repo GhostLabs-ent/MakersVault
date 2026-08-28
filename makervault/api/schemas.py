@@ -160,6 +160,8 @@ MachineCategory = Literal[
   "other",
 ]
 
+MachineScope = Literal["any", "associated", "prepared"]
+
 
 class MachineCreate(BaseModel):
   model_config = ConfigDict(extra="forbid")
