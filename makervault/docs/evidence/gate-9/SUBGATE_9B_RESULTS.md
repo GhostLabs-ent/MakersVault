@@ -2,9 +2,11 @@
 
 **Gate:** 9B — Artifact associations and exact prepared-machine targets
 
-**Status:** Implementation verified; owner acceptance required
+**Status:** Accepted by the owner
 
 **Date:** 2026-08-27
+
+**Accepted:** 2026-08-28
 
 **Schema amendment approval:** 2026-08-27
 
@@ -117,6 +119,8 @@ not modified.
 - Machine discovery, addresses, credentials, telemetry, queues, file transfer,
   slicing, job history, and start/pause/cancel/stop controls remain excluded.
 
-Recommendation: accept Gate 9B at `a9b09aa` and authorize only Gate 9C. Acceptance
-does not authorize push, tag, release, deployment, device connection, recovery
-contract changes, or publication.
+The owner accepted Gate 9B at implementation commit `a9b09aa` with evidence commit
+`d375cd2` on 2026-08-28. Gate 9C may proceed only after its separate
+export/retrieval/UI recommendations are approved. Acceptance does not authorize
+push, tag, release, deployment, device connection, recovery-contract changes, or
+publication.
