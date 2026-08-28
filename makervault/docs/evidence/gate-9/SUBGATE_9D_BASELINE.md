@@ -2,9 +2,11 @@
 
 **Gate:** 9D — Machine recovery integrity, compatibility, and Gate 9 closeout
 
-**Status:** Owner checkpoint; implementation not authorized
+**Status:** Owner-approved; implementation authorized
 
 **Opened:** 2026-08-28
+
+**Approved:** 2026-08-28
 
 **Entry commit:** `d1fb8a7`
 
@@ -16,8 +18,8 @@
 
 **Entry export contracts:** artifact-history format 2; Project format 2
 
-**Publication state:** Local only. Nothing is authorized for implementation,
-push, tag, release, deployment, device connection, import, or publication.
+**Publication state:** Local only. Nothing is authorized for push, tag, release,
+deployment, device connection, import, or publication.
 
 ## Verified entry state
 
@@ -162,3 +164,8 @@ Recommendation: approve all five decisions without amendment. This completes
 Machine recovery truth using the established additive compatibility pattern and
 does not change live data, archive ownership, or MakersVault's descriptive-only
 boundary.
+
+The owner approved all five recommendations without amendment on 2026-08-28.
+Implementation is authorized only for Gate 9D recovery and Gate 9 closeout
+evidence. Import, device authority, push, tag, release, deployment, and
+publication remain unauthorized.

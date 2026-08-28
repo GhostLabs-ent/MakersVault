@@ -801,7 +801,7 @@ remain available until replacements pass compatibility evidence.
 
 ### Gate 9 — Add descriptive machine context
 
-**Current execution:** `IN PROGRESS — 9C ACCEPTED; 9D OWNER CHECKPOINT`. Gate 8 was accepted on
+**Current execution:** `IN PROGRESS — 9D AUTHORIZED`. Gate 8 was accepted on
 2026-08-26 and the untouched `fc29837` entry harness passed. Current prepared
 metadata, export, and recovery behavior plus the approved descriptive-only profile,
 relationship, lifecycle, and versioning boundaries are recorded in
@@ -824,7 +824,8 @@ Artifact context, and complete repository verification are recorded in
 [the Gate 9C results](evidence/gate-9/SUBGATE_9C_RESULTS.md). Owner acceptance is
 recorded on 2026-08-28. The recovery-contract-4, compatibility, and closeout
 recommendations are recorded in
-[the Gate 9D baseline](evidence/gate-9/SUBGATE_9D_BASELINE.md) and await approval.
+[the Gate 9D baseline](evidence/gate-9/SUBGATE_9D_BASELINE.md). The owner approved
+them without amendment on 2026-08-28; 9D implementation is authorized.
 
 **Objective:** Let MakersVault describe relevant workshop machines without
 becoming a machine controller.
@@ -840,7 +841,7 @@ exports preserve references; the interface never implies a job was sent.
 
 **Owner checkpoint:** architecture, 9A, 9B, and the 9C export/retrieval/interface
 contract and implementation are complete. Gate 9D's recovery and closeout
-contract awaits approval; implementation is not authorized.
+contract is approved; implementation is authorized.
 The minimal common fields and categories, neutral Artifact association, exact
 prepared target, explicit matching, archive/delete lifecycle, export/recovery
 versioning, and 9A–9D sequence were approved without amendment on 2026-08-26. The
@@ -1129,9 +1130,8 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Review and approve or amend the Gate 9D recovery-contract-4, compatibility, and
-Gate 9 closeout recommendations in
-[the Gate 9D baseline](evidence/gate-9/SUBGATE_9D_BASELINE.md). Do not begin
-implementation before that owner checkpoint. Keep the
+Implement the approved Gate 9D recovery-contract-4 Machine integrity audit,
+historical compatibility proof, and Gate 9 closeout evidence under
+[the Gate 9D baseline](evidence/gate-9/SUBGATE_9D_BASELINE.md). Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
 disabled by default; it is not part of Gate 9.
