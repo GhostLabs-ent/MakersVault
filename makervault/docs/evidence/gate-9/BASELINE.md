@@ -2,7 +2,9 @@
 
 **Gate:** 9 — Add descriptive machine context
 
-**Status:** Owner-approved; subgate 9A authorized
+**Status:** Gate complete; accepted by the owner
+
+**Closed:** 2026-08-31
 
 **Opened:** 2026-08-26
 

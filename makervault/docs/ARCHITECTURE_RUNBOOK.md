@@ -802,7 +802,7 @@ remain available until replacements pass compatibility evidence.
 
 ### Gate 9 — Add descriptive machine context
 
-**Current execution:** `EVIDENCE REVIEW — 9D VERIFIED; GATE 9 CLOSEOUT ACCEPTANCE REQUIRED`. Gate 8 was accepted on
+**Current execution:** `ACCEPTED`. Gate 8 was accepted on
 2026-08-26 and the untouched `fc29837` entry harness passed. Current prepared
 metadata, export, and recovery behavior plus the approved descriptive-only profile,
 relationship, lifecycle, and versioning boundaries are recorded in
@@ -829,8 +829,9 @@ recommendations are recorded in
 them without amendment on 2026-08-28. Recovery contract 4, Machine integrity and
 historical-compatibility regressions, and the complete repository verification are
 recorded in [the Gate 9D results](evidence/gate-9/SUBGATE_9D_RESULTS.md).
-Implementation is verified at `002a5e7`; Gate 9 remains open until owner
-acceptance.
+Implementation is verified at `002a5e7`; the owner accepted Gate 9D and closed Gate
+9 on 2026-08-31. Complete traceability is recorded in
+[the Gate 9 results](evidence/gate-9/RESULTS.md).
 
 **Objective:** Let MakersVault describe relevant workshop machines without
 becoming a machine controller.
@@ -844,17 +845,16 @@ and start/stop controls out of scope.
 **Exit evidence:** deleting or changing a profile does not damage prepared files;
 exports preserve references; the interface never implies a job was sent.
 
-**Owner checkpoint:** architecture and the 9A–9D contracts and implementations are
-complete. Review and accept the Gate 9D evidence to close Gate 9. Gate 10 remains
-separately gated and is not authorized by this review.
+**Owner checkpoint:** complete. The architecture and 9A–9D contracts and
+implementations were accepted. Gate 10 was separately authorized on 2026-08-31.
 The minimal common fields and categories, neutral Artifact association, exact
 prepared target, explicit matching, archive/delete lifecycle, export/recovery
 versioning, and 9A–9D sequence were approved without amendment on 2026-08-26. The
 verified 9A implementation and additive schema 12 for 9B were accepted on
 2026-08-27. The verified 9B implementation was accepted on 2026-08-28. The
 verified 9C implementation was accepted on 2026-08-28. The
-accepted schema-11 and schema-12 migrations will not be rewritten. Gate 9D is
-verified at `002a5e7` and awaits owner acceptance.
+accepted schema-11 and schema-12 migrations will not be rewritten. Gate 9D was
+verified at `002a5e7` and accepted on 2026-08-31.
 
 **Rollback:** machine references are optional and nullable.
 

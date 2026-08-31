@@ -2,9 +2,11 @@
 
 **Gate:** 9D — Machine recovery integrity, compatibility, and Gate 9 closeout
 
-**Status:** Implementation verified; owner acceptance required
+**Status:** Accepted by the owner
 
 **Date:** 2026-08-28
+
+**Accepted:** 2026-08-31
 
 **Authorized entry commit:** `899fafa`
 
@@ -99,7 +101,7 @@ unchanged. A recovery-contract-4 manifest requires a contract-4-aware verifier;
 operational rollback remains restoration of a previously verified matched
 SQLite/storage pair while services are stopped.
 
-Recommendation: accept Gate 9D at implementation commit `002a5e7` and close Gate
-9. Gate 10 must begin only through its own architecture/baseline checkpoint.
-Acceptance does not authorize import, device discovery or control, push, tag,
-release, deployment, or publication.
+The owner accepted Gate 9D at implementation commit `002a5e7` and closed Gate 9 on
+2026-08-31. Gate 10 was separately authorized to begin through its architecture and
+baseline checkpoint. Acceptance does not authorize import implementation, device
+discovery or control, push, tag, release, deployment, or publication.
