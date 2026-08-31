@@ -2,7 +2,7 @@
 
 **Gate:** 10 — Deliver portable backup and storage abstraction
 
-**Status:** Owner-approved; subgate 10A accepted, 10B implemented and awaiting acceptance
+**Status:** Owner-approved; subgates 10A–10B accepted, 10C authorized
 
 **Opened:** 2026-08-31
 
@@ -137,8 +137,7 @@ and provenance and must be protected accordingly.
 live-vault mutation remain outside this subgate.
 
 **Implementation:** verified on 2026-08-31; see
-[`SUBGATE_10B_RESULTS.md`](SUBGATE_10B_RESULTS.md). Owner acceptance is required
-before 10C opens.
+[`SUBGATE_10B_RESULTS.md`](SUBGATE_10B_RESULTS.md). Accepted on 2026-08-31.
 
 - Accept ADR 0016.
 - Introduce a capability-explicit `ContentStore` contract and filesystem adapter;
@@ -149,6 +148,9 @@ before 10C opens.
 - Keep format-1 operator backup unchanged.
 
 ### 10C — Staged clean-instance restore
+
+**Authorization:** opened by the owner on 2026-08-31. Merge restore, S3,
+encryption/key custody, and live-instance import remain outside this subgate.
 
 - Accept ADR 0015.
 - Import only into an empty compatible instance in v1; no merge semantics.

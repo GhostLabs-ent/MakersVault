@@ -2,7 +2,9 @@
 
 **Date:** 2026-08-31
 
-**Status:** Implemented and verified; owner acceptance pending
+**Status:** Accepted
+
+**Accepted:** 2026-08-31
 
 **Scope:** Local storage seam and stopped/maintenance-mode export only
 
@@ -96,7 +98,7 @@ Release contract: v5.1.0 verified
 
 ## Gate boundary and next decision
 
-Gate 10B is ready for owner acceptance. Acceptance keeps `.mvault` v1 and the local
-ContentStore contract as inputs to 10C; it does not authorize import automatically.
-The next proposed subgate is clean-instance, isolated staged restore. S3,
+Gate 10B was accepted by the owner on 2026-08-31, keeping `.mvault` v1 and the local
+ContentStore contract as inputs to 10C. The owner separately authorized 10C on the
+same date for clean-instance, isolated staged restore. S3,
 encryption/key custody, merge restore, and live-vault export remain unopened.
