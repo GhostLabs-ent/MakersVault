@@ -2,7 +2,7 @@
 
 **Gate:** 10 — Deliver portable backup and storage abstraction
 
-**Status:** Owner-approved; subgate 10A implemented and awaiting acceptance
+**Status:** Owner-approved; subgate 10A accepted, 10B not yet authorized
 
 **Opened:** 2026-08-31
 
@@ -119,9 +119,9 @@ and provenance and must be protected accordingly.
 
 ### 10A — Normative format and independent verifier
 
-**Implementation:** verified on 2026-08-31; see
-[`SUBGATE_10A_RESULTS.md`](SUBGATE_10A_RESULTS.md). Owner acceptance is required
-before 10B opens.
+**Implementation:** verified and accepted on 2026-08-31; see
+[`SUBGATE_10A_RESULTS.md`](SUBGATE_10A_RESULTS.md). Subgate 10B remains closed
+until separately authorized.
 
 - Accept ADR 0014.
 - Publish the v1 container/catalog/schema specification and golden fixtures.

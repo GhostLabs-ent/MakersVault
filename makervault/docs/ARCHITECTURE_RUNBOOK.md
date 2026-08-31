@@ -861,16 +861,16 @@ verified at `002a5e7` and accepted on 2026-08-31.
 
 ### Gate 10 — Deliver portable backup and storage abstraction
 
-**Current execution:** `IN PROGRESS — 10A OWNER CHECKPOINT`. Gate 9 was accepted
+**Current execution:** `IN PROGRESS — 10A ACCEPTED; 10B NOT AUTHORIZED`. Gate 9 was accepted
 and the owner authorized Gate 10 to begin on 2026-08-31. Current backup, export,
 import, storage, and recovery truth plus the proposed 10A–10E sequence are recorded
 in [the Gate 10 baseline](evidence/gate-10/BASELINE.md). The archive compatibility,
 clean-instance restore, encryption ownership, local-first storage interface, and S3
 deferral recommendations were accepted without amendment on 2026-08-31 at the
-[Gate 10 owner checkpoint](evidence/gate-10/OWNER_CHECKPOINT.md). Subgate 10A is
-authorized. Its normative v1 format, independent streaming verifier, and adversarial
-evidence are complete in [the 10A results](evidence/gate-10/SUBGATE_10A_RESULTS.md)
-and await owner acceptance; export, import, and storage mutation remain unopened.
+[Gate 10 owner checkpoint](evidence/gate-10/OWNER_CHECKPOINT.md). Subgate 10A's
+normative v1 format, independent streaming verifier, and adversarial evidence were
+accepted on 2026-08-31 in [the 10A results](evidence/gate-10/SUBGATE_10A_RESULTS.md).
+Subgate 10B is not yet authorized; export, import, and storage mutation remain unopened.
 
 **Objective:** Make the vault independently verifiable and restorable before any
 managed backup offering.

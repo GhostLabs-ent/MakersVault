@@ -2,7 +2,9 @@
 
 **Date:** 2026-08-31
 
-**Status:** Implemented and verified; owner acceptance pending
+**Status:** Accepted
+
+**Accepted:** 2026-08-31
 
 **Scope:** Format contract and verifier only
 
@@ -89,7 +91,7 @@ Release contract: v5.1.0 verified
 
 ## Gate boundary and next decision
 
-Gate 10A is ready for owner acceptance. Acceptance freezes this v1 contract as the
-input to 10B. It does not authorize 10B automatically. The next proposed subgate is
+Gate 10A was accepted by the owner on 2026-08-31, freezing this v1 contract as the
+input to 10B. The acceptance does not authorize 10B automatically. The next proposed subgate is
 the local `ContentStore` seam and stopped/maintenance-mode streaming exporter; raw
 format-1 server backup remains unchanged throughout.
