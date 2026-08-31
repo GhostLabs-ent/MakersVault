@@ -37,6 +37,7 @@ def test_publish_stream_stat_and_materialize(tmp_path):
 
     assert result.size == 11
     assert not staged.exists()
+    assert not (store.root / ".staging").exists()
     assert store.exists(result.key)
     with store.open_read(result.key) as source:
         assert source.read(5) == b"model"

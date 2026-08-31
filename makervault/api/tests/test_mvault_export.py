@@ -49,8 +49,8 @@ def fixture_database(tmp_path: Path) -> tuple[Path, Path]:
         ) VALUES (
           'a1','Cube','cube.3mf','model/3mf',1234,'[\"cube\",\"calibration\"]','Cube','Fixture',
           'MakersVault','Calibration','f1','/media/models/cube.3mf',NULL,99,'af1',
-          '{\"filament\":\"PLA\",\"nozzle_mm\":0.4}','m1','ready',NULL,0,1,?,'embedded',
-          'r2','thumbs/revisions/r1.jpg',NULL,NULL,NULL
+          '{\"filament\":\"PLA\",\"nozzle_mm\":0.4}','m1','ready',NULL,0,1,?,'primary',
+          'r2',NULL,NULL,NULL,NULL
         )""",
         (NOW,),
     )
@@ -72,11 +72,13 @@ def fixture_database(tmp_path: Path) -> tuple[Path, Path]:
     connection.execute(
         """INSERT INTO artifactrevision(
           id,asset_id,revision_number,created_at,origin_revision_id,filename,mime,size,sha256,
-          content_state,storage_path,source_path,change_note,prepared_machine_id,preview_status,
+          content_state,storage_path,source_path,change_note,prepared_file_id,prepared_metadata_json,
+          prepared_machine_id,preview_status,
           preview_attempts,preview_policy_version,preview_updated_at,preview_source
         ) VALUES (
           'r2','a1',2,?,'r1','cube.3mf','model/3mf',1234,NULL,'ready',NULL,
-          '/definitely/missing/cube.3mf','External layout','m1','ready',0,1,?,'primary'
+          '/definitely/missing/cube.3mf','External layout','af1',
+          '{\"filament\":\"PLA\",\"nozzle_mm\":0.4}','m1','ready',0,1,?,'primary'
         )""",
         (NOW, NOW),
     )

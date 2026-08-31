@@ -192,6 +192,7 @@ class LocalContentStore:
             except OSError as exc:
                 raise ContentStoreError("create-if-absent publish requires one local filesystem") from exc
             staged_path.unlink()
+        self._prune(staged_path.parent)
         self._fsync_directory(destination.parent)
         result = self.stat(key)
         if result is None:
