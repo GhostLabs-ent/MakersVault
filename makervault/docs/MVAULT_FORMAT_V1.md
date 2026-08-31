@@ -208,12 +208,41 @@ unsupported schema, an existing/racing output path, or an archive rejected by th
 independent verifier. It creates the final archive with mode `600`. A failed or
 interrupted run removes its temporary work and does not publish the requested path.
 
+### Reference reader
+
+Gate 10C provides a source-owned clean-instance reader for a stopped schema-12
+installation. It makes and verifies a private archive copy before reconstructing
+records or bytes, uses disposable SQLite indexes rather than retaining catalogs in
+memory, and streams payloads to an isolated `LocalContentStore` in 1 MiB chunks.
+
+```bash
+./makervault/scripts/import-mvault.sh \
+  --archive /path/to/library.mvault \
+  --database /path/to/empty/app.db \
+  --storage /path/to/empty/storage \
+  --confirm-stopped-empty
+```
+
+`--confirm-stopped-empty` is mandatory. The reader rejects non-empty, busy,
+incompatible, overlapping, or symbolic-link targets. It preserves portable logical
+IDs and meaning while replacing archive member IDs with SHA-256-derived
+provider-safe managed keys. External reference-only Revisions retain `source_path`
+but restore as `unavailable` with reason `external_remount_required`.
+
+After graph, foreign-key, SQLite, content-size, content-digest, and orphan audits
+pass, the reader publishes the complete storage root first and SQLite last. A
+mode-600 fsynced journal permits rollback after interruption; caught publication
+failure and cancellation restore the original empty targets. The reader never
+merges, replaces a populated vault, applies mount activation/secrets, or recreates
+scan, hash, or purge jobs.
+
 ## 9. Explicit exclusions and compatibility
 
 `.env`, authentication secrets, sessions, remote credentials, mount activation,
 workstation bridge state, scan/hash/purge journals, quarantine, and temporary files
-MUST NOT appear. v1 import is clean-instance-only and staged, but import behavior is
-specified and implemented in Gate 10C, not by this verifier.
+MUST NOT appear. V1 import is clean-instance-only and staged. Verification and
+import remain separate operations: the dependency-free verifier never opens the
+application database or publishes restored state.
 
 Writers emit the current approved major version. Readers reject unknown majors.
 When a future major is introduced, MakersVault retains v1 reading and a

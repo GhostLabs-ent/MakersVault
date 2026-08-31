@@ -2,7 +2,7 @@
 
 **Gate:** 10 — Deliver portable backup and storage abstraction
 
-**Status:** Owner-approved; subgates 10A–10B accepted, 10C authorized
+**Status:** Owner-approved; subgates 10A–10B accepted, 10C verified at owner checkpoint
 
 **Opened:** 2026-08-31
 
@@ -16,7 +16,7 @@
 Artifact-history format 2; Project-export format 2
 
 **Publication state:** Local only. Gate 10 does not authorize a push, tag, release,
-deployment, external storage connection, archive import, or publication.
+deployment, external storage connection, live/merge import, or publication.
 
 ## Entry decision
 
@@ -152,6 +152,9 @@ live-vault mutation remain outside this subgate.
 **Authorization:** opened by the owner on 2026-08-31. Merge restore, S3,
 encryption/key custody, and live-instance import remain outside this subgate.
 
+**Implementation:** verified on 2026-08-31; see
+[`SUBGATE_10C_RESULTS.md`](SUBGATE_10C_RESULTS.md). Owner acceptance is pending.
+
 - Accept ADR 0015.
 - Import only into an empty compatible instance in v1; no merge semantics.
 - Stream into an isolated staging database/store, validate every record/reference and
@@ -214,5 +217,6 @@ The proposed package is [OWNER_CHECKPOINT.md](OWNER_CHECKPOINT.md), backed by AD
 [0014](../../adr/0014-portable-mvault-format.md),
 [0015](../../adr/0015-staged-clean-vault-import.md),
 [0016](../../adr/0016-local-first-content-store.md), and
-[0017](../../adr/0017-user-owned-archive-encryption.md). Approval authorizes 10A
-only; each later subgate retains its evidence and acceptance stop.
+[0017](../../adr/0017-user-owned-archive-encryption.md). The original package
+authorized 10A only; the owner subsequently accepted 10A–10B and authorized 10C.
+The verified 10C implementation is now stopped at its separate acceptance checkpoint.

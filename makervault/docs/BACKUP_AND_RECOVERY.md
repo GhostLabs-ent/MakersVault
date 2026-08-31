@@ -22,11 +22,11 @@ The stopped format-1 server backup in this document remains the supported disast
 recovery and rollback mechanism. It contains exact SQLite, storage, deployment
 configuration, and recovery journals.
 
-Gate 10B also supplies a secret-free logical `.mvault` v1 exporter and independent
-verifier for a stopped schema-12 instance. Portable import is not implemented until
-Gate 10C, so a `.mvault` archive is not yet a replacement for the raw server backup.
-Its current purpose is to prove the open format, complete logical projection,
-streaming behavior, and independently verifiable bytes.
+Gates 10B–10C supply a secret-free logical `.mvault` v1 exporter, independent
+verifier, and clean-instance importer for schema 12. This portable workflow is not
+a replacement for the raw server backup: it deliberately excludes deployment
+configuration, secrets, operational journals, quarantine, and external no-copy
+bytes, and it does not support rollback, replacement, or merge restore.
 
 From the repository root, against paths that are not being used by a running API:
 
@@ -39,6 +39,12 @@ From the repository root, against paths that are not being used by a running API
   --confirm-stopped
 
 ./makervault/scripts/verify-mvault.sh /path/to/library.mvault
+
+./makervault/scripts/import-mvault.sh \
+  --archive /path/to/library.mvault \
+  --database /path/to/empty/app.db \
+  --storage /path/to/empty/storage \
+  --confirm-stopped-empty
 ```
 
 The exporter refuses to overwrite an existing or racing output path, requires an
@@ -47,6 +53,24 @@ missing no-copy external content honestly, independently verifies the temporary
 archive, then publishes it atomically with mode `600`. Failure or interruption does
 not create the requested output. Detailed v1 semantics are in
 [`MVAULT_FORMAT_V1.md`](MVAULT_FORMAT_V1.md).
+
+The importer requires API and web to remain stopped and accepts only an absent
+target or a compatible schema-12 database plus an empty storage directory. It
+copies and independently verifies the archive in private staging, reconstructs a
+new database and content root, checks the logical graph and every managed byte,
+then publishes storage first and SQLite last. Stable IDs, history, Trash, Projects,
+Machines, prepared metadata, and portable settings are preserved. Managed content
+receives provider-safe internal keys; external no-copy revisions retain their
+recorded paths but are marked unavailable until the operator remounts them.
+
+The importer never applies secrets or mount activation and never overwrites a
+populated vault. A pre-publication failure leaves the target unchanged. A caught
+failure or cancellation after publication starts rolls back the original empty
+pair; a later invocation with the same targets detects and rolls back an
+interrupted publication journal before doing new work. Keep services stopped and
+investigate any import error. Use a verified raw format-1 backup—not `.mvault`
+import—for replacement, upgrade rollback, or disaster recovery of an existing
+installation.
 
 ## Create a production backup
 
