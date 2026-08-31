@@ -228,7 +228,8 @@ be made explicit before deployment boundaries are multiplied.
 | T-032 | `VERIFIED` | Local schema 11 adds empty-by-default descriptive Machine profiles with six bounded categories, strict common fields, case-insensitive active-name identity, authenticated retrieval/lifecycle, archive-first permanent deletion, and no device or stored-byte authority. | `docs/evidence/gate-9/SUBGATE_9A_RESULTS.md`, Machine API/migration regressions, full repository gate | Owner accepted 9A and additive schema 12 for 9B on 2026-08-27. Gate 9B is authorized; publication remains unauthorized. |
 | T-033 | `VERIFIED` | Local schema 12 adds explicit neutral Artifact-machine associations and nullable exact prepared-machine references on current Assets and immutable Revisions. Authenticated APIs never auto-match supplied printer text; new exact targets require active FDM/resin profiles. Trash retains context, while transactional permanent deletion removes only owned associations or nullable references and never rewrites prepared metadata, payloads, paths, or stored bytes. | `docs/evidence/gate-9/SUBGATE_9B_RESULTS.md`, machine-context/migration/revision/Trash regressions, full repository gate | Owner accepted Gate 9B on 2026-08-28. Publication remains unauthorized. |
 | T-034 | `VERIFIED` | Local Gate 9C advances Artifact-history and Project exports to format 2 with deterministic Machine snapshots and unresolved-ID truth, adds duplicate-safe current-state Machine retrieval, and exposes bounded Settings/detail workflows with no per-card context fan-out or device authority. Schema 12 and recovery contract 3 are unchanged. | `docs/evidence/gate-9/SUBGATE_9C_RESULTS.md`, portability/retrieval/web regressions, full repository gate | Owner accepted Gate 9C at `0485184` on 2026-08-28. Gate 9D is at its recovery/closeout owner checkpoint; publication remains unauthorized. |
-| T-035 | `VERIFIED` | Local Gate 9D advances new matched backups to recovery contract 4 and audits schema-12 Machine structures, identities, associations, current and historical exact targets, and current/revision mirror truth with deterministic critical findings. Outer format 1, schema 12, export formats, paths, and stored bytes remain unchanged; historical no-marker, contract-2, and pre-9D contract-3 report subsets remain supported only when current content audit passes. | `docs/evidence/gate-9/SUBGATE_9D_RESULTS.md`, recovery/corruption/compatibility regressions, full repository gate | Implementation is verified at `002a5e7`; owner acceptance is required to close Gate 9. Gate 10 and publication remain unauthorized. |
+| T-035 | `VERIFIED` | Local Gate 9D advances new matched backups to recovery contract 4 and audits schema-12 Machine structures, identities, associations, current and historical exact targets, and current/revision mirror truth with deterministic critical findings. Outer format 1, schema 12, export formats, paths, and stored bytes remain unchanged; historical no-marker, contract-2, and pre-9D contract-3 report subsets remain supported only when current content audit passes. | `docs/evidence/gate-9/SUBGATE_9D_RESULTS.md`, recovery/corruption/compatibility regressions, full repository gate | Owner accepted Gate 9 closeout on 2026-08-31. Gate 10 was separately authorized; publication remains unauthorized. |
+| T-036 | `VERIFIED` | Current server backup is a stopped raw SQLite/storage snapshot that includes `.env`; Artifact and Project exports are logical ZIP format 2 but have no importer; eight production modules depend directly on local `Path`/rename/free-space semantics. | Gate 10 source audit and `docs/evidence/gate-10/BASELINE.md` | `.mvault` must be a distinct secret-free logical format, and storage abstraction must prove local semantics before any S3 driver. |
 
 ### 5.4 Current storage invariants
 
@@ -859,6 +860,15 @@ verified at `002a5e7` and accepted on 2026-08-31.
 **Rollback:** machine references are optional and nullable.
 
 ### Gate 10 — Deliver portable backup and storage abstraction
+
+**Current execution:** `IN PROGRESS — ARCHITECTURE CHECKPOINT`. Gate 9 was accepted
+and the owner authorized Gate 10 to begin on 2026-08-31. Current backup, export,
+import, storage, and recovery truth plus the proposed 10A–10E sequence are recorded
+in [the Gate 10 baseline](evidence/gate-10/BASELINE.md). The archive compatibility,
+clean-instance restore, encryption ownership, local-first storage interface, and S3
+deferral recommendations await the
+[Gate 10 owner checkpoint](evidence/gate-10/OWNER_CHECKPOINT.md). No Gate 10 schema,
+export, import, or storage implementation has begun.
 
 **Objective:** Make the vault independently verifiable and restorable before any
 managed backup offering.
