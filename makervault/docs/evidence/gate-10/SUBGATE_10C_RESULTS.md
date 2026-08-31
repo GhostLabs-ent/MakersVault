@@ -2,7 +2,9 @@
 
 **Date:** 2026-08-31
 
-**Status:** Verified; owner acceptance pending
+**Status:** Accepted
+
+**Accepted:** 2026-08-31
 
 **Scope:** Offline `.mvault` v1 import into an absent or compatible empty schema-12
 database/storage pair only
@@ -89,7 +91,7 @@ provider.
 
 ## Gate boundary and next decision
 
-Gate 10C is stopped at its owner checkpoint. Acceptance would freeze
-clean-instance-only staged restore as the Gate 10D input. Gate 10D, merge/replacement
-or live import, S3, encryption/key custody, push, tag, release, deployment, and
-publication remain unauthorized.
+Gate 10C was accepted by the owner on 2026-08-31, freezing clean-instance-only
+staged restore as the Gate 10D input. The owner separately authorized Gate 10D on
+the same date. Merge/replacement or live import, S3, application key custody, push,
+tag, release, deployment, and publication remain unauthorized.

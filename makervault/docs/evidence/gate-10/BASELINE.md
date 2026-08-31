@@ -2,7 +2,7 @@
 
 **Gate:** 10 — Deliver portable backup and storage abstraction
 
-**Status:** Owner-approved; subgates 10A–10B accepted, 10C verified at owner checkpoint
+**Status:** Owner-approved; subgates 10A–10C accepted, 10D authorized
 
 **Opened:** 2026-08-31
 
@@ -152,8 +152,9 @@ live-vault mutation remain outside this subgate.
 **Authorization:** opened by the owner on 2026-08-31. Merge restore, S3,
 encryption/key custody, and live-instance import remain outside this subgate.
 
-**Implementation:** verified on 2026-08-31; see
-[`SUBGATE_10C_RESULTS.md`](SUBGATE_10C_RESULTS.md). Owner acceptance is pending.
+**Implementation:** verified and accepted on 2026-08-31; see
+[`SUBGATE_10C_RESULTS.md`](SUBGATE_10C_RESULTS.md). The owner separately authorized
+10D on the same date.
 
 - Accept ADR 0015.
 - Import only into an empty compatible instance in v1; no merge semantics.
@@ -163,6 +164,10 @@ encryption/key custody, and live-instance import remain outside this subgate.
   managed keys; leave external references explicitly unavailable until remounted.
 
 ### 10D — Operator workflow and encryption interoperability
+
+**Authorization:** opened by the owner on 2026-08-31. Application-managed key
+custody, custom cryptography, browser-held long jobs, S3, and live/merge import
+remain outside this subgate.
 
 - Accept ADR 0017.
 - Provide documented CLI export/verify/import workflows with secure permissions,
@@ -219,4 +224,5 @@ The proposed package is [OWNER_CHECKPOINT.md](OWNER_CHECKPOINT.md), backed by AD
 [0016](../../adr/0016-local-first-content-store.md), and
 [0017](../../adr/0017-user-owned-archive-encryption.md). The original package
 authorized 10A only; the owner subsequently accepted 10A–10B and authorized 10C.
-The verified 10C implementation is now stopped at its separate acceptance checkpoint.
+The owner accepted the verified 10C implementation and separately authorized 10D
+on 2026-08-31. Each later subgate retains its evidence and acceptance stop.
