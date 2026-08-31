@@ -1,8 +1,10 @@
 # ADR 0017: User-owned portable-archive encryption boundary
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Proposed:** 2026-08-31
+
+**Accepted:** 2026-08-31
 
 ## Context
 

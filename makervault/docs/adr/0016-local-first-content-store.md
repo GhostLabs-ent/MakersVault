@@ -1,8 +1,10 @@
 # ADR 0016: Local-first content-store abstraction
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Proposed:** 2026-08-31
+
+**Accepted:** 2026-08-31
 
 ## Context
 

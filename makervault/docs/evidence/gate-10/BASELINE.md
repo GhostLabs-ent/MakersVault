@@ -2,9 +2,11 @@
 
 **Gate:** 10 — Deliver portable backup and storage abstraction
 
-**Status:** In progress — architecture checkpoint pending
+**Status:** Owner-approved; subgate 10A authorized
 
 **Opened:** 2026-08-31
+
+**Approved:** 2026-08-31
 
 **Entry commit:** `e4b2dfb`
 
@@ -20,9 +22,10 @@ deployment, external storage connection, archive import, or publication.
 
 Gate 9 is accepted with stable Artifact/Revision, Project, relationship, Machine,
 Trash, export, and matched-recovery ownership. Gate 10 may design a portable
-whole-vault format and a provider seam on that foundation. Implementation waits for
-owner approval of archive compatibility, encryption/key ownership, clean-instance
-restore, external-content handling, and whether S3 enters this gate.
+whole-vault format and a provider seam on that foundation. Implementation follows
+the owner-approved archive compatibility, encryption/key ownership, clean-instance
+restore, external-content handling, and S3 deferral contract. Only subgate 10A is
+currently authorized.
 
 ## Verified current truth
 

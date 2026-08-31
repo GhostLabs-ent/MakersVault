@@ -1,8 +1,10 @@
 # Gate 10 Owner Checkpoint
 
-**Status:** Awaiting owner decision
+**Status:** Accepted without amendment
 
 **Prepared:** 2026-08-31
+
+**Accepted:** 2026-08-31
 
 Gate 10 introduces a durable public archive contract and a storage seam that later
 providers may depend on. These choices must be accepted before implementation.
@@ -112,3 +114,9 @@ credentials, built-in key custody, merge restore, publication, deployment, or pu
 
 Any alternative changes security, compatibility, scale, or recovery behavior and
 must amend the ADRs before 10A implementation.
+
+## Owner decision
+
+Accepted without amendment on 2026-08-31. ADRs 0014–0017 are accepted and subgate
+10A is authorized. Export/import mutation, S3, built-in key custody, merge restore,
+publication, deployment, and push remain unauthorized.
