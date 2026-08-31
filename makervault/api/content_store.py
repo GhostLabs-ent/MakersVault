@@ -134,7 +134,12 @@ class LocalContentStore:
 
     def local_path(self, key: str) -> Path:
         normalized = normalize_store_key(key)
-        candidate = (self._root / Path(*PurePosixPath(normalized).parts)).resolve()
+        untrusted = self._root
+        for part in PurePosixPath(normalized).parts:
+            untrusted = untrusted / part
+            if untrusted.is_symlink():
+                raise InvalidStoreKey("content key traverses a symbolic link")
+        candidate = untrusted.resolve()
         if candidate == self._root or self._root not in candidate.parents:
             raise InvalidStoreKey("content key resolves outside the store")
         return candidate

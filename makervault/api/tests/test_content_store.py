@@ -114,3 +114,14 @@ def test_read_rejects_managed_symlink(tmp_path):
 
     with pytest.raises(InvalidStoreKey):
         store.open_read("objects/link")
+
+
+def test_path_rejects_intermediate_directory_symlink(tmp_path):
+    store = LocalContentStore(tmp_path / "storage")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "payload").write_bytes(b"outside")
+    store.local_path("links").symlink_to(outside, target_is_directory=True)
+
+    with pytest.raises(InvalidStoreKey):
+        store.open_read("links/payload")
