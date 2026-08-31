@@ -185,6 +185,29 @@ python3 makervault/api/mvault_verify.py path/to/library.mvault
 Success writes one canonical JSON report and exits 0. Invalid archives write a
 single `mvault: invalid:` diagnostic to stderr and exit 2.
 
+### Reference writer
+
+Gate 10B provides a source-owned writer for a stopped or maintenance-mode schema-12
+instance. It reads SQLite in batches under an exclusive transaction, streams
+managed bytes through the local `ContentStore`, writes metadata/checksum spools to
+private temporary disk, independently verifies the completed temporary archive,
+and atomically creates the requested output without overwriting an existing path.
+
+```bash
+./makervault/scripts/export-mvault.sh \
+  --database /path/to/app.db \
+  --storage /path/to/storage \
+  --output /path/to/library.mvault \
+  --makersvault-version 5.1.0 \
+  --confirm-stopped
+```
+
+`--confirm-stopped` is mandatory. The writer also requires an exclusive SQLite
+transaction and refuses a busy database, missing or changed managed content,
+unsupported schema, an existing/racing output path, or an archive rejected by the
+independent verifier. It creates the final archive with mode `600`. A failed or
+interrupted run removes its temporary work and does not publish the requested path.
+
 ## 9. Explicit exclusions and compatibility
 
 `.env`, authentication secrets, sessions, remote credentials, mount activation,

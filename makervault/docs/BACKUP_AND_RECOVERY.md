@@ -16,6 +16,38 @@ Compose project name used by the installation, and these canonical mounts:
 The archive also contains the deployment `.env`. It therefore contains secrets
 and must be protected like the vault itself. The tool creates it with mode `600`.
 
+## Raw backup and portable export are different
+
+The stopped format-1 server backup in this document remains the supported disaster
+recovery and rollback mechanism. It contains exact SQLite, storage, deployment
+configuration, and recovery journals.
+
+Gate 10B also supplies a secret-free logical `.mvault` v1 exporter and independent
+verifier for a stopped schema-12 instance. Portable import is not implemented until
+Gate 10C, so a `.mvault` archive is not yet a replacement for the raw server backup.
+Its current purpose is to prove the open format, complete logical projection,
+streaming behavior, and independently verifiable bytes.
+
+From the repository root, against paths that are not being used by a running API:
+
+```bash
+./makervault/scripts/export-mvault.sh \
+  --database /path/to/app.db \
+  --storage /path/to/storage \
+  --output /path/to/library.mvault \
+  --makersvault-version 5.1.0 \
+  --confirm-stopped
+
+./makervault/scripts/verify-mvault.sh /path/to/library.mvault
+```
+
+The exporter refuses to overwrite an existing or racing output path, requires an
+exclusive SQLite transaction, rehashes every managed Revision and File, records
+missing no-copy external content honestly, independently verifies the temporary
+archive, then publishes it atomically with mode `600`. Failure or interruption does
+not create the requested output. Detailed v1 semantics are in
+[`MVAULT_FORMAT_V1.md`](MVAULT_FORMAT_V1.md).
+
 ## Create a production backup
 
 First update or copy the v5.1 repository files so the recovery scripts are
