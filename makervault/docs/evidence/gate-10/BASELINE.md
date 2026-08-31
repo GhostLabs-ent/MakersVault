@@ -2,7 +2,7 @@
 
 **Gate:** 10 — Deliver portable backup and storage abstraction
 
-**Status:** Owner-approved; subgate 10A accepted, 10B not yet authorized
+**Status:** Owner-approved; subgate 10A accepted, 10B authorized
 
 **Opened:** 2026-08-31
 
@@ -120,8 +120,8 @@ and provenance and must be protected accordingly.
 ### 10A — Normative format and independent verifier
 
 **Implementation:** verified and accepted on 2026-08-31; see
-[`SUBGATE_10A_RESULTS.md`](SUBGATE_10A_RESULTS.md). Subgate 10B remains closed
-until separately authorized.
+[`SUBGATE_10A_RESULTS.md`](SUBGATE_10A_RESULTS.md). The owner separately authorized
+10B on 2026-08-31.
 
 - Accept ADR 0014.
 - Publish the v1 container/catalog/schema specification and golden fixtures.
@@ -132,6 +132,9 @@ until separately authorized.
   catalog-reference, and future-feature failures before writing the exporter.
 
 ### 10B — Local content-store seam and streaming export
+
+**Authorization:** opened by the owner on 2026-08-31. Import, S3, encryption, and
+live-vault mutation remain outside this subgate.
 
 - Accept ADR 0016.
 - Introduce a capability-explicit `ContentStore` contract and filesystem adapter;
