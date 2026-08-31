@@ -10,7 +10,8 @@ from fastapi import HTTPException
 from sqlalchemy import func
 from sqlmodel import Session, select
 
-from db import STORAGE, engine
+from content_store import InvalidStoreKey
+from db import LOCAL_CONTENT_STORE, engine
 from models import (
     ArtifactMachine,
     ArtifactRevision,
@@ -123,9 +124,9 @@ def restore_asset(asset_id: str, restore_unassigned: bool = False) -> Asset:
 
 
 def _managed_path(relative: str) -> Path:
-    root = STORAGE.resolve()
-    candidate = (STORAGE / relative).resolve()
-    if candidate == root or root not in candidate.parents:
+    try:
+        candidate = LOCAL_CONTENT_STORE.local_path(relative)
+    except InvalidStoreKey:
         raise HTTPException(status_code=400, detail="Managed Trash path resolved outside storage")
     return candidate
 
@@ -198,7 +199,7 @@ def list_trash() -> list[dict]:
 
 
 def _operation_quarantine_root(operation_id: str) -> Path:
-    root = (STORAGE / QUARANTINE_DIR).resolve()
+    root = LOCAL_CONTENT_STORE.local_path(QUARANTINE_DIR)
     candidate = (root / operation_id).resolve()
     if candidate == root or root not in candidate.parents:
         raise HTTPException(status_code=400, detail="Trash quarantine path is invalid")
@@ -488,7 +489,7 @@ def reconcile_trash_operations() -> dict:
     known_ids = set()
     with Session(engine) as session:
         known_ids = {row.id for row in session.exec(select(TrashPurgeOperation))}
-    root = (STORAGE / QUARANTINE_DIR).resolve()
+    root = LOCAL_CONTENT_STORE.local_path(QUARANTINE_DIR)
     orphaned = sorted(
         path.name for path in root.iterdir()
         if path.is_dir() and path.name not in known_ids

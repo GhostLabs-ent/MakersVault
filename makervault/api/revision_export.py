@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from sqlmodel import Session, select
 
 from asset_file_service import managed_asset_file_path
-from db import STORAGE, engine
+from db import LOCAL_CONTENT_STORE, engine
 from file_utils import sanitize_filename
 from models import (
     ArtifactMachine,
@@ -281,7 +281,7 @@ def build_history_export(asset_id: str) -> tuple[Path, str]:
     expected_bytes = sum(int(row.size or 0) for row in revisions) + sum(
         int(row.size or 0) for row in files
     )
-    export_dir = (STORAGE / ".exports").resolve()
+    export_dir = LOCAL_CONTENT_STORE.local_path(".exports")
     export_dir.mkdir(parents=True, exist_ok=True)
     ensure_storage_reserve(export_dir, expected_bytes)
     handle, raw_path = tempfile.mkstemp(

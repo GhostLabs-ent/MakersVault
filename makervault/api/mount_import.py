@@ -21,7 +21,7 @@ from config import (
     MOUNT_IMPORT_PATH,
     MOUNT_IMPORT_COPY,
 )
-from db import STORAGE, engine
+from db import LOCAL_CONTENT_STORE, engine
 from file_utils import guess_mime_from_path, sanitize_filename
 from models import Asset, MountScan
 from settings_service import get_mount_import_copy
@@ -309,7 +309,7 @@ def scan_mount_imports(
         copy_files = get_mount_import_copy(MOUNT_IMPORT_COPY)
     root_abs = root.resolve()
     root_prefix = root_abs.as_posix().rstrip("/")
-    storage_abs = STORAGE.resolve()
+    storage_abs = LOCAL_CONTENT_STORE.root
     skip_storage_dirs = root_abs == storage_abs
     print(f"[mount-import] Scanning {root_abs}...")
     try:

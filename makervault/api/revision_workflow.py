@@ -17,7 +17,8 @@ from asset_service import (
     save_thumb_path,
 )
 from config import FILE_MAX_BYTES, PREVIEW_POLICY_VERSION
-from db import STORAGE, engine
+from content_store import InvalidStoreKey
+from db import LOCAL_CONTENT_STORE, engine
 from file_utils import mime_from_content_type, sanitize_filename
 from models import ArtifactRevision, Asset, AssetFile, MachineProfile
 from prepared_print import inspect_prepared_print
@@ -44,9 +45,9 @@ def revision_storage_path(asset_id: str, revision_id: str, filename: str) -> str
 def managed_revision_path(revision: ArtifactRevision) -> Optional[Path]:
     if not revision.storage_path:
         return None
-    root = STORAGE.resolve()
-    candidate = (STORAGE / revision.storage_path).resolve()
-    if candidate == root or root not in candidate.parents:
+    try:
+        candidate = LOCAL_CONTENT_STORE.local_path(revision.storage_path)
+    except InvalidStoreKey:
         raise HTTPException(status_code=400, detail="Revision path resolved outside storage")
     return candidate
 
@@ -71,7 +72,7 @@ def resolve_revision_content_path(revision: ArtifactRevision) -> Optional[Path]:
 
 
 def _staging_path(operation_id: str, filename: str) -> Path:
-    root = (STORAGE / ".revision-staging").resolve()
+    root = LOCAL_CONTENT_STORE.local_path(".revision-staging")
     candidate = (root / operation_id / sanitize_filename(filename)).resolve()
     if candidate == root or root not in candidate.parents:
         raise HTTPException(status_code=400, detail="Revision staging path is invalid")
@@ -79,7 +80,7 @@ def _staging_path(operation_id: str, filename: str) -> Path:
 
 
 def _prune_revision_dirs(start: Path) -> None:
-    root = STORAGE.resolve()
+    root = LOCAL_CONTENT_STORE.root
     current = start
     while current.exists() and current.resolve() != root and root in current.resolve().parents:
         try:
@@ -177,9 +178,9 @@ def _finalize_staged_revision(
 ) -> RevisionMutationResult:
     revision_id = str(uuid.uuid4())
     final_relative = revision_storage_path(asset_id, revision_id, filename)
-    final = (STORAGE / final_relative).resolve()
-    root = STORAGE.resolve()
-    if final == root or root not in final.parents:
+    try:
+        final = LOCAL_CONTENT_STORE.local_path(final_relative)
+    except InvalidStoreKey:
         raise HTTPException(status_code=400, detail="Revision path resolved outside storage")
     final.parent.mkdir(parents=True, exist_ok=True)
     if final.exists():

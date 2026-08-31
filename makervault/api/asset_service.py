@@ -14,7 +14,8 @@ from sqlmodel import Session, select
 
 from archive_limits import ArchiveLimitError, bounded_archive_infos, validate_archive_member
 from config import ARCHIVE_METADATA_MAX_BYTES, FILE_MAX_BYTES, IMAGE_MAX_PIXELS, PREVIEW_POLICY_VERSION
-from db import STORAGE, THUMBS, engine
+from content_store import InvalidStoreKey
+from db import LOCAL_CONTENT_STORE, THUMBS, engine
 from file_utils import build_import_filename, mime_from_content_type, sanitize_filename
 from models import Asset, Folder
 from prepared_print import inspect_prepared_print
@@ -108,9 +109,9 @@ def render_storage_path(asset: Asset, session: Session, template: Optional[str] 
     if not parts:
         raise HTTPException(status_code=400, detail="Storage template produced an empty path")
     relative = Path(*parts)
-    candidate = (STORAGE / relative).resolve()
-    storage_root = STORAGE.resolve()
-    if candidate == storage_root or storage_root not in candidate.parents:
+    try:
+        LOCAL_CONTENT_STORE.local_path(relative.as_posix())
+    except InvalidStoreKey:
         raise HTTPException(status_code=400, detail="Storage template resolved outside the storage directory")
     return relative.as_posix()
 
@@ -157,7 +158,10 @@ def available_model_name(session: Session, requested: str, folder_id: Optional[s
 
 def managed_asset_path(asset: Asset) -> Path:
     relative = asset.storage_path or f"{asset.id}/{asset.filename}"
-    return STORAGE / relative
+    try:
+        return LOCAL_CONTENT_STORE.local_path(relative)
+    except InvalidStoreKey as exc:
+        raise HTTPException(status_code=400, detail="Asset path resolved outside storage") from exc
 
 
 def available_storage_path(
@@ -175,7 +179,7 @@ def available_storage_path(
                 Asset.id != asset_id,
             )
         ).first()
-        if not owner and not (STORAGE / candidate).exists():
+        if not owner and not LOCAL_CONTENT_STORE.local_path(candidate.as_posix()).exists():
             return candidate.as_posix()
         label = asset_id[:8] if suffix == 1 else f"{asset_id[:8]}-{suffix}"
         candidate = path.with_name(f"{path.stem}-{label}{path.suffix}")
@@ -183,7 +187,7 @@ def available_storage_path(
 
 
 def prune_empty_storage_dirs(start: Path) -> None:
-    storage_root = STORAGE.resolve()
+    storage_root = LOCAL_CONTENT_STORE.root
     current = start
     while current.exists() and current.resolve() != storage_root and storage_root in current.resolve().parents:
         try:
@@ -202,7 +206,7 @@ def relocate_asset(asset: Asset, session: Session, old_path: Path, template: Opt
         sync_current_revision(session, asset)
         return False
     new_relative = render_storage_path(asset, session, template)
-    new_path = STORAGE / new_relative
+    new_path = LOCAL_CONTENT_STORE.local_path(new_relative)
     if old_path.resolve() == new_path.resolve():
         asset.storage_path = new_relative
         sync_current_revision(session, asset)
@@ -244,7 +248,10 @@ def reorganize_managed_assets(template: Optional[str] = None) -> tuple[int, int]
 
 def managed_thumbnail_path(storage_path: str) -> Path:
     root = THUMBS.resolve()
-    candidate = (STORAGE / storage_path).resolve()
+    try:
+        candidate = LOCAL_CONTENT_STORE.local_path(storage_path)
+    except InvalidStoreKey as exc:
+        raise HTTPException(status_code=400, detail="Thumbnail path resolved outside thumbnail storage") from exc
     if candidate == root or root not in candidate.parents:
         raise HTTPException(status_code=400, detail="Thumbnail path resolved outside thumbnail storage")
     return candidate

@@ -5,7 +5,8 @@ from typing import List, Optional
 from fastapi import HTTPException, UploadFile
 from sqlmodel import Session, select
 
-from db import STORAGE, engine
+from content_store import InvalidStoreKey
+from db import LOCAL_CONTENT_STORE, engine
 from file_utils import mime_from_content_type, sanitize_filename
 from models import Asset, AssetFile
 from prepared_print import inspect_prepared_print, is_prepared_print_filename
@@ -15,9 +16,9 @@ from trash_service import require_active_asset
 
 
 def managed_asset_file_path(asset_file: AssetFile) -> Path:
-    candidate = (STORAGE / asset_file.storage_path).resolve()
-    root = STORAGE.resolve()
-    if candidate == root or root not in candidate.parents:
+    try:
+        candidate = LOCAL_CONTENT_STORE.local_path(asset_file.storage_path)
+    except InvalidStoreKey:
         raise HTTPException(status_code=400, detail="Related file resolved outside storage")
     return candidate
 
@@ -181,7 +182,7 @@ def delete_prepared_file(asset_id: str) -> Asset:
 
 
 def _prune_bundle_dirs(start: Path) -> None:
-    root = (STORAGE / "bundles").resolve()
+    root = LOCAL_CONTENT_STORE.local_path("bundles")
     current = start
     while current.exists() and current.resolve() != root and root in current.resolve().parents:
         try:

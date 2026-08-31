@@ -7,7 +7,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from sqlalchemy import func
 from sqlmodel import Session, select
 
-from db import STORAGE, engine
+from db import LOCAL_CONTENT_STORE, engine
 from file_utils import sanitize_filename
 from models import (
     ArtifactRevision,
@@ -81,7 +81,7 @@ def _build_project_export(project_id: str) -> tuple[Path, str]:
     project, memberships, relationships, assets, expected_bytes = _snapshot_project(
         project_id
     )
-    export_dir = (STORAGE / ".exports").resolve()
+    export_dir = LOCAL_CONTENT_STORE.local_path(".exports")
     export_dir.mkdir(parents=True, exist_ok=True)
     ensure_storage_reserve(export_dir, expected_bytes)
     handle, raw_path = tempfile.mkstemp(

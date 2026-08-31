@@ -6,7 +6,8 @@ from typing import Optional, Tuple
 
 from sqlmodel import Session, select
 
-from db import STORAGE, engine
+from content_store import InvalidStoreKey
+from db import LOCAL_CONTENT_STORE, engine
 from models import ArtifactRevision, ContentHashJob, ContentHashJobItem
 from resource_limits import digest_reader
 
@@ -172,9 +173,9 @@ def _create_content_hash_job(trigger: str, verify_all: bool) -> Optional[Content
 def _managed_revision_path(revision: ArtifactRevision) -> Optional[Path]:
     if not revision.storage_path:
         return None
-    root = STORAGE.resolve()
-    candidate = (STORAGE / revision.storage_path).resolve()
-    if candidate == root or root not in candidate.parents:
+    try:
+        candidate = LOCAL_CONTENT_STORE.local_path(revision.storage_path)
+    except InvalidStoreKey:
         raise ValueError("managed_path_outside_storage")
     return candidate if candidate.is_file() else None
 
