@@ -201,6 +201,22 @@ def test_interrupted_catalog_write_cleans_partial_archive(tmp_path, monkeypatch)
     assert not list(tmp_path.glob(".mvault-export-*"))
 
 
+def test_capacity_failure_cleans_partial_archive(tmp_path, monkeypatch):
+    database, storage = fixture_database(tmp_path)
+    output = tmp_path / "portable.mvault"
+    exporter = PortableVaultExporter(database, storage, output, makersvault_version="5.1.0")
+
+    def no_space(*_args, **_kwargs):
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr(exporter, "_write_archive", no_space)
+    with pytest.raises(MvaultExportError, match="No space left"):
+        exporter.export()
+
+    assert not output.exists()
+    assert not list(tmp_path.glob(".mvault-export-*"))
+
+
 def test_failed_independent_verification_prevents_publication(tmp_path, monkeypatch):
     database, storage = fixture_database(tmp_path)
     output = tmp_path / "portable.mvault"

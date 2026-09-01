@@ -167,6 +167,29 @@ def test_invalid_archive_and_limits_leave_target_absent(tmp_path):
     _assert_no_import_work(tmp_path)
 
 
+def test_capacity_failure_while_staging_payload_leaves_target_absent(tmp_path, monkeypatch):
+    archive, _, _ = _portable_fixture(tmp_path)
+    database = tmp_path / "target" / "app.db"
+    storage = tmp_path / "target" / "storage"
+    real_copy = mvault_import._stream_copy
+    calls = 0
+
+    def fail_payload_copy(source, destination):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError(28, "No space left on device")
+        return real_copy(source, destination)
+
+    monkeypatch.setattr(mvault_import, "_stream_copy", fail_payload_copy)
+    with pytest.raises(MvaultImportError, match="No space left"):
+        import_archive(archive, database, storage)
+
+    assert not database.exists()
+    assert not storage.exists()
+    _assert_no_import_work(tmp_path)
+
+
 def test_failure_after_storage_publication_restores_exact_empty_target(tmp_path):
     archive, _, _ = _portable_fixture(tmp_path)
     database = tmp_path / "target" / "app.db"
