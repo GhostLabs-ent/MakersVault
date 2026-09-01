@@ -133,3 +133,11 @@ Accepted without amendment on 2026-08-31. ADR 0018 is accepted and subgate 11A i
 authorized. Multiple active users, roles/permission enforcement, cookie sessions,
 administration/audit/recovery, MFA, API keys, OIDC, public registration, hosted
 tenancy, push, release, deployment, and publication remain unauthorized.
+
+## Sequential subgate decision
+
+The owner accepted the verified Gate 11A results and authorized Gate 11B on
+2026-09-01. This subsequent decision authorizes only the accepted revocable
+browser-session contract. Multiple active users, roles/permission enforcement,
+administration/audit/recovery, MFA, API keys, OIDC, public registration, hosted
+tenancy, push, release, deployment, and publication remain unauthorized.

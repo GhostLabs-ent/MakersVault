@@ -2,7 +2,7 @@
 
 **Gate:** 11 — Evolve authentication deliberately
 
-**Status:** Subgate 11A implemented and locally verified; owner acceptance pending
+**Status:** Subgate 11A accepted; subgate 11B authorized
 
 **Opened:** 2026-08-31
 
@@ -33,7 +33,12 @@ unauthorized.
 
 The authorized implementation is complete at `0095f6e`; its transition, benchmark,
 compatibility, and scope evidence is recorded in
-[`SUBGATE_11A_RESULTS.md`](SUBGATE_11A_RESULTS.md). This does not authorize 11B.
+[`SUBGATE_11A_RESULTS.md`](SUBGATE_11A_RESULTS.md).
+
+The owner accepted 11A and authorized 11B on 2026-09-01. Gate 11B is limited to
+revocable browser sessions, secure cookie/CSRF behavior, login migration, logout
+and revocation, bounded expiry/cleanup, and focused evidence. Roles, permission
+enforcement, additional accounts, administration, recovery, and audit remain gated.
 
 ## Verified entry truth
 

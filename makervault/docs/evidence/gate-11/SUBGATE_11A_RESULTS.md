@@ -1,7 +1,9 @@
 # Gate 11A — persistent administrator identity results
 
 **Date:** 2026-09-01  
-**Status:** Verified locally; owner acceptance pending  
+**Status:** Accepted
+
+**Accepted:** 2026-09-01
 **Scope:** Additive identity schema, password hashing policy, one-time
 environment-to-database bootstrap, compatibility login, and portable-vault
 identity exclusion only
@@ -116,9 +118,9 @@ made.
 
 ## Gate boundary
 
-Gate 11A is ready for owner review after final repository verification. Acceptance
-will freeze only the persistent first-administrator and password-hash transition.
+The owner accepted Gate 11A on 2026-09-01 and authorized Gate 11B. Acceptance
+freezes only the persistent first-administrator and password-hash transition.
 Additional users, roles, permissions, session cookies, CSRF, revocation, account
 administration/recovery, audit events, MFA, API keys, OIDC, public registration,
-hosted tenancy, push, release, and deployment remain unauthorized. Gate 11B must
-not begin until the owner accepts this checkpoint explicitly.
+hosted tenancy, push, release, and deployment remain unauthorized. Gate 11B may
+implement the accepted session contract only.
