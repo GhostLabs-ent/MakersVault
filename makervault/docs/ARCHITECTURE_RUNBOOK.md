@@ -235,6 +235,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-039 | `VERIFIED` | Local Gate 10D defines a source-owned offline export/verify/import workflow with canonical phase progress on stderr, JSON results and content/external summaries on stdout, stable cancellation exits, and a documented standard `age` v1 outer-envelope workflow whose identities remain entirely user-owned. | `docs/PORTABLE_VAULT_WORKFLOW.md`, `docs/evidence/gate-10/SUBGATE_10D_RESULTS.md`, CLI workflow regressions | Owner accepted Gate 10D and authorized 10E on 2026-08-31. No application cryptography/key custody, browser job orchestration, S3, live/merge import, or publication is authorized. |
 | T-040 | `VERIFIED` | Gate 10E's 1,200-Artifact mixed drill verifies 8,452 logical records and 3,479 managed files including a 64 MiB incompressible payload, then clean-restores/re-exports 3,790 portable members with semantic/byte equality; export, verify, import, and re-export each stay below 68 MiB peak RSS. Pinned `.mvault` v1 and legacy/current raw format-1 backup contracts pass, capacity/interruption behavior is explicit, and the remote-provider evaluation is no-go. | `docs/evidence/gate-10/SUBGATE_10E_RESULTS.md`, portable scale drill, failure matrix, provider evaluation | Owner accepted and closed Gate 10 on 2026-08-31. S3, provider credentials, merge/live import, application key custody, and publication remain unauthorized. |
 | T-041 | `VERIFIED` | Gate 11 opens from one environment-configured administrator, direct constant-time password comparison, process-local throttling, renewable 12-hour HS256 bearer JWTs, browser `sessionStorage` and query-token compatibility, no persistent User/Session/Role/AuditEvent, and one globally shared content graph. | `api/auth.py`, `api/login_security.py`, `api/main.py`, `api/models.py`, web auth client, `docs/evidence/gate-11/BASELINE.md` | The owner accepted shared-vault tenancy, roles, enrollment, session, recovery, audit, and portability direction on 2026-08-31 and authorized 11A only. Sessions, role enforcement, additional users, and later authentication stages remain gated. |
+| T-042 | `VERIFIED` | Local schema 13 adds one persistent administrator with normalized identity and a pinned, bounded Argon2id password policy. A validated environment administrator is converted only when the identity table is empty; subsequent environment changes are not a login or recovery bypass. `.mvault` v1 accepts schema-12/13 sources while excluding identity and reconstructing its frozen schema-12 content contract. | `api/identity_service.py`, schema-13 migration, Gate 11A identity/login/migration/portable regressions, `docs/evidence/gate-11/SUBGATE_11A_RESULTS.md` | Gate 11A implementation is verified and awaits owner acceptance. JWT/session behavior, additional accounts, roles, recovery, and audit remain unchanged and unauthorized. |
 
 ### 5.4 Current storage invariants
 
@@ -914,8 +915,8 @@ new vault state.
 
 ### Gate 11 — Evolve authentication deliberately
 
-**Current execution:** `IN PROGRESS — 11A AUTHORIZED`. Gate 10 was accepted and
-the owner directed Gate 11 to open on 2026-08-31. The current identity, token,
+**Current execution:** `IN PROGRESS — 11A OWNER CHECKPOINT`. Gate 10 was accepted and
+the owner directed Gate 11 to open on 2026-08-31. The entry identity, token,
 browser, route, ownership, audit, backup, and recovery truth plus the proposed
 11A–11E+ sequence are recorded in
 [the Gate 11 baseline](evidence/gate-11/BASELINE.md). The recommended shared-vault
@@ -947,6 +948,11 @@ administrator policies before schema work.
 
 **Rollback:** expand the single-admin record into the new user model without
 removing recoverability; never down-migrate password or ownership data lossy.
+
+Gate 11A is implemented at `0095f6e` and locally verified in
+[the Gate 11A results](evidence/gate-11/SUBGATE_11A_RESULTS.md). It stops at the
+owner checkpoint: 11B session work is not authorized by implementation or test
+success.
 
 ### Gate 12 — Enable sustainable optional services
 
@@ -1182,8 +1188,8 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Implement and verify Gate 11A against the accepted
-[Gate 11 owner checkpoint](evidence/gate-11/OWNER_CHECKPOINT.md), then stop for
-owner acceptance before sessions or permission enforcement. Keep the
+Accept or amend the verified
+[Gate 11A results](evidence/gate-11/SUBGATE_11A_RESULTS.md) before authorizing any
+11B session work or permission enforcement. Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
 disabled by default; it is not part of Gate 11.

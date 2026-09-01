@@ -28,6 +28,15 @@ Production Compose stops before creating containers when `AUTH_PASSWORD` or
 missing, published placeholders, too short, or identical. This second check also
 protects non-Compose deployments.
 
+In the local Gate 11A build, the validated environment username and password are
+used once to create the persistent administrator when the identity table is empty.
+After that succeeds, login uses the Argon2id hash in SQLite. Changing
+`AUTH_USERNAME` or `AUTH_PASSWORD` in `.env` does not rename the administrator,
+rotate its password, or provide a recovery bypass. Preserve the original credential
+and a matched raw backup; account-management and stopped-instance recovery remain
+later gated work. `AUTH_SECRET` still signs the current browser JWTs, so changing it
+continues to invalidate them.
+
 ## Upgrading an existing installation
 
 Follow the tested [v5.1 upgrade procedure](UPGRADE_V5.1.md) and create a verified
@@ -55,8 +64,8 @@ as `super-secret`, `password`, `changeme-secret`, and
 `replace-with-random-secret` are rejected in production.
 
 After changing `AUTH_SECRET`, existing browser sessions become invalid. Sign in
-again with the configured administrator credentials. No database or stored-file
-migration is performed by this authentication change.
+again with the persistent administrator credential. Schema 13 adds the identity
+table but does not transform stored model files.
 
 If startup fails, inspect the API container log. The validation error lists each
 missing or unsafe setting. Correct `.env` and restart; do not restore published

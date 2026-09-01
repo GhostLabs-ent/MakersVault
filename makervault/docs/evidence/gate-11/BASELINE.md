@@ -2,7 +2,7 @@
 
 **Gate:** 11 — Evolve authentication deliberately
 
-**Status:** Owner-approved; subgate 11A authorized
+**Status:** Subgate 11A implemented and locally verified; owner acceptance pending
 
 **Opened:** 2026-08-31
 
@@ -30,6 +30,10 @@ authorized 11A's additive schema 13, pinned password dependency, persistent firs
 administrator, and compatibility-login work only. Sessions, additional users,
 permission enforcement, MFA, API keys, OIDC, and unrelated route changes remain
 unauthorized.
+
+The authorized implementation is complete at `0095f6e`; its transition, benchmark,
+compatibility, and scope evidence is recorded in
+[`SUBGATE_11A_RESULTS.md`](SUBGATE_11A_RESULTS.md). This does not authorize 11B.
 
 ## Verified entry truth
 

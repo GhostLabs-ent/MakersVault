@@ -4,8 +4,10 @@ These are intentional v5.1 boundaries, not hidden promises.
 
 ## Identity and access
 
-- v5.1 is a single-administrator application. It has no user accounts, roles, MFA,
-  OIDC/SSO, API keys, durable token revocation, or per-model permissions.
+- The current local build has one persistent administrator, but no additional user
+  accounts, roles, MFA, OIDC/SSO, API keys, durable token revocation, or per-model
+  permissions. The environment credential is one-time bootstrap input, not an
+  online password-change or recovery mechanism.
 - Browser file/preview compatibility still uses protected tokenized requests. Use
   HTTPS remotely, do not share authenticated URLs, and close shared-browser sessions.
 - Login throttling is bounded and process-local for the supported single API process.

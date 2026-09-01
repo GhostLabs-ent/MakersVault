@@ -23,10 +23,20 @@ recovery and rollback mechanism. It contains exact SQLite, storage, deployment
 configuration, and recovery journals.
 
 Gates 10B–10C supply a secret-free logical `.mvault` v1 exporter, independent
-verifier, and clean-instance importer for schema 12. This portable workflow is not
+verifier, and clean-instance importer. The exporter accepts schema 12 and the
+Gate 11A schema 13 source; the importer deliberately reconstructs the frozen schema
+12 content contract. This portable workflow is not
 a replacement for the raw server backup: it deliberately excludes deployment
 configuration, secrets, operational journals, quarantine, and external no-copy
 bytes, and it does not support rollback, replacement, or merge restore.
+
+For schema 13, this distinction includes identity: raw format-1 backup contains the
+SQLite `useraccount` record and password hash and must be protected accordingly.
+`.mvault` never contains users, password hashes, or credentials. Starting an API
+against a clean `.mvault` restore applies migration 13 and bootstraps a new local
+administrator from that installation's validated environment. Gate 11A does not
+yet add identity-specific raw-backup audit or account-recovery ceremony; those are
+explicit Gate 11D evidence requirements.
 
 From the repository root, against paths that are not being used by a running API:
 
