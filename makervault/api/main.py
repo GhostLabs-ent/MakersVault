@@ -10,7 +10,6 @@ from contextlib import asynccontextmanager
 import tempfile
 import threading
 from urllib.parse import quote, urlparse
-import hmac
 import hashlib
 import json
 import logging
@@ -74,6 +73,10 @@ from file_utils import build_import_filename, mime_from_content_type, sanitize_f
 from folder_service import validate_parent_folder
 from http_security import HostPolicyMiddleware, SecurityHeadersMiddleware, resolve_trusted_hosts
 from import_service import download_import_to_temp, import_asset_from_url, open_import_response
+from identity_service import (
+  authenticate_initial_administrator,
+  bootstrap_initial_administrator,
+)
 from content_identity import (
     content_hash_failure_details,
     latest_content_hash_job,
@@ -244,6 +247,16 @@ from url_utils import normalize_import_url
 async def lifespan(_app: FastAPI):
     validate_auth_config()
     run_migrations(engine)
+    bootstrap = bootstrap_initial_administrator(
+        engine,
+        username=AUTH_USERNAME,
+        password=AUTH_PASSWORD,
+    )
+    if bootstrap.created:
+        security_logger.info(
+            "persistent_administrator_bootstrapped password_change_required=%s",
+            str(bootstrap.password_change_required).lower(),
+        )
     trash_stop = start_trash_maintenance()
     recover_interrupted_mount_scans()
     recover_interrupted_content_hash_jobs()
@@ -782,21 +795,18 @@ def login(body: LoginRequest, request: Request):
             detail="Too many login attempts; try again later",
             headers={"Retry-After": str(retry_after)},
         )
-    username_matches = hmac.compare_digest(
-        body.username.encode("utf-8"),
-        AUTH_USERNAME.encode("utf-8"),
+    identity = authenticate_initial_administrator(
+        engine,
+        username=body.username,
+        password=body.password,
     )
-    password_matches = hmac.compare_digest(
-        body.password.encode("utf-8"),
-        AUTH_PASSWORD.encode("utf-8"),
-    )
-    if not username_matches or not password_matches:
+    if identity is None:
         login_limiter.record_failure(source, body.username)
         security_logger.warning("login_failed source=%s", source)
         raise HTTPException(status_code=401, detail="Invalid username or password")
     login_limiter.record_success(source, body.username)
     security_logger.info("login_succeeded source=%s", source)
-    token = create_token(body.username)
+    token = create_token(identity.username)
     return LoginResponse(token=token, expires_in=AUTH_TOKEN_TTL)
 
 

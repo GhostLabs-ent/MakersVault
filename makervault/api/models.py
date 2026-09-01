@@ -157,6 +157,36 @@ class AssetFile(SQLModel, table=True):
   revision_id: Optional[str] = Field(default=None, foreign_key="artifactrevision.id", index=True)
 
 
+class UserAccount(SQLModel, table=True):
+  __tablename__ = "useraccount"
+  __table_args__ = (
+    UniqueConstraint(
+      "username_normalized",
+      name="idx_useraccount_username_normalized_unique",
+    ),
+    CheckConstraint("enabled IN (0, 1)", name="ck_useraccount_enabled"),
+    CheckConstraint(
+      "password_change_required IN (0, 1)",
+      name="ck_useraccount_password_change_required",
+    ),
+    CheckConstraint(
+      "password_policy_version >= 1",
+      name="ck_useraccount_password_policy_version",
+    ),
+  )
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  username: str
+  username_normalized: str = Field(index=True)
+  display_name: str
+  password_hash: str
+  enabled: bool = Field(default=True, index=True)
+  password_policy_version: int = Field(default=1)
+  password_change_required: bool = Field(default=False)
+  created_at: str
+  updated_at: str
+  last_login_at: Optional[str] = None
+
+
 class AppConfig(SQLModel, table=True):
   key: str = Field(primary_key=True)
   value: str

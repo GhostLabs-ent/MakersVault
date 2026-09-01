@@ -28,7 +28,7 @@ from mvault_verify import (
 )
 
 
-EXPECTED_SCHEMA_VERSION = 12
+SUPPORTED_SCHEMA_VERSIONS = frozenset({12, 13})
 CHUNK_BYTES = 1024 * 1024
 DEFAULT_BATCH_SIZE = 500
 DEFAULT_STORAGE_TEMPLATE = "{folder}/{model}/{filename}"
@@ -141,6 +141,7 @@ class PortableVaultExporter:
         self.makersvault_version = makersvault_version
         self.batch_size = batch_size
         self.progress = progress
+        self.source_schema_version: int | None = None
         self.connection: sqlite3.Connection | None = None
         self.inventory: sqlite3.Connection | None = None
         self.checksums: BinaryIO | None = None
@@ -158,7 +159,8 @@ class PortableVaultExporter:
         temporary_archive = work / "archive.mvault.partial"
         try:
             self._open_source()
-            self._notify("source_locked", schema_version=EXPECTED_SCHEMA_VERSION)
+            assert self.source_schema_version is not None
+            self._notify("source_locked", schema_version=self.source_schema_version)
             self.inventory = sqlite3.connect(work / "inventory.sqlite3")
             self.inventory.row_factory = sqlite3.Row
             self._create_inventory()
@@ -233,11 +235,13 @@ class PortableVaultExporter:
             raise MvaultExportError("SQLite quick_check failed; portable export was not created")
         row = connection.execute("SELECT MAX(version) FROM schema_migration").fetchone()
         version = int(row[0] or 0)
-        if version != EXPECTED_SCHEMA_VERSION:
+        if version not in SUPPORTED_SCHEMA_VERSIONS:
             connection.close()
             raise MvaultExportError(
-                f"schema {version} is not supported by portable format v1; expected {EXPECTED_SCHEMA_VERSION}"
+                f"schema {version} is not supported by portable format v1; expected one of "
+                f"{sorted(SUPPORTED_SCHEMA_VERSIONS)}"
             )
+        self.source_schema_version = version
         self.connection = connection
 
     def _create_inventory(self) -> None:
@@ -353,7 +357,10 @@ class PortableVaultExporter:
             "format_version": FORMAT_VERSION,
             "optional_features": ["derived-thumbnails"] if derived_count else [],
             "required_features": ["canonical-jsonl", "sha256-inventory"],
-            "source": {"makersvault_version": self.makersvault_version, "schema_version": EXPECTED_SCHEMA_VERSION},
+            "source": {
+                "makersvault_version": self.makersvault_version,
+                "schema_version": self.source_schema_version,
+            },
         }
         with archive_path.open("xb") as raw:
             os.chmod(archive_path, 0o600)

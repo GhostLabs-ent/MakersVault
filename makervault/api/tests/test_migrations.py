@@ -87,6 +87,7 @@ def test_fresh_database_reaches_current_schema(tmp_path: Path) -> None:
         "projectrelationship",
         "machineprofile",
         "artifactmachine",
+        "useraccount",
         "appconfig",
         "mountscan",
         "schema_migration",
@@ -347,8 +348,8 @@ def test_schema11_to_schema12_machine_context_is_empty_and_preserves_state(
             ).fetchall(),
         }
 
-    assert run_migrations(database_engine) == 12
-    assert run_migrations(database_engine) == 12
+    assert run_migrations(database_engine, MIGRATIONS[:12]) == 12
+    assert run_migrations(database_engine, MIGRATIONS[:12]) == 12
 
     with database_engine.connect() as conn:
         assert conn.exec_driver_sql(
@@ -411,6 +412,77 @@ def test_schema11_to_schema12_machine_context_is_empty_and_preserves_state(
             conn.exec_driver_sql(
                 "INSERT INTO artifactmachine(asset_id, machine_id, created_at) "
                 "VALUES ('asset-1', 'machine-1', 'later')"
+            )
+
+
+def test_schema12_to_schema13_identity_expansion_is_empty_and_preserves_domain_state(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "schema12.db"
+    create_pre_v5_1_fixture(db_path)
+    database_engine = sqlite_engine(db_path)
+    assert run_migrations(database_engine, MIGRATIONS[:12]) == 12
+    with database_engine.begin() as conn:
+        conn.exec_driver_sql(
+            "INSERT INTO machineprofile(id, name, category, created_at, updated_at) "
+            "VALUES ('machine-1', 'Fixture Printer', 'fdm_printer', 'now', 'now')"
+        )
+        conn.exec_driver_sql(
+            "INSERT INTO artifactmachine(asset_id, machine_id, created_at) "
+            "VALUES ('asset-1', 'machine-1', 'now')"
+        )
+    with database_engine.connect() as conn:
+        state_before = {
+            table: conn.exec_driver_sql(f"SELECT * FROM {table} ORDER BY 1").fetchall()
+            for table in (
+                "folder", "asset", "assetfile", "artifactrevision", "project",
+                "projectmembership", "projectrelationship", "machineprofile",
+                "artifactmachine", "appconfig",
+            )
+        }
+
+    assert run_migrations(database_engine) == 13
+    assert run_migrations(database_engine) == 13
+
+    with database_engine.connect() as conn:
+        assert conn.exec_driver_sql("SELECT COUNT(*) FROM useraccount").scalar_one() == 0
+        for table, before in state_before.items():
+            assert conn.exec_driver_sql(f"SELECT * FROM {table} ORDER BY 1").fetchall() == before
+        columns = {
+            str(row[1])
+            for row in conn.exec_driver_sql("PRAGMA table_info(useraccount)").fetchall()
+        }
+        indexes = {
+            str(row[1])
+            for row in conn.exec_driver_sql("PRAGMA index_list(useraccount)").fetchall()
+        }
+    assert columns == {
+        "id", "username", "username_normalized", "display_name", "password_hash",
+        "enabled", "password_policy_version", "password_change_required",
+        "created_at", "updated_at", "last_login_at",
+    }
+    assert "idx_useraccount_username_normalized_unique" in indexes
+    assert "idx_useraccount_enabled" in indexes
+
+    with database_engine.begin() as conn:
+        conn.exec_driver_sql(
+            "INSERT INTO useraccount("
+            "id, username, username_normalized, display_name, password_hash, "
+            "created_at, updated_at) VALUES "
+            "('user-1', 'Admin', 'admin', 'Admin', '$argon2id$fixture', 'now', 'now')"
+        )
+    with pytest.raises(IntegrityError):
+        with database_engine.begin() as conn:
+            conn.exec_driver_sql(
+                "INSERT INTO useraccount("
+                "id, username, username_normalized, display_name, password_hash, "
+                "created_at, updated_at) VALUES "
+                "('user-2', 'ADMIN', 'admin', 'ADMIN', '$argon2id$fixture', 'now', 'now')"
+            )
+    with pytest.raises(IntegrityError):
+        with database_engine.begin() as conn:
+            conn.exec_driver_sql(
+                "UPDATE useraccount SET password_policy_version = 0 WHERE id = 'user-1'"
             )
 
 

@@ -263,11 +263,11 @@ class PortableVaultImporter:
         os.environ["FILE_STORAGE"] = str(self.storage_stage)
         try:
             from sqlalchemy import create_engine
-            from migrations import run_migrations
+            from migrations import MIGRATIONS, run_migrations
 
             engine = create_engine(f"sqlite:///{self.staged_database}")
             try:
-                version = run_migrations(engine)
+                version = run_migrations(engine, MIGRATIONS[:EXPECTED_SCHEMA_VERSION])
             finally:
                 engine.dispose()
             if version != EXPECTED_SCHEMA_VERSION:

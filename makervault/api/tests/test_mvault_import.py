@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy import create_engine
 
 import mvault_import
-from migrations import run_migrations
+from migrations import MIGRATIONS, run_migrations
 from mvault_export import export_archive
 from mvault_import import (
     MvaultImportError,
@@ -31,7 +31,7 @@ def _portable_fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
 
 def _empty_database(path: Path) -> None:
     engine = create_engine(f"sqlite:///{path}")
-    assert run_migrations(engine) == 12
+    assert run_migrations(engine, MIGRATIONS[:12]) == 12
     engine.dispose()
 
 

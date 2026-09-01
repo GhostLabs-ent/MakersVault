@@ -582,6 +582,35 @@ def _migration_012_artifact_machine_context(conn: Connection) -> None:
     )
 
 
+def _migration_013_persistent_administrator_identity(conn: Connection) -> None:
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS useraccount (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            username VARCHAR NOT NULL,
+            username_normalized VARCHAR NOT NULL,
+            display_name VARCHAR NOT NULL,
+            password_hash VARCHAR NOT NULL,
+            enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+            password_policy_version INTEGER NOT NULL DEFAULT 1
+                CHECK (password_policy_version >= 1),
+            password_change_required INTEGER NOT NULL DEFAULT 0
+                CHECK (password_change_required IN (0, 1)),
+            created_at VARCHAR NOT NULL,
+            updated_at VARCHAR NOT NULL,
+            last_login_at VARCHAR
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_useraccount_username_normalized_unique "
+        "ON useraccount(username_normalized)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_useraccount_enabled ON useraccount(enabled)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
@@ -595,6 +624,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(10, "project_relationships", _migration_010_project_relationships),
     Migration(11, "machine_profiles", _migration_011_machine_profiles),
     Migration(12, "artifact_machine_context", _migration_012_artifact_machine_context),
+    Migration(13, "persistent_administrator_identity", _migration_013_persistent_administrator_identity),
 )
 
 

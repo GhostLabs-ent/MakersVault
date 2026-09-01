@@ -7,6 +7,7 @@ import main
 from http_security import HostPolicyMiddleware, SecurityHeadersMiddleware, host_is_allowed, resolve_trusted_hosts
 from login_security import LoginAttemptLimiter
 from main import app
+from db import engine
 
 
 def test_login_limiter_progresses_expires_and_stays_bounded() -> None:
@@ -72,6 +73,38 @@ def test_login_endpoint_throttles_without_logging_secrets(monkeypatch, caplog) -
     assert "login_succeeded source=testclient" in log_output
     assert password not in log_output
     assert issued_token not in log_output
+
+
+def test_login_uses_persistent_identity_after_environment_bootstrap(monkeypatch) -> None:
+    with TestClient(app) as client:
+        initial = client.post(
+            "/login",
+            json={"username": "admin", "password": "test-only-password"},
+        )
+        assert initial.status_code == 200
+
+    monkeypatch.setattr(main, "AUTH_PASSWORD", "changed-environment-password")
+    with TestClient(app) as client:
+        persistent = client.post(
+            "/login",
+            json={"username": "ADMIN", "password": "test-only-password"},
+        )
+        changed_environment = client.post(
+            "/login",
+            json={"username": "admin", "password": "changed-environment-password"},
+        )
+
+    assert persistent.status_code == 200
+    assert changed_environment.status_code == 401
+    with engine.connect() as conn:
+        user = conn.exec_driver_sql(
+            "SELECT username, password_hash, enabled FROM useraccount"
+        ).fetchone()
+    assert user is not None
+    assert user[0] == "admin"
+    assert user[1].startswith("$argon2id$")
+    assert "test-only-password" not in user[1]
+    assert user[2] == 1
 
 
 def test_trusted_host_resolution_and_matching() -> None:
