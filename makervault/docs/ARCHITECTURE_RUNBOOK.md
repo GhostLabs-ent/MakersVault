@@ -233,6 +233,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-037 | `VERIFIED` | Local Gates 10A–10B define dependency-free, independently verifiable `.mvault` v1 and a capability-explicit local `ContentStore`; the stopped schema-12 exporter streams and hashes complete managed content, records external truth, independently verifies output, and publishes create-if-absent without changing the raw backup contract. | `docs/MVAULT_FORMAT_V1.md`, `docs/evidence/gate-10/SUBGATE_10A_RESULTS.md`, `docs/evidence/gate-10/SUBGATE_10B_RESULTS.md` | 10A–10B are owner-accepted. No object-store driver or live export is authorized. |
 | T-038 | `VERIFIED` | Local Gate 10C imports independently verified `.mvault` v1 archives only into absent or compatible empty schema-12 targets, reconstructs records and streamed bytes in isolation, assigns SHA-256-derived provider-safe keys, marks external references unavailable, audits the staged pair, and publishes storage first/SQLite last behind a restart-safe rollback journal. | `api/mvault_import.py`, `docs/evidence/gate-10/SUBGATE_10C_RESULTS.md`, focused restore regressions | Owner accepted Gate 10C and authorized 10D on 2026-08-31. Merge/replacement/live import, S3, application key custody, and publication remain unauthorized. |
 | T-039 | `VERIFIED` | Local Gate 10D defines a source-owned offline export/verify/import workflow with canonical phase progress on stderr, JSON results and content/external summaries on stdout, stable cancellation exits, and a documented standard `age` v1 outer-envelope workflow whose identities remain entirely user-owned. | `docs/PORTABLE_VAULT_WORKFLOW.md`, `docs/evidence/gate-10/SUBGATE_10D_RESULTS.md`, CLI workflow regressions | Owner accepted Gate 10D and authorized 10E on 2026-08-31. No application cryptography/key custody, browser job orchestration, S3, live/merge import, or publication is authorized. |
+| T-040 | `VERIFIED` | Gate 10E's 1,200-Artifact mixed drill verifies 8,452 logical records and 3,479 managed files including a 64 MiB incompressible payload, then clean-restores/re-exports 3,790 portable members with semantic/byte equality; export, verify, import, and re-export each stay below 68 MiB peak RSS. Pinned `.mvault` v1 and legacy/current raw format-1 backup contracts pass, capacity/interruption behavior is explicit, and the remote-provider evaluation is no-go. | `docs/evidence/gate-10/SUBGATE_10E_RESULTS.md`, portable scale drill, failure matrix, provider evaluation | Gate 10E and Gate 10 await owner closeout. No S3 implementation, provider credentials, merge/live import, key custody, publication, or Gate 11 is authorized. |
 
 ### 5.4 Current storage invariants
 
@@ -864,7 +865,7 @@ verified at `002a5e7` and accepted on 2026-08-31.
 
 ### Gate 10 — Deliver portable backup and storage abstraction
 
-**Current execution:** `IN PROGRESS — 10E AUTHORIZED`. Gate 9 was accepted
+**Current execution:** `IN PROGRESS — GATE 10 OWNER CLOSEOUT`. Gate 9 was accepted
 and the owner authorized Gate 10 to begin on 2026-08-31. Current backup, export,
 import, storage, and recovery truth plus the proposed 10A–10E sequence are recorded
 in [the Gate 10 baseline](evidence/gate-10/BASELINE.md). The archive compatibility,
@@ -883,8 +884,11 @@ authorized 10D on 2026-08-31 for the offline operator workflow and user-owned
 standard encryption boundary. Gate 10D was implemented, verified, and accepted in
 [the 10D results](evidence/gate-10/SUBGATE_10D_RESULTS.md). The owner separately
 authorized 10E on 2026-08-31 for scale, compatibility, recovery, documentation,
-storage-provider evaluation, and Gate 10 closeout evidence. Merge restore, S3
-implementation, application key custody, and live-instance import remain unopened.
+storage-provider evaluation, and Gate 10 closeout evidence. Gate 10E is now
+implemented and verified in [the 10E results](evidence/gate-10/SUBGATE_10E_RESULTS.md),
+and consolidated [Gate 10 results](evidence/gate-10/RESULTS.md) are at the owner
+closeout checkpoint. Merge restore, S3 implementation, application key custody,
+live-instance import, and Gate 11 remain unopened.
 
 **Objective:** Make the vault independently verifiable and restorable before any
 managed backup offering.
@@ -1162,7 +1166,9 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Review [the verified Gate 9D results](evidence/gate-9/SUBGATE_9D_RESULTS.md) and
-accept Gate 9 closeout before opening Gate 10. Keep the
+Review the consolidated [Gate 10 results](evidence/gate-10/RESULTS.md) and
+[10E closeout evidence](evidence/gate-10/SUBGATE_10E_RESULTS.md). Accept or amend
+Gate 10 at the owner checkpoint before opening Gate 11. Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
-disabled by default; it is not part of Gate 9.
+disabled by default; it is not part of Gate 10 or an authorization dependency for
+Gate 11.

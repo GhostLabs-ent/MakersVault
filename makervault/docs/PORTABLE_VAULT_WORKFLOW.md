@@ -106,6 +106,11 @@ the independent verifier before using it. After any import cancellation or error
 keep services stopped, inspect stderr and the target, and retry only with the same
 intended empty paths. Never bypass non-empty-target rejection.
 
+The complete condition-by-condition behavior, including capacity exhaustion,
+unsupported versions/features, missing external content, envelope failure, host
+interruption, and raw rollback, is in
+[`PORTABLE_VAULT_FAILURE_MODES.md`](PORTABLE_VAULT_FAILURE_MODES.md).
+
 ## Optional standard `age` envelope
 
 MakersVault does not bundle or invoke `age`, define an encrypted `.mvault` variant,

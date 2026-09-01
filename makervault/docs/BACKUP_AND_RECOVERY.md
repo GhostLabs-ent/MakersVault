@@ -56,6 +56,9 @@ not create the requested output. Detailed v1 semantics are in
 The complete offline procedure, progress/result contract, cancellation behavior,
 and optional user-owned `age` envelope are documented in
 [`PORTABLE_VAULT_WORKFLOW.md`](PORTABLE_VAULT_WORKFLOW.md).
+Failure/rollback behavior and the remote-provider no-go decision are recorded in
+[`PORTABLE_VAULT_FAILURE_MODES.md`](PORTABLE_VAULT_FAILURE_MODES.md) and
+[`CONTENT_STORE_PROVIDER_EVALUATION.md`](CONTENT_STORE_PROVIDER_EVALUATION.md).
 
 The importer requires API and web to remain stopped and accepts only an absent
 target or a compatible schema-12 database plus an empty storage directory. It

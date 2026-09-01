@@ -2,7 +2,7 @@
 
 **Gate:** 10 — Deliver portable backup and storage abstraction
 
-**Status:** Owner-approved; subgates 10A–10D accepted, 10E authorized
+**Status:** Owner-approved; subgates 10A–10D accepted, 10E verified at owner closeout checkpoint
 
 **Opened:** 2026-08-31
 
@@ -186,6 +186,10 @@ remain outside this subgate.
 **Authorization:** opened by the owner on 2026-08-31. This authorizes local scale,
 compatibility, recovery, documentation, and provider-evaluation evidence only; it
 does not authorize an S3 driver, real provider credentials, publication, or release.
+
+**Implementation:** verified on 2026-08-31; see
+[`SUBGATE_10E_RESULTS.md`](SUBGATE_10E_RESULTS.md) and the consolidated
+[`RESULTS.md`](RESULTS.md). Owner acceptance and Gate 10 closeout are pending.
 
 - Prove bounded-memory export/verify/import on a representative large mixed vault,
   clean-instance semantic/byte equality, interruption recovery, old format-1 backup
