@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from sqlalchemy import create_engine
 
+import mvault_import
 from migrations import run_migrations
 from mvault_export import export_archive
 from mvault_import import (
@@ -258,8 +259,29 @@ def test_cli_requires_explicit_stopped_empty_confirmation(tmp_path, capsys):
     assert error.value.code == 2
     assert "--confirm-stopped-empty is required" in capsys.readouterr().err
 
-    assert main([*arguments, "--confirm-stopped-empty", "--batch-size", "1"]) == 0
-    assert json.loads(capsys.readouterr().out)["publication"]["state"] == "published"
+    assert main([*arguments, "--confirm-stopped-empty", "--batch-size", "1", "--progress"]) == 0
+    captured = capsys.readouterr()
+    report = json.loads(captured.out)
+    assert report["publication"]["state"] == "published"
+    assert report["external_references"] == {
+        "records": 1, "requires_remount": 1, "restored_unavailable": 1,
+    }
+    assert report["source_verification"]["external"]["unavailable"] == 1
+    events = [json.loads(line.removeprefix("mvault-progress ")) for line in captured.err.splitlines()]
+    assert events[0]["phase"] == "import_started"
+    assert events[-1]["phase"] == "import_complete"
+    assert events[-1]["external_references"] == 1
+
+
+def test_cli_cancellation_has_stable_exit_code(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(mvault_import, "import_archive", lambda *_args, **_kwargs: (_ for _ in ()).throw(KeyboardInterrupt()))
+    assert main([
+        "--archive", str(tmp_path / "source.mvault"),
+        "--database", str(tmp_path / "app.db"),
+        "--storage", str(tmp_path / "storage"),
+        "--confirm-stopped-empty",
+    ]) == 130
+    assert "import cancelled" in capsys.readouterr().err
 
 
 def test_provider_keys_are_portable_and_do_not_embed_record_ids():

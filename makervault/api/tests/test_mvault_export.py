@@ -341,11 +341,31 @@ def test_cli_exports_only_after_confirmation(tmp_path):
     result = subprocess.run(
         [
             sys.executable, str(script), "--database", str(database), "--storage", str(storage),
-            "--output", str(output), "--confirm-stopped", "--makersvault-version", "5.1.0",
+            "--output", str(output), "--confirm-stopped", "--makersvault-version", "5.1.0", "--progress",
         ],
         capture_output=True,
         text=True,
     )
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout)["verification"]["valid"] is True
+    report = json.loads(result.stdout)["verification"]
+    assert report["valid"] is True
+    assert report["external"] == {
+        "available": 0, "changed": 0, "failed": 0, "pending": 0,
+        "records": 1, "unavailable": 1,
+    }
+    events = [json.loads(line.removeprefix("mvault-progress ")) for line in result.stderr.splitlines()]
+    assert events[0]["phase"] == "export_started"
+    assert events[-1]["phase"] == "export_complete"
+    assert events[-1]["external_records"] == 1
     assert verify_archive(output)["valid"] is True
+
+
+def test_cli_cancellation_has_stable_exit_code(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(mvault_export, "export_archive", lambda *_args, **_kwargs: (_ for _ in ()).throw(KeyboardInterrupt()))
+    assert mvault_export.main([
+        "--database", str(tmp_path / "app.db"),
+        "--storage", str(tmp_path / "storage"),
+        "--output", str(tmp_path / "out.mvault"),
+        "--confirm-stopped",
+    ]) == 130
+    assert "export cancelled" in capsys.readouterr().err

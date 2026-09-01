@@ -13,7 +13,7 @@ import tarfile
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import BinaryIO, Iterator
+from typing import BinaryIO, Callable, Iterator
 
 from content_store import InvalidStoreKey, LocalContentStore
 from mvault_verify import (
@@ -34,6 +34,7 @@ DEFAULT_BATCH_SIZE = 500
 DEFAULT_STORAGE_TEMPLATE = "{folder}/{model}/{filename}"
 DEFAULT_TRASH_RETENTION = "until_needed"
 EXTERNAL_STATES = {"ready", "unavailable", "changed", "pending", "failed"}
+ProgressCallback = Callable[[str, dict[str, object]], None]
 
 
 class MvaultExportError(RuntimeError):
@@ -127,6 +128,7 @@ class PortableVaultExporter:
         *,
         makersvault_version: str,
         batch_size: int = DEFAULT_BATCH_SIZE,
+        progress: ProgressCallback | None = None,
     ):
         if batch_size < 1:
             raise ValueError("batch_size must be at least 1")
@@ -138,12 +140,14 @@ class PortableVaultExporter:
         self.output = output.resolve()
         self.makersvault_version = makersvault_version
         self.batch_size = batch_size
+        self.progress = progress
         self.connection: sqlite3.Connection | None = None
         self.inventory: sqlite3.Connection | None = None
         self.checksums: BinaryIO | None = None
         self.catalog_counts = {name: 0 for name in CATALOGS}
 
     def export(self) -> dict[str, object]:
+        self._notify("export_started", output=str(self.output))
         if not self.database.is_file():
             raise MvaultExportError("SQLite database does not exist")
         if self.output.exists():
@@ -154,16 +158,26 @@ class PortableVaultExporter:
         temporary_archive = work / "archive.mvault.partial"
         try:
             self._open_source()
+            self._notify("source_locked", schema_version=EXPECTED_SCHEMA_VERSION)
             self.inventory = sqlite3.connect(work / "inventory.sqlite3")
             self.inventory.row_factory = sqlite3.Row
             self._create_inventory()
             self._plan_payloads()
+            planned = self.inventory.execute(
+                "SELECT COUNT(*),COALESCE(SUM(size),0) FROM payload_plan"
+            ).fetchone()
+            self._notify("payloads_planned", files=int(planned[0]), bytes=int(planned[1]))
             checksums_path = work / "checksums.sha256"
             with checksums_path.open("w+b") as checksum_file:
                 self.checksums = checksum_file
+                self._notify("archive_write_started")
                 self._write_archive(temporary_archive, work)
+            self._notify("archive_write_complete")
             os.chmod(temporary_archive, 0o600)
-            report = verify_archive(temporary_archive)
+            if self.progress is None:
+                report = verify_archive(temporary_archive)
+            else:
+                report = verify_archive(temporary_archive, progress=self.progress)
             with temporary_archive.open("rb") as archive_file:
                 os.fsync(archive_file.fileno())
             try:
@@ -175,6 +189,11 @@ class PortableVaultExporter:
             temporary_archive.unlink()
             os.chmod(self.output, 0o600)
             self._fsync_directory(self.output.parent)
+            self._notify(
+                "export_complete",
+                external_records=report["external"]["records"],
+                output=str(self.output),
+            )
             return report
         except MvaultExportError:
             raise
@@ -193,6 +212,10 @@ class PortableVaultExporter:
                 self.connection.close()
                 self.connection = None
             self._remove_tree(work)
+
+    def _notify(self, phase: str, **details: object) -> None:
+        if self.progress is not None:
+            self.progress(phase, details)
 
     def _open_source(self) -> None:
         try:
@@ -602,11 +625,13 @@ def export_archive(
     *,
     makersvault_version: str = "development",
     batch_size: int = DEFAULT_BATCH_SIZE,
+    progress: ProgressCallback | None = None,
 ) -> dict[str, object]:
     return PortableVaultExporter(
         Path(database), Path(storage), Path(output),
         makersvault_version=makersvault_version,
         batch_size=batch_size,
+        progress=progress,
     ).export()
 
 
@@ -627,6 +652,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", required=True, help="new .mvault path; an existing file is never overwritten")
     parser.add_argument("--batch-size", type=_positive, default=DEFAULT_BATCH_SIZE)
     parser.add_argument("--makersvault-version", default=os.getenv("MAKERSVAULT_VERSION", "development"))
+    parser.add_argument("--progress", action="store_true", help="write canonical phase events to stderr")
     parser.add_argument(
         "--confirm-stopped",
         action="store_true",
@@ -635,12 +661,24 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if not args.confirm_stopped:
         parser.error("--confirm-stopped is required; live-vault export is not supported")
+    progress = None
+    if args.progress:
+        def progress(phase: str, details: dict[str, object]) -> None:
+            event = {"operation": "export", "phase": phase, **details}
+            print("mvault-progress " + json.dumps(event, sort_keys=True, separators=(",", ":")), file=sys.stderr, flush=True)
     try:
         report = export_archive(
             args.database, args.storage, args.output,
             makersvault_version=args.makersvault_version,
             batch_size=args.batch_size,
+            progress=progress,
         )
+    except KeyboardInterrupt:
+        print(
+            "mvault export cancelled; verify whether the requested output exists before use",
+            file=sys.stderr,
+        )
+        return 130
     except MvaultExportError as exc:
         print(f"mvault export failed: {exc}", file=sys.stderr)
         return 2

@@ -8,6 +8,7 @@ import tarfile
 from pathlib import Path
 
 import pytest
+import mvault_verify
 
 from mvault_verify import (
   CATALOGS,
@@ -149,7 +150,9 @@ def test_golden_archive_is_deterministic_and_verifies(tmp_path):
       "artifact-machines": 1, "artifacts": 1, "files": 1, "folders": 1, "machines": 1,
       "project-memberships": 1, "project-relationships": 0, "projects": 1, "revisions": 2, "settings": 2,
     },
+    "content": {"authoritative_bytes": 10, "authoritative_files": 2, "complete_managed_content": True, "derived_bytes": 3, "derived_files": 1},
     "expanded_bytes": 5248,
+    "external": {"available": 0, "changed": 0, "failed": 0, "pending": 0, "records": 1, "unavailable": 1},
     "format": "makersvault-portable-vault", "format_version": 1, "members": 16, "valid": True,
   }
 
@@ -160,6 +163,34 @@ def test_cli_emits_stable_report(tmp_path):
   assert result.returncode == 0
   assert json.loads(result.stdout)["valid"] is True
   assert result.stderr == ""
+
+
+def test_cli_progress_is_canonical_stderr_and_summary_stays_json(tmp_path):
+  archive = write_archive(tmp_path / "golden.mvault", archive_members())
+  result = subprocess.run(
+    [sys.executable, str(Path(__file__).parents[1] / "mvault_verify.py"), str(archive), "--progress"],
+    capture_output=True,
+    text=True,
+  )
+  assert result.returncode == 0
+  report = json.loads(result.stdout)
+  assert report["external"]["records"] == 1
+  events = [json.loads(line.removeprefix("mvault-progress ")) for line in result.stderr.splitlines()]
+  assert events[0]["phase"] == "verification_started"
+  assert events[-1] == {
+    "expanded_bytes": 5248,
+    "external_records": 1,
+    "members": 16,
+    "operation": "verify",
+    "phase": "verification_complete",
+    "records": 11,
+  }
+
+
+def test_cli_cancellation_has_stable_exit_code(monkeypatch, capsys):
+  monkeypatch.setattr(mvault_verify, "verify_archive", lambda *_args, **_kwargs: (_ for _ in ()).throw(KeyboardInterrupt()))
+  assert mvault_verify.main(["unused.mvault"]) == 130
+  assert "verification cancelled" in capsys.readouterr().err
 
 
 def test_rejects_unknown_required_feature(tmp_path):

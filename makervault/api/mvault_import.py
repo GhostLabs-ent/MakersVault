@@ -14,7 +14,7 @@ import tarfile
 import tempfile
 import uuid
 from pathlib import Path
-from typing import BinaryIO, Iterator
+from typing import BinaryIO, Callable, Iterator
 
 from content_store import LocalContentStore
 from mvault_verify import CATALOGS, VerificationLimits, verify_archive
@@ -29,6 +29,7 @@ LOGICAL_TABLES = (
 OPERATIONAL_TABLES = (
     "mountscan", "contenthashjob", "contenthashjobitem", "trashpurgeoperation",
 )
+ProgressCallback = Callable[[str, dict[str, object]], None]
 CONTENT_RE = re.compile(r"^mvault/content/(?P<kind>revisions|files)/(?P<id>[A-Za-z0-9][A-Za-z0-9._:-]{0,254})/(?P<leaf>primary|payload)$")
 DERIVED_RE = re.compile(r"^mvault/derived/thumbnails/revisions/(?P<id>[A-Za-z0-9][A-Za-z0-9._:-]{0,254})$")
 CATALOG_RE = re.compile(r"^mvault/catalogs/(?P<name>[a-z-]+)\.jsonl$")
@@ -104,6 +105,7 @@ class PortableVaultImporter:
         *,
         limits: VerificationLimits | None = None,
         batch_size: int = 500,
+        progress: ProgressCallback | None = None,
     ):
         if batch_size < 1:
             raise ValueError("batch_size must be at least 1")
@@ -118,6 +120,7 @@ class PortableVaultImporter:
             raise ValueError("database and storage targets must not overlap")
         self.limits = limits or VerificationLimits()
         self.batch_size = batch_size
+        self.progress = progress
         self.operation_id = str(uuid.uuid4())
         self.database.parent.mkdir(parents=True, exist_ok=True)
         self.storage.parent.mkdir(parents=True, exist_ok=True)
@@ -128,10 +131,14 @@ class PortableVaultImporter:
         self.private_archive: Path | None = None
         self.inventory_path: Path | None = None
         self.inventory: sqlite3.Connection | None = None
+        self.source_verification: dict[str, object] | None = None
 
     def restore(self) -> dict[str, object]:
+        self._notify("import_started", archive=str(self.archive))
         self._recover_interrupted_publication()
+        self._notify("target_check_started")
         self._require_empty_target()
+        self._notify("target_empty")
         if not self.archive.is_file():
             raise MvaultImportError("portable archive does not exist")
         self.database_stage_root = Path(tempfile.mkdtemp(prefix=".mvault-import-db-", dir=self.database.parent))
@@ -143,18 +150,35 @@ class PortableVaultImporter:
         self.inventory_path = self.database_stage_root / "inventory.sqlite3"
         try:
             archive_sha256 = self._copy_and_verify_archive()
+            self._notify("archive_verified", archive_sha256=archive_sha256)
             self._create_schema()
+            self._notify("staging_schema_created", schema_version=EXPECTED_SCHEMA_VERSION)
             self.inventory = sqlite3.connect(self.inventory_path)
             self.inventory.row_factory = sqlite3.Row
             self._create_inventory()
             self._stage_archive()
+            self._notify("archive_staged")
             self._validate_and_finalize_database()
             staged_report = self._audit_pair(self.staged_database, self.storage_stage)
+            self._notify(
+                "staged_pair_audited",
+                managed_bytes=staged_report["managed_bytes"],
+                managed_files=staged_report["managed_files"],
+            )
             publication = self._publish(archive_sha256)
+            assert self.source_verification is not None
+            external_records = int(self.source_verification["external"]["records"])
+            self._notify("import_complete", external_references=external_records)
             return {
                 "archive_sha256": archive_sha256,
                 "database": str(self.database),
+                "external_references": {
+                    "records": external_records,
+                    "requires_remount": external_records,
+                    "restored_unavailable": external_records,
+                },
                 "storage": str(self.storage),
+                "source_verification": self.source_verification,
                 "staged_audit": staged_report,
                 "publication": publication,
             }
@@ -168,6 +192,10 @@ class PortableVaultImporter:
                 self.inventory = None
             if not self.journal.exists():
                 self._cleanup_staging()
+
+    def _notify(self, phase: str, **details: object) -> None:
+        if self.progress is not None:
+            self.progress(phase, details)
 
     def _journal_path(self) -> Path:
         identity = hashlib.sha256(f"{self.database}\0{self.storage}".encode()).hexdigest()[:16]
@@ -214,8 +242,15 @@ class PortableVaultImporter:
         assert self.private_archive is not None
         try:
             with self.archive.open("rb") as source:
+                self._notify("archive_copy_started")
                 _, digest = _stream_copy(source, self.private_archive)
-            verify_archive(self.private_archive, self.limits)
+            self._notify("archive_copy_complete")
+            if self.progress is None:
+                self.source_verification = verify_archive(self.private_archive, self.limits)
+            else:
+                self.source_verification = verify_archive(
+                    self.private_archive, self.limits, progress=self.progress
+                )
             return digest
         except Exception as exc:
             raise MvaultImportError(f"portable archive verification failed: {exc}") from exc
@@ -521,6 +556,7 @@ class PortableVaultImporter:
             "state": "prepared",
         }
         self._write_journal(journal)
+        self._notify("publication_started")
         try:
             if self.storage.exists():
                 os.replace(self.storage, storage_backup)
@@ -528,6 +564,7 @@ class PortableVaultImporter:
             self._fsync_directory(self.storage.parent)
             journal["state"] = "storage_published"
             self._write_journal(journal)
+            self._notify("storage_published")
             self._after_storage_publish()
             if self.database.exists():
                 os.replace(self.database, db_backup)
@@ -535,6 +572,7 @@ class PortableVaultImporter:
             self._fsync_directory(self.database.parent)
             journal["state"] = "database_published"
             self._write_journal(journal)
+            self._notify("database_published")
             report = self._audit_pair(self.database, self.storage)
             self.journal.unlink()
             self._fsync_directory(self.journal.parent)
@@ -673,9 +711,11 @@ def import_archive(
     *,
     limits: VerificationLimits | None = None,
     batch_size: int = 500,
+    progress: ProgressCallback | None = None,
 ) -> dict[str, object]:
     return PortableVaultImporter(
-        Path(archive), Path(database), Path(storage), limits=limits, batch_size=batch_size
+        Path(archive), Path(database), Path(storage), limits=limits, batch_size=batch_size,
+        progress=progress,
     ).restore()
 
 
@@ -699,6 +739,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-records", type=_positive)
     parser.add_argument("--max-expanded-bytes", type=_positive)
     parser.add_argument("--confirm-stopped-empty", action="store_true")
+    parser.add_argument("--progress", action="store_true", help="write canonical phase events to stderr")
     args = parser.parse_args(argv)
     if not args.confirm_stopped_empty:
         parser.error("--confirm-stopped-empty is required; live or merge restore is not supported")
@@ -708,8 +749,26 @@ def main(argv: list[str] | None = None) -> int:
         args.max_records or defaults.max_records,
         args.max_expanded_bytes or defaults.max_expanded_bytes,
     )
+    progress = None
+    if args.progress:
+        def progress(phase: str, details: dict[str, object]) -> None:
+            event = {"operation": "import", "phase": phase, **details}
+            print(
+                "mvault-progress " + json.dumps(event, sort_keys=True, separators=(",", ":")),
+                file=sys.stderr,
+                flush=True,
+            )
     try:
-        report = import_archive(args.archive, args.database, args.storage, limits=limits, batch_size=args.batch_size)
+        report = import_archive(
+            args.archive, args.database, args.storage, limits=limits,
+            batch_size=args.batch_size, progress=progress,
+        )
+    except KeyboardInterrupt:
+        print(
+            "mvault import cancelled; keep MakersVault stopped and inspect the target before retrying",
+            file=sys.stderr,
+        )
+        return 130
     except MvaultImportError as exc:
         print(f"mvault import failed: {exc}", file=sys.stderr)
         return 2

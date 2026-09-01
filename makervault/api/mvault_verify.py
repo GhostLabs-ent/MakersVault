@@ -67,6 +67,14 @@ class MvaultVerificationError(ValueError):
   """The archive is not a valid MakersVault portable vault v1."""
 
 
+ProgressCallback = Callable[[str, dict[str, object]], None]
+
+
+def _notify(progress: ProgressCallback | None, phase: str, **details: object) -> None:
+  if progress is not None:
+    progress(phase, details)
+
+
 class _BoundedTarInfo(tarfile.TarInfo):
   """Bound stdlib tar extension records before tarfile buffers them."""
 
@@ -643,11 +651,17 @@ def _database(path: str) -> sqlite3.Connection:
   return db
 
 
-def verify_archive(archive: str | os.PathLike[str], limits: VerificationLimits | None = None) -> dict[str, object]:
+def verify_archive(
+  archive: str | os.PathLike[str],
+  limits: VerificationLimits | None = None,
+  *,
+  progress: ProgressCallback | None = None,
+) -> dict[str, object]:
   """Stream and verify one .mvault archive, returning a stable success report."""
   limits = limits or VerificationLimits()
   limits.validate()
   archive_path = Path(archive)
+  _notify(progress, "verification_started", archive=str(archive_path.resolve()))
   try:
     source = archive_path.open("rb")
   except OSError as exc:
@@ -700,6 +714,12 @@ def verify_archive(archive: str | os.PathLike[str], limits: VerificationLimits |
             raw = _read_bounded(fileobj, member.size, MAX_HEADER_BYTES, "header")
             header = _validate_header(_json_loads(raw, "header"))
             _expect_canonical(raw, header, "header")
+            _notify(
+              progress,
+              "header_validated",
+              format_version=header["format_version"],
+              schema_version=header["source"]["schema_version"],
+            )
             digest = hashlib.sha256(raw).hexdigest()
             member_class = "metadata"
             stage = "payload"
@@ -760,6 +780,7 @@ def verify_archive(archive: str | os.PathLike[str], limits: VerificationLimits |
               record_count += 1
               if record_count > limits.max_records:
                 _fail("archive exceeds the configured catalog-record limit")
+            _notify(progress, "catalog_validated", catalog=catalog, records=record_counts[catalog])
             digest = digest_state.hexdigest()
             member_class = "catalog"
             stage = "catalog"
@@ -790,14 +811,25 @@ def verify_archive(archive: str | os.PathLike[str], limits: VerificationLimits |
       derived_count = db.execute("SELECT COUNT(*) FROM members WHERE class='derived'").fetchone()[0]
       if derived_count and "derived-thumbnails" not in header["optional_features"]:
         _fail("derived thumbnail members require the derived-thumbnails optional feature")
-      return {
+      report = {
         "catalog_records": record_counts,
+        "content": manifest["content"],
         "expanded_bytes": expanded_bytes,
+        "external": manifest["external"],
         "format": FORMAT,
         "format_version": FORMAT_VERSION,
         "members": member_count,
         "valid": True,
       }
+      _notify(
+        progress,
+        "verification_complete",
+        expanded_bytes=expanded_bytes,
+        external_records=manifest["external"]["records"],
+        members=member_count,
+        records=record_count,
+      )
+      return report
     except (OSError, tarfile.TarError) as exc:
       _fail(f"archive stream is malformed: {exc}")
     finally:
@@ -821,10 +853,19 @@ def main(argv: list[str] | None = None) -> int:
   parser.add_argument("--max-members", type=_positive, default=DEFAULT_MAX_MEMBERS)
   parser.add_argument("--max-records", type=_positive, default=DEFAULT_MAX_RECORDS)
   parser.add_argument("--max-expanded-bytes", type=_positive, default=DEFAULT_MAX_EXPANDED_BYTES)
+  parser.add_argument("--progress", action="store_true", help="write canonical phase events to stderr")
   args = parser.parse_args(argv)
   limits = VerificationLimits(args.max_members, args.max_records, args.max_expanded_bytes)
+  progress = None
+  if args.progress:
+    def progress(phase: str, details: dict[str, object]) -> None:
+      event = {"operation": "verify", "phase": phase, **details}
+      print("mvault-progress " + json.dumps(event, sort_keys=True, separators=(",", ":")), file=sys.stderr, flush=True)
   try:
-    report = verify_archive(args.archive, limits)
+    report = verify_archive(args.archive, limits, progress=progress)
+  except KeyboardInterrupt:
+    print("mvault verification cancelled; no archive or vault state was changed", file=sys.stderr)
+    return 130
   except MvaultVerificationError as exc:
     print(f"mvault: invalid: {exc}", file=sys.stderr)
     return 2
