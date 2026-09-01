@@ -2,7 +2,9 @@
 
 **Date:** 2026-08-31
 
-**Status:** Verified; owner acceptance pending
+**Status:** Accepted
+
+**Accepted:** 2026-08-31
 
 **Scope:** Offline export/verify/import operator contract and user-owned standard
 `age` outer envelope only
@@ -95,7 +97,8 @@ or contact an external storage provider.
 
 ## Gate boundary and next decision
 
-Gate 10D is stopped at its owner checkpoint. Acceptance would freeze the offline
-workflow and user-owned encryption boundary as Gate 10E inputs. Gate 10E, built-in
-encryption/key custody, browser orchestration, S3, merge/live import, push, tag,
-release, deployment, and publication remain unauthorized.
+Gate 10D was accepted by the owner on 2026-08-31, freezing the offline workflow and
+user-owned encryption boundary as Gate 10E inputs. The owner separately authorized
+Gate 10E on the same date. Built-in encryption/key custody, browser orchestration,
+S3 implementation, merge/live import, push, tag, release, deployment, and
+publication remain unauthorized.

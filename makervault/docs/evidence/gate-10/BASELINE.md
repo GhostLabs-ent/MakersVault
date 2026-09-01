@@ -2,7 +2,7 @@
 
 **Gate:** 10 — Deliver portable backup and storage abstraction
 
-**Status:** Owner-approved; subgates 10A–10C accepted, 10D verified at owner checkpoint
+**Status:** Owner-approved; subgates 10A–10D accepted, 10E authorized
 
 **Opened:** 2026-08-31
 
@@ -169,8 +169,9 @@ encryption/key custody, and live-instance import remain outside this subgate.
 custody, custom cryptography, browser-held long jobs, S3, and live/merge import
 remain outside this subgate.
 
-**Implementation:** verified on 2026-08-31; see
-[`SUBGATE_10D_RESULTS.md`](SUBGATE_10D_RESULTS.md). Owner acceptance is pending.
+**Implementation:** verified and accepted on 2026-08-31; see
+[`SUBGATE_10D_RESULTS.md`](SUBGATE_10D_RESULTS.md). The owner separately authorized
+10E on the same date.
 
 - Accept ADR 0017.
 - Provide documented CLI export/verify/import workflows with secure permissions,
@@ -181,6 +182,10 @@ remain outside this subgate.
   lifecycle are proven; do not hold a browser request open for a multi-hour export.
 
 ### 10E — Scale, compatibility, and closeout
+
+**Authorization:** opened by the owner on 2026-08-31. This authorizes local scale,
+compatibility, recovery, documentation, and provider-evaluation evidence only; it
+does not authorize an S3 driver, real provider credentials, publication, or release.
 
 - Prove bounded-memory export/verify/import on a representative large mixed vault,
   clean-instance semantic/byte equality, interruption recovery, old format-1 backup
