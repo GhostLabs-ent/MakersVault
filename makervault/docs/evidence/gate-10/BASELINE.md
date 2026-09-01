@@ -2,7 +2,7 @@
 
 **Gate:** 10 — Deliver portable backup and storage abstraction
 
-**Status:** Owner-approved; subgates 10A–10C accepted, 10D authorized
+**Status:** Owner-approved; subgates 10A–10C accepted, 10D verified at owner checkpoint
 
 **Opened:** 2026-08-31
 
@@ -168,6 +168,9 @@ encryption/key custody, and live-instance import remain outside this subgate.
 **Authorization:** opened by the owner on 2026-08-31. Application-managed key
 custody, custom cryptography, browser-held long jobs, S3, and live/merge import
 remain outside this subgate.
+
+**Implementation:** verified on 2026-08-31; see
+[`SUBGATE_10D_RESULTS.md`](SUBGATE_10D_RESULTS.md). Owner acceptance is pending.
 
 - Accept ADR 0017.
 - Provide documented CLI export/verify/import workflows with secure permissions,

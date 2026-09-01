@@ -232,6 +232,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-036 | `SUPERSEDED` | At Gate 10 entry, server backup was a stopped raw SQLite/storage snapshot containing `.env`; Artifact and Project exports were logical ZIP format 2 with no importer; eight production modules depended directly on local `Path`/rename/free-space semantics. | Gate 10 source audit and `docs/evidence/gate-10/BASELINE.md` | This remains the measured pre-portability boundary and is superseded by T-037–T-038. |
 | T-037 | `VERIFIED` | Local Gates 10A–10B define dependency-free, independently verifiable `.mvault` v1 and a capability-explicit local `ContentStore`; the stopped schema-12 exporter streams and hashes complete managed content, records external truth, independently verifies output, and publishes create-if-absent without changing the raw backup contract. | `docs/MVAULT_FORMAT_V1.md`, `docs/evidence/gate-10/SUBGATE_10A_RESULTS.md`, `docs/evidence/gate-10/SUBGATE_10B_RESULTS.md` | 10A–10B are owner-accepted. No object-store driver or live export is authorized. |
 | T-038 | `VERIFIED` | Local Gate 10C imports independently verified `.mvault` v1 archives only into absent or compatible empty schema-12 targets, reconstructs records and streamed bytes in isolation, assigns SHA-256-derived provider-safe keys, marks external references unavailable, audits the staged pair, and publishes storage first/SQLite last behind a restart-safe rollback journal. | `api/mvault_import.py`, `docs/evidence/gate-10/SUBGATE_10C_RESULTS.md`, focused restore regressions | Owner accepted Gate 10C and authorized 10D on 2026-08-31. Merge/replacement/live import, S3, application key custody, and publication remain unauthorized. |
+| T-039 | `VERIFIED` | Local Gate 10D defines a source-owned offline export/verify/import workflow with canonical phase progress on stderr, JSON results and content/external summaries on stdout, stable cancellation exits, and a documented standard `age` v1 outer-envelope workflow whose identities remain entirely user-owned. | `docs/PORTABLE_VAULT_WORKFLOW.md`, `docs/evidence/gate-10/SUBGATE_10D_RESULTS.md`, CLI workflow regressions | Owner acceptance is pending. No application cryptography/key custody, browser job orchestration, S3, live/merge import, or publication is authorized. |
 
 ### 5.4 Current storage invariants
 
@@ -863,7 +864,7 @@ verified at `002a5e7` and accepted on 2026-08-31.
 
 ### Gate 10 — Deliver portable backup and storage abstraction
 
-**Current execution:** `IN PROGRESS — 10D AUTHORIZED`. Gate 9 was accepted
+**Current execution:** `IN PROGRESS — 10D OWNER CHECKPOINT`. Gate 9 was accepted
 and the owner authorized Gate 10 to begin on 2026-08-31. Current backup, export,
 import, storage, and recovery truth plus the proposed 10A–10E sequence are recorded
 in [the Gate 10 baseline](evidence/gate-10/BASELINE.md). The archive compatibility,
@@ -879,8 +880,10 @@ verified publication, and regression evidence were accepted on 2026-08-31 in
 implemented, verified, and accepted in
 [the 10C results](evidence/gate-10/SUBGATE_10C_RESULTS.md). The owner separately
 authorized 10D on 2026-08-31 for the offline operator workflow and user-owned
-standard encryption boundary. Merge restore, S3, application key custody, and
-live-instance import remain unopened.
+standard encryption boundary. Gate 10D is now implemented and verified in
+[the 10D results](evidence/gate-10/SUBGATE_10D_RESULTS.md), with owner acceptance
+pending. Merge restore, S3, application key custody, live-instance import, and 10E
+remain unopened.
 
 **Objective:** Make the vault independently verifiable and restorable before any
 managed backup offering.

@@ -207,6 +207,10 @@ transaction and refuses a busy database, missing or changed managed content,
 unsupported schema, an existing/racing output path, or an archive rejected by the
 independent verifier. It creates the final archive with mode `600`. A failed or
 interrupted run removes its temporary work and does not publish the requested path.
+`--progress` writes canonical phase events to stderr while preserving the single
+canonical JSON result on stdout. Successful verification/export reports include
+the manifest's validated authoritative/derived content totals and external-state
+summary.
 
 ### Reference reader
 
@@ -235,6 +239,12 @@ mode-600 fsynced journal permits rollback after interruption; caught publication
 failure and cancellation restore the original empty targets. The reader never
 merges, replaces a populated vault, applies mount activation/secrets, or recreates
 scan, hash, or purge jobs.
+
+The full operator procedure, exit codes, cancellation/retry rules, stream
+redirection, and optional standard `age` outer envelope are in
+[`PORTABLE_VAULT_WORKFLOW.md`](PORTABLE_VAULT_WORKFLOW.md). Encryption does not
+change `.mvault` v1: core import consumes only a successfully decrypted plaintext
+archive, and MakersVault stores no recovery identity or passphrase.
 
 ## 9. Explicit exclusions and compatibility
 

@@ -53,6 +53,9 @@ missing no-copy external content honestly, independently verifies the temporary
 archive, then publishes it atomically with mode `600`. Failure or interruption does
 not create the requested output. Detailed v1 semantics are in
 [`MVAULT_FORMAT_V1.md`](MVAULT_FORMAT_V1.md).
+The complete offline procedure, progress/result contract, cancellation behavior,
+and optional user-owned `age` envelope are documented in
+[`PORTABLE_VAULT_WORKFLOW.md`](PORTABLE_VAULT_WORKFLOW.md).
 
 The importer requires API and web to remain stopped and accepts only an absent
 target or a compatible schema-12 database plus an empty storage directory. It
