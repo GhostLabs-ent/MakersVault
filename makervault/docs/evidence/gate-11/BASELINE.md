@@ -2,7 +2,7 @@
 
 **Gate:** 11 — Evolve authentication deliberately
 
-**Status:** Open for discovery and owner policy decision; implementation not authorized
+**Status:** Owner-approved; subgate 11A authorized
 
 **Opened:** 2026-08-31
 
@@ -24,9 +24,12 @@ portable recovery boundaries. Gate 11 may now design identity, sessions,
 authorization, recovery, and auditing without changing those archive contracts
 silently.
 
-Opening Gate 11 authorizes this source audit, proposed ADR, and owner checkpoint.
-It does not authorize schema 13, a password dependency, persistent accounts,
-sessions, roles, MFA, API keys, OIDC, or route changes.
+Opening Gate 11 first authorized this source audit, proposed ADR, and owner
+checkpoint. On 2026-08-31 the owner accepted the package without amendment and
+authorized 11A's additive schema 13, pinned password dependency, persistent first
+administrator, and compatibility-login work only. Sessions, additional users,
+permission enforcement, MFA, API keys, OIDC, and unrelated route changes remain
+unauthorized.
 
 ## Verified entry truth
 
@@ -198,6 +201,6 @@ credentials behave.
 
 ## Owner checkpoint
 
-The proposed decisions are collected in
-[`OWNER_CHECKPOINT.md`](OWNER_CHECKPOINT.md). Approval may authorize 11A only. Every
+The accepted decisions are collected in
+[`OWNER_CHECKPOINT.md`](OWNER_CHECKPOINT.md). Approval authorizes 11A only. Every
 later subgate remains separately gated by the preceding evidence.

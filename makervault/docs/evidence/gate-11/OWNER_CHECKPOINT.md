@@ -1,11 +1,12 @@
 # Gate 11 Owner Checkpoint
 
-**Status:** Awaiting owner decision
+**Status:** Accepted without amendment
 
 **Prepared:** 2026-08-31
 
-No authentication schema or implementation work is authorized until this package
-is accepted or amended.
+**Accepted:** 2026-08-31
+
+The owner accepted this package without amendment and authorized subgate 11A only.
 
 ## Recommended decision package
 
@@ -128,4 +129,7 @@ OIDC, public registration, hosted tenancy, push, release, deployment, or publica
 
 ## Owner decision
 
-Pending.
+Accepted without amendment on 2026-08-31. ADR 0018 is accepted and subgate 11A is
+authorized. Multiple active users, roles/permission enforcement, cookie sessions,
+administration/audit/recovery, MFA, API keys, OIDC, public registration, hosted
+tenancy, push, release, deployment, and publication remain unauthorized.

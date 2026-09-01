@@ -1,8 +1,10 @@
 # ADR 0018: Shared-vault identity and authorization
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Proposed:** 2026-08-31
+
+**Accepted:** 2026-08-31
 
 ## Context
 
@@ -19,7 +21,7 @@ choosing shared versus private semantics would force a high-risk migration acros
 Folders, Artifacts, Revisions, Files, Projects, relationships, Machines, Trash,
 downloads, exports, imports, handoffs, and recovery.
 
-## Proposed decision
+## Decision
 
 Treat one installation as one shared vault. Add persistent users and exactly three
 initial roles—Administrator, Member, and Viewer—mapped to stable server-side
@@ -100,4 +102,4 @@ sessions before exposure; `.mvault` clean restore bootstraps a new local admin.
 
 Private objects, multiple tenants, hosted customers, external identity as the only
 login, or custom roles require a new ADR and migration/recovery model. Owner approval
-of the Gate 11 checkpoint is required before this ADR becomes Accepted.
+of the Gate 11 checkpoint is required before this ADR is superseded.
