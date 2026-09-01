@@ -2,7 +2,9 @@
 
 **Date:** 2026-08-31
 
-**Status:** Verified; owner closeout pending
+**Status:** Accepted; Gate complete
+
+**Accepted:** 2026-08-31
 
 ## Delivered
 
@@ -71,3 +73,11 @@ All work remains local. Owner closeout does not itself authorize push, tag, rele
 deployment, publication, provider connection, key handling, browser orchestration,
 merge/live import, or Gate 11. Each requires its own direction under the
 architecture runbook.
+
+## Owner decision
+
+Accepted on 2026-08-31 when the owner directed the project to open Gate 11. Gate
+10's format, workflow, compatibility, local-provider, clean-import, encryption,
+and S3-deferral boundaries are now closed evidence. That direction opens Gate 11
+discovery and its policy checkpoint only; it does not authorize authentication
+schema or implementation work.

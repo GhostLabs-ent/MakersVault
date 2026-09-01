@@ -233,7 +233,8 @@ be made explicit before deployment boundaries are multiplied.
 | T-037 | `VERIFIED` | Local Gates 10A–10B define dependency-free, independently verifiable `.mvault` v1 and a capability-explicit local `ContentStore`; the stopped schema-12 exporter streams and hashes complete managed content, records external truth, independently verifies output, and publishes create-if-absent without changing the raw backup contract. | `docs/MVAULT_FORMAT_V1.md`, `docs/evidence/gate-10/SUBGATE_10A_RESULTS.md`, `docs/evidence/gate-10/SUBGATE_10B_RESULTS.md` | 10A–10B are owner-accepted. No object-store driver or live export is authorized. |
 | T-038 | `VERIFIED` | Local Gate 10C imports independently verified `.mvault` v1 archives only into absent or compatible empty schema-12 targets, reconstructs records and streamed bytes in isolation, assigns SHA-256-derived provider-safe keys, marks external references unavailable, audits the staged pair, and publishes storage first/SQLite last behind a restart-safe rollback journal. | `api/mvault_import.py`, `docs/evidence/gate-10/SUBGATE_10C_RESULTS.md`, focused restore regressions | Owner accepted Gate 10C and authorized 10D on 2026-08-31. Merge/replacement/live import, S3, application key custody, and publication remain unauthorized. |
 | T-039 | `VERIFIED` | Local Gate 10D defines a source-owned offline export/verify/import workflow with canonical phase progress on stderr, JSON results and content/external summaries on stdout, stable cancellation exits, and a documented standard `age` v1 outer-envelope workflow whose identities remain entirely user-owned. | `docs/PORTABLE_VAULT_WORKFLOW.md`, `docs/evidence/gate-10/SUBGATE_10D_RESULTS.md`, CLI workflow regressions | Owner accepted Gate 10D and authorized 10E on 2026-08-31. No application cryptography/key custody, browser job orchestration, S3, live/merge import, or publication is authorized. |
-| T-040 | `VERIFIED` | Gate 10E's 1,200-Artifact mixed drill verifies 8,452 logical records and 3,479 managed files including a 64 MiB incompressible payload, then clean-restores/re-exports 3,790 portable members with semantic/byte equality; export, verify, import, and re-export each stay below 68 MiB peak RSS. Pinned `.mvault` v1 and legacy/current raw format-1 backup contracts pass, capacity/interruption behavior is explicit, and the remote-provider evaluation is no-go. | `docs/evidence/gate-10/SUBGATE_10E_RESULTS.md`, portable scale drill, failure matrix, provider evaluation | Gate 10E and Gate 10 await owner closeout. No S3 implementation, provider credentials, merge/live import, key custody, publication, or Gate 11 is authorized. |
+| T-040 | `VERIFIED` | Gate 10E's 1,200-Artifact mixed drill verifies 8,452 logical records and 3,479 managed files including a 64 MiB incompressible payload, then clean-restores/re-exports 3,790 portable members with semantic/byte equality; export, verify, import, and re-export each stay below 68 MiB peak RSS. Pinned `.mvault` v1 and legacy/current raw format-1 backup contracts pass, capacity/interruption behavior is explicit, and the remote-provider evaluation is no-go. | `docs/evidence/gate-10/SUBGATE_10E_RESULTS.md`, portable scale drill, failure matrix, provider evaluation | Owner accepted and closed Gate 10 on 2026-08-31. S3, provider credentials, merge/live import, application key custody, and publication remain unauthorized. |
+| T-041 | `VERIFIED` | Gate 11 opens from one environment-configured administrator, direct constant-time password comparison, process-local throttling, renewable 12-hour HS256 bearer JWTs, browser `sessionStorage` and query-token compatibility, no persistent User/Session/Role/AuditEvent, and one globally shared content graph. | `api/auth.py`, `api/login_security.py`, `api/main.py`, `api/models.py`, web auth client, `docs/evidence/gate-11/BASELINE.md` | Gate 11 is open for policy approval only. Schema and implementation remain unauthorized until tenancy, roles, enrollment, session, recovery, audit, and portability decisions are accepted. |
 
 ### 5.4 Current storage invariants
 
@@ -865,7 +866,7 @@ verified at `002a5e7` and accepted on 2026-08-31.
 
 ### Gate 10 — Deliver portable backup and storage abstraction
 
-**Current execution:** `IN PROGRESS — GATE 10 OWNER CLOSEOUT`. Gate 9 was accepted
+**Current execution:** `COMPLETE — ACCEPTED 2026-08-31`. Gate 9 was accepted
 and the owner authorized Gate 10 to begin on 2026-08-31. Current backup, export,
 import, storage, and recovery truth plus the proposed 10A–10E sequence are recorded
 in [the Gate 10 baseline](evidence/gate-10/BASELINE.md). The archive compatibility,
@@ -886,9 +887,9 @@ standard encryption boundary. Gate 10D was implemented, verified, and accepted i
 authorized 10E on 2026-08-31 for scale, compatibility, recovery, documentation,
 storage-provider evaluation, and Gate 10 closeout evidence. Gate 10E is now
 implemented and verified in [the 10E results](evidence/gate-10/SUBGATE_10E_RESULTS.md),
-and consolidated [Gate 10 results](evidence/gate-10/RESULTS.md) are at the owner
-closeout checkpoint. Merge restore, S3 implementation, application key custody,
-live-instance import, and Gate 11 remain unopened.
+and consolidated [Gate 10 results](evidence/gate-10/RESULTS.md) were accepted by
+the owner on 2026-08-31. Merge restore, S3 implementation, application key custody,
+and live-instance import remain unopened. Gate 11 discovery was separately opened.
 
 **Objective:** Make the vault independently verifiable and restorable before any
 managed backup offering.
@@ -912,6 +913,18 @@ whether S3 support enters this gate.
 new vault state.
 
 ### Gate 11 — Evolve authentication deliberately
+
+**Current execution:** `OPEN — OWNER POLICY CHECKPOINT`. Gate 10 was accepted and
+the owner directed Gate 11 to open on 2026-08-31. The current identity, token,
+browser, route, ownership, audit, backup, and recovery truth plus the proposed
+11A–11E+ sequence are recorded in
+[the Gate 11 baseline](evidence/gate-11/BASELINE.md). The recommended shared-vault
+tenancy, three fixed roles, admin-created enrollment, Argon2id bootstrap,
+revocable cookie sessions, stopped-instance recovery, audit, and portability
+decisions await owner approval in
+[the Gate 11 checkpoint](evidence/gate-11/OWNER_CHECKPOINT.md). Proposed
+[ADR 0018](adr/0018-shared-vault-identity-and-authorization.md) remains Proposed.
+No schema or authentication implementation is authorized yet.
 
 **Objective:** Add multiple users only when authorization, recovery, and auditing
 can be treated as a coherent system.
@@ -1114,7 +1127,9 @@ The initial required ADR queue is:
 8. Trash retention and permanent deletion.
 9. Existing-Asset to Project/Artifact migration.
 10. Portable archive compatibility and encryption boundary.
-11. Multi-user tenancy and authorization model.
+11. Multi-user tenancy and authorization model — proposed as
+    [ADR 0018](adr/0018-shared-vault-identity-and-authorization.md); owner decision
+    pending.
 
 An ADR describes a decision; it does not replace implementation evidence.
 
@@ -1166,9 +1181,8 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Review the consolidated [Gate 10 results](evidence/gate-10/RESULTS.md) and
-[10E closeout evidence](evidence/gate-10/SUBGATE_10E_RESULTS.md). Accept or amend
-Gate 10 at the owner checkpoint before opening Gate 11. Keep the
+Review and accept or amend the
+[Gate 11 owner checkpoint](evidence/gate-11/OWNER_CHECKPOINT.md) before schema 13
+or authentication implementation. Approval authorizes 11A only. Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
-disabled by default; it is not part of Gate 10 or an authorization dependency for
-Gate 11.
+disabled by default; it is not part of Gate 11.

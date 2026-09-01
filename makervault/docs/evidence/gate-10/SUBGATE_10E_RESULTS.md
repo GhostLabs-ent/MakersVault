@@ -2,7 +2,9 @@
 
 **Date:** 2026-08-31
 
-**Status:** Verified; owner acceptance and Gate 10 closeout pending
+**Status:** Accepted; Gate 10 closed
+
+**Accepted:** 2026-08-31
 
 **Scope:** Portable-vault scale, semantic equality, compatibility, interruption,
 failure documentation, and storage-provider evaluation only
@@ -116,9 +118,10 @@ handle an encryption key, deploy, tag, release, or publish anything.
 
 ## Gate boundary and next decision
 
-Gate 10E and Gate 10 are stopped at the owner closeout checkpoint. Acceptance would
-freeze `.mvault` v1, the local `ContentStore`, offline operator/encryption boundary,
+Gate 10E and Gate 10 were accepted by the owner on 2026-08-31. Acceptance freezes
+`.mvault` v1, the local `ContentStore`, offline operator/encryption boundary,
 clean-instance restore, scale/compatibility evidence, and the S3 no-go decision.
-Gate 11, any provider implementation, built-in key custody, merge/live import,
-browser job orchestration, push, tag, release, deployment, and publication remain
-separately unauthorized.
+Any provider implementation, built-in key custody, merge/live import, browser job
+orchestration, push, tag, release, deployment, and publication remain unauthorized.
+The owner's next direction opened only Gate 11's discovery and policy checkpoint;
+Gate 11 schema and implementation remain separately gated.

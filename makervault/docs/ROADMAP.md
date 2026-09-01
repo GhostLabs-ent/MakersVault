@@ -227,6 +227,14 @@ Each stage needs migrations, auditability, recovery, and threat-focused tests.
 Multi-user authentication should not be slipped into an unrelated release as a
 small settings feature.
 
+**Current status (2026-08-31):** Gate 10 is accepted and Gate 11 is open for its
+architecture decision only. The proposed
+[Gate 11 baseline](evidence/gate-11/BASELINE.md) keeps one installation as a shared
+vault, introduces persistent identity and revocable sessions before roles, and
+leaves MFA, API keys, and OIDC/SSO as later sequential checkpoints. No Gate 11
+schema or implementation is authorized until the
+[owner policy package](evidence/gate-11/OWNER_CHECKPOINT.md) is accepted or amended.
+
 ## Explicitly deprioritized
 
 - Print-farm routing and scheduling.
