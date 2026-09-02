@@ -1,6 +1,7 @@
 import { authHeaders, sessionFetch, setSessionCsrfToken } from "./auth";
 import { loadSettings } from "./settings";
 import { GeneralHandoffGrant, HandoffContentRole, HandoffGrant, HandoffTool } from "./handoff";
+import type { VaultRole } from "./capabilities";
 
 export class UnauthorizedError extends Error {
   constructor(message = "Unauthorized") {
@@ -1392,6 +1393,8 @@ export function getApiBase() {
 
 export type LoginResult = {
   authenticated: boolean;
+  role: VaultRole;
+  permissions: string[];
   csrf_token: string;
   expires_in: number;
   absolute_expires_at: number;
@@ -1401,6 +1404,8 @@ export type SessionStatus = {
   authenticated: boolean;
   session_id: string;
   username: string;
+  role: VaultRole;
+  permissions: string[];
   csrf_token: string;
   idle_expires_at: number;
   absolute_expires_at: number;

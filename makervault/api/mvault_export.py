@@ -28,7 +28,7 @@ from mvault_verify import (
 )
 
 
-SUPPORTED_SCHEMA_VERSIONS = frozenset({12, 13, 14})
+SUPPORTED_SCHEMA_VERSIONS = frozenset({12, 13, 14, 15})
 CHUNK_BYTES = 1024 * 1024
 DEFAULT_BATCH_SIZE = 500
 DEFAULT_STORAGE_TEMPLATE = "{folder}/{model}/{filename}"

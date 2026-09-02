@@ -31,6 +31,8 @@ import { entriesFromDataTransfer, uploadEntriesToFolder } from "../lib/uploadTre
 import { buildUploadEntriesFromZip, isZipFile, readZipEntries } from "../lib/zipUtils";
 import TagInput from "./TagInput";
 import { useZipImportPrompt } from "./ZipImportModal";
+import { useVaultCapabilities } from "../lib/CapabilityContext";
+import type { VaultRole } from "../lib/capabilities";
 
 type Props = {
   selectedId?: string | null;
@@ -47,6 +49,7 @@ type Props = {
   onSelectProjectUnassigned?: () => void;
   projectsVersion?: number;
   onProjectsChanged?: () => void;
+  role: VaultRole;
 };
 
 const DROP_ALL_ID = "__all";
@@ -66,7 +69,9 @@ export default function Sidebar({
   onSelectProjectUnassigned,
   projectsVersion,
   onProjectsChanged,
+  role,
 }: Props) {
+  const capabilities = useVaultCapabilities();
   const [folders, setFolders] = useState<Folder[]>([]);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
@@ -494,8 +499,8 @@ export default function Sidebar({
         <div
           className={`sidebar-tree-row ${isSelected ? "is-selected" : ""} ${isDropTarget ? "is-drop-target" : ""}`}
           style={{ paddingLeft: 10 }}
-          onDragOver={handleDragOverTarget(folder.id)}
-          onDrop={handleDropFiles(folder.id)}
+          onDragOver={capabilities.manageContent ? handleDragOverTarget(folder.id) : undefined}
+          onDrop={capabilities.manageContent ? handleDropFiles(folder.id) : undefined}
         >
           {children.length ? (
             <button
@@ -528,20 +533,20 @@ export default function Sidebar({
                 <MoreHorizontal className="h-4 w-4" />
               </summary>
               <div className="sidebar-folder-menu">
-                <button
+                {capabilities.manageContent && <button
                   className="sidebar-menu-item"
                   disabled={busy}
                   onClick={(e) => { closeFolderMenu(e); startCreate(folder.id); }}
                 >
                   <FolderPlus className="h-4 w-4" /> Subfolder
-                </button>
-                <button
+                </button>}
+                {capabilities.manageContent && <button
                   className="sidebar-menu-item"
                   disabled={busy}
                   onClick={(e) => { closeFolderMenu(e); startEdit(folder); }}
                 >
                   <Pencil className="h-4 w-4" /> Rename &amp; edit
-                </button>
+                </button>}
                 <button
                   className="sidebar-menu-item"
                   disabled={busy}
@@ -549,13 +554,13 @@ export default function Sidebar({
                 >
                   <Download className="h-4 w-4" /> Download ZIP
                 </button>
-                <button
+                {capabilities.manageContent && <button
                   className="sidebar-menu-item sidebar-menu-danger"
                   disabled={busy}
                   onClick={(e) => { closeFolderMenu(e); remove(folder.id); }}
                 >
                   <Trash2 className="h-4 w-4" /> Delete
-                </button>
+                </button>}
               </div>
             </details>
           </div>
@@ -572,9 +577,9 @@ export default function Sidebar({
   return (
     <aside
       className="sidebar-shell"
-      onDragOver={handleSidebarDragOver}
-      onDragLeave={handleSidebarDragLeave}
-      onDrop={handleSidebarDrop}
+      onDragOver={capabilities.manageContent ? handleSidebarDragOver : undefined}
+      onDragLeave={capabilities.manageContent ? handleSidebarDragLeave : undefined}
+      onDrop={capabilities.manageContent ? handleSidebarDrop : undefined}
     >
       <div className="sidebar-header">
         <div className="min-w-0">
@@ -584,10 +589,10 @@ export default function Sidebar({
             <span className="sidebar-count" title={`${projects.length} loaded Projects`}>{projects.length}</span>
           </div>
         </div>
-        <button className="sidebar-new-button" onClick={() => setCreatingProject(true)} title="New Project">
+        {capabilities.manageContent && <button className="sidebar-new-button" onClick={() => setCreatingProject(true)} title="New Project">
           <Plus className="h-4 w-4" />
           <span>Project</span>
-        </button>
+        </button>}
       </div>
 
       <div className="min-h-0 max-h-[42%] overflow-y-auto overflow-x-hidden border-b border-panel pb-3 pr-0.5" aria-label="Projects">
@@ -626,7 +631,7 @@ export default function Sidebar({
         </div>
       </div>
 
-      {creatingProject && (
+      {capabilities.manageContent && creatingProject && (
         <div className="sidebar-editor" role="dialog" aria-label="Create Project">
           <div className="sidebar-editor-heading">
             <span className="sidebar-editor-icon"><Layers3 className="h-4 w-4" /></span>
@@ -657,8 +662,8 @@ export default function Sidebar({
         <button
           className={`sidebar-all-items ${activeView === "library" && !selectedId ? "is-selected" : ""} ${dropTargetId === DROP_ALL_ID ? "is-drop-target" : ""}`}
           onClick={() => onSelect(null)}
-          onDragOver={handleDragOverTarget(DROP_ALL_ID)}
-          onDrop={handleDropFiles(null)}
+          onDragOver={capabilities.manageContent ? handleDragOverTarget(DROP_ALL_ID) : undefined}
+          onDrop={capabilities.manageContent ? handleDropFiles(null) : undefined}
         >
           <span className="sidebar-all-icon"><Layers3 className="h-4 w-4" /></span>
           <span className="flex-1 text-left">All files</span>
@@ -669,14 +674,14 @@ export default function Sidebar({
           <span>Folders</span>
           <span className="flex items-center gap-2">
             <span>{visibleFolderIds ? visibleFolderIds.size : folders.length}</span>
-            <button
+            {capabilities.manageContent && <button
               type="button"
               className="inline-flex items-center gap-1 rounded px-1.5 py-1 normal-case tracking-normal hover:bg-panel-soft hover:text-foreground"
               onClick={() => startCreate(null)}
               title="New root folder"
             >
               <FolderPlus className="h-3.5 w-3.5" /> New
-            </button>
+            </button>}
           </span>
         </div>
 
@@ -686,7 +691,7 @@ export default function Sidebar({
             <div className="sidebar-empty">
               <FolderPlus className="h-5 w-5" />
               <span>No folders yet</span>
-              <button onClick={() => startCreate(null)}>Create your first folder</button>
+              {capabilities.manageContent && <button onClick={() => startCreate(null)}>Create your first folder</button>}
             </div>
           )}
           {!!folders.length && visibleFolderIds?.size === 0 && (
@@ -699,7 +704,7 @@ export default function Sidebar({
         </div>
       </nav>
 
-      {creating && (
+      {capabilities.manageContent && creating && (
         <div className="sidebar-editor" role="dialog" aria-label="Create folder">
           <div className="sidebar-editor-heading">
             <span className="sidebar-editor-icon"><FolderPlus className="h-4 w-4" /></span>
@@ -734,7 +739,7 @@ export default function Sidebar({
         </div>
       )}
 
-      {editing && (
+      {capabilities.manageContent && editing && (
         <div className="sidebar-editor" role="dialog" aria-label="Edit folder">
           <div className="sidebar-editor-heading">
             <span className="sidebar-editor-icon"><Pencil className="h-4 w-4" /></span>
@@ -772,7 +777,7 @@ export default function Sidebar({
       )}
 
       <div className="sidebar-footer">
-        <button
+        {capabilities.openTrash && <button
           type="button"
           onClick={onOpenTrash}
           className={`sidebar-settings ${activeView === "trash" ? "is-selected" : ""}`}
@@ -780,7 +785,7 @@ export default function Sidebar({
         >
           <Trash2 className="h-4 w-4" />
           <span>Trash</span>
-        </button>
+        </button>}
         <button
           type="button"
           onClick={onOpenSettings}
@@ -790,6 +795,7 @@ export default function Sidebar({
           <SettingsIcon className="h-4 w-4" />
           <span>Settings</span>
         </button>
+        <span className="sidebar-count" title="Current shared-vault role">{role}</span>
       </div>
       {zipPrompt.modal}
     </aside>

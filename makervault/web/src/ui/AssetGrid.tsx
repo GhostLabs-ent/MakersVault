@@ -55,6 +55,7 @@ import { useZipImportPrompt } from "./ZipImportModal";
 import { buildFolderTrail, mutateTags, selectionAfterSuccess, type TagMutationMode } from "../lib/organization";
 import { machineCategoryLabel, shouldLoadMachineContext } from "../lib/machineContext";
 import MachineContextPanel from "./MachineContextPanel";
+import { useVaultCapabilities } from "../lib/CapabilityContext";
 
 function extOf(name: string) {
   const m = /\.([^.]+)$/.exec(name);
@@ -148,6 +149,7 @@ export default function AssetGrid({
   previewSettings,
   theme,
 }: Props) {
+  const capabilities = useVaultCapabilities();
   const [items, setItems] = useState<Asset[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -875,7 +877,7 @@ export default function AssetGrid({
 
   const bulkBusy = Boolean(bulkStatus && !bulkStatus.done);
 
-  const showDropOverlay = dragActive || dropUploading;
+  const showDropOverlay = capabilities.manageContent && (dragActive || dropUploading);
   const dropMessage = dropUploading
     ? `Uploading to ${dropTargetName}...`
     : `Drop files or folders to upload to ${dropTargetName}`;
@@ -883,10 +885,10 @@ export default function AssetGrid({
   return (
     <div
       className="relative"
-      onDragEnter={handleDragEnter}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+      onDragEnter={capabilities.manageContent ? handleDragEnter : undefined}
+      onDragOver={capabilities.manageContent ? handleDragOver : undefined}
+      onDragLeave={capabilities.manageContent ? handleDragLeave : undefined}
+      onDrop={capabilities.manageContent ? handleDrop : undefined}
     >
       {showDropOverlay && (
         <div className="absolute inset-0 z-40 flex items-center justify-center rounded-lg border-2 border-dashed border-accent bg-panel-overlay pointer-events-none">
@@ -1067,22 +1069,22 @@ export default function AssetGrid({
               Clear
             </button>
             <span className="mx-1 hidden h-6 w-px bg-[color:var(--mv-border)] sm:block" aria-hidden="true" />
-            <button
+            {capabilities.manageContent && <button
               type="button"
               className="inline-flex items-center gap-1.5 rounded-md border border-panel-strong px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
               onClick={() => { setBulkPanel(bulkPanel === "move" ? null : "move"); setBulkStatus(null); }}
               disabled={bulkBusy}
             >
               <FolderInput className="h-3.5 w-3.5" aria-hidden="true" /> Move
-            </button>
-            <button
+            </button>}
+            {capabilities.manageContent && <button
               type="button"
               className="inline-flex items-center gap-1.5 rounded-md border border-panel-strong px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
               onClick={() => { setBulkPanel(bulkPanel === "tags" ? null : "tags"); setBulkStatus(null); }}
               disabled={bulkBusy}
             >
               <TagsIcon className="h-3.5 w-3.5" aria-hidden="true" /> Tags
-            </button>
+            </button>}
             <button
               type="button"
               className="inline-flex items-center gap-1.5 rounded-md border border-panel-strong px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
@@ -1092,7 +1094,7 @@ export default function AssetGrid({
               <DownloadIcon className="h-3.5 w-3.5" aria-hidden="true" />
               {bulkDownloading ? "Preparing…" : "Download"}
             </button>
-            {projectId && (
+            {capabilities.manageContent && projectId && (
               <button
                 type="button"
                 className="inline-flex items-center gap-1.5 rounded-md border border-panel-strong px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
@@ -1102,17 +1104,17 @@ export default function AssetGrid({
                 <FolderMinus className="h-3.5 w-3.5" aria-hidden="true" /> Remove from Project
               </button>
             )}
-            <button
+            {capabilities.manageContent && <button
               type="button"
               className="inline-flex items-center gap-1.5 rounded-md border border-red-300 px-2.5 py-1.5 text-xs font-medium text-red-700 disabled:opacity-50 dark:text-red-300"
               onClick={deleteSelected}
               disabled={bulkBusy || Boolean(deletingId)}
             >
               <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> Delete…
-            </button>
+            </button>}
           </div>
 
-          {bulkPanel === "move" && (
+          {capabilities.manageContent && bulkPanel === "move" && (
             <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-panel pt-3">
               <label className="flex min-w-[260px] flex-1 flex-col gap-1 text-xs font-medium">
                 Destination for {selectedIds.size} selected model{selectedIds.size === 1 ? "" : "s"}
@@ -1135,7 +1137,7 @@ export default function AssetGrid({
             </div>
           )}
 
-          {bulkPanel === "tags" && (
+          {capabilities.manageContent && bulkPanel === "tags" && (
             <div className="mt-3 flex flex-col gap-2 border-t border-panel pt-3">
               <div className="flex flex-wrap items-center gap-2">
                 <select
@@ -1166,7 +1168,7 @@ export default function AssetGrid({
             </div>
           )}
 
-          {bulkPanel === "delete" && selectedIds.size > 1 && (
+          {capabilities.manageContent && bulkPanel === "delete" && selectedIds.size > 1 && (
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-panel bg-panel-soft p-3 text-sm">
               <div>
                 <div className="font-semibold">Move {selectedIds.size} models to Trash?</div>
@@ -1333,7 +1335,7 @@ export default function AssetGrid({
         <AssetPreviewModal
           asset={previewItem}
           theme={theme}
-          onAssetChanged={replaceAsset}
+          onAssetChanged={capabilities.manageContent ? replaceAsset : undefined}
           onContextChanged={() => void refresh()}
           onUnauthorized={onUnauthorized}
           onClose={() => setPreviewItem(null)}
@@ -1430,6 +1432,7 @@ const AssetCard = React.memo(function AssetCard({
   previewMode: PreviewSettings["mode"];
   onAssetChanged: (asset: Asset) => void;
 }) {
+  const capabilities = useVaultCapabilities();
   const [editingTags, setEditingTags] = useState(false);
   const [tagList, setTagList] = useState<string[]>(item.tags);
   const [editingNotes, setEditingNotes] = useState(false);
@@ -1701,13 +1704,19 @@ const AssetCard = React.memo(function AssetCard({
         title="Double-click to open large preview"
         onClick={e => e.stopPropagation()}
       >
-        {renderPreviewContent(item, "card", theme, previewMode, onAssetChanged)}
+        {renderPreviewContent(
+          item,
+          "card",
+          theme,
+          previewMode,
+          capabilities.manageContent ? onAssetChanged : undefined,
+        )}
       </div>
       <div className="p-3 flex flex-col gap-2">
         {item.prepared_print && (
           <PreparedPrintSummary
             prepared={item.prepared_print}
-            onClear={item.prepared_print.removable ? clearPreparedPrint : undefined}
+            onClear={capabilities.manageContent && item.prepared_print.removable ? clearPreparedPrint : undefined}
             clearing={preparedClearing}
           />
         )}
@@ -1778,7 +1787,7 @@ const AssetCard = React.memo(function AssetCard({
           <select
             value={item.folder_id || ""}
             onChange={handleFolderChange}
-            disabled={moving}
+            disabled={moving || !capabilities.manageContent}
             className="px-2 py-1 rounded-md border border-panel-strong bg-panel-strong text-sm"
           >
             {folderOptions.map(opt => (
@@ -1791,7 +1800,11 @@ const AssetCard = React.memo(function AssetCard({
         <div
           className="text-sm font-medium truncate cursor-text"
           title={`${item.name} · ${item.filename}`}
-          onDoubleClick={e => { e.stopPropagation(); setRenaming(true); }}
+          onDoubleClick={e => {
+            if (!capabilities.manageContent) return;
+            e.stopPropagation();
+            setRenaming(true);
+          }}
           onClick={e => renaming && e.stopPropagation()}
         >
           {renaming ? (
@@ -1835,7 +1848,7 @@ const AssetCard = React.memo(function AssetCard({
                 {item.supporting_file_count || 0}
               </span>
             </button>
-            <>
+            {capabilities.manageContent && <>
               <input
                 ref={relatedInputRef}
                 type="file"
@@ -1853,11 +1866,11 @@ const AssetCard = React.memo(function AssetCard({
               >
                 {filesUploading ? "Adding..." : "Add files"}
               </button>
-            </>
+            </>}
           </div>
           {filesExpanded && (
             <div className="border-t border-panel px-2 py-2">
-              <label className="mb-2 flex items-start gap-2 text-xs text-muted">
+              {capabilities.manageContent && <label className="mb-2 flex items-start gap-2 text-xs text-muted">
                 <input
                   type="checkbox"
                   checked={scopeFilesToVersion}
@@ -1868,7 +1881,7 @@ const AssetCard = React.memo(function AssetCard({
                   Attach documentation to the current version only
                   <span className="block text-[11px] text-subtle">Leave off for files that apply to the whole model.</span>
                 </span>
-              </label>
+              </label>}
               {filesLoading ? (
                 <div className="text-xs text-muted">Loading files...</div>
               ) : supportingFiles.length ? (
@@ -1898,13 +1911,13 @@ const AssetCard = React.memo(function AssetCard({
                             Open with {generalAdapterFor(file.filename)?.label}
                           </button>
                         )}
-                        <button
+                        {capabilities.manageContent && <button
                           type="button"
                           className="text-[11px] text-red-700 dark:text-red-300"
                           onClick={() => removeRelatedFile(file)}
                         >
                           Remove
-                        </button>
+                        </button>}
                       </div>
                     </div>
                   ))}
@@ -1939,7 +1952,7 @@ const AssetCard = React.memo(function AssetCard({
           </div>
           {historyExpanded && (
             <div className="space-y-2 border-t border-panel px-2 py-2">
-              <div className="flex gap-2">
+              {capabilities.manageContent && <div className="flex gap-2">
                 <input
                   value={revisionNote}
                   onChange={event => setRevisionNote(event.target.value)}
@@ -1961,7 +1974,7 @@ const AssetCard = React.memo(function AssetCard({
                 >
                   {revisionUploading ? "Adding..." : "Add version"}
                 </button>
-              </div>
+              </div>}
               {historyLoading ? (
                 <div className="text-xs text-muted">Loading versions...</div>
               ) : revisions.length ? (
@@ -2002,7 +2015,7 @@ const AssetCard = React.memo(function AssetCard({
                               Open with {generalAdapterFor(revision.filename)?.label}
                             </button>
                           )}
-                          {!revision.is_current && revision.content_state === "ready" && (
+                          {capabilities.manageContent && !revision.is_current && revision.content_state === "ready" && (
                             <button
                               type="button"
                               className="text-blue-700 disabled:opacity-60 dark:text-blue-300"
@@ -2078,12 +2091,12 @@ const AssetCard = React.memo(function AssetCard({
                   <div className={`text-sm whitespace-pre-wrap ${noteText ? "text-foreground" : "opacity-60"}`}>
                     {noteText || "Add notes"}
                   </div>
-                  <button
+                  {capabilities.manageContent && <button
                     className="self-start text-xs px-2 py-1 rounded-md border border-panel-strong"
                     onClick={() => setEditingNotes(true)}
                   >
                     Edit details
-                  </button>
+                  </button>}
                 </>
               )}
             </>
@@ -2097,7 +2110,7 @@ const AssetCard = React.memo(function AssetCard({
           )}
         </div>
 
-        {editingTags ? (
+        {capabilities.manageContent && editingTags ? (
           <div className="flex flex-col gap-2">
             <TagInput
               value={tagList}
@@ -2109,7 +2122,7 @@ const AssetCard = React.memo(function AssetCard({
               <button className="text-sm px-3 py-1 rounded-md border border-panel-strong" onClick={cancelEditing}>Cancel</button>
             </div>
           </div>
-        ) : (
+        ) : capabilities.manageContent ? (
           <div className="flex items-center gap-2 flex-wrap">
             <button className="text-sm px-2 py-1 rounded-md border border-panel-strong" onClick={startEditing}>Edit tags</button>
             <button
@@ -2120,7 +2133,7 @@ const AssetCard = React.memo(function AssetCard({
               {deleting ? "Deleting..." : "Delete"}
             </button>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -2218,7 +2231,7 @@ function renderPreviewContent(
         <ModelSnapshot
           url={assetUrl}
           ext={ext}
-          assetId={asset.id}
+          assetId={onAssetChanged ? asset.id : undefined}
           theme={theme}
           mode={previewMode}
           previewStatus={asset.preview_status || "pending"}
@@ -2234,7 +2247,7 @@ function renderPreviewContent(
       return (
         <LightBurnPreview
           url={assetUrl}
-          assetId={asset.id}
+          assetId={onAssetChanged ? asset.id : undefined}
           byteSize={asset.size}
           filename={asset.filename}
           imgClass={imgClass}
@@ -2258,7 +2271,7 @@ function renderPreviewContent(
         key={`${variant}-${asset.id}`}
         url={assetUrl}
         ext={ext}
-        assetId={asset.id}
+        assetId={onAssetChanged ? asset.id : undefined}
         assetSize={asset.size}
         requireConfirmation={asset.preview_status === "skipped_policy"}
         theme={theme}
@@ -2273,7 +2286,7 @@ function renderPreviewContent(
     return (
       <LightBurnPreview
         url={assetUrl}
-        assetId={asset.id}
+        assetId={onAssetChanged ? asset.id : undefined}
         byteSize={asset.size}
         filename={asset.filename}
         imgClass={imgClass}

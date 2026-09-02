@@ -136,7 +136,9 @@ machine recovery commands.
 - No manual thumbnail uploads.
 - No visible G-code browser or ordinary prepared G-code download workflow.
 - No slicing, printer control, telemetry, or print-farm scheduling.
-- No multi-user accounts, roles, MFA, API keys, or OIDC in v5.1.
+- Fixed shared-vault roles and deny-by-default permissions are present, but account
+  administration, MFA, API keys, OIDC, private libraries, and per-object ACLs remain
+  gated.
 - Permanent multi-model deletion remains constrained until Trash and restore exist.
 - **Select every server match** remains deferred until a server-side bulk contract
   can avoid loading thousands of IDs into the browser.

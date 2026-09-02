@@ -18,6 +18,7 @@ import {
   MACHINE_PERMANENT_CONFIRMATION,
   machineCategoryLabel,
 } from "../lib/machineContext";
+import { useVaultCapabilities } from "../lib/CapabilityContext";
 
 
 type Props = {
@@ -62,10 +63,11 @@ export default function MachineSettings({
   onAssetsChanged,
   onUnauthorized,
 }: Props) {
+  const capabilities = useVaultCapabilities();
   const [machines, setMachines] = React.useState<Machine[]>([]);
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState<MachineCategory | "">("");
-  const [includeArchived, setIncludeArchived] = React.useState(true);
+  const [includeArchived, setIncludeArchived] = React.useState(capabilities.manageContent);
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [busyId, setBusyId] = React.useState<string | null>(null);
@@ -200,7 +202,7 @@ export default function MachineSettings({
         </p>
       </div>
 
-      <section className="rounded-lg border border-panel bg-panel-soft p-4">
+      {capabilities.manageContent && <section className="rounded-lg border border-panel bg-panel-soft p-4">
         <h3 className="font-semibold">{editingId ? "Edit Machine" : "Add Machine"}</h3>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm"><span>Name</span><input className="rounded-md border border-panel-strong bg-panel px-3 py-2" value={form.name} maxLength={200} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} /></label>
@@ -214,13 +216,13 @@ export default function MachineSettings({
           <button className="rounded-md bg-accent px-3 py-2 text-sm disabled:opacity-50" disabled={saving || !form.name.trim()} onClick={() => void save()}>{saving ? "Saving…" : editingId ? "Save changes" : "Add Machine"}</button>
           {editingId && <button className="rounded-md border border-panel-strong px-3 py-2 text-sm" onClick={resetForm}>Cancel</button>}
         </div>
-      </section>
+      </section>}
 
       <section className="rounded-lg border border-panel bg-panel-soft p-4">
         <div className="flex flex-wrap items-center gap-2">
           <input className="min-w-64 flex-1 rounded-md border border-panel-strong bg-panel px-3 py-2 text-sm" placeholder="Search Machines" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === "Enter") void load(); }} />
           <select className="rounded-md border border-panel-strong bg-panel px-3 py-2 text-sm" value={category} onChange={event => setCategory(event.target.value as MachineCategory | "")}><option value="">All categories</option>{MACHINE_CATEGORIES.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}</select>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={includeArchived} onChange={event => setIncludeArchived(event.target.checked)} />Include archived</label>
+          {capabilities.manageContent && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={includeArchived} onChange={event => setIncludeArchived(event.target.checked)} />Include archived</label>}
           <button className="rounded-md border border-panel-strong px-3 py-2 text-sm" disabled={loading} onClick={() => void load()}>{loading ? "Loading…" : "Search"}</button>
         </div>
         <div className="mt-4 space-y-2">
@@ -232,9 +234,9 @@ export default function MachineSettings({
                   <p className="mt-1 text-xs text-muted">{[machine.manufacturer, machine.model, machine.location].filter(Boolean).join(" · ") || "No additional details"}</p>
                   {machine.notes && <p className="mt-2 whitespace-pre-wrap text-sm">{machine.notes}</p>}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {!machine.archived_at ? <><button className="rounded-md border border-panel-strong px-2 py-1 text-xs" disabled={busyId === machine.id} onClick={() => { setEditingId(machine.id); setForm(formFor(machine)); }}>Edit</button><button className="rounded-md border border-panel-strong px-2 py-1 text-xs" disabled={busyId === machine.id} onClick={() => void archive(machine)}>Archive</button></> : <><button className="rounded-md border border-panel-strong px-2 py-1 text-xs" disabled={busyId === machine.id} onClick={() => void restore(machine)}>Restore</button><button className="rounded-md border border-red-500/50 px-2 py-1 text-xs text-red-700 dark:text-red-300" disabled={busyId === machine.id} onClick={() => void permanentlyRemove(machine)}>Permanently delete</button></>}
-                </div>
+                {capabilities.manageContent && <div className="flex flex-wrap gap-2">
+                  {!machine.archived_at ? <><button className="rounded-md border border-panel-strong px-2 py-1 text-xs" disabled={busyId === machine.id} onClick={() => { setEditingId(machine.id); setForm(formFor(machine)); }}>Edit</button><button className="rounded-md border border-panel-strong px-2 py-1 text-xs" disabled={busyId === machine.id} onClick={() => void archive(machine)}>Archive</button></> : <><button className="rounded-md border border-panel-strong px-2 py-1 text-xs" disabled={busyId === machine.id} onClick={() => void restore(machine)}>Restore</button>{capabilities.deletePermanently && <button className="rounded-md border border-red-500/50 px-2 py-1 text-xs text-red-700 dark:text-red-300" disabled={busyId === machine.id} onClick={() => void permanentlyRemove(machine)}>Permanently delete</button>}</>}
+                </div>}
               </div>
             </article>
           ))}

@@ -19,6 +19,7 @@ import {
   PROJECT_PERMANENT_CONFIRMATION,
   projectTrashCountsLabel,
 } from "../lib/projectLifecycle";
+import { useVaultCapabilities } from "../lib/CapabilityContext";
 
 
 const RETENTION_LABELS: Record<string, string> = {
@@ -47,6 +48,7 @@ export default function TrashView({
   onUnauthorized?: () => void;
   onOpenSettings?: () => void;
 }) {
+  const capabilities = useVaultCapabilities();
   const [items, setItems] = React.useState<TrashItem[]>([]);
   const [projects, setProjects] = React.useState<ProjectTrashItem[]>([]);
   const [projectOffset, setProjectOffset] = React.useState(0);
@@ -206,14 +208,14 @@ export default function TrashView({
             Restore Project organization or models independently. Model retention never deletes Projects.
           </p>
         </div>
-        <button
+        {capabilities.emptyTrash && <button
           type="button"
           className="rounded-md border border-red-500/60 px-3 py-2 text-sm text-red-700 disabled:opacity-50 dark:text-red-300"
           disabled={!items.length || emptying || busyId !== null}
           onClick={empty}
         >
           {emptying ? "Emptying..." : "Empty Trash"}
-        </button>
+        </button>}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-panel bg-panel-soft p-3 text-sm">
@@ -222,9 +224,9 @@ export default function TrashView({
           {settings ? RETENTION_LABELS[settings.policy] : "Loading..."}
           {settings && <span className="ml-2 text-muted">· {formatBytes(settings.managed_bytes)} managed</span>}
         </div>
-        <button type="button" className="text-xs underline-offset-2 hover:underline" onClick={onOpenSettings}>
+        {capabilities.manageServerSettings && <button type="button" className="text-xs underline-offset-2 hover:underline" onClick={onOpenSettings}>
           Change in Settings
-        </button>
+        </button>}
       </div>
 
       {settings?.orphaned_quarantine.length ? (
@@ -260,14 +262,14 @@ export default function TrashView({
                     <RotateCcw className="h-3.5 w-3.5" />
                     {projectBusyId === project.id ? "Working..." : "Restore"}
                   </button>
-                  <button
+                  {capabilities.deletePermanently && <button
                     type="button"
                     className="flex items-center gap-1 rounded-md border border-red-500/60 px-2 py-1.5 text-xs text-red-700 disabled:opacity-50 dark:text-red-300"
                     disabled={projectBusyId !== null}
                     onClick={() => void permanentlyDeleteTrashedProject(project)}
                   >
                     <Trash2 className="h-3.5 w-3.5" /> Permanent delete
-                  </button>
+                  </button>}
                 </div>
               </div>
             ))}
@@ -319,14 +321,14 @@ export default function TrashView({
                   <RotateCcw className="h-3.5 w-3.5" />
                   {busyId === item.id ? "Working..." : "Restore"}
                 </button>
-                <button
+                {capabilities.deletePermanently && <button
                   type="button"
                   className="flex items-center gap-1 rounded-md border border-red-500/60 px-2 py-1.5 text-xs text-red-700 disabled:opacity-50 dark:text-red-300"
                   disabled={busyId !== null || emptying}
                   onClick={() => permanentlyDelete(item)}
                 >
                   <Trash2 className="h-3.5 w-3.5" /> Permanent delete
-                </button>
+                </button>}
               </div>
             </div>
           ))}

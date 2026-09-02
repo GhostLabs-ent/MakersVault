@@ -22,6 +22,7 @@ import { entriesFromFileList, uploadEntriesToFolder, type UploadEntry } from "..
 import { mountOwnership, mountScanStatusLabel } from "../lib/mountImport";
 import MachineSettings from "./MachineSettings";
 import SessionSettings from "./SessionSettings";
+import { useVaultCapabilities } from "../lib/CapabilityContext";
 
 type Props = {
   initialSection?: "root" | "trash";
@@ -136,6 +137,7 @@ export default function Settings({
   onUnauthorized,
   onSelectFolder,
 }: Props) {
+  const capabilities = useVaultCapabilities();
   const [section, setSection] = React.useState<Section>(initialSection);
   React.useEffect(() => {
     setSection(initialSection);
@@ -422,7 +424,7 @@ export default function Settings({
   }, [section, settings.makerworld.cookie, settings.thingiverse.cookie]);
 
   React.useEffect(() => {
-    if (section !== "imports") return;
+    if (section !== "imports" || !capabilities.manageServerSettings) return;
     let active = true;
     setMountLoading(true);
     void (async () => {
@@ -447,10 +449,10 @@ export default function Settings({
     return () => {
       active = false;
     };
-  }, [section, onUnauthorized]);
+  }, [section, onUnauthorized, capabilities.manageServerSettings]);
 
   React.useEffect(() => {
-    if (section !== "trash") return;
+    if (section !== "trash" || !capabilities.manageServerSettings) return;
     let active = true;
     setTrashLoading(true);
     setTrashMessage(null);
@@ -467,10 +469,10 @@ export default function Settings({
       })
       .finally(() => { if (active) setTrashLoading(false); });
     return () => { active = false; };
-  }, [section, onUnauthorized]);
+  }, [section, onUnauthorized, capabilities.manageServerSettings]);
 
   React.useEffect(() => {
-    if (section !== "imports" || mountScan?.status !== "running") return;
+    if (section !== "imports" || !capabilities.manageDurableJobs || mountScan?.status !== "running") return;
     let active = true;
     const poll = async () => {
       try {
@@ -502,7 +504,7 @@ export default function Settings({
       active = false;
       window.clearInterval(timer);
     };
-  }, [section, mountScan?.id, mountScan?.status, onAssetsChanged, onFoldersChanged, onUnauthorized]);
+  }, [section, mountScan?.id, mountScan?.status, onAssetsChanged, onFoldersChanged, onUnauthorized, capabilities.manageDurableJobs]);
 
   React.useEffect(() => {
     if (section !== "network") return;
@@ -510,7 +512,7 @@ export default function Settings({
   }, [section, settings.network.publicUrl]);
 
   React.useEffect(() => {
-    if (section !== "storage") return;
+    if (section !== "storage" || !capabilities.manageServerSettings) return;
     let active = true;
     setStorageLoading(true);
     setStorageStatus(null);
@@ -530,10 +532,10 @@ export default function Settings({
       }
     })();
     return () => { active = false; };
-  }, [section, onUnauthorized]);
+  }, [section, onUnauthorized, capabilities.manageServerSettings]);
 
   React.useEffect(() => {
-    if (section !== "content") return;
+    if (section !== "content" || !capabilities.manageDurableJobs) return;
     let active = true;
     setContentLoading(true);
     void getContentIdentityJob()
@@ -545,10 +547,10 @@ export default function Settings({
       })
       .finally(() => { if (active) setContentLoading(false); });
     return () => { active = false; };
-  }, [section, onUnauthorized]);
+  }, [section, onUnauthorized, capabilities.manageDurableJobs]);
 
   React.useEffect(() => {
-    if (section !== "content" || contentJob?.status !== "running") return;
+    if (section !== "content" || !capabilities.manageDurableJobs || contentJob?.status !== "running") return;
     let active = true;
     const timer = window.setInterval(() => {
       void getContentIdentityJob()
@@ -570,7 +572,7 @@ export default function Settings({
         });
     }, 1000);
     return () => { active = false; window.clearInterval(timer); };
-  }, [section, contentJob?.id, contentJob?.status, onUnauthorized]);
+  }, [section, contentJob?.id, contentJob?.status, onUnauthorized, capabilities.manageDurableJobs]);
 
   React.useEffect(() => {
     if (!makerworldEditing) {
@@ -1233,7 +1235,7 @@ export default function Settings({
           </button>
         </div>
 
-        <div className="rounded-lg border border-panel bg-panel-soft p-4 flex flex-col gap-3">
+        {capabilities.manageServerSettings && <div className="rounded-lg border border-panel bg-panel-soft p-4 flex flex-col gap-3">
           <div>
             <div className="text-lg font-semibold">Mount import (server)</div>
             <p className="text-sm opacity-70">
@@ -1331,7 +1333,7 @@ export default function Settings({
               <p className="text-xs opacity-70">No mounted-library scan has run yet.</p>
             )}
           </div>
-        </div>
+        </div>}
 
         <div className="rounded-lg border border-panel bg-panel-soft p-4 flex flex-col gap-3">
           <div>
@@ -1643,38 +1645,38 @@ export default function Settings({
           <div className="text-lg font-semibold">Model Previews</div>
           <div className="text-sm opacity-70">Choose automatic, on-demand, or disabled preview generation.</div>
         </button>
-        <button
+        {capabilities.manageServerSettings && <button
           className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
           onClick={() => setSection("storage")}
         >
           <div className="text-xs uppercase tracking-wide text-muted">Files</div>
           <div className="text-lg font-semibold">Storage Structure</div>
           <div className="text-sm opacity-70">Organize files with folders, model names, creators, tags, and collections.</div>
-        </button>
-        <button
+        </button>}
+        {capabilities.manageDurableJobs && <button
           className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
           onClick={() => setSection("content")}
         >
           <div className="text-xs uppercase tracking-wide text-muted">Integrity</div>
           <div className="text-lg font-semibold">Content Identity</div>
           <div className="text-sm opacity-70">Verify files, resume large-library hashing, and find exact duplicates safely.</div>
-        </button>
-        <button
+        </button>}
+        {capabilities.manageServerSettings && <button
           className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
           onClick={() => setSection("trash")}
         >
           <div className="text-xs uppercase tracking-wide text-muted">Recovery</div>
           <div className="text-lg font-semibold">Trash Retention</div>
           <div className="text-sm opacity-70">Keep deleted models until space is needed, for a fixed time, or forever.</div>
-        </button>
-        <button
+        </button>}
+        {capabilities.manageContent && <button
           className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
           onClick={() => setSection("imports")}
         >
           <div className="text-xs uppercase tracking-wide text-muted">Imports</div>
           <div className="text-lg font-semibold">Imports & Folder Scan</div>
           <div className="text-sm opacity-70">Manage import cookies and scan local folders.</div>
-        </button>
+        </button>}
       </div>
     </div>
   );

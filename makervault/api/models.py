@@ -173,6 +173,10 @@ class UserAccount(SQLModel, table=True):
       "password_policy_version >= 1",
       name="ck_useraccount_password_policy_version",
     ),
+    CheckConstraint(
+      "role IN ('administrator', 'member', 'viewer')",
+      name="ck_useraccount_role",
+    ),
   )
   id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
   username: str
@@ -182,6 +186,7 @@ class UserAccount(SQLModel, table=True):
   enabled: bool = Field(default=True, index=True)
   password_policy_version: int = Field(default=1)
   password_change_required: bool = Field(default=False)
+  role: str = Field(default="viewer", index=True)
   created_at: str
   updated_at: str
   last_login_at: Optional[str] = None

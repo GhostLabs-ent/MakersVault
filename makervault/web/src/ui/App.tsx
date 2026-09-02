@@ -9,6 +9,8 @@ import ProjectWorkspace from "./ProjectWorkspace";
 import { apiHealth, getApiBase, getSession, logout, type HealthInfo } from "../lib/api";
 import { clearLegacyAuthTokens, setSessionCsrfToken } from "../lib/auth";
 import { type AppSettings, type ResolvedTheme, loadSettings, resolveTheme, saveSettings } from "../lib/settings";
+import { CapabilityProvider } from "../lib/CapabilityContext";
+import { capabilitiesForRole, type VaultRole } from "../lib/capabilities";
 
 const logoForTheme = (theme: ResolvedTheme) => {
   switch (theme) {
@@ -27,6 +29,7 @@ const logoForTheme = (theme: ResolvedTheme) => {
 
 export default function App() {
   const [authenticated, setAuthenticated] = React.useState<boolean | null>(null);
+  const [role, setRole] = React.useState<VaultRole | null>(null);
   const [nonce, setNonce] = React.useState(0);
   const [folderId, setFolderId] = React.useState<string | null>(null);
   const [folderVersion, setFolderVersion] = React.useState(0);
@@ -66,12 +69,16 @@ export default function App() {
         return;
       }
       if (!currentHealth.auth_required) {
+        setRole("administrator");
         setAuthenticated(true);
         return;
       }
       try {
         const session = await getSession();
-        if (!canceled) setAuthenticated(Boolean(session?.authenticated));
+        if (!canceled) {
+          setRole(session?.role ?? null);
+          setAuthenticated(Boolean(session?.authenticated));
+        }
       } catch {
         if (!canceled) setAuthenticated(false);
       }
@@ -84,7 +91,8 @@ export default function App() {
   const apiUp = health?.ok ?? null;
   const authRequired = health?.auth_required ?? true;
 
-  const handleLogin = () => {
+  const handleLogin = (nextRole: VaultRole) => {
+    setRole(nextRole);
     setAuthenticated(true);
     setSessionExpired(false);
   };
@@ -92,6 +100,7 @@ export default function App() {
   const handleUnauthorized = React.useCallback(() => {
     if (sessionExpired) return;
     setSessionCsrfToken(null);
+    setRole(null);
     setAuthenticated(false);
     setSessionExpired(true);
     alert("Your session has expired. Please sign in again.");
@@ -133,6 +142,7 @@ export default function App() {
       await logout();
     } finally {
       setSessionCsrfToken(null);
+      setRole(null);
       setAuthenticated(false);
       setSessionExpired(false);
     }
@@ -160,7 +170,11 @@ export default function App() {
     );
   }
 
+  const activeRole = role ?? "viewer";
+  const capabilities = capabilitiesForRole(activeRole);
+
   return (
+    <CapabilityProvider role={activeRole}>
     <div className="h-screen flex">
       <Sidebar
         selectedId={folderId}
@@ -177,6 +191,7 @@ export default function App() {
         onOpenSettings={() => { setSettingsSection("root"); setActiveView("settings"); }}
         onOpenTrash={() => setActiveView("trash")}
         activeView={activeView}
+        role={activeRole}
       />
       <main className="flex-1 p-4 overflow-auto">
         {apiUp === false && (
@@ -202,7 +217,7 @@ export default function App() {
             />
           )}
           <div className="flex flex-wrap items-center gap-3">
-            {activeView === "library" || activeView === "project" || activeView === "unassigned" ? (
+            {(activeView === "library" || activeView === "project" || activeView === "unassigned") && capabilities.manageContent ? (
               <UploadBar
                 folderId={folderId}
                 projectId={activeView === "project" ? projectId : null}
@@ -286,5 +301,6 @@ export default function App() {
         )}
       </main>
     </div>
+    </CapabilityProvider>
   );
 }

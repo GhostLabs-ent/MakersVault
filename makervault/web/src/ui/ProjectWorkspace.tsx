@@ -22,6 +22,7 @@ import AssetGrid from "./AssetGrid";
 import ProjectRelationships from "./ProjectRelationships";
 import TagBadge from "./TagBadge";
 import TagInput from "./TagInput";
+import { useVaultCapabilities } from "../lib/CapabilityContext";
 
 type Props = {
   projectId: string;
@@ -46,6 +47,7 @@ export default function ProjectWorkspace({
   previewSettings,
   theme,
 }: Props) {
+  const capabilities = useVaultCapabilities();
   const [project, setProject] = React.useState<Project | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [editing, setEditing] = React.useState(false);
@@ -225,25 +227,25 @@ export default function ProjectWorkspace({
             >
               <Download className="h-4 w-4" /> {exporting ? "Exporting…" : "Export Project"}
             </button>
-            <button
+            {capabilities.manageContent && <button
               type="button"
               className="inline-flex items-center gap-2 rounded-md bg-accent px-3 py-2 text-sm font-medium"
               onClick={openCandidates}
             >
               <Plus className="h-4 w-4" /> Add existing items
-            </button>
-            <button
+            </button>}
+            {capabilities.manageContent && <button
               type="button"
               className="inline-flex items-center gap-2 rounded-md border border-panel-strong px-3 py-2 text-sm"
               onClick={() => setEditing(value => !value)}
             >
               {editing ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
               {editing ? "Cancel edit" : "Edit details"}
-            </button>
+            </button>}
           </div>
         </div>
 
-        {editing ? (
+        {capabilities.manageContent && editing ? (
           <div className="mt-4 grid gap-3 border-t border-panel pt-4 md:grid-cols-2">
             <label className="flex flex-col gap-1 text-sm"><span>Name</span><input className="rounded-md border border-panel-strong bg-panel px-3 py-2" value={form.name} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} /></label>
             <label className="flex flex-col gap-1 text-sm"><span>Creator</span><input className="rounded-md border border-panel-strong bg-panel px-3 py-2" value={form.creator} onChange={event => setForm(current => ({ ...current, creator: event.target.value }))} /></label>
@@ -287,7 +289,7 @@ export default function ProjectWorkspace({
         theme={theme}
       />
 
-      {showCandidates && (
+      {capabilities.manageContent && showCandidates && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-label="Add existing Project items">
           <section className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-panel-strong bg-panel shadow-xl">
             <header className="flex items-center justify-between gap-3 border-b border-panel p-4">

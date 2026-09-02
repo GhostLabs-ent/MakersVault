@@ -13,6 +13,7 @@ from sqlalchemy import Engine, or_
 from sqlmodel import Session, select
 
 from models import BrowserSession, UserAccount
+from authorization import Role
 from security_config import PRODUCTION_ENV, load_security_config
 
 
@@ -50,6 +51,7 @@ class SessionPrincipal:
     session_id: str
     user_id: str
     username: str
+    role: Role
     csrf_token: str
     created_at: int
     last_seen_at: int
@@ -235,6 +237,13 @@ def authenticate_browser_session(
             session.add(row)
             session.commit()
             return None
+        try:
+            role = Role(user.role)
+        except ValueError:
+            row.revoked_at = current
+            session.add(row)
+            session.commit()
+            return None
         if touch and current - row.last_seen_at >= interval:
             row.last_seen_at = current
             row.idle_expires_at = min(
@@ -248,6 +257,7 @@ def authenticate_browser_session(
             session_id=row.id,
             user_id=user.id,
             username=user.username,
+            role=role,
             csrf_token=_csrf_token(secret),
             created_at=row.created_at,
             last_seen_at=row.last_seen_at,

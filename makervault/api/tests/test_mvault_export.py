@@ -11,7 +11,7 @@ from sqlalchemy import create_engine
 
 import mvault_export
 from identity_service import bootstrap_initial_administrator
-from migrations import run_migrations
+from migrations import MIGRATIONS, run_migrations
 from mvault_export import MvaultExportError, PortableVaultExporter, export_archive
 from mvault_verify import verify_archive
 from session_service import create_browser_session
@@ -23,7 +23,7 @@ NOW = "2026-08-31T12:00:00Z"
 def fixture_database(tmp_path: Path) -> tuple[Path, Path]:
     database = tmp_path / "app.db"
     engine = create_engine(f"sqlite:///{database}")
-    assert run_migrations(engine) == 14
+    assert run_migrations(engine) == MIGRATIONS[-1].version
     engine.dispose()
     storage = tmp_path / "storage"
     (storage / "revisions/a1/r1").mkdir(parents=True)
@@ -129,7 +129,7 @@ def test_streaming_export_produces_verified_v1_without_mutating_source(tmp_path)
     assert not list(tmp_path.glob(".mvault-export-*"))
 
     header = archive_json(output, "mvault/header.json")
-    assert header["source"] == {"makersvault_version": "5.1.0", "schema_version": 14}
+    assert header["source"] == {"makersvault_version": "5.1.0", "schema_version": 15}
     assert header["optional_features"] == ["derived-thumbnails"]
     artifacts = archive_jsonl(output, "mvault/catalogs/artifacts.jsonl")
     assert artifacts[0]["supporting_file_count"] == 0
@@ -153,7 +153,7 @@ def test_streaming_export_produces_verified_v1_without_mutating_source(tmp_path)
     assert manifest["external"]["unavailable"] == 1
 
 
-def test_schema14_identity_and_sessions_are_excluded_from_portable_v1(tmp_path):
+def test_schema15_identity_roles_and_sessions_are_excluded_from_portable_v1(tmp_path):
     database, storage = fixture_database(tmp_path)
     engine = create_engine(f"sqlite:///{database}")
     bootstrap_initial_administrator(
@@ -296,13 +296,13 @@ def test_unknown_schema_fails_before_archive_creation(tmp_path):
     database, storage = fixture_database(tmp_path)
     connection = sqlite3.connect(database)
     connection.execute(
-        "INSERT INTO schema_migration(version, name) VALUES (15, 'future_schema')"
+        "INSERT INTO schema_migration(version, name) VALUES (16, 'future_schema')"
     )
     connection.commit()
     connection.close()
     output = tmp_path / "portable.mvault"
 
-    with pytest.raises(MvaultExportError, match="schema 15"):
+    with pytest.raises(MvaultExportError, match="schema 16"):
         export_archive(database, storage, output)
 
     assert not output.exists()

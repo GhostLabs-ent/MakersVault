@@ -652,6 +652,23 @@ def _migration_014_revocable_browser_sessions(conn: Connection) -> None:
     )
 
 
+def _migration_015_shared_vault_roles(conn: Connection) -> None:
+    role_missing = "role" not in _columns(conn, "useraccount")
+    _add_column(
+        conn,
+        "useraccount",
+        "role",
+        "VARCHAR NOT NULL DEFAULT 'viewer' CHECK ("
+        "role IN ('administrator', 'member', 'viewer'))",
+    )
+    if role_missing:
+        # Every pre-11C identity had unrestricted administrator authority.
+        conn.exec_driver_sql("UPDATE useraccount SET role = 'administrator'")
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_useraccount_role ON useraccount(role)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
@@ -667,6 +684,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(12, "artifact_machine_context", _migration_012_artifact_machine_context),
     Migration(13, "persistent_administrator_identity", _migration_013_persistent_administrator_identity),
     Migration(14, "revocable_browser_sessions", _migration_014_revocable_browser_sessions),
+    Migration(15, "shared_vault_roles", _migration_015_shared_vault_roles),
 )
 
 

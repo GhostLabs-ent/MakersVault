@@ -303,6 +303,8 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(BaseModel):
   authenticated: bool = True
+  role: Literal["administrator", "member", "viewer"]
+  permissions: List[str]
   csrf_token: str
   expires_in: int
   absolute_expires_at: int
@@ -312,6 +314,8 @@ class SessionStatusOut(BaseModel):
   authenticated: bool = True
   session_id: str
   username: str
+  role: Literal["administrator", "member", "viewer"]
+  permissions: List[str]
   csrf_token: str
   idle_expires_at: int
   absolute_expires_at: int

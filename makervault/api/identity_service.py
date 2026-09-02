@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from models import UserAccount
+from authorization import Role
 
 
 PASSWORD_POLICY_VERSION = 1
@@ -67,6 +68,7 @@ class BootstrapResult:
 class AuthenticatedAdministrator:
     id: str
     username: str
+    role: Role
 
 
 def _now() -> str:
@@ -149,6 +151,7 @@ def bootstrap_initial_administrator(
         enabled=True,
         password_policy_version=PASSWORD_POLICY_VERSION,
         password_change_required=_password_requires_change(password),
+        role=Role.ADMINISTRATOR.value,
         created_at=timestamp,
         updated_at=timestamp,
     )
@@ -206,7 +209,15 @@ def authenticate_initial_administrator(
             user.password_policy_version = PASSWORD_POLICY_VERSION
         user.last_login_at = timestamp
         user.updated_at = timestamp
-        identity = AuthenticatedAdministrator(id=user.id, username=user.username)
+        try:
+            role = Role(user.role)
+        except ValueError:
+            return None
+        identity = AuthenticatedAdministrator(
+            id=user.id,
+            username=user.username,
+            role=role,
+        )
         session.add(user)
         session.commit()
         return identity

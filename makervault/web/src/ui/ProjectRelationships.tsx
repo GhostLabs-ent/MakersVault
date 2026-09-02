@@ -12,6 +12,7 @@ import {
   listProjectRelationships,
 } from "../lib/api";
 import { relationshipKindOptions } from "../lib/relationships";
+import { useVaultCapabilities } from "../lib/CapabilityContext";
 
 
 type Props = {
@@ -93,6 +94,7 @@ function EndpointPicker({
 }
 
 export default function ProjectRelationships({ projectId, membershipVersion, onUnauthorized }: Props) {
+  const capabilities = useVaultCapabilities();
   const [relationships, setRelationships] = React.useState<ProjectRelationship[]>([]);
   const [offset, setOffset] = React.useState(0);
   const [hasMore, setHasMore] = React.useState(false);
@@ -163,10 +165,10 @@ export default function ProjectRelationships({ projectId, membershipVersion, onU
     <section className="rounded-xl border border-panel bg-panel-soft p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div><h2 className="flex items-center gap-2 font-semibold"><Link2 className="h-4 w-4" /> Relationships</h2><p className="mt-1 text-xs text-muted">Useful links between items in this Project. No files are copied.</p></div>
-        <button type="button" className="inline-flex items-center gap-2 rounded-md border border-panel-strong px-3 py-2 text-sm" onClick={() => setEditing(value => !value)}><Plus className="h-4 w-4" /> Add relationship</button>
+        {capabilities.manageContent && <button type="button" className="inline-flex items-center gap-2 rounded-md border border-panel-strong px-3 py-2 text-sm" onClick={() => setEditing(value => !value)}><Plus className="h-4 w-4" /> Add relationship</button>}
       </div>
 
-      {editing && (
+      {capabilities.manageContent && editing && (
         <div className="mt-4 grid gap-4 rounded-lg border border-panel bg-panel p-4 md:grid-cols-2">
           <EndpointPicker label="First Project item" projectId={projectId} selected={source} onSelect={setSource} onUnauthorized={onUnauthorized} />
           <EndpointPicker label="Second Project item" projectId={projectId} selected={target} onSelect={setTarget} onUnauthorized={onUnauthorized} />
@@ -179,7 +181,7 @@ export default function ProjectRelationships({ projectId, membershipVersion, onU
         {relationships.map(relationship => (
           <div key={relationship.id} className="flex items-center justify-between gap-3 rounded-lg border border-panel bg-panel p-3">
             <div className="min-w-0 text-sm"><p><strong>{relationship.source_name}</strong> <span className="text-muted">{relationship.forward_label.toLocaleLowerCase()}</span> <strong>{relationship.target_name}</strong></p><p className="mt-1 text-xs text-muted">Inverse: {relationship.target_name} — {relationship.inverse_label} — {relationship.source_name}</p></div>
-            <button type="button" className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-red-600 hover:bg-red-500/10" onClick={() => void remove(relationship)} aria-label="Remove relationship"><Trash2 className="h-4 w-4" /></button>
+            {capabilities.manageContent && <button type="button" className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-red-600 hover:bg-red-500/10" onClick={() => void remove(relationship)} aria-label="Remove relationship"><Trash2 className="h-4 w-4" /></button>}
           </div>
         ))}
         {!relationships.length && !loading && <p className="rounded-lg border border-dashed border-panel-strong p-5 text-center text-sm text-muted">No relationships yet. Add one when it makes the Project easier to understand.</p>}

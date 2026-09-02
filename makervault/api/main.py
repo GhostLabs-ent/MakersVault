@@ -28,6 +28,13 @@ from auth import (
     set_browser_session_cookies,
     validate_auth_config,
 )
+from authorization import (
+    Role,
+    SystemService,
+    permissions_for_role,
+    run_system_service,
+    validate_route_inventory,
+)
 from asset_service import (
     STORAGE_TEMPLATE_TOKENS,
     available_model_name,
@@ -105,6 +112,7 @@ from machine_service import (
     archive_machine,
     create_machine,
     permanently_delete_machine,
+    require_active_machine,
     require_machine,
     restore_machine,
     update_machine,
@@ -256,6 +264,7 @@ from session_service import (
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     validate_auth_config()
+    validate_route_inventory(_app)
     run_migrations(engine)
     bootstrap = bootstrap_initial_administrator(
         engine,
@@ -267,22 +276,58 @@ async def lifespan(_app: FastAPI):
             "persistent_administrator_bootstrapped password_change_required=%s",
             str(bootstrap.password_change_required).lower(),
         )
-    cleanup_browser_sessions(engine)
-    trash_stop = start_trash_maintenance()
-    recover_interrupted_mount_scans()
-    recover_interrupted_content_hash_jobs()
-    threading.Thread(target=backfill_embedded_thumbnails, daemon=True).start()
-    threading.Thread(target=backfill_prepared_print_metadata, daemon=True).start()
-    start_content_hash_job("startup")
+    run_system_service(
+        SystemService.SESSION_CLEANUP,
+        lambda: cleanup_browser_sessions(engine),
+    )
+    trash_stop = run_system_service(
+        SystemService.TRASH_MAINTENANCE,
+        start_trash_maintenance,
+    )
+    run_system_service(
+        SystemService.MOUNT_SCAN_RECOVER,
+        recover_interrupted_mount_scans,
+    )
+    run_system_service(
+        SystemService.CONTENT_IDENTITY_RECOVER,
+        recover_interrupted_content_hash_jobs,
+    )
+    run_system_service(
+        SystemService.THUMBNAIL_BACKFILL,
+        lambda: threading.Thread(
+            target=backfill_embedded_thumbnails,
+            daemon=True,
+        ).start(),
+    )
+    run_system_service(
+        SystemService.PREPARED_METADATA_BACKFILL,
+        lambda: threading.Thread(
+            target=backfill_prepared_print_metadata,
+            daemon=True,
+        ).start(),
+    )
+    run_system_service(
+        SystemService.CONTENT_IDENTITY_STARTUP,
+        lambda: start_content_hash_job("startup"),
+    )
     if MOUNT_IMPORT_PATH and get_mount_import_enabled(MOUNT_IMPORT_ENABLED):
-        start_mount_scan("startup")
+        run_system_service(
+            SystemService.MOUNT_SCAN_STARTUP,
+            lambda: start_mount_scan("startup"),
+        )
     try:
         yield
     finally:
         trash_stop.set()
 
 
-app = FastAPI(title="MakerVault API", lifespan=lifespan)
+app = FastAPI(
+    title="MakerVault API",
+    lifespan=lifespan,
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+)
 app.add_middleware(
     HostPolicyMiddleware,
     allowed_hosts=resolve_trusted_hosts(os.environ),
@@ -828,6 +873,8 @@ def login(body: LoginRequest, request: Request, response: Response):
     set_browser_session_cookies(response, created)
     response.headers["Cache-Control"] = "private, no-store"
     return LoginResponse(
+        role=identity.role.value,
+        permissions=sorted(permission.value for permission in permissions_for_role(identity.role)),
         csrf_token=created.csrf_token,
         expires_in=max(1, created.idle_expires_at - int(time.time())),
         absolute_expires_at=created.absolute_expires_at,
@@ -843,6 +890,8 @@ def current_session(
     return SessionStatusOut(
         session_id=principal.session_id,
         username=principal.username,
+        role=principal.role.value,
+        permissions=sorted(permission.value for permission in permissions_for_role(principal.role)),
         csrf_token=principal.csrf_token,
         idle_expires_at=principal.idle_expires_at,
         absolute_expires_at=principal.absolute_expires_at,
@@ -1927,11 +1976,11 @@ def list_machines(
     include_archived: bool = Query(default=False),
     limit: int = Query(default=100, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
-    _: Optional[str] = Depends(require_auth),
+    principal: SessionPrincipal = Depends(require_auth),
 ):
     with Session(engine) as session:
         statement = select(MachineProfile)
-        if not include_archived:
+        if not include_archived or principal.role is Role.VIEWER:
             statement = statement.where(MachineProfile.archived_at == None)  # noqa: E711
         if category:
             statement = statement.where(MachineProfile.category == category)
@@ -1967,9 +2016,17 @@ def create_machine_route(
 
 
 @app.get("/machine/{machine_id}", response_model=MachineOut)
-def get_machine(machine_id: str, _: Optional[str] = Depends(require_auth)):
+def get_machine(
+    machine_id: str,
+    principal: SessionPrincipal = Depends(require_auth),
+):
     with Session(engine) as session:
-        return machine_to_out(require_machine(session, machine_id))
+        machine = (
+            require_active_machine(session, machine_id)
+            if principal.role is Role.VIEWER
+            else require_machine(session, machine_id)
+        )
+        return machine_to_out(machine)
 
 
 @app.patch("/machine/{machine_id}", response_model=MachineOut)

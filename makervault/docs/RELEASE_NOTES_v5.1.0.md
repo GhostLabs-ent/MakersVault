@@ -20,6 +20,11 @@ vault into a slicer, printer controller, or multi-user cloud service.
 - Production auth, browser/host boundaries, remote import, archives/uploads/images,
   free-space reserve, mounted paths, and workstation handoff fail safely under
   explicit limits.
+- Persistent identities use Argon2id credentials and revocable cookie sessions.
+  Three fixed shared-vault roles now map to deny-by-default server permissions;
+  Viewer remains read/download/export/handoff-only, Member manages recoverable
+  shared content, and Administrator owns settings, durable jobs, and irreversible
+  deletion. Account administration follows in the next gated step.
 - Ordered additive migrations, stopped matched backups, clean recovery, and exact
   rollback are source-owned and tested.
 
@@ -31,7 +36,7 @@ pulling images, follow the tested
 and create an off-host verified archive using
 [Backup and Recovery](https://github.com/VincentCinque/MakersVault/blob/v5.1.0/makervault/docs/BACKUP_AND_RECOVERY.md).
 
-The release schema is version 5. Existing model bytes are not rewritten merely by
+The release schema is version 15. Existing model bytes are not rewritten merely by
 applying its additive migrations. Production deployments must provide a unique
 administrator password and a distinct random signing secret. Changing the signing
 secret invalidates old browser sessions but does not remove vault data.
@@ -66,10 +71,9 @@ benchmark. See [Gate 5 evidence](evidence/gate-5/RESULTS.md) for the full matrix
 
 ## Intentional boundaries
 
-v5.1 does not add manual thumbnail uploads, multi-user identity/MFA/SSO, slicing or
-printer control, artifact revisions/Trash/Projects, automatic STEP card previews,
-continuous NAS watching, server-wide “select every match,” or source-content
-hashing/provenance/duplicate detection. See the complete
+v5.1 does not add manual thumbnail uploads, account self-registration, private
+libraries or per-object ACLs, MFA/SSO, slicing or printer control, automatic STEP
+card previews, continuous NAS watching, or server-wide “select every match.” See the complete
 [Known Limitations](https://github.com/VincentCinque/MakersVault/blob/v5.1.0/makervault/docs/KNOWN_LIMITATIONS.md).
 
 The full change inventory is in

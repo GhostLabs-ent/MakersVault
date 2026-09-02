@@ -18,6 +18,7 @@ from session_service import (
   cookie_policy,
   csrf_matches,
 )
+from authorization import AccessKind, role_allows, route_rule
 
 SECURITY_CONFIG = load_security_config()
 AUTH_USERNAME = SECURITY_CONFIG.username
@@ -201,8 +202,11 @@ def decode_handoff_token(token: str) -> dict:
 
 
 def require_auth(request: Request) -> Optional[SessionPrincipal]:
+  rule = route_rule(request)
+  if rule.kind is not AccessKind.SESSION or rule.permission is None:
+    raise HTTPException(status_code=403, detail="Unclassified authorization path")
   if not AUTH_ENABLED:
-    return None
+    raise HTTPException(status_code=401, detail="Unauthorized")
   policy = cookie_policy()
   secret = request.cookies.get(policy.session_name)
   principal = authenticate_browser_session(engine, secret or "")
@@ -214,4 +218,9 @@ def require_auth(request: Request) -> Optional[SessionPrincipal]:
       raise HTTPException(status_code=403, detail="Trusted browser origin required")
     if not csrf_matches(principal, request.headers.get("X-CSRF-Token")):
       raise HTTPException(status_code=403, detail="Valid CSRF token required")
+  if not role_allows(principal.role, rule.permission):
+    raise HTTPException(status_code=403, detail="Forbidden")
   return principal
+
+
+require_auth.__makersvault_session_authorizer__ = True

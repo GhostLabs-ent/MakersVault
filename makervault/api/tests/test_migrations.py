@@ -719,8 +719,8 @@ def test_schema13_to_schema14_adds_empty_browser_sessions_without_changing_users
         )
         before = conn.exec_driver_sql("SELECT * FROM useraccount").fetchall()
 
-    assert run_migrations(database_engine) == 14
-    assert run_migrations(database_engine) == 14
+    assert run_migrations(database_engine, MIGRATIONS[:14]) == 14
+    assert run_migrations(database_engine, MIGRATIONS[:14]) == 14
     with database_engine.connect() as conn:
         after = conn.exec_driver_sql("SELECT * FROM useraccount").fetchall()
         sessions = conn.exec_driver_sql(
