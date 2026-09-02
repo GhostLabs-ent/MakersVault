@@ -141,3 +141,11 @@ The owner accepted the verified Gate 11A results and authorized Gate 11B on
 browser-session contract. Multiple active users, roles/permission enforcement,
 administration/audit/recovery, MFA, API keys, OIDC, public registration, hosted
 tenancy, push, release, deployment, and publication remain unauthorized.
+
+The owner accepted the verified Gate 11B results and authorized Gate 11C on
+2026-09-01. This subsequent decision authorizes only the accepted three-role
+shared-vault permission model, deny-by-default route and internal-entry-point
+classification, enforcement, capability-aware UI, and focused evidence. Account
+administration, password/reset workflows, last-administrator safety, recovery,
+durable audit, MFA, API keys, OIDC, public registration, hosted tenancy, push,
+release, deployment, and publication remain unauthorized.

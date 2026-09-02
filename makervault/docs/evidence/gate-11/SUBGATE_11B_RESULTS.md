@@ -2,7 +2,9 @@
 
 **Date:** 2026-09-01
 
-**Status:** Verified locally; owner acceptance pending
+**Status:** Accepted by owner
+
+**Accepted:** 2026-09-01
 
 **Scope:** Additive session schema, opaque cookie authentication, Origin/CSRF
 enforcement, browser migration, expiry/cleanup, logout and revocation, and
@@ -130,9 +132,8 @@ was made.
 
 ## Gate boundary
 
-Gate 11B is ready for owner review. Acceptance will freeze only the browser-session
-and CSRF contract. Additional users, roles,
-permission enforcement, password/account administration, last-admin safety,
-recovery, audit events, MFA, API keys, OIDC, public registration, hosted tenancy,
-push, release, and deployment remain unauthorized. Gate 11C must not begin until
-the owner accepts this checkpoint explicitly.
+The owner accepted Gate 11B and authorized Gate 11C on 2026-09-01. This freezes
+only the browser-session and CSRF contract and opens the accepted shared-vault
+roles and deny-by-default permission work. Password/account administration,
+last-admin safety, recovery, audit events, MFA, API keys, OIDC, public
+registration, hosted tenancy, push, release, and deployment remain unauthorized.

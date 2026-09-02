@@ -2,7 +2,7 @@
 
 **Gate:** 11 — Evolve authentication deliberately
 
-**Status:** Subgate 11B implemented and locally verified; owner acceptance pending
+**Status:** Subgate 11B accepted; subgate 11C authorized
 
 **Opened:** 2026-08-31
 
@@ -42,7 +42,12 @@ enforcement, additional accounts, administration, recovery, and audit remain gat
 
 The authorized implementation is complete at `5ca1a42`; its schema, cookie/CSRF,
 revocation, browser migration, portability, and scope evidence is recorded in
-[`SUBGATE_11B_RESULTS.md`](SUBGATE_11B_RESULTS.md). This does not authorize 11C.
+[`SUBGATE_11B_RESULTS.md`](SUBGATE_11B_RESULTS.md). The owner accepted those
+results and authorized 11C on 2026-09-01. Gate 11C is limited to the accepted
+three shared-vault roles, stable server-side permissions, deny-by-default route
+classification, enforcement, capability-aware UI, and focused evidence.
+Additional-account administration, password/reset policy, last-admin safety,
+recovery, durable audit, MFA, API keys, OIDC, and publication remain gated.
 
 ## Verified entry truth
 

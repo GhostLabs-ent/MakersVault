@@ -236,7 +236,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-040 | `VERIFIED` | Gate 10E's 1,200-Artifact mixed drill verifies 8,452 logical records and 3,479 managed files including a 64 MiB incompressible payload, then clean-restores/re-exports 3,790 portable members with semantic/byte equality; export, verify, import, and re-export each stay below 68 MiB peak RSS. Pinned `.mvault` v1 and legacy/current raw format-1 backup contracts pass, capacity/interruption behavior is explicit, and the remote-provider evaluation is no-go. | `docs/evidence/gate-10/SUBGATE_10E_RESULTS.md`, portable scale drill, failure matrix, provider evaluation | Owner accepted and closed Gate 10 on 2026-08-31. S3, provider credentials, merge/live import, application key custody, and publication remain unauthorized. |
 | T-041 | `VERIFIED` | Gate 11 opens from one environment-configured administrator, direct constant-time password comparison, process-local throttling, renewable 12-hour HS256 bearer JWTs, browser `sessionStorage` and query-token compatibility, no persistent User/Session/Role/AuditEvent, and one globally shared content graph. | `api/auth.py`, `api/login_security.py`, `api/main.py`, `api/models.py`, web auth client, `docs/evidence/gate-11/BASELINE.md` | The owner accepted shared-vault tenancy, roles, enrollment, session, recovery, audit, and portability direction on 2026-08-31 and authorized 11A only. Sessions, role enforcement, additional users, and later authentication stages remain gated. |
 | T-042 | `VERIFIED` | Local schema 13 adds one persistent administrator with normalized identity and a pinned, bounded Argon2id password policy. A validated environment administrator is converted only when the identity table is empty; subsequent environment changes are not a login or recovery bypass. `.mvault` v1 accepts schema-12/13 sources while excluding identity and reconstructing its frozen schema-12 content contract. | `api/identity_service.py`, schema-13 migration, Gate 11A identity/login/migration/portable regressions, `docs/evidence/gate-11/SUBGATE_11A_RESULTS.md` | Owner accepted Gate 11A and authorized 11B on 2026-09-01. Additional accounts, roles, recovery, audit, and later authentication stages remain gated. |
-| T-043 | `VERIFIED` | Local schema 14 replaces browser JWT/query authentication with opaque, digest-only, revocable sessions; production `__Host-` HttpOnly Secure SameSite cookies; exact-Origin plus session-bound CSRF enforcement; bounded idle/absolute expiry, cleanup and active count; logout/per-session/revoke-all; and an in-memory browser migration with no authentication bearer in storage or URLs. The exact-file bridge grant remains separately scoped. | `api/session_service.py`, session/auth routes, web session client/settings, Gate 11B session/migration/portable/browser regressions, `docs/evidence/gate-11/SUBGATE_11B_RESULTS.md` | Gate 11B implementation is verified and awaits owner acceptance. Additional accounts, roles/permissions, administration, recovery, and audit remain unchanged and unauthorized. |
+| T-043 | `VERIFIED` | Local schema 14 replaces browser JWT/query authentication with opaque, digest-only, revocable sessions; production `__Host-` HttpOnly Secure SameSite cookies; exact-Origin plus session-bound CSRF enforcement; bounded idle/absolute expiry, cleanup and active count; logout/per-session/revoke-all; and an in-memory browser migration with no authentication bearer in storage or URLs. The exact-file bridge grant remains separately scoped. | `api/session_service.py`, session/auth routes, web session client/settings, Gate 11B session/migration/portable/browser regressions, `docs/evidence/gate-11/SUBGATE_11B_RESULTS.md` | Owner accepted Gate 11B and authorized 11C on 2026-09-01. Additional accounts, administration, recovery, and audit remain unchanged and unauthorized. |
 
 ### 5.4 Current storage invariants
 
@@ -916,7 +916,7 @@ new vault state.
 
 ### Gate 11 — Evolve authentication deliberately
 
-**Current execution:** `IN PROGRESS — 11B OWNER CHECKPOINT`. Gate 10 was accepted and
+**Current execution:** `IN PROGRESS — 11C AUTHORIZED`. Gate 10 was accepted and
 the owner directed Gate 11 to open on 2026-08-31. The entry identity, token,
 browser, route, ownership, audit, backup, and recovery truth plus the proposed
 11A–11E+ sequence are recorded in
@@ -926,8 +926,10 @@ revocable cookie sessions, stopped-instance recovery, audit, and portability
 decisions were accepted without amendment in
 [the Gate 11 checkpoint](evidence/gate-11/OWNER_CHECKPOINT.md). Accepted
 [ADR 0018](adr/0018-shared-vault-identity-and-authorization.md) governs the work.
-Subgate 11A is accepted. Subgate 11B is implemented and verified at its owner
-checkpoint; later subgates remain unauthorized.
+Subgates 11A and 11B are accepted. The owner authorized 11C's accepted three-role
+shared-vault permission model, deny-by-default classification and enforcement,
+capability-aware UI, and focused evidence on 2026-09-01. Account administration,
+recovery, durable audit, and later subgates remain unauthorized.
 
 **Objective:** Add multiple users only when authorization, recovery, and auditing
 can be treated as a coherent system.
@@ -953,8 +955,11 @@ removing recoverability; never down-migrate password or ownership data lossy.
 Gate 11A is implemented at `0095f6e`, verified, and owner-accepted in
 [the Gate 11A results](evidence/gate-11/SUBGATE_11A_RESULTS.md). Gate 11B is now
 implemented at `5ca1a42` and locally verified in
-[the Gate 11B results](evidence/gate-11/SUBGATE_11B_RESULTS.md). It stops at the
-owner checkpoint: 11C roles and permission enforcement remain unauthorized.
+[the Gate 11B results](evidence/gate-11/SUBGATE_11B_RESULTS.md), and the owner has
+accepted it. Immediate next work is Gate 11C only: implement the accepted roles,
+permissions, complete route/internal-entry-point inventory, fail-closed
+enforcement, capability-aware UI, and focused evidence, then stop at its owner
+checkpoint before any 11D work.
 
 ### Gate 12 — Enable sustainable optional services
 
