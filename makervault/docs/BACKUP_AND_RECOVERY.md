@@ -25,8 +25,8 @@ configuration, and recovery journals.
 Gates 10B–10C supply a secret-free logical `.mvault` v1 exporter, independent
 verifier, and clean-instance importer. The exporter accepts schema 12, Gate 11A
 schema 13, Gate 11B schema 14, and Gate 11C schema 15 sources; the importer
-deliberately reconstructs the frozen schema 12 content contract. This portable workflow is not
-a replacement for the raw server backup: it deliberately excludes deployment
+deliberately reconstructs the frozen schema 12 content contract. This portable
+workflow is not a replacement for the raw server backup: it deliberately excludes deployment
 configuration, secrets, operational journals, quarantine, and external no-copy
 bytes, and it does not support rollback, replacement, or merge restore.
 
