@@ -21,6 +21,7 @@ import {
 import { entriesFromFileList, uploadEntriesToFolder, type UploadEntry } from "../lib/uploadTree";
 import { mountOwnership, mountScanStatusLabel } from "../lib/mountImport";
 import MachineSettings from "./MachineSettings";
+import SessionSettings from "./SessionSettings";
 
 type Props = {
   initialSection?: "root" | "trash";
@@ -32,7 +33,7 @@ type Props = {
   onSelectFolder?: (id: string | null) => void;
 };
 
-type Section = "root" | "slicer" | "engraving" | "theme" | "network" | "previews" | "storage" | "imports" | "content" | "trash" | "machines";
+type Section = "root" | "slicer" | "engraving" | "theme" | "network" | "previews" | "storage" | "imports" | "content" | "trash" | "machines" | "sessions";
 
 const THEME_SWATCHES: Record<ThemeId, string> = {
   system: "linear-gradient(135deg, #f8fafc 0%, #f8fafc 50%, #0b0f19 50%, #0b0f19 100%)",
@@ -601,6 +602,15 @@ export default function Settings({
     setScanEntries(entries);
     setScanSkipped(skipped);
   }, [scanRawEntries, scanRoot]);
+
+  if (section === "sessions") {
+    return (
+      <SessionSettings
+        onBack={() => setSection("root")}
+        onUnauthorized={onUnauthorized}
+      />
+    );
+  }
 
   if (section === "slicer") {
     return (
@@ -1577,6 +1587,14 @@ export default function Settings({
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-3 sm:grid-cols-2">
+        <button
+          className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
+          onClick={() => setSection("sessions")}
+        >
+          <div className="text-xs uppercase tracking-wide text-muted">Security</div>
+          <div className="text-lg font-semibold">Browser Sessions</div>
+          <div className="text-sm opacity-70">Review browsers, revoke one session, or sign out everywhere.</div>
+        </button>
         <button
           className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
           onClick={() => setSection("machines")}

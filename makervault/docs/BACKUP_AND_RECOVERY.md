@@ -23,20 +23,25 @@ recovery and rollback mechanism. It contains exact SQLite, storage, deployment
 configuration, and recovery journals.
 
 Gates 10B–10C supply a secret-free logical `.mvault` v1 exporter, independent
-verifier, and clean-instance importer. The exporter accepts schema 12 and the
-Gate 11A schema 13 source; the importer deliberately reconstructs the frozen schema
-12 content contract. This portable workflow is not
+verifier, and clean-instance importer. The exporter accepts schema 12, Gate 11A
+schema 13, and Gate 11B schema 14 sources; the importer deliberately reconstructs
+the frozen schema 12 content contract. This portable workflow is not
 a replacement for the raw server backup: it deliberately excludes deployment
 configuration, secrets, operational journals, quarantine, and external no-copy
 bytes, and it does not support rollback, replacement, or merge restore.
 
-For schema 13, this distinction includes identity: raw format-1 backup contains the
-SQLite `useraccount` record and password hash and must be protected accordingly.
-`.mvault` never contains users, password hashes, or credentials. Starting an API
-against a clean `.mvault` restore applies migration 13 and bootstraps a new local
-administrator from that installation's validated environment. Gate 11A does not
-yet add identity-specific raw-backup audit or account-recovery ceremony; those are
-explicit Gate 11D evidence requirements.
+For schemas 13–14, this distinction includes authentication: raw format-1 backup
+contains the SQLite `useraccount` password hash and, at schema 14, keyed browser
+session records. It must be protected accordingly. `.mvault` never contains users,
+password hashes, session records, or credentials. Starting an API against a clean
+`.mvault` restore applies migrations 13–14 and bootstraps a new local administrator
+from that installation's validated environment.
+
+Gate 11B does not yet make the raw recovery tool detect a restore and revoke all
+restored sessions automatically. Until the Gate 11D recovery ceremony is accepted,
+keep a schema-14 raw restore isolated, sign in locally, use revoke-all, and confirm
+the old browser session fails before exposing the service. Identity/session-aware
+raw-backup audit remains an explicit Gate 11D evidence requirement.
 
 From the repository root, against paths that are not being used by a running API:
 
@@ -234,9 +239,10 @@ source paths remain in SQLite for every affected revision. After recovery, remou
 same `/imports`-relative paths. Until then, managed content continues to work and
 the external file routes return unavailable.
 
-The server backup also excludes browser sessions and source-site cookies, browser
-preferences, and workstation-local bridge configuration/cache. Re-authenticate the
-browser and reinstall or restore the v5.1 bridge separately.
+Schema-14 server backup includes keyed server-side browser-session rows but never
+the browser's HttpOnly cookie value. It excludes source-site cookies, browser
+preferences, and workstation-local bridge configuration/cache. Follow the isolated
+restore/revoke-all warning above and reinstall or restore the v5.1 bridge separately.
 
 ## Development-path compatibility
 

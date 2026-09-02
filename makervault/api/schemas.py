@@ -302,8 +302,34 @@ class LoginRequest(BaseModel):
 
 
 class LoginResponse(BaseModel):
-  token: str
+  authenticated: bool = True
+  csrf_token: str
   expires_in: int
+  absolute_expires_at: int
+
+
+class SessionStatusOut(BaseModel):
+  authenticated: bool = True
+  session_id: str
+  username: str
+  csrf_token: str
+  idle_expires_at: int
+  absolute_expires_at: int
+
+
+class BrowserSessionOut(BaseModel):
+  id: str
+  current: bool
+  created_at: int
+  last_seen_at: int
+  idle_expires_at: int
+  absolute_expires_at: int
+  client_address: Optional[str] = None
+  user_agent: Optional[str] = None
+
+
+class SessionRevokeAllOut(BaseModel):
+  revoked: int
 
 
 class HandoffGrantRequest(BaseModel):

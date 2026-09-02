@@ -65,14 +65,15 @@ def test_login_endpoint_throttles_without_logging_secrets(monkeypatch, caplog) -
                 json={"username": "admin", "password": "test-only-password"},
             )
             assert success.status_code == 200
-            issued_token = success.json()["token"]
+            issued_session = success.cookies.get("makersvault_session_dev")
+            assert issued_session
 
     log_output = caplog.text
     assert "login_failed source=testclient" in log_output
     assert "login_throttled source=testclient" in log_output
     assert "login_succeeded source=testclient" in log_output
     assert password not in log_output
-    assert issued_token not in log_output
+    assert issued_session not in log_output
 
 
 def test_login_uses_persistent_identity_after_environment_bootstrap(monkeypatch) -> None:

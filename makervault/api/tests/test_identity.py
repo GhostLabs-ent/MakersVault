@@ -12,7 +12,7 @@ from identity_service import (
     normalize_username,
     validate_new_password,
 )
-from migrations import run_migrations
+from migrations import MIGRATIONS, run_migrations
 
 
 def sqlite_engine(path: Path):
@@ -26,7 +26,7 @@ def test_bootstrap_creates_one_hashed_persistent_administrator_and_is_idempotent
     tmp_path: Path,
 ) -> None:
     database_engine = sqlite_engine(tmp_path / "identity.db")
-    assert run_migrations(database_engine) == 13
+    assert run_migrations(database_engine) == MIGRATIONS[-1].version
 
     created = bootstrap_initial_administrator(
         database_engine,

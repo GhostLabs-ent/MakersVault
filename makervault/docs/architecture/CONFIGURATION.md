@@ -25,8 +25,11 @@ deployment guidance required by Gate 1.
 | `MAKERSVAULT_ENV` | `production` in code and production; explicit `development` in source Compose | Selects the fail-closed validation policy. |
 | `AUTH_USERNAME` | `admin` | Current single-admin identity; it is not treated as a secret. |
 | `AUTH_PASSWORD` | none in production | Required in production; at least 12 characters and not a published placeholder. |
-| `AUTH_SECRET` | none in production | Required deployment-specific JWT secret; at least 32 bytes and distinct from the password. |
-| `AUTH_TOKEN_TTL` | `43200` seconds | JWT lifetime. |
+| `AUTH_SECRET` | none in production | Required deployment-specific secret for keyed browser-session digests and scoped handoff signing; at least 32 bytes and distinct from the password. |
+| `SESSION_IDLE_TTL` | `43200` seconds | Maximum inactivity before a browser session expires. |
+| `SESSION_ABSOLUTE_TTL` | `604800` seconds | Absolute browser-session lifetime; must be at least the idle lifetime. |
+| `SESSION_TOUCH_INTERVAL` | `300` seconds | Minimum interval between persisted last-seen/idle-expiry updates. |
+| `SESSION_MAX_ACTIVE` | `20` | Maximum active browser sessions for one account; accepted range is 1–100. |
 | `PUBLIC_URL` | empty | Public browser origin; also allows web runtime API derivation. |
 | `CORS_ORIGINS` | derived or localhost | Comma-separated browser origins accepted by API CORS middleware. |
 | `TRUSTED_HOSTS` | derived from `PUBLIC_URL`, otherwise permissive | Comma-separated API hostnames. Explicit values override derivation; loopback remains allowed for health checks. |

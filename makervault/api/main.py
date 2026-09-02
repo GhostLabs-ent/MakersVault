@@ -14,21 +14,18 @@ import hashlib
 import json
 import logging
 import os
-import jwt
-from jwt import PyJWTError
+import time
 
 from auth import (
     AUTH_ENABLED,
     AUTH_PASSWORD,
     AUTH_USERNAME,
-    AUTH_TOKEN_TTL,
-    AUTH_SECRET,
-    AUTH_ALGO,
     HANDOFF_TOKEN_TTL,
+    clear_browser_session_cookies,
     create_handoff_token,
-    create_token,
     decode_handoff_token,
     require_auth,
+    set_browser_session_cookies,
     validate_auth_config,
 )
 from asset_service import (
@@ -187,6 +184,9 @@ from schemas import (
     FolderOut,
     LoginRequest,
     LoginResponse,
+    BrowserSessionOut,
+    SessionRevokeAllOut,
+    SessionStatusOut,
     HandoffGrantOut,
     HandoffGrantRequest,
     DownloadRequest,
@@ -241,6 +241,16 @@ from schemas import (
 )
 from zip_service import extract_zip_entries_to_assets, list_zip_entries
 from url_utils import normalize_import_url
+from session_service import (
+    SessionPrincipal,
+    cleanup_browser_sessions,
+    cookie_policy,
+    create_browser_session,
+    list_user_sessions,
+    revoke_all_user_sessions,
+    revoke_browser_session,
+    revoke_session_secret,
+)
 
 
 @asynccontextmanager
@@ -257,6 +267,7 @@ async def lifespan(_app: FastAPI):
             "persistent_administrator_bootstrapped password_change_required=%s",
             str(bootstrap.password_change_required).lower(),
         )
+    cleanup_browser_sessions(engine)
     trash_stop = start_trash_maintenance()
     recover_interrupted_mount_scans()
     recover_interrupted_content_hash_jobs()
@@ -783,7 +794,7 @@ def update_storage_settings(body: StorageSettings, _: Optional[str] = Depends(re
 
 
 @app.post("/login", response_model=LoginResponse)
-def login(body: LoginRequest, request: Request):
+def login(body: LoginRequest, request: Request, response: Response):
     if not AUTH_ENABLED:
         raise HTTPException(status_code=503, detail="Authentication is not configured on the server")
     source = request.client.host if request.client else "unknown"
@@ -806,25 +817,100 @@ def login(body: LoginRequest, request: Request):
         raise HTTPException(status_code=401, detail="Invalid username or password")
     login_limiter.record_success(source, body.username)
     security_logger.info("login_succeeded source=%s", source)
-    token = create_token(identity.username)
-    return LoginResponse(token=token, expires_in=AUTH_TOKEN_TTL)
+    policy = cookie_policy()
+    revoke_session_secret(engine, request.cookies.get(policy.session_name))
+    created = create_browser_session(
+        engine,
+        user_id=identity.id,
+        client_address=source,
+        user_agent=request.headers.get("User-Agent"),
+    )
+    set_browser_session_cookies(response, created)
+    response.headers["Cache-Control"] = "private, no-store"
+    return LoginResponse(
+        csrf_token=created.csrf_token,
+        expires_in=max(1, created.idle_expires_at - int(time.time())),
+        absolute_expires_at=created.absolute_expires_at,
+    )
 
 
-@app.post("/refresh", response_model=LoginResponse)
-def refresh_token(token: Optional[str] = Depends(require_auth)):
-    if not AUTH_ENABLED:
-        raise HTTPException(status_code=503, detail="Authentication is not configured on the server")
-    if not token:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    try:
-        payload = jwt.decode(token, AUTH_SECRET, algorithms=[AUTH_ALGO])
-    except PyJWTError:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-    username = payload.get("sub")
-    if not username:
-        raise HTTPException(status_code=401, detail="Invalid token payload")
-    new_token = create_token(username)
-    return LoginResponse(token=new_token, expires_in=AUTH_TOKEN_TTL)
+@app.get("/session", response_model=SessionStatusOut)
+def current_session(
+    response: Response,
+    principal: SessionPrincipal = Depends(require_auth),
+):
+    response.headers["Cache-Control"] = "private, no-store"
+    return SessionStatusOut(
+        session_id=principal.session_id,
+        username=principal.username,
+        csrf_token=principal.csrf_token,
+        idle_expires_at=principal.idle_expires_at,
+        absolute_expires_at=principal.absolute_expires_at,
+    )
+
+
+@app.get("/sessions", response_model=List[BrowserSessionOut])
+def browser_sessions(
+    response: Response,
+    principal: SessionPrincipal = Depends(require_auth),
+):
+    response.headers["Cache-Control"] = "private, no-store"
+    return [
+        BrowserSessionOut(
+            id=item.id,
+            current=item.id == principal.session_id,
+            created_at=item.created_at,
+            last_seen_at=item.last_seen_at,
+            idle_expires_at=item.idle_expires_at,
+            absolute_expires_at=item.absolute_expires_at,
+            client_address=item.client_address,
+            user_agent=item.user_agent,
+        )
+        for item in list_user_sessions(engine, user_id=principal.user_id)
+    ]
+
+
+@app.post("/logout", status_code=204)
+def logout(
+    response: Response,
+    principal: SessionPrincipal = Depends(require_auth),
+):
+    revoke_browser_session(
+        engine,
+        user_id=principal.user_id,
+        session_id=principal.session_id,
+    )
+    clear_browser_session_cookies(response)
+    response.status_code = 204
+    return response
+
+
+@app.delete("/sessions/{session_id}", status_code=204)
+def revoke_one_browser_session(
+    session_id: str,
+    response: Response,
+    principal: SessionPrincipal = Depends(require_auth),
+):
+    if not revoke_browser_session(
+        engine,
+        user_id=principal.user_id,
+        session_id=session_id,
+    ):
+        raise HTTPException(status_code=404, detail="Session not found")
+    if session_id == principal.session_id:
+        clear_browser_session_cookies(response)
+    response.status_code = 204
+    return response
+
+
+@app.post("/sessions/revoke-all", response_model=SessionRevokeAllOut)
+def revoke_all_browser_sessions(
+    response: Response,
+    principal: SessionPrincipal = Depends(require_auth),
+):
+    revoked = revoke_all_user_sessions(engine, user_id=principal.user_id)
+    clear_browser_session_cookies(response)
+    return SessionRevokeAllOut(revoked=revoked)
 
 
 @app.post("/upload", response_model=AssetOut)

@@ -16,7 +16,7 @@ The setup helper:
 
 - Refuses to overwrite an existing `.env` file.
 - Generates a random 40-character administrator password.
-- Generates a 256-bit random JWT signing secret.
+- Generates a 256-bit random session-digest and handoff signing secret.
 - Writes `.env` with filesystem mode `600`.
 - Prints the generated password once. Store it in a password manager.
 
@@ -34,8 +34,9 @@ After that succeeds, login uses the Argon2id hash in SQLite. Changing
 `AUTH_USERNAME` or `AUTH_PASSWORD` in `.env` does not rename the administrator,
 rotate its password, or provide a recovery bypass. Preserve the original credential
 and a matched raw backup; account-management and stopped-instance recovery remain
-later gated work. `AUTH_SECRET` still signs the current browser JWTs, so changing it
-continues to invalidate them.
+later gated work. `AUTH_SECRET` keys stored session digests and the separate bridge
+handoff signing key, so changing it invalidates existing browser sessions and
+outstanding short-lived handoff grants.
 
 ## Upgrading an existing installation
 
@@ -50,7 +51,10 @@ Set all of these values before starting v5.1:
 AUTH_USERNAME=admin
 AUTH_PASSWORD=<unique password with at least 12 characters>
 AUTH_SECRET=<at least 32 random bytes>
-AUTH_TOKEN_TTL=43200
+SESSION_IDLE_TTL=43200
+SESSION_ABSOLUTE_TTL=604800
+SESSION_TOUCH_INTERVAL=300
+SESSION_MAX_ACTIVE=20
 ```
 
 Generate a signing secret without placing it in shell history:
@@ -64,8 +68,17 @@ as `super-secret`, `password`, `changeme-secret`, and
 `replace-with-random-secret` are rejected in production.
 
 After changing `AUTH_SECRET`, existing browser sessions become invalid. Sign in
-again with the persistent administrator credential. Schema 13 adds the identity
-table but does not transform stored model files.
+again with the persistent administrator credential. Schema 14 adds revocable
+browser sessions but does not transform stored model files.
+
+Production sessions use `__Host-` cookies with `Secure`, `HttpOnly` for the session
+secret, `SameSite=Lax`, `Path=/`, and no `Domain`. Production browser access
+therefore requires HTTPS. Only explicit `development` and `test` environments use
+separately named non-Secure cookies for local HTTP. Unsafe requests require both an
+exact configured browser `Origin` and the session-bound `X-CSRF-Token` header.
+The idle timeout defaults to 12 hours, the absolute lifetime to seven days, and one
+administrator may retain at most 20 active sessions; all values fail closed when
+invalid.
 
 If startup fails, inspect the API container log. The validation error lists each
 missing or unsafe setting. Correct `.env` and restart; do not restore published
@@ -131,26 +144,27 @@ Failed logins receive a short progressive cooldown beginning after the third
 failure and capped at 60 seconds. The control is bounded, process-local, and
 matches the supported single API process; restarting the API clears its attempt
 history. Audit events include the immediate client address and outcome but never
-the supplied password or issued token.
+the supplied password or issued session secret.
 
-v5.1 stores the administrator token in browser `sessionStorage`, not persistent
-`localStorage`. An existing v5.0 token migrates automatically in the tab that
-first loads v5.1. Reloading that tab remains seamless, but closing the browser
-session requires signing in again.
+The current local build stores an opaque session secret only in an HttpOnly cookie;
+JavaScript cannot read it, and no authentication bearer is placed in local or
+session storage. On first load the web client deletes any legacy stored bearer
+instead of migrating or refreshing it. Protected file and preview URLs use the same
+cookie and contain no authentication query parameter.
 
-The current browser preview and direct-download compatibility path still places
-the token in protected file query strings. Remote HTTPS, no-referrer/no-store
-responses, the web CSP, and removal of the token from bridge handoffs reduce its
-exposure. Do not copy or share authenticated file URLs. HttpOnly cookies, CSRF
-protection, and durable token revocation remain part of the later session
-architecture rather than being represented as complete in v5.1.
+Logout revokes the current server-side session. Authenticated session listing,
+single-session revocation, and revoke-all are also available; expired and revoked
+rows are cleaned in bounded batches. The separately signed 90-second exact-file
+bridge handoff remains unchanged and cannot authenticate an ordinary API route.
 
 ## Browser headers and host policy
 
 The bundled web gateway sets CSP, `nosniff`, no-referrer, permissions, and frame
 denial headers. Its CSP derives the separately configured API origin and declared
 HTTP(S) `CORS_ORIGINS` when present, retaining the blob/WASM/worker capabilities
-required by model previews. Direct API responses carry the matching non-CSP
+required by model previews. CORS does not authorize a mutation:
+cookie-authenticated unsafe requests independently require an exact configured
+Origin and bound CSRF header. Direct API responses carry the matching non-CSP
 baseline.
 
 When `PUBLIC_URL` is configured, the API accepts that hostname plus loopback

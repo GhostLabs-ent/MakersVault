@@ -1,4 +1,4 @@
-import { appendTokenToUrl, authHeaders } from "./auth";
+import { authHeaders, sessionFetch, setSessionCsrfToken } from "./auth";
 import { loadSettings } from "./settings";
 import { GeneralHandoffGrant, HandoffContentRole, HandoffGrant, HandoffTool } from "./handoff";
 
@@ -483,7 +483,7 @@ export async function listAssets(params: {
   if (params.machine_scope) qs.set("machine_scope", params.machine_scope);
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
   if (typeof params.offset === "number") qs.set("offset", String(params.offset));
-  const res = await fetch(`${apiBase()}/assets?${qs.toString()}`, {
+  const res = await sessionFetch(`${apiBase()}/assets?${qs.toString()}`, {
     headers: authHeaders(),
   });
   assertOk(res, "Failed to list assets");
@@ -511,7 +511,7 @@ export async function listTags(params: {
   if (params.project_unassigned) qs.set("project_unassigned", "true");
   if (params.machine_id) qs.set("machine_id", params.machine_id);
   if (params.machine_scope) qs.set("machine_scope", params.machine_scope);
-  const res = await fetch(`${apiBase()}/tags?${qs.toString()}`, {
+  const res = await sessionFetch(`${apiBase()}/tags?${qs.toString()}`, {
     headers: authHeaders(),
   });
   assertOk(res, "Failed to list tags");
@@ -530,7 +530,7 @@ export async function uploadAsset(
   if (opts.tags && opts.tags.length) fd.set("tags", opts.tags.join(","));
   if (opts.folder_id) fd.set("folder_id", opts.folder_id);
   if (opts.project_id) fd.set("project_id", opts.project_id);
-  const res = await fetch(`${apiBase()}/upload`, {
+  const res = await sessionFetch(`${apiBase()}/upload`, {
     method: "POST",
     body: fd,
     headers: authHeaders(),
@@ -556,7 +556,7 @@ export async function importFromLink(payload: {
   makerworld_cookie?: string;
   thingiverse_cookie?: string;
 }) {
-  const res = await fetch(`${apiBase()}/import`, {
+  const res = await sessionFetch(`${apiBase()}/import`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
@@ -588,7 +588,7 @@ export async function inspectImportLink(payload: {
   makerworld_cookie?: string;
   thingiverse_cookie?: string;
 }): Promise<ImportInspectInfo> {
-  const res = await fetch(`${apiBase()}/import/inspect`, {
+  const res = await sessionFetch(`${apiBase()}/import/inspect`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
@@ -614,7 +614,7 @@ export async function listImportZipEntries(payload: {
   makerworld_cookie?: string;
   thingiverse_cookie?: string;
 }): Promise<{ filename: string; entries: ZipEntryInfo[] }> {
-  const res = await fetch(`${apiBase()}/import/zip/entries`, {
+  const res = await sessionFetch(`${apiBase()}/import/zip/entries`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
@@ -641,7 +641,7 @@ export async function importZipFromLink(payload: {
   makerworld_cookie?: string;
   thingiverse_cookie?: string;
 }): Promise<ImportZipResult> {
-  const res = await fetch(`${apiBase()}/import/zip`, {
+  const res = await sessionFetch(`${apiBase()}/import/zip`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
@@ -657,7 +657,7 @@ export async function importZipFromLink(payload: {
 }
 
 export async function setTags(id: string, tags: string[]) {
-  const res = await fetch(`${apiBase()}/asset/${id}/tags`, {
+  const res = await sessionFetch(`${apiBase()}/asset/${id}/tags`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ tags }),
@@ -672,7 +672,7 @@ export async function setTags(id: string, tags: string[]) {
 export async function uploadGeneratedThumbnail(id: string, image: Blob): Promise<Asset> {
   const body = new FormData();
   body.set("file", image, "thumbnail.png");
-  const res = await fetch(`${apiBase()}/asset/${id}/thumbnail-generated`, {
+  const res = await sessionFetch(`${apiBase()}/asset/${id}/thumbnail-generated`, {
     method: "POST",
     headers: authHeaders(),
     body,
@@ -686,7 +686,7 @@ export async function uploadGeneratedThumbnail(id: string, image: Blob): Promise
 
 export function getPreviewPolicy(): Promise<PreviewPolicy> {
   if (!previewPolicyPromise) {
-    previewPolicyPromise = fetch(`${apiBase()}/settings/preview-policy`, { headers: authHeaders() })
+    previewPolicyPromise = sessionFetch(`${apiBase()}/settings/preview-policy`, { headers: authHeaders() })
       .then(response => {
         assertOk(response, "Failed to load preview policy");
         return response.json() as Promise<PreviewPolicy>;
@@ -703,7 +703,7 @@ export async function updatePreviewState(
   id: string,
   payload: { status: "pending" | "failed" | "skipped_policy"; reason?: string | null },
 ): Promise<Asset> {
-  const response = await fetch(`${apiBase()}/asset/${id}/preview-state`, {
+  const response = await sessionFetch(`${apiBase()}/asset/${id}/preview-state`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
@@ -713,7 +713,7 @@ export async function updatePreviewState(
 }
 
 export async function requestPreviewRetry(id: string): Promise<Asset> {
-  const response = await fetch(`${apiBase()}/asset/${id}/preview-retry`, {
+  const response = await sessionFetch(`${apiBase()}/asset/${id}/preview-retry`, {
     method: "POST",
     headers: authHeaders(),
   });
@@ -722,7 +722,7 @@ export async function requestPreviewRetry(id: string): Promise<Asset> {
 }
 
 export async function listAssetFiles(id: string): Promise<AssetFile[]> {
-  const res = await fetch(`${apiBase()}/asset/${id}/files`, { headers: authHeaders() });
+  const res = await sessionFetch(`${apiBase()}/asset/${id}/files`, { headers: authHeaders() });
   assertOk(res, "Failed to load supporting files");
   return res.json();
 }
@@ -735,7 +735,7 @@ export async function uploadAssetFile(
   const body = new FormData();
   body.set("file", file, file.name);
   if (revisionId) body.set("revision_id", revisionId);
-  const res = await fetch(`${apiBase()}/asset/${id}/files`, {
+  const res = await sessionFetch(`${apiBase()}/asset/${id}/files`, {
     method: "POST",
     headers: authHeaders(),
     body,
@@ -748,7 +748,7 @@ export async function uploadAssetFile(
 }
 
 export async function listArtifactRevisions(id: string): Promise<ArtifactRevision[]> {
-  const res = await fetch(`${apiBase()}/asset/${id}/revisions`, { headers: authHeaders() });
+  const res = await sessionFetch(`${apiBase()}/asset/${id}/revisions`, { headers: authHeaders() });
   assertOk(res, "Failed to load version history");
   return res.json();
 }
@@ -765,7 +765,7 @@ export async function uploadArtifactRevision(
   if (expectedCurrentRevisionId) {
     body.set("expected_current_revision_id", expectedCurrentRevisionId);
   }
-  const res = await fetch(`${apiBase()}/asset/${id}/revisions`, {
+  const res = await sessionFetch(`${apiBase()}/asset/${id}/revisions`, {
     method: "POST",
     headers: authHeaders(),
     body,
@@ -780,7 +780,7 @@ export async function restoreArtifactRevision(
   revisionId: string,
   changeNote?: string,
 ): Promise<RevisionMutation> {
-  const res = await fetch(`${apiBase()}/asset/${assetId}/revisions/${revisionId}/restore`, {
+  const res = await sessionFetch(`${apiBase()}/asset/${assetId}/revisions/${revisionId}/restore`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ change_note: changeNote?.trim() || null }),
@@ -795,7 +795,7 @@ export function artifactHistoryExportUrl(assetId: string) {
 }
 
 export async function deleteAssetFile(assetId: string, fileId: string): Promise<Asset> {
-  const res = await fetch(`${apiBase()}/asset/${assetId}/files/${fileId}`, {
+  const res = await sessionFetch(`${apiBase()}/asset/${assetId}/files/${fileId}`, {
     method: "DELETE",
     headers: authHeaders(),
   });
@@ -804,7 +804,7 @@ export async function deleteAssetFile(assetId: string, fileId: string): Promise<
 }
 
 export async function deletePreparedPrint(assetId: string): Promise<Asset> {
-  const res = await fetch(`${apiBase()}/asset/${assetId}/prepared-print`, {
+  const res = await sessionFetch(`${apiBase()}/asset/${assetId}/prepared-print`, {
     method: "DELETE",
     headers: authHeaders(),
   });
@@ -819,7 +819,7 @@ export async function updateAssetMeta(id: string, payload: {
   creator?: string | null;
   collection?: string | null;
 }) {
-  const res = await fetch(`${apiBase()}/asset/${id}/meta`, {
+  const res = await sessionFetch(`${apiBase()}/asset/${id}/meta`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
@@ -832,13 +832,13 @@ export async function updateAssetMeta(id: string, payload: {
 }
 
 export async function deleteAsset(id: string) {
-  const res = await fetch(`${apiBase()}/asset/${id}`, { method: "DELETE", headers: authHeaders() });
+  const res = await sessionFetch(`${apiBase()}/asset/${id}`, { method: "DELETE", headers: authHeaders() });
   assertOk(res, "Delete asset failed");
   return res.json();
 }
 
 export async function listTrash(): Promise<TrashItem[]> {
-  const res = await fetch(`${apiBase()}/trash`, { headers: authHeaders() });
+  const res = await sessionFetch(`${apiBase()}/trash`, { headers: authHeaders() });
   assertOk(res, "Failed to load Trash");
   return res.json();
 }
@@ -847,7 +847,7 @@ export async function restoreTrashAsset(
   id: string,
   restoreUnassigned = false,
 ): Promise<Asset> {
-  const res = await fetch(`${apiBase()}/trash/${id}/restore`, {
+  const res = await sessionFetch(`${apiBase()}/trash/${id}/restore`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ restore_unassigned: restoreUnassigned }),
@@ -868,7 +868,7 @@ export async function permanentlyDeleteTrash(
   assetIds: string[],
   confirmation: string,
 ): Promise<TrashPurgeItem[]> {
-  const res = await fetch(`${apiBase()}/trash/permanent`, {
+  const res = await sessionFetch(`${apiBase()}/trash/permanent`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ asset_ids: assetIds, confirmation }),
@@ -879,7 +879,7 @@ export async function permanentlyDeleteTrash(
 }
 
 export async function emptyTrash(confirmation: string): Promise<TrashPurgeItem[]> {
-  const res = await fetch(`${apiBase()}/trash/empty`, {
+  const res = await sessionFetch(`${apiBase()}/trash/empty`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ asset_ids: [], confirmation }),
@@ -890,13 +890,13 @@ export async function emptyTrash(confirmation: string): Promise<TrashPurgeItem[]
 }
 
 export async function getTrashSettings(): Promise<TrashSettings> {
-  const res = await fetch(`${apiBase()}/settings/trash`, { headers: authHeaders() });
+  const res = await sessionFetch(`${apiBase()}/settings/trash`, { headers: authHeaders() });
   assertOk(res, "Failed to load Trash settings");
   return res.json();
 }
 
 export async function updateTrashSettings(policy: TrashRetentionPolicy): Promise<TrashSettings> {
-  const res = await fetch(`${apiBase()}/settings/trash`, {
+  const res = await sessionFetch(`${apiBase()}/settings/trash`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ policy }),
@@ -907,7 +907,7 @@ export async function updateTrashSettings(policy: TrashRetentionPolicy): Promise
 }
 
 export async function renameAsset(id: string, filename: string) {
-  const res = await fetch(`${apiBase()}/asset/${id}/rename`, {
+  const res = await sessionFetch(`${apiBase()}/asset/${id}/rename`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ filename }),
@@ -917,7 +917,7 @@ export async function renameAsset(id: string, filename: string) {
 }
 
 export async function updateAssetFolder(id: string, folder_id: string | null) {
-  const res = await fetch(`${apiBase()}/asset/${id}/folder`, {
+  const res = await sessionFetch(`${apiBase()}/asset/${id}/folder`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ folder_id }),
@@ -930,7 +930,7 @@ export async function updateAssetFolder(id: string, folder_id: string | null) {
 }
 
 export async function createHandoff(id: string, tool: HandoffTool): Promise<HandoffGrant> {
-  const res = await fetch(`${apiBase()}/asset/${id}/handoff`, {
+  const res = await sessionFetch(`${apiBase()}/asset/${id}/handoff`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ tool }),
@@ -952,7 +952,7 @@ export async function createGeneralHandoff(
   contentRole: HandoffContentRole,
   selection: { revision_id?: string; file_id?: string } = {},
 ): Promise<GeneralHandoffGrant> {
-  const res = await fetch(`${apiBase()}/asset/${id}/handoff`, {
+  const res = await sessionFetch(`${apiBase()}/asset/${id}/handoff`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
@@ -975,7 +975,7 @@ export async function createGeneralHandoff(
 export function fileUrl(rel: string) {
   // API returns relative URLs. Join with API base.
   if (!rel) return rel;
-  return appendTokenToUrl(`${apiBase()}${rel}`);
+  return `${apiBase()}${rel}`;
 }
 
 // Projects ------------------------------------------------------
@@ -1000,7 +1000,7 @@ export async function listMachines(params: {
   if (params.include_archived) qs.set("include_archived", "true");
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
   if (typeof params.offset === "number") qs.set("offset", String(params.offset));
-  const res = await fetch(`${apiBase()}/machines?${qs.toString()}`, {
+  const res = await sessionFetch(`${apiBase()}/machines?${qs.toString()}`, {
     headers: authHeaders(),
   });
   assertOk(res, "Failed to load Machines");
@@ -1008,7 +1008,7 @@ export async function listMachines(params: {
 }
 
 export async function createMachine(payload: MachineInput): Promise<Machine> {
-  const res = await fetch(`${apiBase()}/machines`, {
+  const res = await sessionFetch(`${apiBase()}/machines`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
@@ -1022,7 +1022,7 @@ export async function updateMachine(
   id: string,
   payload: Partial<MachineInput>,
 ): Promise<Machine> {
-  const res = await fetch(`${apiBase()}/machine/${id}`, {
+  const res = await sessionFetch(`${apiBase()}/machine/${id}`, {
     method: "PATCH",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
@@ -1033,7 +1033,7 @@ export async function updateMachine(
 }
 
 export async function archiveMachine(id: string): Promise<Machine> {
-  const res = await fetch(`${apiBase()}/machine/${id}/archive`, {
+  const res = await sessionFetch(`${apiBase()}/machine/${id}/archive`, {
     method: "POST",
     headers: authHeaders(),
   });
@@ -1043,7 +1043,7 @@ export async function archiveMachine(id: string): Promise<Machine> {
 }
 
 export async function restoreMachine(id: string): Promise<Machine> {
-  const res = await fetch(`${apiBase()}/machine/${id}/restore`, {
+  const res = await sessionFetch(`${apiBase()}/machine/${id}/restore`, {
     method: "POST",
     headers: authHeaders(),
   });
@@ -1056,7 +1056,7 @@ export async function permanentlyDeleteMachine(
   id: string,
   confirmation: string,
 ): Promise<MachinePermanentDeleteResult> {
-  const res = await fetch(`${apiBase()}/machine/${id}/permanent`, {
+  const res = await sessionFetch(`${apiBase()}/machine/${id}/permanent`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ confirmation }),
@@ -1069,7 +1069,7 @@ export async function permanentlyDeleteMachine(
 export async function getAssetMachineContext(
   assetId: string,
 ): Promise<AssetMachineContext> {
-  const res = await fetch(`${apiBase()}/asset/${assetId}/machines`, {
+  const res = await sessionFetch(`${apiBase()}/asset/${assetId}/machines`, {
     headers: authHeaders(),
   });
   assertOk(res, "Failed to load Machine context");
@@ -1080,7 +1080,7 @@ export async function addAssetMachine(
   assetId: string,
   machineId: string,
 ): Promise<AssetMachineContext> {
-  const res = await fetch(`${apiBase()}/asset/${assetId}/machines/${machineId}`, {
+  const res = await sessionFetch(`${apiBase()}/asset/${assetId}/machines/${machineId}`, {
     method: "POST",
     headers: authHeaders(),
   });
@@ -1093,7 +1093,7 @@ export async function removeAssetMachine(
   assetId: string,
   machineId: string,
 ): Promise<AssetMachineContext> {
-  const res = await fetch(`${apiBase()}/asset/${assetId}/machines/${machineId}`, {
+  const res = await sessionFetch(`${apiBase()}/asset/${assetId}/machines/${machineId}`, {
     method: "DELETE",
     headers: authHeaders(),
   });
@@ -1106,7 +1106,7 @@ export async function setAssetPreparedMachine(
   assetId: string,
   machineId: string | null,
 ): Promise<AssetMachineContext> {
-  const res = await fetch(`${apiBase()}/asset/${assetId}/prepared-machine`, {
+  const res = await sessionFetch(`${apiBase()}/asset/${assetId}/prepared-machine`, {
     method: "PUT",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ machine_id: machineId }),
@@ -1125,7 +1125,7 @@ export async function listProjects(params: {
   if (params.q) qs.set("q", params.q);
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
   if (typeof params.offset === "number") qs.set("offset", String(params.offset));
-  const res = await fetch(`${apiBase()}/projects?${qs.toString()}`, { headers: authHeaders() });
+  const res = await sessionFetch(`${apiBase()}/projects?${qs.toString()}`, { headers: authHeaders() });
   assertOk(res, "Failed to list Projects");
   return pageResult(res, await res.json());
 }
@@ -1137,7 +1137,7 @@ export async function listProjectTrash(params: {
   const qs = new URLSearchParams();
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
   if (typeof params.offset === "number") qs.set("offset", String(params.offset));
-  const res = await fetch(`${apiBase()}/projects/trash?${qs.toString()}`, {
+  const res = await sessionFetch(`${apiBase()}/projects/trash?${qs.toString()}`, {
     headers: authHeaders(),
   });
   assertOk(res, "Failed to list Project Trash");
@@ -1145,13 +1145,13 @@ export async function listProjectTrash(params: {
 }
 
 export async function getProject(id: string): Promise<Project> {
-  const res = await fetch(`${apiBase()}/project/${id}`, { headers: authHeaders() });
+  const res = await sessionFetch(`${apiBase()}/project/${id}`, { headers: authHeaders() });
   assertOk(res, "Failed to load Project");
   return res.json();
 }
 
 export async function createProject(payload: ProjectInput): Promise<Project> {
-  const res = await fetch(`${apiBase()}/projects`, {
+  const res = await sessionFetch(`${apiBase()}/projects`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
@@ -1162,7 +1162,7 @@ export async function createProject(payload: ProjectInput): Promise<Project> {
 }
 
 export async function updateProject(id: string, payload: Partial<ProjectInput>): Promise<Project> {
-  const res = await fetch(`${apiBase()}/project/${id}`, {
+  const res = await sessionFetch(`${apiBase()}/project/${id}`, {
     method: "PATCH",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
@@ -1173,7 +1173,7 @@ export async function updateProject(id: string, payload: Partial<ProjectInput>):
 }
 
 export async function restoreProject(id: string): Promise<Project> {
-  const res = await fetch(`${apiBase()}/project/${id}/restore`, {
+  const res = await sessionFetch(`${apiBase()}/project/${id}/restore`, {
     method: "POST",
     headers: authHeaders(),
   });
@@ -1186,7 +1186,7 @@ export async function permanentlyDeleteProject(
   id: string,
   confirmation: string,
 ): Promise<ProjectPermanentDeleteResult> {
-  const res = await fetch(`${apiBase()}/project/${id}/permanent`, {
+  const res = await sessionFetch(`${apiBase()}/project/${id}/permanent`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ confirmation }),
@@ -1197,7 +1197,7 @@ export async function permanentlyDeleteProject(
 }
 
 export async function downloadProjectExport(id: string): Promise<Response> {
-  const res = await fetch(`${apiBase()}/project/${id}/export`, {
+  const res = await sessionFetch(`${apiBase()}/project/${id}/export`, {
     headers: authHeaders(),
   });
   if (res.status === 401) throw new UnauthorizedError();
@@ -1216,7 +1216,7 @@ export async function listProjectCandidates(
   if (params.machine_scope) qs.set("machine_scope", params.machine_scope);
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
   if (typeof params.offset === "number") qs.set("offset", String(params.offset));
-  const res = await fetch(`${apiBase()}/project/${id}/candidates?${qs.toString()}`, {
+  const res = await sessionFetch(`${apiBase()}/project/${id}/candidates?${qs.toString()}`, {
     headers: authHeaders(),
   });
   assertOk(res, "Failed to load Project candidates");
@@ -1234,7 +1234,7 @@ export async function listProjectItems(
   if (params.machine_scope) qs.set("machine_scope", params.machine_scope);
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
   if (typeof params.offset === "number") qs.set("offset", String(params.offset));
-  const res = await fetch(`${apiBase()}/project/${id}/items?${qs.toString()}`, {
+  const res = await sessionFetch(`${apiBase()}/project/${id}/items?${qs.toString()}`, {
     headers: authHeaders(),
   });
   assertOk(res, "Failed to load Project items");
@@ -1242,7 +1242,7 @@ export async function listProjectItems(
 }
 
 export async function addProjectItem(projectId: string, assetId: string): Promise<ProjectMembership> {
-  const res = await fetch(`${apiBase()}/project/${projectId}/items/${assetId}`, {
+  const res = await sessionFetch(`${apiBase()}/project/${projectId}/items/${assetId}`, {
     method: "POST",
     headers: authHeaders(),
   });
@@ -1257,7 +1257,7 @@ export async function removeProjectItem(
   confirmRelationshipCleanup = false,
 ): Promise<void> {
   const qs = confirmRelationshipCleanup ? "?confirm_relationship_cleanup=true" : "";
-  const res = await fetch(`${apiBase()}/project/${projectId}/items/${assetId}${qs}`, {
+  const res = await sessionFetch(`${apiBase()}/project/${projectId}/items/${assetId}${qs}`, {
     method: "DELETE",
     headers: authHeaders(),
   });
@@ -1281,7 +1281,7 @@ export async function listProjectRelationships(
   const qs = new URLSearchParams();
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
   if (typeof params.offset === "number") qs.set("offset", String(params.offset));
-  const res = await fetch(`${apiBase()}/project/${projectId}/relationships?${qs.toString()}`, {
+  const res = await sessionFetch(`${apiBase()}/project/${projectId}/relationships?${qs.toString()}`, {
     headers: authHeaders(),
   });
   assertOk(res, "Failed to load Project relationships");
@@ -1296,7 +1296,7 @@ export async function createProjectRelationship(
     kind: RelationshipKind;
   },
 ): Promise<ProjectRelationship> {
-  const res = await fetch(`${apiBase()}/project/${projectId}/relationships`, {
+  const res = await sessionFetch(`${apiBase()}/project/${projectId}/relationships`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
@@ -1310,7 +1310,7 @@ export async function deleteProjectRelationship(
   projectId: string,
   relationshipId: string,
 ): Promise<void> {
-  const res = await fetch(
+  const res = await sessionFetch(
     `${apiBase()}/project/${projectId}/relationships/${relationshipId}`,
     { method: "DELETE", headers: authHeaders() },
   );
@@ -1323,13 +1323,13 @@ export async function deleteProjectRelationship(
 export type Folder = { id: string; name: string; tags: string[]; parent_id?: string | null };
 
 export async function listFolders(): Promise<Folder[]> {
-  const res = await fetch(`${apiBase()}/folders`, { headers: authHeaders() });
+  const res = await sessionFetch(`${apiBase()}/folders`, { headers: authHeaders() });
   assertOk(res, "Failed to list folders");
   return res.json();
 }
 
 export async function createFolder(name: string, tags: string[] = [], parent_id?: string | null) {
-  const res = await fetch(`${apiBase()}/folders`, {
+  const res = await sessionFetch(`${apiBase()}/folders`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ name, tags, parent_id }),
@@ -1339,7 +1339,7 @@ export async function createFolder(name: string, tags: string[] = [], parent_id?
 }
 
 export async function updateFolder(id: string, name: string, tags: string[], parent_id?: string | null) {
-  const res = await fetch(`${apiBase()}/folder/${id}`, {
+  const res = await sessionFetch(`${apiBase()}/folder/${id}`, {
     method: "PATCH",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ name, tags, parent_id }),
@@ -1349,13 +1349,13 @@ export async function updateFolder(id: string, name: string, tags: string[], par
 }
 
 export async function deleteFolder(id: string) {
-  const res = await fetch(`${apiBase()}/folder/${id}`, { method: "DELETE", headers: authHeaders() });
+  const res = await sessionFetch(`${apiBase()}/folder/${id}`, { method: "DELETE", headers: authHeaders() });
   assertOk(res, "Delete folder failed");
   return res.json();
 }
 
 export async function downloadZip(opts: { asset_ids?: string[]; tag?: string; folder_id?: string; filename?: string }) {
-  const res = await fetch(`${apiBase()}/download/zip`, {
+  const res = await sessionFetch(`${apiBase()}/download/zip`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(opts),
@@ -1365,7 +1365,7 @@ export async function downloadZip(opts: { asset_ids?: string[]; tag?: string; fo
 }
 
 export async function downloadFolderZip(folder_id: string) {
-  const res = await fetch(`${apiBase()}/folder/${folder_id}/download`, { headers: authHeaders() });
+  const res = await sessionFetch(`${apiBase()}/folder/${folder_id}/download`, { headers: authHeaders() });
   assertOk(res, "Folder download failed");
   return res;
 }
@@ -1374,7 +1374,7 @@ export type HealthInfo = { ok: boolean; auth_required: boolean };
 
 export async function apiHealth(): Promise<HealthInfo | null> {
   try {
-    const res = await fetch(`${apiBase()}/health`, { cache: "no-store" });
+    const res = await sessionFetch(`${apiBase()}/health`, { cache: "no-store" });
     if (!res.ok) return null;
     const data = await res.json();
     return {
@@ -1390,8 +1390,35 @@ export function getApiBase() {
   return apiBase();
 }
 
-export async function login(username: string, password: string): Promise<{ token: string; expires_in: number }> {
-  const res = await fetch(`${apiBase()}/login`, {
+export type LoginResult = {
+  authenticated: boolean;
+  csrf_token: string;
+  expires_in: number;
+  absolute_expires_at: number;
+};
+
+export type SessionStatus = {
+  authenticated: boolean;
+  session_id: string;
+  username: string;
+  csrf_token: string;
+  idle_expires_at: number;
+  absolute_expires_at: number;
+};
+
+export type BrowserSession = {
+  id: string;
+  current: boolean;
+  created_at: number;
+  last_seen_at: number;
+  idle_expires_at: number;
+  absolute_expires_at: number;
+  client_address?: string | null;
+  user_agent?: string | null;
+};
+
+export async function login(username: string, password: string): Promise<LoginResult> {
+  const res = await sessionFetch(`${apiBase()}/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
@@ -1406,20 +1433,52 @@ export async function login(username: string, password: string): Promise<{ token
     }
     throw new Error(message);
   }
+  const body = await res.json() as LoginResult;
+  setSessionCsrfToken(body.csrf_token);
+  return body;
+}
+
+export async function getSession(): Promise<SessionStatus | null> {
+  const res = await sessionFetch(`${apiBase()}/session`, { cache: "no-store" });
+  if (res.status === 401) return null;
+  assertOk(res, "Session check failed");
+  const body = await res.json() as SessionStatus;
+  setSessionCsrfToken(body.csrf_token);
+  return body;
+}
+
+export async function logout(): Promise<void> {
+  const res = await sessionFetch(`${apiBase()}/logout`, {
+    method: "POST",
+  });
+  if (res.status !== 401) assertOk(res, "Logout failed");
+  setSessionCsrfToken(null);
+}
+
+export async function getBrowserSessions(): Promise<BrowserSession[]> {
+  const res = await sessionFetch(`${apiBase()}/sessions`, { cache: "no-store" });
+  assertOk(res, "Failed to load browser sessions");
   return res.json();
 }
 
-export async function refreshToken(): Promise<{ token: string; expires_in: number }> {
-  const res = await fetch(`${apiBase()}/refresh`, {
-    method: "POST",
-    headers: authHeaders(),
+export async function revokeBrowserSession(id: string): Promise<void> {
+  const res = await sessionFetch(`${apiBase()}/sessions/${encodeURIComponent(id)}`, {
+    method: "DELETE",
   });
-  assertOk(res, "Token refresh failed");
-  return res.json();
+  assertOk(res, "Failed to revoke browser session");
+}
+
+export async function revokeAllBrowserSessions(): Promise<number> {
+  const res = await sessionFetch(`${apiBase()}/sessions/revoke-all`, {
+    method: "POST",
+  });
+  assertOk(res, "Failed to revoke browser sessions");
+  const body = await res.json();
+  return Number(body?.revoked || 0);
 }
 
 export async function getMountImportSettings(): Promise<MountImportSettings> {
-  const res = await fetch(`${apiBase()}/settings/mount-import`, { headers: authHeaders() });
+  const res = await sessionFetch(`${apiBase()}/settings/mount-import`, { headers: authHeaders() });
   assertOk(res, "Failed to load mount import settings");
   return res.json();
 }
@@ -1428,7 +1487,7 @@ export async function updateMountImportSettings(payload: {
   enabled: boolean;
   copy_files: boolean;
 }): Promise<MountImportSettings> {
-  const res = await fetch(`${apiBase()}/settings/mount-import`, {
+  const res = await sessionFetch(`${apiBase()}/settings/mount-import`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
@@ -1438,13 +1497,13 @@ export async function updateMountImportSettings(payload: {
 }
 
 export async function getMountImportScan(): Promise<MountScan | null> {
-  const res = await fetch(`${apiBase()}/settings/mount-import/scan`, { headers: authHeaders() });
+  const res = await sessionFetch(`${apiBase()}/settings/mount-import/scan`, { headers: authHeaders() });
   assertOk(res, "Failed to load mounted import scan");
   return res.json();
 }
 
 export async function rescanMountImport(): Promise<{ scan: MountScan; started: boolean }> {
-  const res = await fetch(`${apiBase()}/settings/mount-import/rescan`, {
+  const res = await sessionFetch(`${apiBase()}/settings/mount-import/rescan`, {
     method: "POST",
     headers: authHeaders(),
   });
@@ -1458,7 +1517,7 @@ export async function rescanMountImport(): Promise<{ scan: MountScan; started: b
 }
 
 export async function getStorageSettings(): Promise<StorageSettings> {
-  const res = await fetch(`${apiBase()}/settings/storage`, { headers: authHeaders() });
+  const res = await sessionFetch(`${apiBase()}/settings/storage`, { headers: authHeaders() });
   assertOk(res, "Failed to load storage settings");
   return res.json();
 }
@@ -1467,7 +1526,7 @@ export async function updateStorageSettings(payload: {
   template: string;
   apply_existing: boolean;
 }): Promise<StorageSettings> {
-  const res = await fetch(`${apiBase()}/settings/storage`, {
+  const res = await sessionFetch(`${apiBase()}/settings/storage`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
@@ -1480,7 +1539,7 @@ export async function updateStorageSettings(payload: {
 }
 
 export async function getContentIdentityJob(): Promise<ContentHashJob | null> {
-  const res = await fetch(`${apiBase()}/settings/content-identity`, { headers: authHeaders() });
+  const res = await sessionFetch(`${apiBase()}/settings/content-identity`, { headers: authHeaders() });
   assertOk(res, "Failed to load content identity status");
   return res.json();
 }
@@ -1488,7 +1547,7 @@ export async function getContentIdentityJob(): Promise<ContentHashJob | null> {
 export async function startContentIdentityBackfill(
   verifyAll = false
 ): Promise<{ job: ContentHashJob | null; started: boolean }> {
-  const res = await fetch(`${apiBase()}/settings/content-identity/backfill`, {
+  const res = await sessionFetch(`${apiBase()}/settings/content-identity/backfill`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ verify_all: verifyAll }),

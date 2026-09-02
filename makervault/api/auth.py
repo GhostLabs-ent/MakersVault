@@ -1,36 +1,121 @@
 import hashlib
 import hmac
+import os
 import time
 import uuid
 import jwt
 from jwt import PyJWTError
-from fastapi import Depends, HTTPException, Query
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import HTTPException, Request, Response
 from typing import Optional
+from urllib.parse import urlparse
 
+from db import engine
 from security_config import load_security_config, validate_security_config
+from session_service import (
+  CreatedBrowserSession,
+  SessionPrincipal,
+  authenticate_browser_session,
+  cookie_policy,
+  csrf_matches,
+)
 
 SECURITY_CONFIG = load_security_config()
 AUTH_USERNAME = SECURITY_CONFIG.username
 AUTH_PASSWORD = SECURITY_CONFIG.password
 AUTH_SECRET = SECURITY_CONFIG.secret
-AUTH_TOKEN_TTL = SECURITY_CONFIG.token_ttl
 AUTH_ALGO = "HS256"
 HANDOFF_AUDIENCE = "makersvault-bridge"
 HANDOFF_ISSUER = "makersvault"
 HANDOFF_TOKEN_TTL = 90
 AUTH_ENABLED = bool(AUTH_USERNAME and AUTH_PASSWORD)
-auth_scheme = HTTPBearer(auto_error=False)
+UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
 
 def validate_auth_config() -> None:
   validate_security_config(SECURITY_CONFIG)
 
 
-def create_token(username: str) -> str:
-  now = int(time.time())
-  payload = {"sub": username, "iat": now, "exp": now + AUTH_TOKEN_TTL}
-  return jwt.encode(payload, AUTH_SECRET, algorithm=AUTH_ALGO)
+def _normalize_origin(raw: str) -> Optional[str]:
+  try:
+    parsed = urlparse((raw or "").strip())
+  except ValueError:
+    return None
+  scheme = parsed.scheme.lower()
+  if (
+    scheme not in {"http", "https"}
+    or not parsed.hostname
+    or parsed.username is not None
+    or parsed.password is not None
+  ):
+    return None
+  try:
+    port = parsed.port
+  except ValueError:
+    return None
+  hostname = parsed.hostname.lower()
+  if ":" in hostname:
+    hostname = f"[{hostname}]"
+  default_port = 80 if scheme == "http" else 443
+  authority = hostname if port in {None, default_port} else f"{hostname}:{port}"
+  return f"{scheme}://{authority}"
+
+
+def configured_browser_origins() -> set[str]:
+  raw = os.getenv("CORS_ORIGINS", "")
+  candidates = raw.split(",") if raw else [
+    os.getenv("PUBLIC_URL", ""),
+    os.getenv("VITE_API_URL", ""),
+  ]
+  origins = {
+    normalized
+    for candidate in candidates
+    if (normalized := _normalize_origin(candidate)) is not None
+  }
+  return origins or {"http://localhost:5173"}
+
+
+def set_browser_session_cookies(
+  response: Response,
+  created: CreatedBrowserSession,
+) -> None:
+  policy = cookie_policy()
+  max_age = max(1, created.absolute_expires_at - int(time.time()))
+  response.set_cookie(
+    policy.session_name,
+    created.secret,
+    max_age=max_age,
+    secure=policy.secure,
+    httponly=True,
+    samesite="lax",
+    path="/",
+  )
+  response.set_cookie(
+    policy.csrf_name,
+    created.csrf_token,
+    max_age=max_age,
+    secure=policy.secure,
+    httponly=False,
+    samesite="lax",
+    path="/",
+  )
+
+
+def clear_browser_session_cookies(response: Response) -> None:
+  policy = cookie_policy()
+  response.delete_cookie(
+    policy.session_name,
+    secure=policy.secure,
+    httponly=True,
+    samesite="lax",
+    path="/",
+  )
+  response.delete_cookie(
+    policy.csrf_name,
+    secure=policy.secure,
+    httponly=False,
+    samesite="lax",
+    path="/",
+  )
 
 
 def _handoff_signing_key() -> bytes:
@@ -115,17 +200,18 @@ def decode_handoff_token(token: str) -> dict:
   return payload
 
 
-def require_auth(
-  credentials: Optional[HTTPAuthorizationCredentials] = Depends(auth_scheme),
-  token_param: Optional[str] = Query(default=None, alias="token"),
-):
+def require_auth(request: Request) -> Optional[SessionPrincipal]:
   if not AUTH_ENABLED:
     return None
-  token = credentials.credentials if credentials else token_param
-  if not token:
+  policy = cookie_policy()
+  secret = request.cookies.get(policy.session_name)
+  principal = authenticate_browser_session(engine, secret or "")
+  if principal is None:
     raise HTTPException(status_code=401, detail="Unauthorized")
-  try:
-    jwt.decode(token, AUTH_SECRET, algorithms=[AUTH_ALGO])
-  except PyJWTError:
-    raise HTTPException(status_code=401, detail="Invalid or expired token")
-  return token
+  if request.method.upper() in UNSAFE_METHODS:
+    origin = _normalize_origin(request.headers.get("Origin", ""))
+    if origin is None or origin not in configured_browser_origins():
+      raise HTTPException(status_code=403, detail="Trusted browser origin required")
+    if not csrf_matches(principal, request.headers.get("X-CSRF-Token")):
+      raise HTTPException(status_code=403, detail="Valid CSRF token required")
+  return principal

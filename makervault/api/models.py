@@ -187,6 +187,27 @@ class UserAccount(SQLModel, table=True):
   last_login_at: Optional[str] = None
 
 
+class BrowserSession(SQLModel, table=True):
+  __tablename__ = "browsersession"
+  __table_args__ = (
+    UniqueConstraint(
+      "secret_digest",
+      name="idx_browsersession_secret_digest_unique",
+    ),
+  )
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  user_id: str = Field(foreign_key="useraccount.id", index=True)
+  secret_digest: str
+  created_at: int
+  last_seen_at: int
+  idle_expires_at: int = Field(index=True)
+  absolute_expires_at: int = Field(index=True)
+  idle_ttl_seconds: int
+  revoked_at: Optional[int] = Field(default=None, index=True)
+  client_address: Optional[str] = None
+  user_agent: Optional[str] = None
+
+
 class AppConfig(SQLModel, table=True):
   key: str = Field(primary_key=True)
   value: str

@@ -611,6 +611,47 @@ def _migration_013_persistent_administrator_identity(conn: Connection) -> None:
     )
 
 
+def _migration_014_revocable_browser_sessions(conn: Connection) -> None:
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS browsersession (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            user_id VARCHAR NOT NULL,
+            secret_digest VARCHAR NOT NULL,
+            created_at INTEGER NOT NULL,
+            last_seen_at INTEGER NOT NULL,
+            idle_expires_at INTEGER NOT NULL,
+            absolute_expires_at INTEGER NOT NULL,
+            idle_ttl_seconds INTEGER NOT NULL CHECK (idle_ttl_seconds > 0),
+            revoked_at INTEGER,
+            client_address VARCHAR,
+            user_agent VARCHAR,
+            FOREIGN KEY(user_id) REFERENCES useraccount(id) ON DELETE CASCADE
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "CREATE UNIQUE INDEX IF NOT EXISTS "
+        "idx_browsersession_secret_digest_unique ON browsersession(secret_digest)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_browsersession_user_id "
+        "ON browsersession(user_id)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_browsersession_idle_expires_at "
+        "ON browsersession(idle_expires_at)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_browsersession_absolute_expires_at "
+        "ON browsersession(absolute_expires_at)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_browsersession_revoked_at "
+        "ON browsersession(revoked_at)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
@@ -625,6 +666,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(11, "machine_profiles", _migration_011_machine_profiles),
     Migration(12, "artifact_machine_context", _migration_012_artifact_machine_context),
     Migration(13, "persistent_administrator_identity", _migration_013_persistent_administrator_identity),
+    Migration(14, "revocable_browser_sessions", _migration_014_revocable_browser_sessions),
 )
 
 

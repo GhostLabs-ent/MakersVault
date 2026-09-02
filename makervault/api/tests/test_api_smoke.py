@@ -24,11 +24,14 @@ def test_health_and_authenticated_library_smoke() -> None:
             json={"username": "admin", "password": "test-only-password"},
         )
         assert login.status_code == 200
-        token = login.json()["token"]
+        headers = {
+            "Origin": "http://testserver",
+            "X-CSRF-Token": login.json()["csrf_token"],
+        }
 
         assets = client.get(
             "/assets",
-            headers={"Authorization": f"Bearer {token}"},
+            headers=headers,
         )
         assert assets.status_code == 200
         assert assets.json() == []
@@ -44,8 +47,10 @@ def test_failed_primary_upload_removes_database_record(monkeypatch) -> None:
             "/login",
             json={"username": "admin", "password": "test-only-password"},
         )
-        token = login.json()["token"]
-        headers = {"Authorization": f"Bearer {token}"}
+        headers = {
+            "Origin": "http://testserver",
+            "X-CSRF-Token": login.json()["csrf_token"],
+        }
         before = client.get("/assets", headers=headers).json()
 
         response = client.post(
@@ -64,8 +69,10 @@ def test_preview_policy_and_persistent_state_workflow() -> None:
             "/login",
             json={"username": "admin", "password": "test-only-password"},
         )
-        token = login.json()["token"]
-        headers = {"Authorization": f"Bearer {token}"}
+        headers = {
+            "Origin": "http://testserver",
+            "X-CSRF-Token": login.json()["csrf_token"],
+        }
 
         policy = client.get("/settings/preview-policy", headers=headers)
         assert policy.status_code == 200

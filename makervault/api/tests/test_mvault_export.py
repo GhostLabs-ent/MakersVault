@@ -14,6 +14,7 @@ from identity_service import bootstrap_initial_administrator
 from migrations import run_migrations
 from mvault_export import MvaultExportError, PortableVaultExporter, export_archive
 from mvault_verify import verify_archive
+from session_service import create_browser_session
 
 
 NOW = "2026-08-31T12:00:00Z"
@@ -22,7 +23,7 @@ NOW = "2026-08-31T12:00:00Z"
 def fixture_database(tmp_path: Path) -> tuple[Path, Path]:
     database = tmp_path / "app.db"
     engine = create_engine(f"sqlite:///{database}")
-    assert run_migrations(engine) == 13
+    assert run_migrations(engine) == 14
     engine.dispose()
     storage = tmp_path / "storage"
     (storage / "revisions/a1/r1").mkdir(parents=True)
@@ -128,7 +129,7 @@ def test_streaming_export_produces_verified_v1_without_mutating_source(tmp_path)
     assert not list(tmp_path.glob(".mvault-export-*"))
 
     header = archive_json(output, "mvault/header.json")
-    assert header["source"] == {"makersvault_version": "5.1.0", "schema_version": 13}
+    assert header["source"] == {"makersvault_version": "5.1.0", "schema_version": 14}
     assert header["optional_features"] == ["derived-thumbnails"]
     artifacts = archive_jsonl(output, "mvault/catalogs/artifacts.jsonl")
     assert artifacts[0]["supporting_file_count"] == 0
@@ -152,13 +153,23 @@ def test_streaming_export_produces_verified_v1_without_mutating_source(tmp_path)
     assert manifest["external"]["unavailable"] == 1
 
 
-def test_schema13_identity_is_excluded_from_portable_v1(tmp_path):
+def test_schema14_identity_and_sessions_are_excluded_from_portable_v1(tmp_path):
     database, storage = fixture_database(tmp_path)
     engine = create_engine(f"sqlite:///{database}")
     bootstrap_initial_administrator(
         engine,
         username="portable-admin",
         password="portable-test-password",
+    )
+    with engine.connect() as connection:
+        user_id = connection.exec_driver_sql(
+            "SELECT id FROM useraccount"
+        ).scalar_one()
+    browser_session = create_browser_session(
+        engine,
+        user_id=user_id,
+        client_address="192.0.2.10",
+        user_agent="portable-secret-test",
     )
     engine.dispose()
     output = tmp_path / "identity-excluded.mvault"
@@ -172,9 +183,14 @@ def test_schema13_identity_is_excluded_from_portable_v1(tmp_path):
             for member in archive.getmembers()
             if (source := archive.extractfile(member)) is not None
         )
-    assert not any("user" in name or "identity" in name for name in member_names)
+    assert not any(
+        "user" in name or "identity" in name or "session" in name
+        for name in member_names
+    )
     assert b"portable-admin" not in archive_bytes
     assert b"portable-test-password" not in archive_bytes
+    assert browser_session.secret.encode() not in archive_bytes
+    assert browser_session.csrf_token.encode() not in archive_bytes
 
 
 def test_export_never_overwrites_existing_output(tmp_path):
@@ -280,13 +296,13 @@ def test_unknown_schema_fails_before_archive_creation(tmp_path):
     database, storage = fixture_database(tmp_path)
     connection = sqlite3.connect(database)
     connection.execute(
-        "INSERT INTO schema_migration(version, name) VALUES (14, 'future_schema')"
+        "INSERT INTO schema_migration(version, name) VALUES (15, 'future_schema')"
     )
     connection.commit()
     connection.close()
     output = tmp_path / "portable.mvault"
 
-    with pytest.raises(MvaultExportError, match="schema 14"):
+    with pytest.raises(MvaultExportError, match="schema 15"):
         export_archive(database, storage, output)
 
     assert not output.exists()

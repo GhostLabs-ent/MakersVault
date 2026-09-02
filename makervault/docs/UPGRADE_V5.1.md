@@ -128,7 +128,9 @@ database that the v5.1 image has migrated; the snapshot restore is the downgrade
 
 ## What the upgrade does not restore
 
-External index-in-place bytes, browser authentication/session data, import-site
-cookies, and workstation bridge configuration are not server-backup content.
-Remount external libraries at the same paths and reinstall the matching v5.1
-bridge where needed. See [Backup and Recovery](BACKUP_AND_RECOVERY.md) for details.
+External index-in-place bytes, browser cookie values, import-site cookies, and
+workstation bridge configuration are not server-backup content. Schema-14 raw
+backup includes keyed server-side session records, but not the browser's cookie
+value; follow the isolated restore and revoke-all procedure. Remount external
+libraries at the same paths and reinstall the matching v5.1 bridge where needed.
+See [Backup and Recovery](BACKUP_AND_RECOVERY.md) for details.

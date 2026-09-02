@@ -37,7 +37,24 @@ class SecurityConfig:
     username: str
     password: str
     secret: str
-    token_ttl: int
+    session_idle_ttl: int
+    session_absolute_ttl: int
+    session_touch_interval: int
+    session_max_active: int
+
+
+def _integer_setting(
+    source: Mapping[str, str],
+    name: str,
+    default: str,
+) -> int:
+    raw = source.get(name, default).strip()
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise SecurityConfigurationError(
+            f"{name} must be an integer number of seconds or sessions."
+        ) from exc
 
 
 def load_security_config(environ: Optional[Mapping[str, str]] = None) -> SecurityConfig:
@@ -46,21 +63,24 @@ def load_security_config(environ: Optional[Mapping[str, str]] = None) -> Securit
     username = source.get("AUTH_USERNAME", "admin").strip()
     password = source.get("AUTH_PASSWORD", "")
     secret = source.get("AUTH_SECRET", "")
-    raw_token_ttl = source.get("AUTH_TOKEN_TTL", "43200").strip()
-
-    try:
-        token_ttl = int(raw_token_ttl)
-    except ValueError as exc:
-        raise SecurityConfigurationError(
-            "AUTH_TOKEN_TTL must be a positive integer number of seconds."
-        ) from exc
 
     return SecurityConfig(
         environment=environment,
         username=username,
         password=password,
         secret=secret,
-        token_ttl=token_ttl,
+        session_idle_ttl=_integer_setting(
+            source, "SESSION_IDLE_TTL", "43200"
+        ),
+        session_absolute_ttl=_integer_setting(
+            source, "SESSION_ABSOLUTE_TTL", "604800"
+        ),
+        session_touch_interval=_integer_setting(
+            source, "SESSION_TOUCH_INTERVAL", "300"
+        ),
+        session_max_active=_integer_setting(
+            source, "SESSION_MAX_ACTIVE", "20"
+        ),
     )
 
 
@@ -77,8 +97,18 @@ def validate_security_config(config: SecurityConfig) -> None:
         errors.append("AUTH_PASSWORD is required.")
     if not config.secret:
         errors.append("AUTH_SECRET is required.")
-    if config.token_ttl <= 0:
-        errors.append("AUTH_TOKEN_TTL must be greater than zero.")
+    if config.session_idle_ttl <= 0:
+        errors.append("SESSION_IDLE_TTL must be greater than zero.")
+    if config.session_absolute_ttl <= 0:
+        errors.append("SESSION_ABSOLUTE_TTL must be greater than zero.")
+    if config.session_absolute_ttl < config.session_idle_ttl:
+        errors.append("SESSION_ABSOLUTE_TTL must be at least SESSION_IDLE_TTL.")
+    if config.session_touch_interval <= 0:
+        errors.append("SESSION_TOUCH_INTERVAL must be greater than zero.")
+    if config.session_touch_interval >= config.session_idle_ttl:
+        errors.append("SESSION_TOUCH_INTERVAL must be less than SESSION_IDLE_TTL.")
+    if not 1 <= config.session_max_active <= 100:
+        errors.append("SESSION_MAX_ACTIVE must be between 1 and 100.")
 
     if config.environment == PRODUCTION_ENV:
         if len(config.password) < MIN_PASSWORD_LENGTH:

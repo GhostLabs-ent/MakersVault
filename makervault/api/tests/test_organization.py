@@ -11,7 +11,7 @@ def _headers(client: TestClient) -> dict[str, str]:
         json={"username": "admin", "password": "test-only-password"},
     )
     assert login.status_code == 200
-    return {"Authorization": f"Bearer {login.json()['token']}"}
+    return {"Origin": "http://testserver", "X-CSRF-Token": login.json()["csrf_token"]}
 
 
 def _folder(client: TestClient, headers: dict[str, str], name: str, parent_id: str | None = None) -> dict:

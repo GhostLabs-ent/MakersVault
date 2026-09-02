@@ -5,11 +5,15 @@ These are intentional v5.1 boundaries, not hidden promises.
 ## Identity and access
 
 - The current local build has one persistent administrator, but no additional user
-  accounts, roles, MFA, OIDC/SSO, API keys, durable token revocation, or per-model
+  accounts, roles, MFA, OIDC/SSO, API keys, or per-model
   permissions. The environment credential is one-time bootstrap input, not an
   online password-change or recovery mechanism.
-- Browser file/preview compatibility still uses protected tokenized requests. Use
-  HTTPS remotely, do not share authenticated URLs, and close shared-browser sessions.
+- Browser authentication uses revocable HttpOnly cookies and no tokenized file URLs.
+  Production requires HTTPS; non-Secure cookies exist only in explicit development
+  and test modes.
+- Raw schema-14 restore does not yet automatically revoke restored sessions. Keep a
+  restored service isolated and revoke all sessions before exposure; automated
+  restore detection and identity/session audit remain Gate 11D work.
 - Login throttling is bounded and process-local for the supported single API process.
 
 ## Files, previews, and workshop actions

@@ -15,7 +15,7 @@ def authenticated_client() -> tuple[TestClient, dict[str, str]]:
         json={"username": "admin", "password": "test-only-password"},
     )
     assert login.status_code == 200
-    return client, {"Authorization": f"Bearer {login.json()['token']}"}
+    return client, {"Origin": "http://testserver", "X-CSRF-Token": login.json()["csrf_token"]}
 
 
 def upload_asset(client: TestClient, headers: dict[str, str], name: str, data: bytes) -> dict:
@@ -49,10 +49,13 @@ def test_file_scoped_grant_redeems_but_cannot_authenticate_api() -> None:
             assert body["expires_in"] == 90
             assert issued.headers["cache-control"] == "private, no-store"
 
-            assert client.get("/assets", params={"token": grant}).status_code == 401
-            assert client.get(
-                "/assets", headers={"Authorization": f"Bearer {grant}"}
-            ).status_code == 401
+            with TestClient(app) as unauthenticated:
+                assert unauthenticated.get(
+                    "/assets", params={"token": grant}
+                ).status_code == 401
+                assert unauthenticated.get(
+                    "/assets", headers={"Authorization": f"Bearer {grant}"}
+                ).status_code == 401
             assert client.get(body["redeem_url"], params={"token": grant}).status_code == 401
             assert client.get(
                 body["redeem_url"],

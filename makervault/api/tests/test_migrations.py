@@ -441,8 +441,8 @@ def test_schema12_to_schema13_identity_expansion_is_empty_and_preserves_domain_s
             )
         }
 
-    assert run_migrations(database_engine) == 13
-    assert run_migrations(database_engine) == 13
+    assert run_migrations(database_engine, MIGRATIONS[:13]) == 13
+    assert run_migrations(database_engine, MIGRATIONS[:13]) == 13
 
     with database_engine.connect() as conn:
         assert conn.exec_driver_sql("SELECT COUNT(*) FROM useraccount").scalar_one() == 0
@@ -697,3 +697,42 @@ def test_unknown_newer_migration_stops_older_build(tmp_path: Path) -> None:
 
     with pytest.raises(RuntimeError, match="newer or unknown"):
         run_migrations(database_engine)
+
+
+def test_schema13_to_schema14_adds_empty_browser_sessions_without_changing_users(
+    tmp_path: Path,
+) -> None:
+    database_engine = sqlite_engine(tmp_path / "schema13.db")
+    assert run_migrations(database_engine, MIGRATIONS[:13]) == 13
+    with database_engine.begin() as conn:
+        conn.exec_driver_sql(
+            """
+            INSERT INTO useraccount(
+                id, username, username_normalized, display_name, password_hash,
+                enabled, password_policy_version, password_change_required,
+                created_at, updated_at
+            ) VALUES (
+                'user-1', 'Owner', 'owner', 'Owner', '$argon2id$fixture',
+                1, 1, 0, '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z'
+            )
+            """
+        )
+        before = conn.exec_driver_sql("SELECT * FROM useraccount").fetchall()
+
+    assert run_migrations(database_engine) == 14
+    assert run_migrations(database_engine) == 14
+    with database_engine.connect() as conn:
+        after = conn.exec_driver_sql("SELECT * FROM useraccount").fetchall()
+        sessions = conn.exec_driver_sql(
+            "SELECT COUNT(*) FROM browsersession"
+        ).scalar_one()
+        indexes = {
+            row[1]
+            for row in conn.exec_driver_sql(
+                "PRAGMA index_list(browsersession)"
+            ).fetchall()
+        }
+    assert after == before
+    assert sessions == 0
+    assert "idx_browsersession_secret_digest_unique" in indexes
+    assert "idx_browsersession_user_id" in indexes

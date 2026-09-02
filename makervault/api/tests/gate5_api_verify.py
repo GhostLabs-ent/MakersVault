@@ -10,19 +10,30 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from http.cookiejar import CookieJar
 from pathlib import Path
 
 
-def request(base_url: str, path: str, token: str | None = None, body: dict | None = None):
+COOKIE_JAR = CookieJar()
+OPENER = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(COOKIE_JAR))
+
+
+def request(
+    base_url: str,
+    path: str,
+    csrf_token: str | None = None,
+    body: dict | None = None,
+):
     data = None
     headers = {}
     if body is not None:
         data = json.dumps(body).encode()
         headers["Content-Type"] = "application/json"
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
+        headers["Origin"] = base_url.rstrip("/")
+        if csrf_token:
+            headers["X-CSRF-Token"] = csrf_token
     target = urllib.parse.urljoin(base_url.rstrip("/") + "/", path.lstrip("/"))
-    with urllib.request.urlopen(
+    with OPENER.open(
         urllib.request.Request(target, data=data, headers=headers), timeout=10
     ) as response:
         content = response.read()
@@ -30,9 +41,9 @@ def request(base_url: str, path: str, token: str | None = None, body: dict | Non
     return json.loads(content) if "application/json" in content_type else content
 
 
-def expect_status(base_url: str, path: str, token: str, status: int) -> None:
+def expect_status(base_url: str, path: str, csrf_token: str, status: int) -> None:
     try:
-        request(base_url, path, token)
+        request(base_url, path, csrf_token)
     except urllib.error.HTTPError as exc:
         if exc.code == status:
             return
@@ -67,8 +78,8 @@ def verify(
         "/login",
         body={"username": username, "password": password},
     )
-    token = login["token"]
-    assets = request(base_url, "/assets?limit=100", token)
+    csrf_token = login["csrf_token"]
+    assets = request(base_url, "/assets?limit=100", csrf_token)
     by_id = {asset["id"]: asset for asset in assets}
     assert sorted(by_id) == expected["asset_ids"]
 
@@ -81,31 +92,31 @@ def verify(
     assert {key: prepared[key] for key in expected["prepared_summary"]} == expected["prepared_summary"]
     assert prepared["removable"] is True
 
-    folders = request(base_url, "/folders", token)
+    folders = request(base_url, "/folders", csrf_token)
     parents = {folder["id"]: folder["parent_id"] for folder in folders}
     assert parents["folder-fasteners"] == "folder-workshop"
     assert parents["folder-jigs"] == "folder-workshop"
 
-    related = request(base_url, "/asset/asset-prepared/files", token)
+    related = request(base_url, "/asset/asset-prepared/files", csrf_token)
     assert [(item["id"], item["filename"]) for item in related] == [
         ("file-doc", "assembly.pdf")
     ]
-    assert request(base_url, "/asset/asset-prepared/files/file-doc", token) == b"%PDF-1.4 gate5 assembly\n"
-    assert request(base_url, "/asset/asset-prepared/prepared-print", token).endswith(b"G28\n")
+    assert request(base_url, "/asset/asset-prepared/files/file-doc", csrf_token) == b"%PDF-1.4 gate5 assembly\n"
+    assert request(base_url, "/asset/asset-prepared/prepared-print", csrf_token).endswith(b"G28\n")
 
-    managed = request(base_url, by_id["asset-managed"]["url"], token)
+    managed = request(base_url, by_id["asset-managed"]["url"], csrf_token)
     expected_hash = expected["managed_sha256"][
         "Workshop/Fasteners/Renamed Bracket/old-bracket-name.stl"
     ]
     assert hashlib.sha256(managed).hexdigest() == expected_hash
-    assert request(base_url, by_id["asset-managed"]["thumb_url"], token) == b"legacy-derived-thumbnail"
+    assert request(base_url, by_id["asset-managed"]["thumb_url"], csrf_token) == b"legacy-derived-thumbnail"
 
     available_path = by_id["asset-external-available"]["url"]
     if external_available:
-        assert request(base_url, available_path, token) == b"externally-owned-step\n"
+        assert request(base_url, available_path, csrf_token) == b"externally-owned-step\n"
     else:
-        expect_status(base_url, available_path, token, 404)
-    expect_status(base_url, by_id["asset-external-missing"]["url"], token, 404)
+        expect_status(base_url, available_path, csrf_token, 404)
+    expect_status(base_url, by_id["asset-external-missing"]["url"], csrf_token, 404)
 
 
 def main() -> int:

@@ -18,7 +18,7 @@ def _headers(client: TestClient) -> dict[str, str]:
         json={"username": "admin", "password": "test-only-password"},
     )
     assert response.status_code == 200
-    return {"Authorization": f"Bearer {response.json()['token']}"}
+    return {"Origin": "http://testserver", "X-CSRF-Token": response.json()["csrf_token"]}
 
 
 def _project(client: TestClient, headers: dict[str, str], name: str, **metadata) -> dict:

@@ -15,7 +15,10 @@ SAFE_PRODUCTION = {
     "AUTH_USERNAME": "admin",
     "AUTH_PASSWORD": "a-long-unique-password",
     "AUTH_SECRET": "0123456789abcdef0123456789abcdef",
-    "AUTH_TOKEN_TTL": "43200",
+    "SESSION_IDLE_TTL": "43200",
+    "SESSION_ABSOLUTE_TTL": "604800",
+    "SESSION_TOUCH_INTERVAL": "300",
+    "SESSION_MAX_ACTIVE": "20",
 }
 
 
@@ -24,7 +27,10 @@ def test_production_config_accepts_explicit_safe_values() -> None:
 
     assert config.environment == "production"
     assert config.username == "admin"
-    assert config.token_ttl == 43200
+    assert config.session_idle_ttl == 43200
+    assert config.session_absolute_ttl == 604800
+    assert config.session_touch_interval == 300
+    assert config.session_max_active == 20
 
 
 @pytest.mark.parametrize(
@@ -35,7 +41,10 @@ def test_production_config_accepts_explicit_safe_values() -> None:
         ({"AUTH_PASSWORD": "super-secret"}, "published placeholder"),
         ({"AUTH_SECRET": "changeme-secret"}, "published placeholder"),
         ({"AUTH_SECRET": "too-short"}, "at least 32 bytes"),
-        ({"AUTH_TOKEN_TTL": "0"}, "greater than zero"),
+        ({"SESSION_IDLE_TTL": "0"}, "greater than zero"),
+        ({"SESSION_ABSOLUTE_TTL": "100"}, "at least SESSION_IDLE_TTL"),
+        ({"SESSION_TOUCH_INTERVAL": "43200"}, "less than SESSION_IDLE_TTL"),
+        ({"SESSION_MAX_ACTIVE": "0"}, "between 1 and 100"),
     ],
 )
 def test_production_config_fails_closed(overrides: dict[str, str], expected: str) -> None:

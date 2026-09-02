@@ -6,10 +6,9 @@ import Login from "./Login";
 import Settings from "./Settings";
 import TrashView from "./TrashView";
 import ProjectWorkspace from "./ProjectWorkspace";
-import { apiHealth, getApiBase, refreshToken, type HealthInfo } from "../lib/api";
-import { clearToken, readToken, storeToken } from "../lib/auth";
+import { apiHealth, getApiBase, getSession, logout, type HealthInfo } from "../lib/api";
+import { clearLegacyAuthTokens, setSessionCsrfToken } from "../lib/auth";
 import { type AppSettings, type ResolvedTheme, loadSettings, resolveTheme, saveSettings } from "../lib/settings";
-const DEFAULT_REFRESH_SECONDS = 6 * 60 * 60; // 6 hours
 
 const logoForTheme = (theme: ResolvedTheme) => {
   switch (theme) {
@@ -27,14 +26,13 @@ const logoForTheme = (theme: ResolvedTheme) => {
 };
 
 export default function App() {
-  const [token, setToken] = React.useState<string | null>(() => readToken());
+  const [authenticated, setAuthenticated] = React.useState<boolean | null>(null);
   const [nonce, setNonce] = React.useState(0);
   const [folderId, setFolderId] = React.useState<string | null>(null);
   const [folderVersion, setFolderVersion] = React.useState(0);
   const [projectId, setProjectId] = React.useState<string | null>(null);
   const [projectsVersion, setProjectsVersion] = React.useState(0);
   const [health, setHealth] = React.useState<HealthInfo | null>(null);
-  const [tokenTtl, setTokenTtl] = React.useState<number | null>(null);
   const [sessionExpired, setSessionExpired] = React.useState(false);
   const [activeView, setActiveView] = React.useState<"library" | "project" | "unassigned" | "settings" | "trash">("library");
   const [settingsSection, setSettingsSection] = React.useState<"root" | "trash">("root");
@@ -56,25 +54,45 @@ export default function App() {
     root.classList.toggle("theme-purple", resolvedTheme === "purple");
     root.classList.toggle("theme-blue", resolvedTheme === "blue");
   }, [resolvedTheme]);
-  React.useEffect(() => { (async ()=> setHealth(await apiHealth()))(); }, [settings.network.publicUrl]);
+  React.useEffect(() => {
+    let canceled = false;
+    clearLegacyAuthTokens();
+    (async () => {
+      const currentHealth = await apiHealth();
+      if (canceled) return;
+      setHealth(currentHealth);
+      if (!currentHealth?.ok) {
+        setAuthenticated(false);
+        return;
+      }
+      if (!currentHealth.auth_required) {
+        setAuthenticated(true);
+        return;
+      }
+      try {
+        const session = await getSession();
+        if (!canceled) setAuthenticated(Boolean(session?.authenticated));
+      } catch {
+        if (!canceled) setAuthenticated(false);
+      }
+    })();
+    return () => { canceled = true; };
+  }, [settings.network.publicUrl]);
   React.useEffect(() => {
     saveSettings(settings);
   }, [settings]);
   const apiUp = health?.ok ?? null;
   const authRequired = health?.auth_required ?? true;
 
-  const handleLogin = (tok: string, ttl: number) => {
-    storeToken(tok);
-    setToken(tok);
-    setTokenTtl(ttl);
+  const handleLogin = () => {
+    setAuthenticated(true);
     setSessionExpired(false);
   };
 
   const handleUnauthorized = React.useCallback(() => {
     if (sessionExpired) return;
-    clearToken();
-    setToken(null);
-    setTokenTtl(null);
+    setSessionCsrfToken(null);
+    setAuthenticated(false);
     setSessionExpired(true);
     alert("Your session has expired. Please sign in again.");
   }, [sessionExpired]);
@@ -110,10 +128,14 @@ export default function App() {
     setActiveView("unassigned");
   }, []);
 
-  const handleLogout = () => {
-    clearToken();
-    setToken(null);
-    setTokenTtl(null);
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      setSessionCsrfToken(null);
+      setAuthenticated(false);
+      setSessionExpired(false);
+    }
   };
 
   const resetSavedProxyUrl = () => {
@@ -126,27 +148,11 @@ export default function App() {
     }));
   };
 
-  React.useEffect(() => {
-    if (!token) return;
-    const ttl = tokenTtl ?? DEFAULT_REFRESH_SECONDS;
-    const refreshMs = Math.max(
-      5 * 60 * 1000,
-      Math.min(ttl * 0.8 * 1000, ttl * 1000 - 5 * 60 * 1000)
-    );
-    const timer = window.setTimeout(async () => {
-      try {
-        const res = await refreshToken();
-        storeToken(res.token);
-        setToken(res.token);
-        setTokenTtl(res.expires_in);
-      } catch {
-        handleUnauthorized();
-      }
-    }, refreshMs);
-    return () => window.clearTimeout(timer);
-  }, [token, tokenTtl, handleUnauthorized]);
+  if (authenticated === null) {
+    return <div className="min-h-screen flex items-center justify-center text-muted">Loading MakersVault…</div>;
+  }
 
-  if (authRequired && !token) {
+  if (authRequired && !authenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Login onSuccess={handleLogin} apiUp={apiUp} theme={resolvedTheme} />
@@ -216,7 +222,7 @@ export default function App() {
             <button
               onClick={() => {
                 if (confirm("Are you sure you want to log out?")) {
-                  handleLogout();
+                  void handleLogout();
                 }
               }}
               className="px-3 py-2 rounded-md border border-panel-strong text-sm"

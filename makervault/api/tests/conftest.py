@@ -7,3 +7,4 @@ os.environ["AUTH_PASSWORD"] = "test-only-password"
 os.environ["AUTH_SECRET"] = (
     "test-only-signing-secret-that-is-never-used-in-production"
 )
+os.environ["CORS_ORIGINS"] = "http://testserver"
