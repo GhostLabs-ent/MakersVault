@@ -5,8 +5,8 @@
 **Status:** Implementation authorized
 
 **Progress:** 11D-1 and 11D-2 were owner-accepted through authorization of their
-successors. 11D-3 is implemented at `3ed6991`, verified locally, and awaits owner
-acceptance.
+successors. 11D-3 is implemented at `3ed6991`, verified locally, and was
+owner-accepted on 2026-09-03.
 
 **Entry commit:** `f5eba6d`
 

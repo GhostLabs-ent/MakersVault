@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-03
 
-**Status:** Verified locally; owner acceptance pending
+**Status:** Verified locally and owner-accepted
 
 **Scope:** Recovery contract 5, schema-16 security-domain verification, raw-restore
 session revocation and startup auditing, and interactive stopped-instance recovery
@@ -117,7 +117,8 @@ deployment was changed, and no tag, release, or publication was made.
 
 ## Gate boundary
 
-Gate 11D-3 is locally complete and awaits owner acceptance. Audit retention remains
-mandatory and indefinite; MFA, API keys, OIDC/SSO, public registration, hosted
-tenancy, object storage, online recovery, push, release, deployment, and publication
-remain outside this subgate.
+Gate 11D-3 was owner-accepted on 2026-09-03. The next step is the consolidated Gate
+11 closeout and recovery/security review; 11E work is not implicitly authorized.
+Audit retention remains mandatory and indefinite. MFA, API keys, OIDC/SSO, public
+registration, hosted tenancy, object storage, online recovery, push, release,
+deployment, and publication remain outside this subgate.
