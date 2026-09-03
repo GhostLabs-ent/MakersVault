@@ -2,7 +2,7 @@
 
 **Gate:** 11 — Evolve authentication deliberately
 
-**Status:** Subgate 11C implemented and verified; owner acceptance pending
+**Status:** Subgate 11C accepted; subgate 11D authorized
 
 **Opened:** 2026-08-31
 
@@ -51,8 +51,13 @@ recovery, durable audit, MFA, API keys, OIDC, and publication remain gated.
 
 The authorized Gate 11C implementation is complete at `8b89bab`; its migration,
 permission, route/system-entry inventory, UI, portability, and verification evidence
-is recorded in [`SUBGATE_11C_RESULTS.md`](SUBGATE_11C_RESULTS.md). Gate 11C now
-stops at its owner checkpoint. Gate 11D remains unauthorized.
+is recorded in [`SUBGATE_11C_RESULTS.md`](SUBGATE_11C_RESULTS.md). The owner
+accepted those results and authorized 11D on 2026-09-02. Gate 11D is limited to
+administrator-created accounts, password/reset and recent-reauthentication policy,
+last-Administrator protection, stopped-instance recovery, durable secret-free
+audit, raw-recovery session revocation, portability exclusion proof, and focused
+evidence. MFA, API keys, OIDC, public registration, hosted tenancy, publication,
+and unrelated work remain gated.
 
 ## Verified entry truth
 

@@ -2,7 +2,9 @@
 
 **Date:** 2026-09-02
 
-**Status:** Implemented and verified locally; owner acceptance pending
+**Status:** Accepted by owner
+
+**Accepted:** 2026-09-02
 
 **Scope:** Three fixed shared-vault roles, stable permissions, deny-by-default HTTP
 and system-service classification, capability-aware UI, schema/portability updates,
@@ -141,9 +143,10 @@ was made.
 
 ## Gate boundary
 
-Gate 11C is at its owner checkpoint. Acceptance would freeze only the three-role
-shared-vault authorization contract and authorize no further work by itself.
-Additional-account administration, password/reset workflows, last-Administrator
-safety, recovery, durable audit, MFA, API keys, OIDC, public registration, hosted
-tenancy, push, release, deployment, and publication remain unauthorized. Do not
-begin Gate 11D without an explicit owner decision.
+The owner accepted Gate 11C and authorized Gate 11D on 2026-09-02. This freezes the
+three-role shared-vault authorization contract and opens only the accepted
+administrator-created enrollment, password/reset and recent-reauthentication
+policy, last-Administrator safety, stopped-instance recovery, durable secret-free
+audit, and raw/portable recovery verification work. MFA, API keys, OIDC, public
+registration, hosted tenancy, push, release, deployment, and publication remain
+unauthorized.

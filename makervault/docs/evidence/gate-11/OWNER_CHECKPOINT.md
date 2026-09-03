@@ -149,3 +149,11 @@ classification, enforcement, capability-aware UI, and focused evidence. Account
 administration, password/reset workflows, last-administrator safety, recovery,
 durable audit, MFA, API keys, OIDC, public registration, hosted tenancy, push,
 release, deployment, and publication remain unauthorized.
+
+The owner accepted the verified Gate 11C results and authorized Gate 11D on
+2026-09-02. This subsequent decision authorizes only administrator-created account
+administration, password/reset and recent-reauthentication policy,
+last-Administrator safety, stopped-instance backup-first recovery, durable
+secret-free audit, raw-recovery session revocation, portability exclusion proof,
+and focused evidence. MFA, API keys, OIDC, public registration, hosted tenancy,
+push, release, deployment, and publication remain unauthorized.
