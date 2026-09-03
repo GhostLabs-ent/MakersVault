@@ -11,6 +11,8 @@ describe("shared-vault role capabilities", () => {
     expect(capabilities.exportContent).toBe(true);
     expect(capabilities.createHandoff).toBe(true);
     expect(capabilities.manageContent).toBe(false);
+    expect(capabilities.manageOwnIdentity).toBe(true);
+    expect(capabilities.manageIdentity).toBe(false);
     expect(capabilities.openTrash).toBe(false);
     expect(capabilities.manageServerSettings).toBe(false);
   });
@@ -31,5 +33,7 @@ describe("shared-vault role capabilities", () => {
     expect(capabilities.manageDurableJobs).toBe(true);
     expect(capabilities.deletePermanently).toBe(true);
     expect(capabilities.emptyTrash).toBe(true);
+    expect(capabilities.manageIdentity).toBe(true);
+    expect(capabilities.readAudit).toBe(true);
   });
 });

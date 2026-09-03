@@ -17,6 +17,7 @@ from session_service import (
   authenticate_browser_session,
   cookie_policy,
   csrf_matches,
+  is_recently_reauthenticated,
 )
 from authorization import AccessKind, role_allows, route_rule
 
@@ -30,6 +31,12 @@ HANDOFF_ISSUER = "makersvault"
 HANDOFF_TOKEN_TTL = 90
 AUTH_ENABLED = bool(AUTH_USERNAME and AUTH_PASSWORD)
 UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+PASSWORD_CHANGE_ALLOWED_ROUTES = {
+  ("GET", "/session"),
+  ("POST", "/logout"),
+  ("POST", "/session/reauthenticate"),
+  ("POST", "/account/password"),
+}
 
 
 def validate_auth_config() -> None:
@@ -212,6 +219,7 @@ def require_auth(request: Request) -> Optional[SessionPrincipal]:
   principal = authenticate_browser_session(engine, secret or "")
   if principal is None:
     raise HTTPException(status_code=401, detail="Unauthorized")
+  request.state.session_principal = principal
   if request.method.upper() in UNSAFE_METHODS:
     origin = _normalize_origin(request.headers.get("Origin", ""))
     if origin is None or origin not in configured_browser_origins():
@@ -220,6 +228,18 @@ def require_auth(request: Request) -> Optional[SessionPrincipal]:
       raise HTTPException(status_code=403, detail="Valid CSRF token required")
   if not role_allows(principal.role, rule.permission):
     raise HTTPException(status_code=403, detail="Forbidden")
+  route = request.scope.get("route")
+  route_key = (request.method.upper(), getattr(route, "path", None))
+  if (
+    principal.password_change_required
+    and route_key not in PASSWORD_CHANGE_ALLOWED_ROUTES
+  ):
+    raise HTTPException(status_code=403, detail="Password change required")
+  if rule.recent_reauthentication and not is_recently_reauthenticated(principal):
+    raise HTTPException(
+      status_code=403,
+      detail="Recent password confirmation required",
+    )
   return principal
 
 

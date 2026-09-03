@@ -305,6 +305,7 @@ class LoginResponse(BaseModel):
   authenticated: bool = True
   role: Literal["administrator", "member", "viewer"]
   permissions: List[str]
+  password_change_required: bool
   csrf_token: str
   expires_in: int
   absolute_expires_at: int
@@ -316,9 +317,62 @@ class SessionStatusOut(BaseModel):
   username: str
   role: Literal["administrator", "member", "viewer"]
   permissions: List[str]
+  password_change_required: bool
   csrf_token: str
+  reauthenticated_at: int
   idle_expires_at: int
   absolute_expires_at: int
+
+
+class ReauthenticateRequest(BaseModel):
+  password: str = Field(min_length=1, max_length=4096)
+
+
+class ReauthenticateOut(BaseModel):
+  reauthenticated_at: int
+
+
+class PasswordChangeRequest(BaseModel):
+  new_password: str = Field(min_length=1, max_length=4096)
+
+
+class UserCreate(BaseModel):
+  model_config = ConfigDict(extra="forbid")
+
+  username: str = Field(min_length=1, max_length=256)
+  display_name: str = Field(min_length=1, max_length=256)
+  password: str = Field(min_length=1, max_length=4096)
+  role: Literal["administrator", "member", "viewer"] = "viewer"
+
+
+class UserUpdate(BaseModel):
+  model_config = ConfigDict(extra="forbid")
+
+  display_name: Optional[str] = Field(default=None, min_length=1, max_length=256)
+  role: Optional[Literal["administrator", "member", "viewer"]] = None
+  enabled: Optional[bool] = None
+
+  @model_validator(mode="after")
+  def require_change(self):
+    if self.display_name is None and self.role is None and self.enabled is None:
+      raise ValueError("at least one account change is required")
+    return self
+
+
+class PasswordResetRequest(BaseModel):
+  new_password: str = Field(min_length=1, max_length=4096)
+
+
+class UserOut(BaseModel):
+  id: str
+  username: str
+  display_name: str
+  role: Literal["administrator", "member", "viewer"]
+  enabled: bool
+  password_change_required: bool
+  created_at: str
+  updated_at: str
+  last_login_at: Optional[str] = None
 
 
 class BrowserSessionOut(BaseModel):

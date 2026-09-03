@@ -4,6 +4,7 @@ import {
   BrowserSession,
   UnauthorizedError,
   getBrowserSessions,
+  reauthenticateSession,
   revokeAllBrowserSessions,
   revokeBrowserSession,
 } from "../lib/api";
@@ -24,6 +25,7 @@ export default function SessionSettings({ onBack, onUnauthorized }: Props) {
   const [sessions, setSessions] = React.useState<BrowserSession[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [message, setMessage] = React.useState<string | null>(null);
+  const [password, setPassword] = React.useState("");
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -67,6 +69,17 @@ export default function SessionSettings({ onBack, onUnauthorized }: Props) {
     }
   };
 
+  const confirmPassword = async () => {
+    setMessage(null);
+    try {
+      await reauthenticateSession(password);
+      setPassword("");
+      setMessage("Password confirmed. Session revocation is available for five minutes.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Password confirmation failed.");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
@@ -82,6 +95,13 @@ export default function SessionSettings({ onBack, onUnauthorized }: Props) {
       </div>
 
       {message && <div className="text-sm">{message}</div>}
+      <div className="rounded-lg border border-panel bg-panel-soft p-4">
+        <div className="text-sm font-medium">Confirm before revoking sessions</div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <input className="min-w-64 flex-1 rounded-md border border-panel-strong bg-panel px-3 py-2 text-sm" type="password" autoComplete="current-password" placeholder="Current password" value={password} onChange={event => setPassword(event.target.value)} />
+          <button className="rounded-md bg-accent px-3 py-2 text-sm disabled:opacity-50" disabled={!password} onClick={() => void confirmPassword()}>Confirm</button>
+        </div>
+      </div>
       {loading ? (
         <div className="text-sm opacity-70">Loading sessions…</div>
       ) : (

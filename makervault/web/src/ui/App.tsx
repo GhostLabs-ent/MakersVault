@@ -6,7 +6,8 @@ import Login from "./Login";
 import Settings from "./Settings";
 import TrashView from "./TrashView";
 import ProjectWorkspace from "./ProjectWorkspace";
-import { apiHealth, getApiBase, getSession, logout, type HealthInfo } from "../lib/api";
+import PasswordChange from "./PasswordChange";
+import { apiHealth, getApiBase, getSession, logout, type HealthInfo, type LoginResult } from "../lib/api";
 import { clearLegacyAuthTokens, setSessionCsrfToken } from "../lib/auth";
 import { type AppSettings, type ResolvedTheme, loadSettings, resolveTheme, saveSettings } from "../lib/settings";
 import { CapabilityProvider } from "../lib/CapabilityContext";
@@ -30,6 +31,7 @@ const logoForTheme = (theme: ResolvedTheme) => {
 export default function App() {
   const [authenticated, setAuthenticated] = React.useState<boolean | null>(null);
   const [role, setRole] = React.useState<VaultRole | null>(null);
+  const [passwordChangeRequired, setPasswordChangeRequired] = React.useState(false);
   const [nonce, setNonce] = React.useState(0);
   const [folderId, setFolderId] = React.useState<string | null>(null);
   const [folderVersion, setFolderVersion] = React.useState(0);
@@ -70,6 +72,7 @@ export default function App() {
       }
       if (!currentHealth.auth_required) {
         setRole("administrator");
+        setPasswordChangeRequired(false);
         setAuthenticated(true);
         return;
       }
@@ -77,6 +80,7 @@ export default function App() {
         const session = await getSession();
         if (!canceled) {
           setRole(session?.role ?? null);
+          setPasswordChangeRequired(Boolean(session?.password_change_required));
           setAuthenticated(Boolean(session?.authenticated));
         }
       } catch {
@@ -91,8 +95,9 @@ export default function App() {
   const apiUp = health?.ok ?? null;
   const authRequired = health?.auth_required ?? true;
 
-  const handleLogin = (nextRole: VaultRole) => {
+  const handleLogin = (nextRole: VaultRole, nextPasswordChangeRequired: boolean) => {
     setRole(nextRole);
+    setPasswordChangeRequired(nextPasswordChangeRequired);
     setAuthenticated(true);
     setSessionExpired(false);
   };
@@ -101,6 +106,7 @@ export default function App() {
     if (sessionExpired) return;
     setSessionCsrfToken(null);
     setRole(null);
+    setPasswordChangeRequired(false);
     setAuthenticated(false);
     setSessionExpired(true);
     alert("Your session has expired. Please sign in again.");
@@ -143,6 +149,7 @@ export default function App() {
     } finally {
       setSessionCsrfToken(null);
       setRole(null);
+      setPasswordChangeRequired(false);
       setAuthenticated(false);
       setSessionExpired(false);
     }
@@ -166,6 +173,22 @@ export default function App() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Login onSuccess={handleLogin} apiUp={apiUp} theme={resolvedTheme} />
+      </div>
+    );
+  }
+
+  if (authRequired && authenticated && passwordChangeRequired) {
+    const handleRequiredPasswordChanged = (session: LoginResult) => {
+      setRole(session.role);
+      setPasswordChangeRequired(session.password_change_required);
+    };
+    return (
+      <div className="min-h-screen p-6 flex items-center justify-center">
+        <PasswordChange
+          required
+          onChanged={handleRequiredPasswordChanged}
+          onCancel={() => void handleLogout()}
+        />
       </div>
     );
   }

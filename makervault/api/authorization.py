@@ -30,6 +30,9 @@ class Permission(str, Enum):
     SETTINGS_MANAGE = "settings.manage"
     JOBS_MANAGE = "jobs.manage"
     SESSION_MANAGE_SELF = "session.manage_self"
+    IDENTITY_MANAGE_SELF = "identity.manage_self"
+    IDENTITY_MANAGE = "identity.manage"
+    AUDIT_READ = "audit.read"
 
 
 VIEWER_PERMISSIONS = frozenset(
@@ -39,6 +42,7 @@ VIEWER_PERMISSIONS = frozenset(
         Permission.CONTENT_EXPORT,
         Permission.HANDOFF_CREATE,
         Permission.SESSION_MANAGE_SELF,
+        Permission.IDENTITY_MANAGE_SELF,
     }
 )
 MEMBER_PERMISSIONS = VIEWER_PERMISSIONS | frozenset(
@@ -54,6 +58,8 @@ ADMINISTRATOR_PERMISSIONS = MEMBER_PERMISSIONS | frozenset(
         Permission.TRASH_EMPTY,
         Permission.SETTINGS_MANAGE,
         Permission.JOBS_MANAGE,
+        Permission.IDENTITY_MANAGE,
+        Permission.AUDIT_READ,
     }
 )
 ROLE_PERMISSIONS: Mapping[Role, frozenset[Permission]] = MappingProxyType(
@@ -86,14 +92,21 @@ class AccessKind(str, Enum):
 class RouteRule:
     kind: AccessKind
     permission: Permission | None = None
+    recent_reauthentication: bool = False
 
     def __post_init__(self) -> None:
         if (self.kind is AccessKind.SESSION) != (self.permission is not None):
             raise ValueError("session route rules require exactly one permission")
+        if self.recent_reauthentication and self.kind is not AccessKind.SESSION:
+            raise ValueError("only session routes can require recent reauthentication")
 
 
 def _session(permission: Permission) -> RouteRule:
     return RouteRule(AccessKind.SESSION, permission)
+
+
+def _recent(permission: Permission) -> RouteRule:
+    return RouteRule(AccessKind.SESSION, permission, recent_reauthentication=True)
 
 
 PUBLIC = RouteRule(AccessKind.PUBLIC)
@@ -111,8 +124,15 @@ ROUTE_AUTHORIZATION: Mapping[tuple[str, str], RouteRule] = MappingProxyType(
         ("GET", "/session"): _session(Permission.SESSION_MANAGE_SELF),
         ("GET", "/sessions"): _session(Permission.SESSION_MANAGE_SELF),
         ("POST", "/logout"): _session(Permission.SESSION_MANAGE_SELF),
-        ("DELETE", "/sessions/{session_id}"): _session(Permission.SESSION_MANAGE_SELF),
-        ("POST", "/sessions/revoke-all"): _session(Permission.SESSION_MANAGE_SELF),
+        ("DELETE", "/sessions/{session_id}"): _recent(Permission.SESSION_MANAGE_SELF),
+        ("POST", "/sessions/revoke-all"): _recent(Permission.SESSION_MANAGE_SELF),
+        ("POST", "/session/reauthenticate"): _session(Permission.IDENTITY_MANAGE_SELF),
+        ("POST", "/account/password"): _recent(Permission.IDENTITY_MANAGE_SELF),
+
+        ("GET", "/users"): _session(Permission.IDENTITY_MANAGE),
+        ("POST", "/users"): _recent(Permission.IDENTITY_MANAGE),
+        ("PATCH", "/users/{user_id}"): _recent(Permission.IDENTITY_MANAGE),
+        ("POST", "/users/{user_id}/password-reset"): _recent(Permission.IDENTITY_MANAGE),
 
         ("GET", "/assets"): _session(Permission.VAULT_READ),
         ("GET", "/tags"): _session(Permission.VAULT_READ),
@@ -185,10 +205,10 @@ ROUTE_AUTHORIZATION: Mapping[tuple[str, str], RouteRule] = MappingProxyType(
         ("POST", "/trash/{asset_id}/restore"): _session(Permission.TRASH_RESTORE),
         ("POST", "/project/{project_id}/restore"): _session(Permission.TRASH_RESTORE),
 
-        ("POST", "/trash/permanent"): _session(Permission.CONTENT_DELETE_PERMANENTLY),
-        ("POST", "/trash/empty"): _session(Permission.TRASH_EMPTY),
-        ("POST", "/project/{project_id}/permanent"): _session(Permission.CONTENT_DELETE_PERMANENTLY),
-        ("POST", "/machine/{machine_id}/permanent"): _session(Permission.CONTENT_DELETE_PERMANENTLY),
+        ("POST", "/trash/permanent"): _recent(Permission.CONTENT_DELETE_PERMANENTLY),
+        ("POST", "/trash/empty"): _recent(Permission.TRASH_EMPTY),
+        ("POST", "/project/{project_id}/permanent"): _recent(Permission.CONTENT_DELETE_PERMANENTLY),
+        ("POST", "/machine/{machine_id}/permanent"): _recent(Permission.CONTENT_DELETE_PERMANENTLY),
 
         ("GET", "/settings/mount-import"): _session(Permission.SETTINGS_MANAGE),
         ("POST", "/settings/mount-import"): _session(Permission.SETTINGS_MANAGE),

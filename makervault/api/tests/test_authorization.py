@@ -69,8 +69,8 @@ def test_schema14_to_schema15_backfills_roles_without_changing_domain_state(
             "SELECT id, username, password_hash, enabled FROM useraccount"
         ).fetchone()
 
-    assert run_migrations(database_engine) == 15
-    assert run_migrations(database_engine) == 15
+    assert run_migrations(database_engine, MIGRATIONS[:15]) == 15
+    assert run_migrations(database_engine, MIGRATIONS[:15]) == 15
 
     with database_engine.connect() as connection:
         user_after = connection.exec_driver_sql(
@@ -118,6 +118,7 @@ def test_fixed_roles_map_to_stable_permissions() -> None:
         Permission.CONTENT_EXPORT,
         Permission.HANDOFF_CREATE,
         Permission.SESSION_MANAGE_SELF,
+        Permission.IDENTITY_MANAGE_SELF,
     }
     assert viewer < member < administrator
     assert Permission.CONTENT_MANAGE in member
@@ -126,6 +127,8 @@ def test_fixed_roles_map_to_stable_permissions() -> None:
     assert Permission.CONTENT_DELETE_PERMANENTLY not in member
     assert Permission.SETTINGS_MANAGE in administrator
     assert Permission.JOBS_MANAGE in administrator
+    assert Permission.IDENTITY_MANAGE in administrator
+    assert Permission.AUDIT_READ in administrator
     assert Permission.CONTENT_DELETE_PERMANENTLY in administrator
     assert Permission.TRASH_EMPTY in administrator
 
@@ -152,6 +155,8 @@ def test_route_inventory_covers_every_role_decision_and_only_three_non_session_r
     assert ROUTE_AUTHORIZATION[("POST", "/trash/empty")].permission is Permission.TRASH_EMPTY
     assert ROUTE_AUTHORIZATION[("GET", "/settings/storage")].permission is Permission.SETTINGS_MANAGE
     assert ROUTE_AUTHORIZATION[("POST", "/settings/content-identity/backfill")].permission is Permission.JOBS_MANAGE
+    assert ROUTE_AUTHORIZATION[("POST", "/users")].permission is Permission.IDENTITY_MANAGE
+    assert ROUTE_AUTHORIZATION[("POST", "/users")].recent_reauthentication is True
 
 
 def test_every_application_route_has_exactly_one_access_classification() -> None:

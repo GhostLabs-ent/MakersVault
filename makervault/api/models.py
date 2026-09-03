@@ -208,9 +208,45 @@ class BrowserSession(SQLModel, table=True):
   idle_expires_at: int = Field(index=True)
   absolute_expires_at: int = Field(index=True)
   idle_ttl_seconds: int
+  reauthenticated_at: int = Field(default=0, index=True)
   revoked_at: Optional[int] = Field(default=None, index=True)
   client_address: Optional[str] = None
   user_agent: Optional[str] = None
+
+
+class AuditEvent(SQLModel, table=True):
+  __tablename__ = "auditevent"
+  __table_args__ = (
+    CheckConstraint(
+      "result IN ('success', 'denied', 'failure')",
+      name="ck_auditevent_result",
+    ),
+  )
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  occurred_at: str = Field(index=True)
+  correlation_id: str = Field(index=True)
+  actor_user_id: Optional[str] = Field(default=None, index=True)
+  actor_username: Optional[str] = None
+  actor_role: Optional[str] = None
+  action: str = Field(index=True)
+  result: str = Field(index=True)
+  object_type: Optional[str] = None
+  object_id: Optional[str] = None
+  method: Optional[str] = None
+  route: Optional[str] = None
+  permission: Optional[str] = None
+  status_code: Optional[int] = None
+  source_address: Optional[str] = None
+  details_json: str = Field(default="{}")
+
+
+class RecoveryMarker(SQLModel, table=True):
+  __tablename__ = "recoverymarker"
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  kind: str = Field(index=True)
+  created_at: str = Field(index=True)
+  details_json: str = Field(default="{}")
+  processed_at: Optional[str] = Field(default=None, index=True)
 
 
 class AppConfig(SQLModel, table=True):

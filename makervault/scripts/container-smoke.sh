@@ -61,7 +61,7 @@ fi
 
 schema_output=$(compose exec -T api python -m migrations)
 case "$schema_output" in
-  *"schema version: 15"*) ;;
+  *"schema version: 16"*) ;;
   *)
     echo "Smoke test failed: unexpected schema output: $schema_output" >&2
     exit 1
@@ -138,4 +138,4 @@ curl --fail --silent --show-error \
   --cookie "$proxy_cookie_jar" \
   "http://localhost:$web_port/api/session" >/dev/null
 
-echo "Container smoke test passed (direct and same-origin cookie sessions, logout revocation, security headers, 512 MiB file policy, API UID $api_uid, web UID $web_uid, schema 15)."
+echo "Container smoke test passed (direct and same-origin cookie sessions, logout revocation, security headers, 512 MiB file policy, API UID $api_uid, web UID $web_uid, schema 16)."

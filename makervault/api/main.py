@@ -35,6 +35,14 @@ from authorization import (
     run_system_service,
     validate_route_inventory,
 )
+from account_service import (
+    change_own_password,
+    create_account,
+    list_accounts,
+    reset_account_password,
+    update_account,
+    verify_account_password,
+)
 from asset_service import (
     STORAGE_TEMPLATE_TOKENS,
     available_model_name,
@@ -107,6 +115,7 @@ from models import (
     Project,
     ProjectMembership,
     ProjectRelationship,
+    UserAccount,
 )
 from machine_service import (
     archive_machine,
@@ -192,9 +201,16 @@ from schemas import (
     FolderOut,
     LoginRequest,
     LoginResponse,
+    PasswordChangeRequest,
+    PasswordResetRequest,
+    ReauthenticateOut,
+    ReauthenticateRequest,
     BrowserSessionOut,
     SessionRevokeAllOut,
     SessionStatusOut,
+    UserCreate,
+    UserOut,
+    UserUpdate,
     HandoffGrantOut,
     HandoffGrantRequest,
     DownloadRequest,
@@ -254,6 +270,7 @@ from session_service import (
     cleanup_browser_sessions,
     cookie_policy,
     create_browser_session,
+    mark_session_reauthenticated,
     list_user_sessions,
     revoke_all_user_sessions,
     revoke_browser_session,
@@ -481,6 +498,20 @@ def machine_to_out(machine: MachineProfile) -> MachineOut:
         created_at=machine.created_at,
         updated_at=machine.updated_at,
         archived_at=machine.archived_at,
+    )
+
+
+def user_to_out(user: UserAccount) -> UserOut:
+    return UserOut(
+        id=user.id,
+        username=user.username,
+        display_name=user.display_name,
+        role=user.role,
+        enabled=user.enabled,
+        password_change_required=user.password_change_required,
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+        last_login_at=user.last_login_at,
     )
 
 
@@ -875,6 +906,7 @@ def login(body: LoginRequest, request: Request, response: Response):
     return LoginResponse(
         role=identity.role.value,
         permissions=sorted(permission.value for permission in permissions_for_role(identity.role)),
+        password_change_required=identity.password_change_required,
         csrf_token=created.csrf_token,
         expires_in=max(1, created.idle_expires_at - int(time.time())),
         absolute_expires_at=created.absolute_expires_at,
@@ -892,9 +924,118 @@ def current_session(
         username=principal.username,
         role=principal.role.value,
         permissions=sorted(permission.value for permission in permissions_for_role(principal.role)),
+        password_change_required=principal.password_change_required,
         csrf_token=principal.csrf_token,
+        reauthenticated_at=principal.reauthenticated_at,
         idle_expires_at=principal.idle_expires_at,
         absolute_expires_at=principal.absolute_expires_at,
+    )
+
+
+@app.post("/session/reauthenticate", response_model=ReauthenticateOut)
+def reauthenticate_session(
+    body: ReauthenticateRequest,
+    principal: SessionPrincipal = Depends(require_auth),
+):
+    if not verify_account_password(engine, principal.user_id, body.password):
+        raise HTTPException(status_code=401, detail="Password confirmation failed")
+    reauthenticated_at = mark_session_reauthenticated(
+        engine,
+        user_id=principal.user_id,
+        session_id=principal.session_id,
+    )
+    return ReauthenticateOut(reauthenticated_at=reauthenticated_at)
+
+
+@app.post("/account/password", response_model=LoginResponse)
+def change_password(
+    body: PasswordChangeRequest,
+    request: Request,
+    response: Response,
+    principal: SessionPrincipal = Depends(require_auth),
+):
+    account = change_own_password(
+        engine,
+        principal.user_id,
+        password=body.new_password,
+    )
+    source = request.client.host if request.client else "unknown"
+    created = create_browser_session(
+        engine,
+        user_id=account.id,
+        client_address=source,
+        user_agent=request.headers.get("User-Agent"),
+    )
+    set_browser_session_cookies(response, created)
+    response.headers["Cache-Control"] = "private, no-store"
+    role = Role(account.role)
+    return LoginResponse(
+        role=role.value,
+        permissions=sorted(
+            permission.value for permission in permissions_for_role(role)
+        ),
+        password_change_required=False,
+        csrf_token=created.csrf_token,
+        expires_in=max(1, created.idle_expires_at - int(time.time())),
+        absolute_expires_at=created.absolute_expires_at,
+    )
+
+
+@app.get("/users", response_model=List[UserOut])
+def users(_: SessionPrincipal = Depends(require_auth)):
+    return [user_to_out(user) for user in list_accounts(engine)]
+
+
+@app.post("/users", response_model=UserOut, status_code=201)
+def create_user(
+    body: UserCreate,
+    _: SessionPrincipal = Depends(require_auth),
+):
+    return user_to_out(
+        create_account(
+            engine,
+            username=body.username,
+            display_name=body.display_name,
+            password=body.password,
+            role=Role(body.role),
+        )
+    )
+
+
+@app.patch("/users/{user_id}", response_model=UserOut)
+def update_user(
+    user_id: str,
+    body: UserUpdate,
+    _: SessionPrincipal = Depends(require_auth),
+):
+    return user_to_out(
+        update_account(
+            engine,
+            user_id,
+            display_name=body.display_name,
+            role=Role(body.role) if body.role is not None else None,
+            enabled=body.enabled,
+        )
+    )
+
+
+@app.post("/users/{user_id}/password-reset", response_model=UserOut)
+def reset_user_password(
+    user_id: str,
+    body: PasswordResetRequest,
+    principal: SessionPrincipal = Depends(require_auth),
+):
+    if user_id == principal.user_id:
+        raise HTTPException(
+            status_code=409,
+            detail="Use the self-service password change for your own account",
+        )
+    return user_to_out(
+        reset_account_password(
+            engine,
+            user_id,
+            password=body.new_password,
+        )
     )
 
 

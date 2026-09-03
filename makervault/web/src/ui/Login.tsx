@@ -4,7 +4,7 @@ import { ResolvedTheme } from "../lib/settings";
 import type { VaultRole } from "../lib/capabilities";
 
 type Props = {
-  onSuccess: (role: VaultRole) => void;
+  onSuccess: (role: VaultRole, passwordChangeRequired: boolean) => void;
   apiUp: boolean | null;
   theme: ResolvedTheme;
 };
@@ -37,7 +37,7 @@ export default function Login({ onSuccess, apiUp, theme }: Props) {
     try {
       const res = await login(username, password);
       if (!res.authenticated) throw new Error("Login failed");
-      onSuccess(res.role);
+      onSuccess(res.role, res.password_change_required);
     } catch (err) {
       console.error(err);
       if (err instanceof Error) {

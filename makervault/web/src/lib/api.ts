@@ -1395,6 +1395,7 @@ export type LoginResult = {
   authenticated: boolean;
   role: VaultRole;
   permissions: string[];
+  password_change_required: boolean;
   csrf_token: string;
   expires_in: number;
   absolute_expires_at: number;
@@ -1406,7 +1407,9 @@ export type SessionStatus = {
   username: string;
   role: VaultRole;
   permissions: string[];
+  password_change_required: boolean;
   csrf_token: string;
+  reauthenticated_at: number;
   idle_expires_at: number;
   absolute_expires_at: number;
 };
@@ -1480,6 +1483,84 @@ export async function revokeAllBrowserSessions(): Promise<number> {
   assertOk(res, "Failed to revoke browser sessions");
   const body = await res.json();
   return Number(body?.revoked || 0);
+}
+
+export type VaultUser = {
+  id: string;
+  username: string;
+  display_name: string;
+  role: VaultRole;
+  enabled: boolean;
+  password_change_required: boolean;
+  created_at: string;
+  updated_at: string;
+  last_login_at?: string | null;
+};
+
+async function accountRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await sessionFetch(`${apiBase()}${path}`, init);
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Account operation failed"));
+  }
+  return res.json();
+}
+
+export async function reauthenticateSession(password: string): Promise<number> {
+  const body = await accountRequest<{ reauthenticated_at: number }>(
+    "/session/reauthenticate",
+    {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ password }),
+    },
+  );
+  return body.reauthenticated_at;
+}
+
+export async function changeOwnPassword(newPassword: string): Promise<LoginResult> {
+  const body = await accountRequest<LoginResult>("/account/password", {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ new_password: newPassword }),
+  });
+  setSessionCsrfToken(body.csrf_token);
+  return body;
+}
+
+export async function listUsers(): Promise<VaultUser[]> {
+  return accountRequest<VaultUser[]>("/users", { cache: "no-store" });
+}
+
+export async function createUser(payload: {
+  username: string;
+  display_name: string;
+  password: string;
+  role: VaultRole;
+}): Promise<VaultUser> {
+  return accountRequest<VaultUser>("/users", {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateUser(
+  id: string,
+  payload: { display_name?: string; role?: VaultRole; enabled?: boolean },
+): Promise<VaultUser> {
+  return accountRequest<VaultUser>(`/users/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function resetUserPassword(id: string, newPassword: string): Promise<VaultUser> {
+  return accountRequest<VaultUser>(`/users/${encodeURIComponent(id)}/password-reset`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ new_password: newPassword }),
+  });
 }
 
 export async function getMountImportSettings(): Promise<MountImportSettings> {

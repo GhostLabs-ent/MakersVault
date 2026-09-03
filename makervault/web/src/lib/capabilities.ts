@@ -12,6 +12,9 @@ export type VaultCapabilities = {
   manageDurableJobs: boolean;
   deletePermanently: boolean;
   emptyTrash: boolean;
+  manageOwnIdentity: boolean;
+  manageIdentity: boolean;
+  readAudit: boolean;
 };
 
 
@@ -27,6 +30,9 @@ const VIEWER: VaultCapabilities = Object.freeze({
   manageDurableJobs: false,
   deletePermanently: false,
   emptyTrash: false,
+  manageOwnIdentity: true,
+  manageIdentity: false,
+  readAudit: false,
 });
 
 const MEMBER: VaultCapabilities = Object.freeze({
@@ -42,6 +48,8 @@ const ADMINISTRATOR: VaultCapabilities = Object.freeze({
   manageDurableJobs: true,
   deletePermanently: true,
   emptyTrash: true,
+  manageIdentity: true,
+  readAudit: true,
 });
 
 

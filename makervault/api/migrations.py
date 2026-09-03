@@ -669,6 +669,70 @@ def _migration_015_shared_vault_roles(conn: Connection) -> None:
     )
 
 
+def _migration_016_account_audit_and_recovery(conn: Connection) -> None:
+    reauthentication_missing = "reauthenticated_at" not in _columns(
+        conn, "browsersession"
+    )
+    _add_column(
+        conn,
+        "browsersession",
+        "reauthenticated_at",
+        "INTEGER NOT NULL DEFAULT 0",
+    )
+    if reauthentication_missing:
+        conn.exec_driver_sql(
+            "UPDATE browsersession SET reauthenticated_at = created_at"
+        )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_browsersession_reauthenticated_at "
+        "ON browsersession(reauthenticated_at)"
+    )
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS auditevent (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            occurred_at VARCHAR NOT NULL,
+            correlation_id VARCHAR NOT NULL,
+            actor_user_id VARCHAR,
+            actor_username VARCHAR,
+            actor_role VARCHAR,
+            action VARCHAR NOT NULL,
+            result VARCHAR NOT NULL
+                CHECK (result IN ('success', 'denied', 'failure')),
+            object_type VARCHAR,
+            object_id VARCHAR,
+            method VARCHAR,
+            route VARCHAR,
+            permission VARCHAR,
+            status_code INTEGER,
+            source_address VARCHAR,
+            details_json VARCHAR NOT NULL DEFAULT '{}'
+        )
+        """
+    )
+    for column in ("occurred_at", "correlation_id", "actor_user_id", "action", "result"):
+        conn.exec_driver_sql(
+            f"CREATE INDEX IF NOT EXISTS idx_auditevent_{column} "
+            f"ON auditevent({column})"
+        )
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS recoverymarker (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            kind VARCHAR NOT NULL,
+            created_at VARCHAR NOT NULL,
+            details_json VARCHAR NOT NULL DEFAULT '{}',
+            processed_at VARCHAR
+        )
+        """
+    )
+    for column in ("kind", "created_at", "processed_at"):
+        conn.exec_driver_sql(
+            f"CREATE INDEX IF NOT EXISTS idx_recoverymarker_{column} "
+            f"ON recoverymarker({column})"
+        )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
@@ -685,6 +749,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(13, "persistent_administrator_identity", _migration_013_persistent_administrator_identity),
     Migration(14, "revocable_browser_sessions", _migration_014_revocable_browser_sessions),
     Migration(15, "shared_vault_roles", _migration_015_shared_vault_roles),
+    Migration(16, "account_audit_and_recovery", _migration_016_account_audit_and_recovery),
 )
 
 

@@ -25,6 +25,7 @@ SESSION_SECRET_BYTES = 32
 SESSION_CLEANUP_LIMIT = 200
 CLIENT_ADDRESS_LIMIT = 128
 USER_AGENT_LIMIT = 512
+RECENT_REAUTHENTICATION_SECONDS = 300
 
 _CONFIG = load_security_config()
 _DIGEST_KEY = _CONFIG.secret.encode("utf-8")
@@ -42,6 +43,7 @@ class CreatedBrowserSession:
     id: str
     secret: str
     csrf_token: str
+    reauthenticated_at: int
     idle_expires_at: int
     absolute_expires_at: int
 
@@ -52,9 +54,11 @@ class SessionPrincipal:
     user_id: str
     username: str
     role: Role
+    password_change_required: bool
     csrf_token: str
     created_at: int
     last_seen_at: int
+    reauthenticated_at: int
     idle_expires_at: int
     absolute_expires_at: int
 
@@ -175,6 +179,7 @@ def create_browser_session(
         idle_expires_at=idle_expires_at,
         absolute_expires_at=absolute_expires_at,
         idle_ttl_seconds=idle,
+        reauthenticated_at=current,
         client_address=_bounded_metadata(client_address, CLIENT_ADDRESS_LIMIT),
         user_agent=_bounded_metadata(user_agent, USER_AGENT_LIMIT),
     )
@@ -202,6 +207,7 @@ def create_browser_session(
         id=session_id,
         secret=secret,
         csrf_token=csrf_token,
+        reauthenticated_at=current,
         idle_expires_at=idle_expires_at,
         absolute_expires_at=absolute_expires_at,
     )
@@ -258,9 +264,11 @@ def authenticate_browser_session(
             user_id=user.id,
             username=user.username,
             role=role,
+            password_change_required=user.password_change_required,
             csrf_token=_csrf_token(secret),
             created_at=row.created_at,
             last_seen_at=row.last_seen_at,
+            reauthenticated_at=row.reauthenticated_at,
             idle_expires_at=row.idle_expires_at,
             absolute_expires_at=row.absolute_expires_at,
         )
@@ -270,6 +278,41 @@ def csrf_matches(principal: SessionPrincipal, token: Optional[str]) -> bool:
     if not token or len(token) > 512:
         return False
     return hmac.compare_digest(principal.csrf_token, token)
+
+
+def is_recently_reauthenticated(
+    principal: SessionPrincipal,
+    *,
+    now: Optional[int] = None,
+    max_age: int = RECENT_REAUTHENTICATION_SECONDS,
+) -> bool:
+    current = _now(now)
+    age = current - principal.reauthenticated_at
+    return 0 <= age <= max_age
+
+
+def mark_session_reauthenticated(
+    engine: Engine,
+    *,
+    user_id: str,
+    session_id: str,
+    now: Optional[int] = None,
+) -> int:
+    current = _now(now)
+    with Session(engine) as session:
+        row = session.get(BrowserSession, session_id)
+        if (
+            row is None
+            or row.user_id != user_id
+            or row.revoked_at is not None
+            or current >= row.idle_expires_at
+            or current >= row.absolute_expires_at
+        ):
+            raise ValueError("active browser session required")
+        row.reauthenticated_at = current
+        session.add(row)
+        session.commit()
+    return current
 
 
 def revoke_session_secret(

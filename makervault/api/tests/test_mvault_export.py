@@ -129,7 +129,7 @@ def test_streaming_export_produces_verified_v1_without_mutating_source(tmp_path)
     assert not list(tmp_path.glob(".mvault-export-*"))
 
     header = archive_json(output, "mvault/header.json")
-    assert header["source"] == {"makersvault_version": "5.1.0", "schema_version": 15}
+    assert header["source"] == {"makersvault_version": "5.1.0", "schema_version": 16}
     assert header["optional_features"] == ["derived-thumbnails"]
     artifacts = archive_jsonl(output, "mvault/catalogs/artifacts.jsonl")
     assert artifacts[0]["supporting_file_count"] == 0
@@ -153,7 +153,7 @@ def test_streaming_export_produces_verified_v1_without_mutating_source(tmp_path)
     assert manifest["external"]["unavailable"] == 1
 
 
-def test_schema15_identity_roles_and_sessions_are_excluded_from_portable_v1(tmp_path):
+def test_schema16_identity_roles_sessions_and_audit_are_excluded_from_portable_v1(tmp_path):
     database, storage = fixture_database(tmp_path)
     engine = create_engine(f"sqlite:///{database}")
     bootstrap_initial_administrator(
@@ -296,13 +296,13 @@ def test_unknown_schema_fails_before_archive_creation(tmp_path):
     database, storage = fixture_database(tmp_path)
     connection = sqlite3.connect(database)
     connection.execute(
-        "INSERT INTO schema_migration(version, name) VALUES (16, 'future_schema')"
+        "INSERT INTO schema_migration(version, name) VALUES (17, 'future_schema')"
     )
     connection.commit()
     connection.close()
     output = tmp_path / "portable.mvault"
 
-    with pytest.raises(MvaultExportError, match="schema 16"):
+    with pytest.raises(MvaultExportError, match="schema 17"):
         export_archive(database, storage, output)
 
     assert not output.exists()

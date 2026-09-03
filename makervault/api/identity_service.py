@@ -69,6 +69,7 @@ class AuthenticatedAdministrator:
     id: str
     username: str
     role: Role
+    password_change_required: bool
 
 
 def _now() -> str:
@@ -116,6 +117,14 @@ def _verify_password(password_hash: str, password: str) -> bool:
             return bool(PASSWORD_HASHER.verify(password_hash, password))
     except (InvalidHashError, VerificationError):
         return False
+
+
+def hash_new_password(password: str) -> str:
+    return _hash_password(validate_new_password(password))
+
+
+def verify_password_hash(password_hash: str, password: str) -> bool:
+    return _verify_password(password_hash, password)
 
 
 def _first_user(database_engine: Engine) -> UserAccount | None:
@@ -217,6 +226,7 @@ def authenticate_initial_administrator(
             id=user.id,
             username=user.username,
             role=role,
+            password_change_required=user.password_change_required,
         )
         session.add(user)
         session.commit()
