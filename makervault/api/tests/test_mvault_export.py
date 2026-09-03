@@ -10,6 +10,8 @@ import pytest
 from sqlalchemy import create_engine
 
 import mvault_export
+from audit_service import AuditActor, AuditContext, record_audit_event
+from authorization import Role
 from identity_service import bootstrap_initial_administrator
 from migrations import MIGRATIONS, run_migrations
 from mvault_export import MvaultExportError, PortableVaultExporter, export_archive
@@ -171,6 +173,23 @@ def test_schema16_identity_roles_sessions_and_audit_are_excluded_from_portable_v
         client_address="192.0.2.10",
         user_agent="portable-secret-test",
     )
+    audit_source = "audit-source-must-not-export"
+    record_audit_event(
+        engine,
+        AuditContext(
+            correlation_id="00000000-0000-4000-8000-000000000001",
+            actor=AuditActor(user_id, "portable-admin", Role.ADMINISTRATOR),
+            action="identity.account.list",
+            method="GET",
+            route="/users",
+            permission="identity.manage",
+            source_address=audit_source,
+            object_type="user",
+            object_id=user_id,
+        ),
+        result="success",
+        status_code=200,
+    )
     engine.dispose()
     output = tmp_path / "identity-excluded.mvault"
 
@@ -191,6 +210,7 @@ def test_schema16_identity_roles_sessions_and_audit_are_excluded_from_portable_v
     assert b"portable-test-password" not in archive_bytes
     assert browser_session.secret.encode() not in archive_bytes
     assert browser_session.csrf_token.encode() not in archive_bytes
+    assert audit_source.encode() not in archive_bytes
 
 
 def test_export_never_overwrites_existing_output(tmp_path):

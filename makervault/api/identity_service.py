@@ -14,6 +14,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
+from audit_service import AuditContext, append_audit_event
 from models import UserAccount
 from authorization import Role
 
@@ -139,6 +140,7 @@ def bootstrap_initial_administrator(
     *,
     username: str,
     password: str,
+    audit_context: AuditContext | None = None,
 ) -> BootstrapResult:
     """Create exactly the first persistent identity; never update an existing one."""
     existing = _first_user(database_engine)
@@ -168,6 +170,22 @@ def bootstrap_initial_administrator(
         with Session(database_engine) as session:
             if session.exec(select(UserAccount.id).limit(1)).first() is None:
                 session.add(candidate)
+                session.flush()
+                if audit_context is not None:
+                    append_audit_event(
+                        session,
+                        audit_context.for_object("user", candidate.id),
+                        result="success",
+                        status_code=201,
+                        details={
+                            "changed_fields": [
+                                "display_name",
+                                "role",
+                                "enabled",
+                                "password",
+                            ]
+                        },
+                    )
                 session.commit()
                 return BootstrapResult(
                     created=True,

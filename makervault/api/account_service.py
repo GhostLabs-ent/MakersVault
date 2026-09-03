@@ -13,6 +13,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
+from audit_service import AuditContext, append_audit_event
 from authorization import Role
 from identity_service import (
     PASSWORD_POLICY_VERSION,
@@ -111,6 +112,7 @@ def create_account(
     display_name: str,
     password: str,
     role: Role,
+    audit_context: Optional[AuditContext] = None,
 ) -> UserAccount:
     cleaned_username, normalized = _clean_username(username)
     cleaned_display_name = _clean_display_name(display_name)
@@ -132,6 +134,22 @@ def create_account(
     with _MUTATION_LOCK, Session(database_engine) as session:
         session.add(account)
         try:
+            session.flush()
+            if audit_context is not None:
+                append_audit_event(
+                    session,
+                    audit_context.for_object("user", account.id),
+                    result="success",
+                    status_code=201,
+                    details={
+                        "changed_fields": [
+                            "display_name",
+                            "role",
+                            "enabled",
+                            "password",
+                        ]
+                    },
+                )
             session.commit()
         except IntegrityError as exc:
             session.rollback()
@@ -146,6 +164,7 @@ def update_account(
     display_name: Optional[str] = None,
     role: Optional[Role] = None,
     enabled: Optional[bool] = None,
+    audit_context: Optional[AuditContext] = None,
 ) -> UserAccount:
     if display_name is None and role is None and enabled is None:
         raise HTTPException(status_code=422, detail="No account changes were supplied")
@@ -182,8 +201,30 @@ def update_account(
         account.enabled = next_enabled
         account.updated_at = _timestamp()
         if authority_changed:
-            _revoke_sessions(session, account.id)
+            revoked_sessions = _revoke_sessions(session, account.id)
+        else:
+            revoked_sessions = 0
         session.add(account)
+        if audit_context is not None:
+            changed_fields = [
+                field
+                for field, supplied in (
+                    ("display_name", display_name is not None),
+                    ("role", role is not None),
+                    ("enabled", enabled is not None),
+                )
+                if supplied
+            ]
+            append_audit_event(
+                session,
+                audit_context.for_object("user", account.id),
+                result="success",
+                status_code=200,
+                details={
+                    "changed_fields": changed_fields,
+                    "revoked_sessions": revoked_sessions,
+                },
+            )
         session.commit()
         return _detach(session, account)
 
@@ -193,6 +234,7 @@ def reset_account_password(
     user_id: str,
     *,
     password: str,
+    audit_context: Optional[AuditContext] = None,
 ) -> UserAccount:
     password_hash = _new_password_hash(password)
     with _MUTATION_LOCK, Session(database_engine) as session:
@@ -201,8 +243,19 @@ def reset_account_password(
         account.password_policy_version = PASSWORD_POLICY_VERSION
         account.password_change_required = True
         account.updated_at = _timestamp()
-        _revoke_sessions(session, account.id)
+        revoked_sessions = _revoke_sessions(session, account.id)
         session.add(account)
+        if audit_context is not None:
+            append_audit_event(
+                session,
+                audit_context.for_object("user", account.id),
+                result="success",
+                status_code=200,
+                details={
+                    "changed_fields": ["password"],
+                    "revoked_sessions": revoked_sessions,
+                },
+            )
         session.commit()
         return _detach(session, account)
 
@@ -212,6 +265,7 @@ def change_own_password(
     user_id: str,
     *,
     password: str,
+    audit_context: Optional[AuditContext] = None,
 ) -> UserAccount:
     password_hash = _new_password_hash(password)
     with _MUTATION_LOCK, Session(database_engine) as session:
@@ -222,8 +276,19 @@ def change_own_password(
         account.password_policy_version = PASSWORD_POLICY_VERSION
         account.password_change_required = False
         account.updated_at = _timestamp()
-        _revoke_sessions(session, account.id)
+        revoked_sessions = _revoke_sessions(session, account.id)
         session.add(account)
+        if audit_context is not None:
+            append_audit_event(
+                session,
+                audit_context.for_object("user", account.id),
+                result="success",
+                status_code=200,
+                details={
+                    "changed_fields": ["password"],
+                    "revoked_sessions": revoked_sessions,
+                },
+            )
         session.commit()
         return _detach(session, account)
 

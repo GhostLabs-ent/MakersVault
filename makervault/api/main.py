@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import time
+import uuid
 
 from auth import (
     AUTH_ENABLED,
@@ -42,6 +43,14 @@ from account_service import (
     reset_account_password,
     update_account,
     verify_account_password,
+)
+from audit_middleware import AuditMiddleware
+from audit_service import (
+    AuditActor,
+    AuditContext,
+    audit_context_from_request,
+    list_audit_events,
+    validate_audit_inventory,
 )
 from asset_service import (
     STORAGE_TEMPLATE_TOKENS,
@@ -104,6 +113,7 @@ from mount_import import (
     start_mount_scan,
 )
 from models import (
+    AuditEvent,
     ArtifactMachine,
     ArtifactRevision,
     Asset,
@@ -194,6 +204,8 @@ from trash_service import (
     start_trash_maintenance,
 )
 from schemas import (
+    AuditEventOut,
+    AuditPageOut,
     AssetMachineContextOut,
     AssetOut,
     AssetFileOut,
@@ -282,11 +294,22 @@ from session_service import (
 async def lifespan(_app: FastAPI):
     validate_auth_config()
     validate_route_inventory(_app)
+    validate_audit_inventory()
     run_migrations(engine)
     bootstrap = bootstrap_initial_administrator(
         engine,
         username=AUTH_USERNAME,
         password=AUTH_PASSWORD,
+        audit_context=AuditContext(
+            correlation_id=str(uuid.uuid4()),
+            actor=None,
+            action="identity.account.bootstrap",
+            method="SYSTEM",
+            route="startup",
+            permission=None,
+            source_address=None,
+            object_type="user",
+        ),
     )
     if bootstrap.created:
         security_logger.info(
@@ -421,8 +444,9 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Has-More", "X-Next-Offset"],
+    expose_headers=["X-Correlation-ID", "X-Has-More", "X-Next-Offset"],
 )
+app.add_middleware(AuditMiddleware, engine=engine)
 app.add_middleware(SecurityHeadersMiddleware)
 
 
@@ -512,6 +536,33 @@ def user_to_out(user: UserAccount) -> UserOut:
         created_at=user.created_at,
         updated_at=user.updated_at,
         last_login_at=user.last_login_at,
+    )
+
+
+def audit_event_to_out(event: AuditEvent) -> AuditEventOut:
+    try:
+        details = json.loads(event.details_json)
+    except (TypeError, ValueError):
+        details = {}
+    if not isinstance(details, dict):
+        details = {}
+    return AuditEventOut(
+        id=event.id,
+        occurred_at=event.occurred_at,
+        correlation_id=event.correlation_id,
+        actor_user_id=event.actor_user_id,
+        actor_username=event.actor_username,
+        actor_role=event.actor_role,
+        action=event.action,
+        result=event.result,
+        object_type=event.object_type,
+        object_id=event.object_id,
+        method=event.method,
+        route=event.route,
+        permission=event.permission,
+        status_code=event.status_code,
+        source_address=event.source_address,
+        details=details,
     )
 
 
@@ -893,6 +944,13 @@ def login(body: LoginRequest, request: Request, response: Response):
         raise HTTPException(status_code=401, detail="Invalid username or password")
     login_limiter.record_success(source, body.username)
     security_logger.info("login_succeeded source=%s", source)
+    request.state.audit_actor = AuditActor(
+        user_id=identity.id,
+        username=identity.username,
+        role=identity.role,
+    )
+    request.state.audit_object_type = "user"
+    request.state.audit_object_id = identity.id
     policy = cookie_policy()
     revoke_session_secret(engine, request.cookies.get(policy.session_name))
     created = create_browser_session(
@@ -958,7 +1016,13 @@ def change_password(
         engine,
         principal.user_id,
         password=body.new_password,
+        audit_context=audit_context_from_request(
+            request,
+            object_type="user",
+            object_id=principal.user_id,
+        ),
     )
+    request.state.audit_recorded = True
     source = request.client.host if request.client else "unknown"
     created = create_browser_session(
         engine,
@@ -989,40 +1053,49 @@ def users(_: SessionPrincipal = Depends(require_auth)):
 @app.post("/users", response_model=UserOut, status_code=201)
 def create_user(
     body: UserCreate,
+    request: Request,
     _: SessionPrincipal = Depends(require_auth),
 ):
-    return user_to_out(
-        create_account(
-            engine,
-            username=body.username,
-            display_name=body.display_name,
-            password=body.password,
-            role=Role(body.role),
-        )
+    account = create_account(
+        engine,
+        username=body.username,
+        display_name=body.display_name,
+        password=body.password,
+        role=Role(body.role),
+        audit_context=audit_context_from_request(request, object_type="user"),
     )
+    request.state.audit_recorded = True
+    return user_to_out(account)
 
 
 @app.patch("/users/{user_id}", response_model=UserOut)
 def update_user(
     user_id: str,
     body: UserUpdate,
+    request: Request,
     _: SessionPrincipal = Depends(require_auth),
 ):
-    return user_to_out(
-        update_account(
-            engine,
-            user_id,
-            display_name=body.display_name,
-            role=Role(body.role) if body.role is not None else None,
-            enabled=body.enabled,
-        )
+    account = update_account(
+        engine,
+        user_id,
+        display_name=body.display_name,
+        role=Role(body.role) if body.role is not None else None,
+        enabled=body.enabled,
+        audit_context=audit_context_from_request(
+            request,
+            object_type="user",
+            object_id=user_id,
+        ),
     )
+    request.state.audit_recorded = True
+    return user_to_out(account)
 
 
 @app.post("/users/{user_id}/password-reset", response_model=UserOut)
 def reset_user_password(
     user_id: str,
     body: PasswordResetRequest,
+    request: Request,
     principal: SessionPrincipal = Depends(require_auth),
 ):
     if user_id == principal.user_id:
@@ -1030,12 +1103,35 @@ def reset_user_password(
             status_code=409,
             detail="Use the self-service password change for your own account",
         )
-    return user_to_out(
-        reset_account_password(
-            engine,
-            user_id,
-            password=body.new_password,
-        )
+    account = reset_account_password(
+        engine,
+        user_id,
+        password=body.new_password,
+        audit_context=audit_context_from_request(
+            request,
+            object_type="user",
+            object_id=user_id,
+        ),
+    )
+    request.state.audit_recorded = True
+    return user_to_out(account)
+
+
+@app.get("/audit", response_model=AuditPageOut)
+def audit_events(
+    limit: int = Query(default=50, ge=1, le=200),
+    cursor: Optional[str] = Query(default=None, min_length=1, max_length=512),
+    _: SessionPrincipal = Depends(require_auth),
+):
+    try:
+        page = list_audit_events(engine, limit=limit, cursor=cursor)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return AuditPageOut(
+        items=[audit_event_to_out(event) for event in page.items],
+        limit=page.limit,
+        has_more=page.has_more,
+        next_cursor=page.next_cursor,
     )
 
 

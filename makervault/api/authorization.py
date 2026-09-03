@@ -133,6 +133,7 @@ ROUTE_AUTHORIZATION: Mapping[tuple[str, str], RouteRule] = MappingProxyType(
         ("POST", "/users"): _recent(Permission.IDENTITY_MANAGE),
         ("PATCH", "/users/{user_id}"): _recent(Permission.IDENTITY_MANAGE),
         ("POST", "/users/{user_id}/password-reset"): _recent(Permission.IDENTITY_MANAGE),
+        ("GET", "/audit"): _session(Permission.AUDIT_READ),
 
         ("GET", "/assets"): _session(Permission.VAULT_READ),
         ("GET", "/tags"): _session(Permission.VAULT_READ),

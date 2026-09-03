@@ -375,6 +375,32 @@ class UserOut(BaseModel):
   last_login_at: Optional[str] = None
 
 
+class AuditEventOut(BaseModel):
+  id: str
+  occurred_at: str
+  correlation_id: str
+  actor_user_id: Optional[str] = None
+  actor_username: Optional[str] = None
+  actor_role: Optional[Literal["administrator", "member", "viewer"]] = None
+  action: str
+  result: Literal["success", "denied", "failure"]
+  object_type: Optional[str] = None
+  object_id: Optional[str] = None
+  method: Optional[str] = None
+  route: Optional[str] = None
+  permission: Optional[str] = None
+  status_code: Optional[int] = None
+  source_address: Optional[str] = None
+  details: dict[str, object]
+
+
+class AuditPageOut(BaseModel):
+  items: List[AuditEventOut]
+  limit: int
+  has_more: bool
+  next_cursor: Optional[str] = None
+
+
 class BrowserSessionOut(BaseModel):
   id: str
   current: bool

@@ -1497,6 +1497,32 @@ export type VaultUser = {
   last_login_at?: string | null;
 };
 
+export type AuditEvent = {
+  id: string;
+  occurred_at: string;
+  correlation_id: string;
+  actor_user_id?: string | null;
+  actor_username?: string | null;
+  actor_role?: VaultRole | null;
+  action: string;
+  result: "success" | "denied" | "failure";
+  object_type?: string | null;
+  object_id?: string | null;
+  method?: string | null;
+  route?: string | null;
+  permission?: string | null;
+  status_code?: number | null;
+  source_address?: string | null;
+  details: Record<string, unknown>;
+};
+
+export type AuditPage = {
+  items: AuditEvent[];
+  limit: number;
+  has_more: boolean;
+  next_cursor?: string | null;
+};
+
 async function accountRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await sessionFetch(`${apiBase()}${path}`, init);
   if (!res.ok) {
@@ -1529,6 +1555,12 @@ export async function changeOwnPassword(newPassword: string): Promise<LoginResul
 
 export async function listUsers(): Promise<VaultUser[]> {
   return accountRequest<VaultUser[]>("/users", { cache: "no-store" });
+}
+
+export async function listAuditEvents(limit = 50, cursor?: string | null): Promise<AuditPage> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (cursor) params.set("cursor", cursor);
+  return accountRequest<AuditPage>(`/audit?${params.toString()}`, { cache: "no-store" });
 }
 
 export async function createUser(payload: {

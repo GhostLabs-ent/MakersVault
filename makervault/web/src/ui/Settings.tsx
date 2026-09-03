@@ -23,6 +23,7 @@ import { mountOwnership, mountScanStatusLabel } from "../lib/mountImport";
 import MachineSettings from "./MachineSettings";
 import SessionSettings from "./SessionSettings";
 import AccountSettings from "./AccountSettings";
+import AuditSettings from "./AuditSettings";
 import { useVaultCapabilities } from "../lib/CapabilityContext";
 
 type Props = {
@@ -35,7 +36,7 @@ type Props = {
   onSelectFolder?: (id: string | null) => void;
 };
 
-type Section = "root" | "slicer" | "engraving" | "theme" | "network" | "previews" | "storage" | "imports" | "content" | "trash" | "machines" | "sessions" | "accounts";
+type Section = "root" | "slicer" | "engraving" | "theme" | "network" | "previews" | "storage" | "imports" | "content" | "trash" | "machines" | "sessions" | "accounts" | "audit";
 
 const THEME_SWATCHES: Record<ThemeId, string> = {
   system: "linear-gradient(135deg, #f8fafc 0%, #f8fafc 50%, #0b0f19 50%, #0b0f19 100%)",
@@ -617,6 +618,10 @@ export default function Settings({
 
   if (section === "accounts") {
     return <AccountSettings onBack={() => setSection("root")} />;
+  }
+
+  if (section === "audit") {
+    return <AuditSettings onBack={() => setSection("root")} />;
   }
 
   if (section === "slicer") {
@@ -1594,6 +1599,16 @@ export default function Settings({
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-3 sm:grid-cols-2">
+        {capabilities.readAudit && (
+          <button
+            className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
+            onClick={() => setSection("audit")}
+          >
+            <div className="text-xs uppercase tracking-wide text-muted">Security</div>
+            <div className="text-lg font-semibold">Security Audit</div>
+            <div className="text-sm opacity-70">Review durable, secret-free security and mutation outcomes.</div>
+          </button>
+        )}
         <button
           className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
           onClick={() => setSection("accounts")}
