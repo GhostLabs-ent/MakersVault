@@ -39,7 +39,10 @@ def test_representative_pre_v5_1_library_upgrades_without_data_loss(tmp_path: Pa
     assert run_migrations(engine) == MIGRATIONS[-1].version
 
     after = audit_live_paths(database, storage, Path("/imports"), fixture / "imports")
-    assert after["consistency"]["status"] == "ok"
+    # A migration-only database is intentionally not yet startup-ready: main.py
+    # bootstraps the first Administrator immediately after migrations.
+    assert after["consistency"]["status"] == "inconsistent"
+    assert after["consistency"]["missing_enabled_administrator"] is True
     assert after["consistency"]["managed_primary_present"] == 3
     assert after["consistency"]["related_file_present"] == 2
     assert after["consistency"]["derived_thumbnail_files"] == 1

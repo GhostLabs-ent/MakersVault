@@ -1,6 +1,8 @@
 import io
+import fcntl
 import hashlib
 import json
+import os
 import sqlite3
 import tarfile
 from pathlib import Path
@@ -16,6 +18,11 @@ from recovery import (
     validate_component_tar,
     verify_backup,
     verify_restored_components,
+)
+from recovery_mutation import (
+    RecoveryMutationError,
+    mark_restored_database,
+    recover_existing_administrator,
 )
 
 
@@ -35,6 +42,24 @@ MACHINE_REPORT_KEYS = (
     "orphan_asset_prepared_machine_ids",
     "orphan_revision_prepared_machine_ids",
     "prepared_machine_mirror_mismatch_asset_ids",
+)
+
+SECURITY_REPORT_KEYS = (
+    "missing_security_tables",
+    "missing_security_columns",
+    "invalid_account_ids",
+    "invalid_account_username_ids",
+    "duplicate_account_username_ids",
+    "invalid_account_role_ids",
+    "invalid_account_state_ids",
+    "orphan_session_ids",
+    "invalid_session_ids",
+    "invalid_session_digest_ids",
+    "duplicate_session_digest_ids",
+    "invalid_session_time_ids",
+    "invalid_audit_event_ids",
+    "orphan_audit_actor_event_ids",
+    "invalid_recovery_marker_ids",
 )
 
 
@@ -384,6 +409,78 @@ def schema12_fixture(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
     return database_dir, storage_dir, database_tar, storage_tar
 
 
+def schema16_fixture(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
+    database_dir, storage_dir, database_tar, storage_tar = schema12_fixture(tmp_path)
+    administrator_id = "11111111-1111-4111-8111-111111111111"
+    member_id = "22222222-2222-4222-8222-222222222222"
+    session_id = "33333333-3333-4333-8333-333333333333"
+    event_id = "44444444-4444-4444-8444-444444444444"
+    correlation_id = "55555555-5555-4555-8555-555555555555"
+    marker_id = "66666666-6666-4666-8666-666666666666"
+    connection = sqlite3.connect(database_dir / "app.db")
+    try:
+        connection.executescript(
+            f"""
+            CREATE TABLE useraccount (
+                id TEXT PRIMARY KEY, username TEXT NOT NULL,
+                username_normalized TEXT NOT NULL UNIQUE, display_name TEXT NOT NULL,
+                password_hash TEXT NOT NULL, enabled INTEGER NOT NULL,
+                password_policy_version INTEGER NOT NULL,
+                password_change_required INTEGER NOT NULL, role TEXT NOT NULL,
+                created_at TEXT NOT NULL, updated_at TEXT NOT NULL, last_login_at TEXT
+            );
+            CREATE TABLE browsersession (
+                id TEXT PRIMARY KEY, user_id TEXT NOT NULL, secret_digest TEXT NOT NULL UNIQUE,
+                created_at INTEGER NOT NULL, last_seen_at INTEGER NOT NULL,
+                idle_expires_at INTEGER NOT NULL, absolute_expires_at INTEGER NOT NULL,
+                idle_ttl_seconds INTEGER NOT NULL, reauthenticated_at INTEGER NOT NULL,
+                revoked_at INTEGER, client_address TEXT, user_agent TEXT
+            );
+            CREATE TABLE auditevent (
+                id TEXT PRIMARY KEY, occurred_at TEXT NOT NULL,
+                correlation_id TEXT NOT NULL, actor_user_id TEXT, actor_username TEXT,
+                actor_role TEXT, action TEXT NOT NULL, result TEXT NOT NULL,
+                object_type TEXT, object_id TEXT, method TEXT, route TEXT,
+                permission TEXT, status_code INTEGER, source_address TEXT,
+                details_json TEXT NOT NULL
+            );
+            CREATE TABLE recoverymarker (
+                id TEXT PRIMARY KEY, kind TEXT NOT NULL, created_at TEXT NOT NULL,
+                details_json TEXT NOT NULL, processed_at TEXT
+            );
+            INSERT INTO schema_migration(version, name) VALUES
+                (13, 'persistent_administrator_identity'),
+                (14, 'revocable_browser_sessions'),
+                (15, 'shared_vault_roles'),
+                (16, 'account_audit_and_recovery');
+            INSERT INTO useraccount VALUES
+                ('{administrator_id}', 'Admin', 'admin', 'Administrator',
+                 '$argon2id$v=19$fixture', 1, 1, 0, 'administrator',
+                 '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', NULL),
+                ('{member_id}', 'Member', 'member', 'Member',
+                 '$argon2id$v=19$fixture', 1, 1, 0, 'member',
+                 '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', NULL);
+            INSERT INTO browsersession VALUES
+                ('{session_id}', '{member_id}', '{'a' * 64}',
+                 100, 110, 200, 300, 90, 105, NULL, '127.0.0.1', 'fixture');
+            INSERT INTO auditevent VALUES
+                ('{event_id}', '2026-09-01T00:00:00Z', '{correlation_id}',
+                 '{administrator_id}', 'Admin', 'administrator', 'identity.login',
+                 'success', 'user', '{administrator_id}', 'POST', '/login', NULL,
+                 200, '127.0.0.1', '{{}}');
+            INSERT INTO recoverymarker VALUES
+                ('{marker_id}', 'raw_restore', '2026-09-01T00:00:00Z',
+                 '{{"revoked_sessions":0}}', '2026-09-01T00:00:01Z');
+            """
+        )
+        connection.commit()
+    finally:
+        connection.close()
+    tar_directory(database_dir, database_tar)
+    tar_directory(storage_dir, storage_tar)
+    return database_dir, storage_dir, database_tar, storage_tar
+
+
 def tar_directory(source: Path, output: Path) -> None:
     with tarfile.open(output, "w") as archive:
         archive.add(source, arcname=".", recursive=True)
@@ -638,7 +735,7 @@ def test_schema8_backup_round_trip_represents_revisions_trash_and_quarantine(
     )
 
     assert manifest["format_version"] == 1
-    assert manifest["recovery_contract_version"] == 4
+    assert manifest["recovery_contract_version"] == 5
     assert manifest["database"]["schema_version"] == 8
     assert manifest["database"]["row_counts"]["artifactrevision"] == 5
     assert manifest["database"]["row_counts"]["trashpurgeoperation"] == 1
@@ -677,7 +774,7 @@ def test_schema10_backup_round_trip_represents_project_graph(tmp_path: Path) -> 
     )
 
     assert manifest["format_version"] == 1
-    assert manifest["recovery_contract_version"] == 4
+    assert manifest["recovery_contract_version"] == 5
     assert manifest["database"]["schema_version"] == 10
     assert manifest["database"]["row_counts"]["project"] == 2
     assert manifest["database"]["row_counts"]["projectmembership"] == 4
@@ -723,7 +820,7 @@ def test_schema12_backup_round_trip_represents_machine_context(tmp_path: Path) -
     )
 
     assert manifest["format_version"] == 1
-    assert manifest["recovery_contract_version"] == 4
+    assert manifest["recovery_contract_version"] == 5
     assert manifest["database"]["schema_version"] == 12
     assert manifest["database"]["row_counts"]["machineprofile"] == 3
     assert manifest["database"]["row_counts"]["artifactmachine"] == 3
@@ -743,6 +840,249 @@ def test_schema12_backup_round_trip_represents_machine_context(tmp_path: Path) -
     )["matches_backup"] is True
     extracted = tmp_path / "schema12-extracted"
     assert extract_backup(archive, extracted) == manifest
+
+
+def test_schema16_contract5_represents_identity_session_audit_and_recovery(
+    tmp_path: Path,
+) -> None:
+    _, _, database_tar, storage_tar = schema16_fixture(tmp_path)
+    archive = tmp_path / "makersvault-schema16.backup.tar.gz"
+
+    manifest = create_backup(
+        database_tar, storage_tar, archive, "v5.1.0", "gate11d3-fixture"
+    )
+
+    assert manifest["recovery_contract_version"] == 5
+    assert manifest["database"]["schema_version"] == 16
+    assert manifest["database"]["row_counts"]["useraccount"] == 2
+    assert manifest["database"]["row_counts"]["browsersession"] == 1
+    assert manifest["database"]["row_counts"]["auditevent"] == 1
+    assert manifest["database"]["row_counts"]["recoverymarker"] == 1
+    audit = manifest["consistency"]
+    assert audit["status"] == "ok"
+    assert audit["enabled_administrator_count"] == 1
+    assert audit["missing_enabled_administrator"] is False
+    for key in SECURITY_REPORT_KEYS:
+        assert audit[key] == []
+    assert verify_backup(archive) == manifest
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "UPDATE useraccount SET role = 'owner' WHERE username_normalized = 'member'",
+        "UPDATE useraccount SET enabled = 0 WHERE role = 'administrator'",
+        "UPDATE browsersession SET user_id = 'missing-user'",
+        "UPDATE browsersession SET secret_digest = 'plaintext-secret'",
+        "UPDATE browsersession SET idle_expires_at = 50",
+        "UPDATE auditevent SET details_json = '[1,2,3]'",
+        "UPDATE recoverymarker SET kind = 'unknown-recovery'",
+    ],
+)
+def test_contract5_rejects_security_domain_corruption(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    _, _, database_tar, storage_tar = schema16_fixture(tmp_path)
+    archive = tmp_path / "schema16-current.tar.gz"
+    create_backup(database_tar, storage_tar, archive, "v5.1.0", "gate11d3")
+    corrupt = tmp_path / f"corrupt-{abs(hash(mutation))}.tar.gz"
+    rewrite_backup_database(archive, corrupt, tmp_path, mutation)
+
+    with pytest.raises(RecoveryError, match="consistency|inconsistent"):
+        verify_backup(corrupt)
+
+
+def test_contract4_schema16_is_compatibly_reaudited(tmp_path: Path) -> None:
+    _, _, database_tar, storage_tar = schema16_fixture(tmp_path)
+    current = tmp_path / "schema16-contract5.tar.gz"
+    create_backup(database_tar, storage_tar, current, "v5.1.0", "gate11d3")
+    contract4 = tmp_path / "schema16-contract4.tar.gz"
+
+    def contract4_shape(manifest: dict) -> None:
+        manifest["recovery_contract_version"] = 4
+        for table in ("useraccount", "browsersession", "auditevent", "recoverymarker"):
+            manifest["database"]["row_counts"].pop(table)
+        for key in (
+            "account_count", "enabled_administrator_count", "browser_session_count",
+            "audit_event_count", "recovery_marker_count",
+            "pending_recovery_marker_count", "missing_enabled_administrator",
+            *SECURITY_REPORT_KEYS,
+        ):
+            manifest["consistency"].pop(key)
+
+    rewrite_backup_manifest(current, contract4, tmp_path, contract4_shape)
+    assert verify_backup(contract4)["recovery_contract_version"] == 4
+
+    corrupt = tmp_path / "schema16-contract4-corrupt.tar.gz"
+    rewrite_backup_database(
+        contract4,
+        corrupt,
+        tmp_path,
+        "UPDATE browsersession SET secret_digest = 'copied-browser-secret'",
+    )
+    with pytest.raises(RecoveryError, match="consistency|inconsistent"):
+        verify_backup(corrupt)
+
+
+def test_raw_restore_revokes_sessions_and_queues_marker_only(tmp_path: Path) -> None:
+    database_dir, _, _, _ = schema16_fixture(tmp_path)
+    database = database_dir / "app.db"
+    connection = sqlite3.connect(database)
+    before = connection.execute(
+        "SELECT name, prepared_machine_id FROM asset ORDER BY id"
+    ).fetchall()
+    connection.close()
+
+    result = mark_restored_database(database)
+
+    connection = sqlite3.connect(database)
+    try:
+        assert connection.execute(
+            "SELECT COUNT(*) FROM browsersession WHERE revoked_at IS NULL"
+        ).fetchone()[0] == 0
+        marker = connection.execute(
+            "SELECT kind, details_json, processed_at FROM recoverymarker "
+            "WHERE id = ?",
+            (result["marker_id"],),
+        ).fetchone()
+        assert marker[0] == "raw_restore"
+        assert json.loads(marker[1]) == {"revoked_sessions": 1}
+        assert marker[2] is None
+        assert connection.execute(
+            "SELECT name, prepared_machine_id FROM asset ORDER BY id"
+        ).fetchall() == before
+    finally:
+        connection.close()
+
+
+def test_stopped_recovery_refuses_an_already_locked_or_indirect_database(
+    tmp_path: Path,
+) -> None:
+    database_dir, _, _, _ = schema16_fixture(tmp_path)
+    database = database_dir / "app.db"
+    descriptor = os.open(database, os.O_RDWR)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with pytest.raises(RecoveryMutationError, match="lock"):
+            mark_restored_database(database)
+    finally:
+        fcntl.flock(descriptor, fcntl.LOCK_UN)
+        os.close(descriptor)
+
+    linked = tmp_path / "linked.db"
+    linked.symlink_to(database)
+    with pytest.raises(RecoveryMutationError, match="exact regular"):
+        mark_restored_database(linked)
+
+
+def test_administrator_recovery_requires_exact_backup_and_existing_account(
+    tmp_path: Path,
+) -> None:
+    database_dir, _, database_tar, storage_tar = schema16_fixture(tmp_path)
+    database = database_dir / "app.db"
+    backup = tmp_path / "prechange.tar.gz"
+    create_backup(database_tar, storage_tar, backup, "v5.1.0", "gate11d3")
+
+    with pytest.raises(RecoveryMutationError, match="existing account"):
+        recover_existing_administrator(
+            database,
+            backup,
+            "does-not-exist",
+            "$argon2id$v=19$unused-hash",
+            1,
+        )
+
+    result = recover_existing_administrator(
+        database,
+        backup,
+        "Member",
+        "$argon2id$v=19$new-temporary-hash",
+        1,
+    )
+
+    connection = sqlite3.connect(database)
+    try:
+        account = connection.execute(
+            "SELECT enabled, role, password_change_required, password_hash "
+            "FROM useraccount WHERE id = ?",
+            (result["user_id"],),
+        ).fetchone()
+        assert account == (1, "administrator", 1, "$argon2id$v=19$new-temporary-hash")
+        assert connection.execute(
+            "SELECT COUNT(*) FROM browsersession WHERE revoked_at IS NULL"
+        ).fetchone()[0] == 0
+        marker = connection.execute(
+            "SELECT kind, details_json, processed_at FROM recoverymarker WHERE id = ?",
+            (result["marker_id"],),
+        ).fetchone()
+        assert marker[0] == "administrator_recovery"
+        assert json.loads(marker[1])["user_id"] == result["user_id"]
+        assert marker[2] is None
+    finally:
+        connection.close()
+
+    with pytest.raises(RecoveryMutationError, match="exact pre-change"):
+        recover_existing_administrator(
+            database,
+            backup,
+            "Admin",
+            "$argon2id$v=19$another-hash",
+            1,
+        )
+
+
+def test_administrator_recovery_snapshot_allows_only_missing_enabled_admin(
+    tmp_path: Path,
+) -> None:
+    database_dir, storage_dir, _, _ = schema16_fixture(tmp_path)
+    database = database_dir / "app.db"
+    connection = sqlite3.connect(database)
+    try:
+        connection.execute(
+            "UPDATE useraccount SET enabled = 0 WHERE role = 'administrator'"
+        )
+        connection.commit()
+    finally:
+        connection.close()
+    database_tar = tmp_path / "locked-out-database.tar"
+    storage_tar = tmp_path / "locked-out-storage.tar"
+    tar_directory(database_dir, database_tar)
+    tar_directory(storage_dir, storage_tar)
+    archive = tmp_path / "admin-recovery-snapshot.tar.gz"
+
+    with pytest.raises(RecoveryError, match="inconsistent"):
+        create_backup(database_tar, storage_tar, archive, "v5.1.0", "gate11d3")
+    manifest = create_backup(
+        database_tar,
+        storage_tar,
+        archive,
+        "v5.1.0",
+        "gate11d3",
+        administrator_recovery_snapshot=True,
+    )
+    assert manifest["recovery_purpose"] == "administrator_recovery"
+    assert manifest["consistency"]["critical_finding_count"] == 1
+    with pytest.raises(RecoveryError, match="inconsistent"):
+        verify_backup(archive)
+    assert verify_backup(archive, allow_administrator_recovery=True) == manifest
+
+    result = recover_existing_administrator(
+        database,
+        archive,
+        "Member",
+        "$argon2id$v=19$recovered-hash",
+        1,
+    )
+    assert result["username"] == "Member"
+
+    connection = sqlite3.connect(database)
+    try:
+        assert connection.execute(
+            "SELECT enabled, role FROM useraccount WHERE username_normalized = 'member'"
+        ).fetchone() == (1, "administrator")
+    finally:
+        connection.close()
 
 
 @pytest.mark.parametrize(
@@ -1100,7 +1440,7 @@ def test_verifier_accepts_pre_gate9d_contract3_schema12_and_reaudits_it(
         "post-v5.1-gate9",
         "pre-gate9d-contract3-fixture",
     )
-    assert current["recovery_contract_version"] == 4
+    assert current["recovery_contract_version"] == 5
     contract3_archive = tmp_path / "contract3-schema12.tar.gz"
 
     def contract3_shape(manifest: dict) -> None:

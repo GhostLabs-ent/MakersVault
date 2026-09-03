@@ -10,11 +10,14 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import sqlite3
 import stat
 import tarfile
 import tempfile
+import unicodedata
+import uuid
 import zlib
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
@@ -23,8 +26,8 @@ from typing import BinaryIO, Iterable, Optional
 
 BACKUP_FORMAT = "makersvault-backup"
 BACKUP_FORMAT_VERSION = 1
-RECOVERY_CONTRACT_VERSION = 4
-SUPPORTED_RECOVERY_CONTRACT_VERSIONS = {2, 3, RECOVERY_CONTRACT_VERSION}
+RECOVERY_CONTRACT_VERSION = 5
+SUPPORTED_RECOVERY_CONTRACT_VERSIONS = {2, 3, 4, RECOVERY_CONTRACT_VERSION}
 COMPONENT_NAMES = ("database.tar", "storage.tar")
 OPTIONAL_NAMES = ("config.env",)
 METADATA_NAMES = ("manifest.json", "checksums.sha256")
@@ -161,6 +164,10 @@ def database_summary(database: Path) -> dict:
                 "projectrelationship",
                 "machineprofile",
                 "artifactmachine",
+                "useraccount",
+                "browsersession",
+                "auditevent",
+                "recoverymarker",
             )
             if table in tables
         )
@@ -306,6 +313,91 @@ def _select_machine_associations(connection: sqlite3.Connection) -> list[dict]:
     return [dict(zip(columns, row)) for row in rows]
 
 
+def _select_available(
+    connection: sqlite3.Connection,
+    table: str,
+    wanted: tuple[str, ...],
+) -> list[dict]:
+    if table not in table_names(connection):
+        return []
+    available = table_columns(connection, table)
+    selected = [column for column in wanted if column in available]
+    if not selected:
+        return []
+    rows = connection.execute(f"SELECT {', '.join(selected)} FROM {table}").fetchall()
+    return [dict(zip(selected, row)) for row in rows]
+
+
+def _canonical_uuid(value: object) -> bool:
+    candidate = str(value or "")
+    try:
+        return candidate == str(uuid.UUID(candidate))
+    except ValueError:
+        return False
+
+
+def _valid_iso_timestamp(value: object) -> bool:
+    candidate = str(value or "")
+    if not candidate or len(candidate) > 64:
+        return False
+    try:
+        datetime.fromisoformat(candidate.replace("Z", "+00:00"))
+        return True
+    except ValueError:
+        return False
+
+
+def _json_object(value: object, maximum_bytes: int = 2048) -> bool:
+    candidate = str(value or "")
+    if len(candidate.encode("utf-8")) > maximum_bytes:
+        return False
+    try:
+        return isinstance(json.loads(candidate), dict)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return False
+
+
+def _parsed_json_object(value: object, maximum_bytes: int = 2048) -> Optional[dict]:
+    if not _json_object(value, maximum_bytes):
+        return None
+    return json.loads(str(value))
+
+
+def _valid_audit_details(value: object) -> bool:
+    details = _parsed_json_object(value)
+    if details is None or set(details) - {"changed_fields", "revoked_sessions"}:
+        return False
+    if "changed_fields" in details:
+        changed = details["changed_fields"]
+        if (
+            not isinstance(changed, list)
+            or any(
+                field not in {"display_name", "role", "enabled", "password"}
+                for field in changed
+            )
+        ):
+            return False
+    revoked = details.get("revoked_sessions", 0)
+    return isinstance(revoked, int) and not isinstance(revoked, bool) and revoked >= 0
+
+
+def _valid_recovery_details(kind: str, value: object, user_ids: set[str]) -> bool:
+    details = _parsed_json_object(value)
+    if details is None:
+        return False
+    expected = (
+        {"revoked_sessions"}
+        if kind == "raw_restore"
+        else {"user_id", "revoked_sessions"}
+    )
+    if set(details) != expected:
+        return False
+    revoked = details.get("revoked_sessions")
+    if not isinstance(revoked, int) or isinstance(revoked, bool) or revoked < 0:
+        return False
+    return kind == "raw_restore" or str(details.get("user_id") or "") in user_ids
+
+
 def _external_state(
     source_path: str,
     container_root: Optional[Path],
@@ -353,6 +445,45 @@ def consistency_audit(
         project_relationships = _select_project_relationships(connection)
         machines = _select_machines(connection)
         machine_associations = _select_machine_associations(connection)
+        users = _select_available(
+            connection,
+            "useraccount",
+            (
+                "id", "username", "username_normalized", "display_name",
+                "password_hash", "enabled", "password_policy_version",
+                "password_change_required", "role", "created_at", "updated_at",
+                "last_login_at",
+            ),
+        )
+        browser_sessions = _select_available(
+            connection,
+            "browsersession",
+            (
+                "id", "user_id", "secret_digest", "created_at", "last_seen_at",
+                "idle_expires_at", "absolute_expires_at", "idle_ttl_seconds",
+                "reauthenticated_at", "revoked_at", "client_address", "user_agent",
+            ),
+        )
+        audit_events = _select_available(
+            connection,
+            "auditevent",
+            (
+                "id", "occurred_at", "correlation_id", "actor_user_id",
+                "actor_username", "actor_role", "action", "result", "object_type",
+                "object_id", "method", "route", "permission", "status_code",
+                "source_address", "details_json",
+            ),
+        )
+        recovery_markers = _select_available(
+            connection,
+            "recoverymarker",
+            ("id", "kind", "created_at", "details_json", "processed_at"),
+        )
+        security_table_columns = {
+            table: table_columns(connection, table)
+            for table in ("useraccount", "browsersession", "auditevent", "recoverymarker")
+            if table in tables
+        }
         asset_columns = table_columns(connection, "asset") if "asset" in tables else set()
         revision_columns = (
             table_columns(connection, "artifactrevision")
@@ -722,6 +853,235 @@ def consistency_audit(
             if asset_target != revision_target:
                 prepared_machine_mirror_mismatch_asset_ids.append(asset_id)
 
+    expected_security_columns: dict[str, set[str]] = {}
+    if schema_version >= 13:
+        expected_security_columns["useraccount"] = {
+            "id", "username", "username_normalized", "display_name", "password_hash",
+            "enabled", "password_policy_version", "password_change_required",
+            "created_at", "updated_at", "last_login_at",
+        }
+    if schema_version >= 14:
+        expected_security_columns["browsersession"] = {
+            "id", "user_id", "secret_digest", "created_at", "last_seen_at",
+            "idle_expires_at", "absolute_expires_at", "idle_ttl_seconds",
+            "revoked_at", "client_address", "user_agent",
+        }
+    if schema_version >= 15:
+        expected_security_columns.setdefault("useraccount", set()).add("role")
+    if schema_version >= 16:
+        expected_security_columns.setdefault("browsersession", set()).add(
+            "reauthenticated_at"
+        )
+        expected_security_columns["auditevent"] = {
+            "id", "occurred_at", "correlation_id", "actor_user_id",
+            "actor_username", "actor_role", "action", "result", "object_type",
+            "object_id", "method", "route", "permission", "status_code",
+            "source_address", "details_json",
+        }
+        expected_security_columns["recoverymarker"] = {
+            "id", "kind", "created_at", "details_json", "processed_at",
+        }
+    missing_security_tables = sorted(set(expected_security_columns) - tables)
+    missing_security_columns = sorted(
+        f"{table}.{column}"
+        for table, columns in expected_security_columns.items()
+        if table in tables
+        for column in columns - security_table_columns[table]
+    )
+
+    valid_roles = {"administrator", "member", "viewer"}
+    user_ids = {str(user.get("id") or "") for user in users}
+    invalid_account_ids = sorted(
+        str(user.get("id") or "") for user in users
+        if not _canonical_uuid(user.get("id"))
+    )
+    invalid_account_username_ids: list[str] = []
+    normalized_usernames: dict[str, list[str]] = {}
+    for user in users:
+        user_id = str(user.get("id") or "")
+        username = str(user.get("username") or "")
+        normalized = str(user.get("username_normalized") or "")
+        expected = unicodedata.normalize("NFKC", username).strip().casefold()
+        if not expected or len(expected) > 256 or normalized != expected:
+            invalid_account_username_ids.append(user_id)
+        normalized_usernames.setdefault(normalized, []).append(user_id)
+    duplicate_account_username_ids = sorted({
+        user_id
+        for normalized, ids in normalized_usernames.items()
+        if normalized and len(ids) > 1
+        for user_id in ids
+    })
+    invalid_account_role_ids = sorted(
+        str(user.get("id") or "") for user in users
+        if schema_version >= 15 and str(user.get("role") or "") not in valid_roles
+    )
+    invalid_account_state_ids = sorted(
+        str(user.get("id") or "") for user in users
+        if user.get("enabled") not in {0, 1}
+        or user.get("password_change_required") not in {0, 1}
+        or not isinstance(user.get("password_policy_version"), int)
+        or int(user.get("password_policy_version") or 0) < 1
+        or not str(user.get("display_name") or "").strip()
+        or not str(user.get("password_hash") or "").startswith("$argon2id$v=19$")
+        or not _valid_iso_timestamp(user.get("created_at"))
+        or not _valid_iso_timestamp(user.get("updated_at"))
+        or (
+            user.get("last_login_at") is not None
+            and not _valid_iso_timestamp(user.get("last_login_at"))
+        )
+    )
+    enabled_administrator_count = sum(
+        1 for user in users
+        if user.get("enabled") == 1
+        and (
+            str(user.get("role") or "") == "administrator"
+            if schema_version >= 15 else True
+        )
+    )
+    missing_enabled_administrator = bool(
+        schema_version >= 15 and enabled_administrator_count == 0
+    )
+
+    digest_pattern = re.compile(r"^[0-9a-f]{64}$")
+    session_digests: dict[str, list[str]] = {}
+    orphan_session_ids: list[str] = []
+    invalid_session_ids: list[str] = []
+    invalid_session_digest_ids: list[str] = []
+    invalid_session_time_ids: list[str] = []
+    for browser_session in browser_sessions:
+        session_id = str(browser_session.get("id") or "")
+        if not _canonical_uuid(session_id):
+            invalid_session_ids.append(session_id)
+        if str(browser_session.get("user_id") or "") not in user_ids:
+            orphan_session_ids.append(session_id)
+        digest = str(browser_session.get("secret_digest") or "")
+        if not digest_pattern.fullmatch(digest):
+            invalid_session_digest_ids.append(session_id)
+        session_digests.setdefault(digest, []).append(session_id)
+        time_fields = [
+            browser_session.get("created_at"),
+            browser_session.get("last_seen_at"),
+            browser_session.get("idle_expires_at"),
+            browser_session.get("absolute_expires_at"),
+        ]
+        if schema_version >= 16:
+            time_fields.append(browser_session.get("reauthenticated_at"))
+        valid_times = all(
+            isinstance(value, int) and not isinstance(value, bool) and value >= 0
+            for value in time_fields
+        )
+        if valid_times:
+            created, last_seen, idle_expires, absolute_expires = time_fields[:4]
+            reauthenticated = (
+                browser_session.get("reauthenticated_at", created)
+                if schema_version >= 16 else created
+            )
+            valid_times = (
+                created <= last_seen < idle_expires <= absolute_expires
+                and created <= reauthenticated < absolute_expires
+                and isinstance(browser_session.get("idle_ttl_seconds"), int)
+                and int(browser_session.get("idle_ttl_seconds") or 0) > 0
+                and (
+                    browser_session.get("revoked_at") is None
+                    or (
+                        isinstance(browser_session.get("revoked_at"), int)
+                        and browser_session.get("revoked_at") >= created
+                    )
+                )
+            )
+        if not valid_times:
+            invalid_session_time_ids.append(session_id)
+    duplicate_session_digest_ids = sorted({
+        session_id
+        for digest, ids in session_digests.items()
+        if digest and len(ids) > 1
+        for session_id in ids
+    })
+
+    action_pattern = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
+    invalid_audit_event_ids: list[str] = []
+    orphan_audit_actor_event_ids: list[str] = []
+    for event in audit_events:
+        event_id = str(event.get("id") or "")
+        actor_id = event.get("actor_user_id")
+        if actor_id is not None and str(actor_id) not in user_ids:
+            orphan_audit_actor_event_ids.append(event_id)
+        actor_fields_valid = (
+            actor_id is None
+            and event.get("actor_username") is None
+            and event.get("actor_role") is None
+        ) or (
+            actor_id is not None
+            and bool(str(event.get("actor_username") or ""))
+            and str(event.get("actor_role") or "") in valid_roles
+        )
+        optional_lengths = (
+            ("object_type", 64), ("object_id", 128), ("method", 16),
+            ("route", 256), ("permission", 128), ("source_address", 128),
+        )
+        status_code = event.get("status_code")
+        if (
+            not _canonical_uuid(event_id)
+            or not _canonical_uuid(event.get("correlation_id"))
+            or not _valid_iso_timestamp(event.get("occurred_at"))
+            or not action_pattern.fullmatch(str(event.get("action") or ""))
+            or str(event.get("result") or "") not in {"success", "denied", "failure"}
+            or not actor_fields_valid
+            or any(
+                event.get(field) is not None and len(str(event.get(field))) > maximum
+                for field, maximum in optional_lengths
+            )
+            or (
+                status_code is not None
+                and (
+                    not isinstance(status_code, int)
+                    or isinstance(status_code, bool)
+                    or status_code < 100
+                    or status_code > 599
+                )
+            )
+            or not _valid_audit_details(event.get("details_json"))
+        ):
+            invalid_audit_event_ids.append(event_id)
+
+    invalid_recovery_marker_ids: list[str] = []
+    pending_recovery_marker_count = 0
+    for marker in recovery_markers:
+        marker_id = str(marker.get("id") or "")
+        processed_at = marker.get("processed_at")
+        if processed_at is None:
+            pending_recovery_marker_count += 1
+        if (
+            not _canonical_uuid(marker_id)
+            or str(marker.get("kind") or "") not in {
+                "raw_restore", "administrator_recovery"
+            }
+            or not _valid_iso_timestamp(marker.get("created_at"))
+            or (processed_at is not None and not _valid_iso_timestamp(processed_at))
+            or not _valid_recovery_details(
+                str(marker.get("kind") or ""), marker.get("details_json"), user_ids
+            )
+        ):
+            invalid_recovery_marker_ids.append(marker_id)
+
+    security_critical_lists = (
+        missing_security_tables,
+        missing_security_columns,
+        invalid_account_ids,
+        invalid_account_username_ids,
+        duplicate_account_username_ids,
+        invalid_account_role_ids,
+        invalid_account_state_ids,
+        orphan_session_ids,
+        invalid_session_ids,
+        invalid_session_digest_ids,
+        duplicate_session_digest_ids,
+        invalid_session_time_ids,
+        invalid_audit_event_ids,
+        orphan_audit_actor_event_ids,
+        invalid_recovery_marker_ids,
+    )
+
     project_critical_lists = (
         missing_project_tables,
         orphan_project_membership_keys,
@@ -764,10 +1124,13 @@ def consistency_audit(
         unknown_quarantine_paths,
         *project_critical_lists,
         *machine_critical_lists,
+        *security_critical_lists,
     )
     critical_count = sum(len(items) for items in critical_lists)
+    critical_count += int(missing_enabled_administrator)
     result = {
         "status": "ok" if critical_count == 0 else "inconsistent",
+        "critical_finding_count": critical_count,
         "active_asset_count": sum(1 for row in assets if not row.get("deleted_at")),
         "trashed_asset_count": sum(1 for row in assets if row.get("deleted_at")),
         "revision_count": len(revisions),
@@ -886,6 +1249,35 @@ def consistency_audit(
                 prepared_machine_mirror_mismatch_asset_ids
             ),
         })
+    security_domain_present = bool(
+        schema_version >= 13
+        or {"useraccount", "browsersession", "auditevent", "recoverymarker"} & tables
+    )
+    if security_domain_present:
+        result.update({
+            "account_count": len(users),
+            "enabled_administrator_count": enabled_administrator_count,
+            "browser_session_count": len(browser_sessions),
+            "audit_event_count": len(audit_events),
+            "recovery_marker_count": len(recovery_markers),
+            "pending_recovery_marker_count": pending_recovery_marker_count,
+            "missing_security_tables": missing_security_tables,
+            "missing_security_columns": missing_security_columns,
+            "invalid_account_ids": invalid_account_ids,
+            "invalid_account_username_ids": sorted(invalid_account_username_ids),
+            "duplicate_account_username_ids": duplicate_account_username_ids,
+            "invalid_account_role_ids": invalid_account_role_ids,
+            "invalid_account_state_ids": invalid_account_state_ids,
+            "missing_enabled_administrator": missing_enabled_administrator,
+            "orphan_session_ids": sorted(orphan_session_ids),
+            "invalid_session_ids": sorted(invalid_session_ids),
+            "invalid_session_digest_ids": sorted(invalid_session_digest_ids),
+            "duplicate_session_digest_ids": duplicate_session_digest_ids,
+            "invalid_session_time_ids": sorted(invalid_session_time_ids),
+            "invalid_audit_event_ids": sorted(invalid_audit_event_ids),
+            "orphan_audit_actor_event_ids": sorted(orphan_audit_actor_event_ids),
+            "invalid_recovery_marker_ids": sorted(invalid_recovery_marker_ids),
+        })
     return result
 
 
@@ -930,6 +1322,7 @@ def create_backup(
     compose_manifest: str = "unknown",
     database_source: str = "unknown",
     storage_source: str = "unknown",
+    administrator_recovery_snapshot: bool = False,
 ) -> dict:
     if output.exists() and not overwrite:
         raise RecoveryError(f"Backup already exists: {output}")
@@ -944,7 +1337,12 @@ def create_backup(
             database,
             storage_members,
         )
-        if audit["status"] != "ok":
+        recoverable_identity_state = bool(
+            administrator_recovery_snapshot
+            and audit.get("missing_enabled_administrator") is True
+            and audit.get("critical_finding_count") == 1
+        )
+        if audit["status"] != "ok" and not recoverable_identity_state:
             raise RecoveryError("Matched database and storage snapshot is inconsistent")
         components = {
             "database.tar": _component_metadata(database_tar, database_members),
@@ -986,6 +1384,8 @@ def create_backup(
             "consistency": audit,
             "external_content_included": False,
         }
+        if administrator_recovery_snapshot:
+            manifest["recovery_purpose"] = "administrator_recovery"
         manifest_bytes = (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode()
         checksum_lines.append(
             f"{hashlib.sha256(manifest_bytes).hexdigest()}  manifest.json"
@@ -1049,13 +1449,20 @@ def parse_checksums(path: Path) -> dict[str, str]:
     return checksums
 
 
-def verify_extracted_backup(directory: Path, seen: set[str]) -> dict:
+def verify_extracted_backup(
+    directory: Path,
+    seen: set[str],
+    allow_administrator_recovery: bool = False,
+) -> dict:
     try:
         manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise RecoveryError("Backup manifest is not valid JSON") from exc
     if manifest.get("format") != BACKUP_FORMAT or manifest.get("format_version") != BACKUP_FORMAT_VERSION:
         raise RecoveryError("Backup format or version is unsupported")
+    recovery_purpose = manifest.get("recovery_purpose")
+    if recovery_purpose not in {None, "administrator_recovery"}:
+        raise RecoveryError("Backup recovery purpose is unsupported")
     recovery_contract = manifest.get("recovery_contract_version")
     if recovery_contract is not None and (
         not isinstance(recovery_contract, int)
@@ -1100,7 +1507,7 @@ def verify_extracted_backup(directory: Path, seen: set[str]) -> dict:
             return recorded == actual
         return recorded == actual
 
-    compatible_older_contract = recovery_contract in {None, 2, 3}
+    compatible_older_contract = recovery_contract in {None, 2, 3, 4}
     if not report_matches(
         manifest.get("database"),
         summary,
@@ -1113,7 +1520,13 @@ def verify_extracted_backup(directory: Path, seen: set[str]) -> dict:
         compatible_older_contract,
     ):
         raise RecoveryError("Backup consistency report does not match its contents")
-    if audit["status"] != "ok":
+    recoverable_identity_state = bool(
+        allow_administrator_recovery
+        and recovery_purpose == "administrator_recovery"
+        and audit.get("missing_enabled_administrator") is True
+        and audit.get("critical_finding_count") == 1
+    )
+    if audit["status"] != "ok" and not recoverable_identity_state:
         raise RecoveryError("Backup contains an inconsistent database/storage snapshot")
     if manifest_components["database.tar"].get("file_count") != len(database_members):
         raise RecoveryError("Database component file count does not match its manifest")
@@ -1126,13 +1539,20 @@ def verify_extracted_backup(directory: Path, seen: set[str]) -> dict:
     return manifest
 
 
-def verify_backup(archive_path: Path) -> dict:
+def verify_backup(
+    archive_path: Path,
+    allow_administrator_recovery: bool = False,
+) -> dict:
     if not archive_path.is_file():
         raise RecoveryError(f"Backup does not exist: {archive_path}")
     with tempfile.TemporaryDirectory(prefix="makersvault-verify-") as temporary:
         directory = Path(temporary)
         seen = extract_outer_archive(archive_path, directory)
-        return verify_extracted_backup(directory, seen)
+        return verify_extracted_backup(
+            directory,
+            seen,
+            allow_administrator_recovery=allow_administrator_recovery,
+        )
 
 
 def extract_backup(archive_path: Path, output_dir: Path) -> dict:
@@ -1222,9 +1642,11 @@ def build_parser() -> argparse.ArgumentParser:
     create.add_argument("--compose-manifest", required=True)
     create.add_argument("--database-source", required=True)
     create.add_argument("--storage-source", required=True)
+    create.add_argument("--administrator-recovery-snapshot", action="store_true")
 
     verify = subparsers.add_parser("verify")
     verify.add_argument("--archive", type=Path, required=True)
+    verify.add_argument("--administrator-recovery-snapshot", action="store_true")
 
     extract = subparsers.add_parser("extract")
     extract.add_argument("--archive", type=Path, required=True)
@@ -1263,9 +1685,13 @@ def main() -> int:
                 args.compose_manifest,
                 args.database_source,
                 args.storage_source,
+                args.administrator_recovery_snapshot,
             )
         elif args.command == "verify":
-            result = verify_backup(args.archive)
+            result = verify_backup(
+                args.archive,
+                allow_administrator_recovery=args.administrator_recovery_snapshot,
+            )
         elif args.command == "extract":
             result = extract_backup(args.archive, args.output_dir)
         elif args.command == "audit":

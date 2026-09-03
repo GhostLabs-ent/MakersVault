@@ -144,6 +144,7 @@ from machine_context_service import (
     set_prepared_machine,
 )
 from migrations import run_migrations
+from recovery_marker_service import process_recovery_markers
 from prepared_print import prepared_filename
 from preview_policy import (
     PREVIEW_POLICY_VERSION,
@@ -296,6 +297,11 @@ async def lifespan(_app: FastAPI):
     validate_route_inventory(_app)
     validate_audit_inventory()
     run_migrations(engine)
+    processed_recovery_markers = process_recovery_markers(engine)
+    if processed_recovery_markers:
+        security_logger.warning(
+            "recovery_markers_audited count=%d", processed_recovery_markers
+        )
     bootstrap = bootstrap_initial_administrator(
         engine,
         username=AUTH_USERNAME,

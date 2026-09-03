@@ -135,6 +135,17 @@ python3 "$app_dir/api/recovery.py" verify-restored \
   --storage-tar "$temporary/restored-storage.tar" \
   >/dev/null
 
+# Exact archive equality is proven above. The only permitted post-restore database
+# mutation revokes copied sessions and queues a startup audit marker.
+compose run --rm -T --no-deps --entrypoint python api \
+  /app/recovery_mutation.py --database /app/data/app.db >/dev/null
+compose run --rm -T --no-deps --entrypoint tar api -C /app/data -cf - . \
+  > "$temporary/post-recovery-database.tar"
+python3 "$app_dir/api/recovery.py" audit-components \
+  --database-tar "$temporary/post-recovery-database.tar" \
+  --storage-tar "$temporary/restored-storage.tar" \
+  >/dev/null
+
 if [ -n "$config_output" ]; then
   if [ ! -f "$temporary/extracted/config.env" ]; then
     echo "Backup does not contain deployment configuration" >&2

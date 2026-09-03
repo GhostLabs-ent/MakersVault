@@ -13,9 +13,9 @@ These are intentional v5.1 boundaries, not hidden promises.
 - Browser authentication uses revocable HttpOnly cookies and no tokenized file URLs.
   Production requires HTTPS; non-Secure cookies exist only in explicit development
   and test modes.
-- Raw schema-16 restore does not yet automatically revoke restored sessions. Keep a
-  restored service isolated and revoke all sessions before exposure; automated
-  restore detection and identity/session raw-recovery audit remain Gate 11D-3 work.
+- Raw restore and stopped-instance Administrator recovery revoke every browser
+  session. There is no online/email recovery: emergency recovery requires a stopped
+  instance, an exact verified pre-change backup, and an existing account.
 - Durable audit is mandatory and Administrator-readable, but this slice has no
   audit deletion or retention setting. Events remain in SQLite and raw backups
   indefinitely; portable `.mvault` archives deliberately exclude them.

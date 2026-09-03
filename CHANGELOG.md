@@ -29,6 +29,12 @@ for versioned release artifacts beginning with v5.1.0.
   discovery, dispatch, telemetry, or control authority.
 - Machine management, lazy Artifact context editing, and bounded current-state
   retrieval by associated or exact prepared Machine.
+- Persistent local shared-vault accounts with fixed Administrator, Member, and Viewer
+  roles; forced temporary-password replacement; recent-password confirmation;
+  session administration; and last-enabled-Administrator protection.
+- Durable, bounded, secret-free security audit with Administrator-only pagination.
+- Interactive stopped-instance Administrator recovery backed by a mandatory exact
+  pre-change backup, full session revocation, and startup audit markers.
 
 ### Changed
 
@@ -41,8 +47,11 @@ for versioned release artifacts beginning with v5.1.0.
   administrator token.
 - Artifact-history and Project exports use format 2 with deterministic Machine
   snapshots, stable references, and explicit unresolved-identity reporting.
-- New matched backups use recovery contract 4 with deterministic schema-12
-  Machine integrity reporting while preserving verified historical backup shapes.
+- New matched backups use recovery contract 5 with deterministic schema-16 identity,
+  session, audit, recovery, and Machine integrity reporting while compatibly
+  re-auditing historical recovery contracts 2–4.
+- Raw restore revokes copied browser sessions before service exposure and records a
+  durable recovery event at startup.
 
 ### Security
 
@@ -55,8 +64,8 @@ for versioned release artifacts beginning with v5.1.0.
 ### Known limitations
 
 See [Known Limitations](makervault/docs/KNOWN_LIMITATIONS.md). Major deferrals include
-multi-user identity, Trash/revisions/projects, source-content hashing/provenance,
-automatic STEP card previews, and server-wide “select every match.”
+ MFA/SSO, private per-model ACLs, automatic STEP card previews, hosted object storage,
+ and server-wide “select every match.”
 
 ## [5] - Historical beta
 

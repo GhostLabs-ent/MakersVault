@@ -41,12 +41,11 @@ audit/recovery state, or credentials. Starting an API against a clean `.mvault`
 restore applies migrations 13–16 and bootstraps a new local administrator from that
 installation's validated environment.
 
-Schema 16 does not yet make the raw recovery tool detect a restore and revoke all
-restored sessions automatically. Until Gate 11D-3 recovery is accepted,
-keep a schema-16 raw restore isolated, sign in locally, confirm the password, use
-revoke-all, and confirm the old browser session fails before exposing the service.
-Identity/session-aware raw-backup audit remains an explicit Gate 11D-3 evidence
-requirement.
+Schema-16 raw restore automatically revokes every copied browser session after exact
+archive equality is proven and before services restart. It writes a pending recovery
+marker; API startup converts that marker into a durable, secret-free audit event
+before accepting requests. Older compatible backups are still re-audited and any
+session table they contain is revoked before exposure.
 
 From the repository root, against paths that are not being used by a running API:
 
@@ -134,6 +133,9 @@ backslashes, symlinks, devices, duplicate members, checksum differences, an
 unreadable SQLite database, an invalid backup version, missing managed content,
 missing related files, broken revision/current/prepared ownership, changed managed
 revision digests, malformed purge journals, and unknown quarantine content. It
+also rejects missing or malformed schema-16 security tables, invalid fixed roles,
+the absence of an enabled Administrator, broken session ownership/digest/time
+shape, malformed audit records, and invalid recovery markers. It
 reports:
 
 - release, source revision, Compose project, manifest, mounts, and volume names;
@@ -147,8 +149,10 @@ reports:
 Checksums detect accidental corruption and incomplete copies. They are not a
 signature from the project; release artifact signing is a separate concern.
 
-The outer archive remains `makersvault-backup` format version 1. Current recovery
-tools accept manifests produced by the earlier format-1 recovery contract and add a
+The outer archive remains `makersvault-backup` format version 1. New backups use
+recovery contract 5. Current tools accept contracts 2–4 and legacy no-marker
+manifests, then perform the complete current compatibility re-audit rather than
+trusting the older report subset. The tools add a
 separate recovery-contract version for schema-aware reports. This compatibility does
 not weaken new backups: a new manifest must contain and exactly match the complete
 current report.
@@ -190,6 +194,9 @@ The restore command refuses non-empty database or storage volumes by default:
 The procedure verifies and extracts the archive before stopping services. It then
 restores managed storage first and SQLite last, corrects ownership, snapshots the
 live targets again, and proves every restored byte matches the archived inventory.
+After that proof it revokes restored sessions, writes the recovery marker, and
+re-audits the resulting database/storage pair. No Artifact, Project, Machine, managed
+file, or portable `.mvault` content is changed by this recovery-only mutation.
 Only services that were running before the operation are restarted.
 
 The archived `.env` is never applied automatically. To extract it for comparison,
@@ -246,8 +253,41 @@ the external file routes return unavailable.
 
 Schema-14 server backup includes keyed server-side browser-session rows but never
 the browser's HttpOnly cookie value. It excludes source-site cookies, browser
-preferences, and workstation-local bridge configuration/cache. Follow the isolated
-restore/revoke-all warning above and reinstall or restore the v5.1 bridge separately.
+preferences, and workstation-local bridge configuration/cache. Restored server-side
+sessions are revoked automatically; reinstall or restore the v5.1 bridge separately.
+
+## Recover an existing Administrator while stopped
+
+Use the source-owned wrapper only when no enabled Administrator can sign in. It
+never creates an account or accepts a password argument. Choose an existing username
+and a new path for the mandatory pre-change backup:
+
+```bash
+./scripts/recover-administrator.sh \
+  --project-name makersvault \
+  --username existing-user \
+  --backup /secure/path/pre-admin-recovery.tar.gz
+```
+
+The wrapper records the running services, creates and independently verifies a
+matched backup while leaving the instance stopped, then asks twice for a temporary
+password through the terminal's protected prompt. The offline command verifies that
+the backup contains the exact pre-change SQLite file, acquires an exclusive instance
+lock and SQLite transaction, and only then resets, enables, and promotes that existing
+account. It revokes every browser session and queues an Administrator-recovery audit
+marker. The temporary password must be changed after sign-in.
+
+The recovery-purpose backup still contains the complete contract-5 report. It may
+narrowly preserve a database whose sole readiness failure is the absence of an
+enabled Administrator, which is the condition this ceremony repairs. Any content,
+session, audit, marker, schema, or additional identity inconsistency still prevents
+backup creation and recovery.
+
+Any ambiguity or failure after shutdown leaves API and web stopped. Preserve the
+backup and error output, diagnose the cause, and do not repeatedly invoke recovery.
+Use `--leave-stopped` to keep a successful recovery stopped for inspection. This is
+an emergency local recovery ceremony, not an online reset endpoint or environment-
+credential bypass.
 
 ## Development-path compatibility
 

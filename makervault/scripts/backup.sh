@@ -11,6 +11,8 @@ release=${MAKERSVAULT_RELEASE:-v5.1.0}
 source_revision=${MAKERSVAULT_SOURCE_REVISION:-}
 output=""
 overwrite=false
+leave_stopped=false
+administrator_recovery_snapshot=false
 
 usage() {
   cat <<'EOF'
@@ -23,6 +25,9 @@ Options:
   --release VERSION     Release identity stored in the manifest (default: v5.1.0)
   --source-revision SHA Source revision stored in the manifest
   --overwrite           Replace an existing backup path
+  --leave-stopped       Do not restart services after backup (including on failure)
+  --administrator-recovery-snapshot
+                        Permit only a missing-enabled-Administrator readiness finding
 EOF
 }
 
@@ -35,6 +40,8 @@ while [ "$#" -gt 0 ]; do
     --release) release=${2:-}; shift 2 ;;
     --source-revision) source_revision=${2:-}; shift 2 ;;
     --overwrite) overwrite=true; shift ;;
+    --leave-stopped) leave_stopped=true; shift ;;
+    --administrator-recovery-snapshot) administrator_recovery_snapshot=true; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -92,7 +99,9 @@ restart_previous() {
 cleanup() {
   status=$?
   trap - EXIT HUP INT TERM
-  restart_previous || true
+  if [ "$leave_stopped" != true ]; then
+    restart_previous || true
+  fi
   rm -rf -- "$temporary"
   exit "$status"
 }
@@ -109,6 +118,9 @@ create_args=""
 if [ "$overwrite" = true ]; then
   create_args="--overwrite"
 fi
+if [ "$administrator_recovery_snapshot" = true ]; then
+  create_args="$create_args --administrator-recovery-snapshot"
+fi
 python3 "$app_dir/api/recovery.py" create \
   --database-tar "$temporary/database.tar" \
   --storage-tar "$temporary/storage.tar" \
@@ -122,7 +134,11 @@ python3 "$app_dir/api/recovery.py" create \
   --storage-source "${project_name}_makersvault_storage" \
   $create_args \
   > "$temporary/manifest.json"
-python3 "$app_dir/api/recovery.py" verify --archive "$output" >/dev/null
+verify_args=""
+if [ "$administrator_recovery_snapshot" = true ]; then
+  verify_args="--administrator-recovery-snapshot"
+fi
+python3 "$app_dir/api/recovery.py" verify --archive "$output" $verify_args >/dev/null
 
 echo "MakersVault backup created and verified: $output"
 echo "The archive contains sensitive deployment configuration; keep its permissions restricted."
