@@ -2,7 +2,8 @@
 
 **Gate:** 11 — Evolve authentication deliberately
 
-**Status:** Subgate 11C accepted; subgate 11D authorized
+**Status:** Subgate 11C accepted; subgate 11D-1 verified locally and awaiting owner
+acceptance
 
 **Opened:** 2026-08-31
 
@@ -58,6 +59,13 @@ last-Administrator protection, stopped-instance recovery, durable secret-free
 audit, raw-recovery session revocation, portability exclusion proof, and focused
 evidence. MFA, API keys, OIDC, public registration, hosted tenancy, publication,
 and unrelated work remain gated.
+
+Gate 11D-1 is implemented at `cf8fcad` and locally verified in
+[`SUBGATE_11D1_RESULTS.md`](SUBGATE_11D1_RESULTS.md). It adds schema-16 account
+administration, forced password change, five-minute recent password confirmation,
+affected-session revocation, and last-enabled-Administrator protection. The
+schema-16 audit/recovery structures are reserved only: durable audit behavior and
+stopped-instance/raw recovery remain Gate 11D-2 and 11D-3 work.
 
 ## Verified entry truth
 

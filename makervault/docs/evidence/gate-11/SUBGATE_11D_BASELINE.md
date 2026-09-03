@@ -4,6 +4,9 @@
 
 **Status:** Implementation authorized
 
+**Progress:** 11D-1 implemented at `cf8fcad` and verified locally; owner acceptance
+pending. 11D-2 and 11D-3 remain unimplemented.
+
 **Entry commit:** `f5eba6d`
 
 **Entry schema:** 15

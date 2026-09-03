@@ -4,15 +4,16 @@ These are intentional v5.1 boundaries, not hidden promises.
 
 ## Identity and access
 
-- The current local build still has one persistent account. It now assigns one of
-  three fixed shared-vault roles and enforces stable route permissions, but account
-  creation, role administration, password reset, MFA, OIDC/SSO, API keys, private
-  models, and per-model ACLs remain unavailable. The environment credential is
-  one-time bootstrap input, not an online password-change or recovery mechanism.
+- Administrators can create and manage persistent local accounts with three fixed
+  shared-vault roles, temporary-password reset, and last-Administrator protection.
+  Public registration, invitations/email reset, username rename, account deletion,
+  custom roles, MFA, OIDC/SSO, API keys, private models, and per-model ACLs remain
+  unavailable. The environment credential is one-time bootstrap input, not an
+  online password-change or recovery mechanism.
 - Browser authentication uses revocable HttpOnly cookies and no tokenized file URLs.
   Production requires HTTPS; non-Secure cookies exist only in explicit development
   and test modes.
-- Raw schema-15 restore does not yet automatically revoke restored sessions. Keep a
+- Raw schema-16 restore does not yet automatically revoke restored sessions. Keep a
   restored service isolated and revoke all sessions before exposure; automated
   restore detection and identity/session audit remain Gate 11D work.
 - Login throttling is bounded and process-local for the supported single API process.
