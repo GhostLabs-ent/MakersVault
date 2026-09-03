@@ -146,6 +146,13 @@ matches the supported single API process; restarting the API clears its attempt
 history. Audit events include the immediate client address and outcome but never
 the supplied password or issued session secret.
 
+Audit capture is mandatory and cannot be disabled or narrowed in Settings. It
+covers every mutation plus account/session administration, exports, handoff
+redemption, and audit reads. Records use classified route templates and never copy
+request/response bodies or query strings. Only Administrator may read the newest-
+first, cursor-paginated Security Audit view; no application endpoint edits or
+deletes audit history.
+
 The current local build stores an opaque session secret only in an HttpOnly cookie;
 JavaScript cannot read it, and no authentication bearer is placed in local or
 session storage. On first load the web client deletes any legacy stored bearer

@@ -238,7 +238,8 @@ be made explicit before deployment boundaries are multiplied.
 | T-042 | `VERIFIED` | Local schema 13 adds one persistent administrator with normalized identity and a pinned, bounded Argon2id password policy. A validated environment administrator is converted only when the identity table is empty; subsequent environment changes are not a login or recovery bypass. `.mvault` v1 accepts schema-12/13 sources while excluding identity and reconstructing its frozen schema-12 content contract. | `api/identity_service.py`, schema-13 migration, Gate 11A identity/login/migration/portable regressions, `docs/evidence/gate-11/SUBGATE_11A_RESULTS.md` | Owner accepted Gate 11A and authorized 11B on 2026-09-01. Additional accounts, roles, recovery, audit, and later authentication stages remain gated. |
 | T-043 | `VERIFIED` | Local schema 14 replaces browser JWT/query authentication with opaque, digest-only, revocable sessions; production `__Host-` HttpOnly Secure SameSite cookies; exact-Origin plus session-bound CSRF enforcement; bounded idle/absolute expiry, cleanup and active count; logout/per-session/revoke-all; and an in-memory browser migration with no authentication bearer in storage or URLs. The exact-file bridge grant remains separately scoped. | `api/session_service.py`, session/auth routes, web session client/settings, Gate 11B session/migration/portable/browser regressions, `docs/evidence/gate-11/SUBGATE_11B_RESULTS.md` | Owner accepted Gate 11B and authorized 11C on 2026-09-01. Additional accounts, administration, recovery, and audit remain unchanged and unauthorized. |
 | T-044 | `VERIFIED` | Local schema 15 adds exactly three fixed shared-vault roles mapped to stable permissions. All 88 HTTP routes are exhaustively classified and startup-validated; 85 require one session permission while health, login, and scoped handoff redemption are the only exceptions. Eight independent startup/background services pass through a closed fail-closed system dispatcher. Viewer is active-content read/download/export/handoff-only, Member manages recoverable shared content, and Administrator alone owns settings, durable jobs, permanent deletion, and Trash emptying. | `api/authorization.py`, schema-15 migration, capability-aware web UI, Gate 11C authorization/migration/portable/UI regressions, `docs/evidence/gate-11/SUBGATE_11C_RESULTS.md` | Owner accepted Gate 11C and authorized 11D on 2026-09-02. MFA, API keys, OIDC, public registration, hosted tenancy, and publication remain unauthorized. |
-| T-045 | `VERIFIED` | Local schema 16 adds Administrator-created shared-vault accounts, forced temporary-password replacement, five-minute recent password confirmation, affected-session revocation, and last-enabled-Administrator protection. All 94 routes remain exhaustively classified; schema-16 audit/recovery tables are structural reservations and do not yet imply durable audit or recovery behavior. | `api/account_service.py`, schema-16 migration, account/session API and browser regressions, `docs/evidence/gate-11/SUBGATE_11D1_RESULTS.md` | Gate 11D-1 is locally verified at `cf8fcad` and awaits owner acceptance. 11D-2 audit and 11D-3 recovery remain unimplemented; publication remains unauthorized. |
+| T-045 | `VERIFIED` | Local schema 16 adds Administrator-created shared-vault accounts, forced temporary-password replacement, five-minute recent password confirmation, affected-session revocation, and last-enabled-Administrator protection. All 94 routes remain exhaustively classified; schema-16 audit/recovery tables are structural reservations and do not yet imply durable audit or recovery behavior. | `api/account_service.py`, schema-16 migration, account/session API and browser regressions, `docs/evidence/gate-11/SUBGATE_11D1_RESULTS.md` | Owner accepted 11D-1 and authorized 11D-2 on 2026-09-03. Publication remains unauthorized. |
+| T-046 | `VERIFIED` | Local Gate 11D-2 activates schema 16's durable audit table with mandatory outcome capture for every mutation and sensitive security/export/handoff reads, server correlation IDs, actor/role snapshots, bounded canonical targets, body/query/secret exclusion, identity-transaction atomicity, honest post-commit failure behavior, and Administrator-only cursor retrieval. All 95 HTTP routes remain deny-by-default classified; `.mvault` v1 excludes real audit state. | `api/audit_service.py`, `api/audit_middleware.py`, audit/account/portable regressions, browser Security Audit, `docs/evidence/gate-11/SUBGATE_11D2_RESULTS.md` | Gate 11D-2 is locally verified at `3c0fa69` and awaits owner acceptance. 11D-3 stopped-instance/raw recovery remains unimplemented; publication remains unauthorized. |
 
 ### 5.4 Current storage invariants
 
@@ -918,7 +919,7 @@ new vault state.
 
 ### Gate 11 — Evolve authentication deliberately
 
-**Current execution:** `IN PROGRESS — 11D-1 VERIFIED; OWNER ACCEPTANCE PENDING`.
+**Current execution:** `IN PROGRESS — 11D-2 VERIFIED; OWNER ACCEPTANCE PENDING`.
 Gate 10 was accepted and the owner directed Gate 11 to open on 2026-08-31. The
 entry identity, token,
 browser, route, ownership, audit, backup, and recovery truth plus the proposed
@@ -973,9 +974,12 @@ revocation, and focused portability evidence, followed by its owner checkpoint.
 Gate 11D-1 is implemented at `cf8fcad` and locally verified in
 [the Gate 11D-1 results](evidence/gate-11/SUBGATE_11D1_RESULTS.md). Administrator-
 created accounts, password/reset and recent-reauthentication policy,
-last-Administrator safety, and affected-session revocation are complete. Immediate
-next work, after owner acceptance, is 11D-2 durable secret-free audit. Stopped-
-instance/raw recovery remains 11D-3 work.
+last-Administrator safety, and affected-session revocation are complete. The owner
+accepted 11D-1 and authorized 11D-2 on 2026-09-03. Gate 11D-2 is implemented at
+`3c0fa69` and locally verified in
+[the Gate 11D-2 results](evidence/gate-11/SUBGATE_11D2_RESULTS.md). Mandatory
+durable secret-free audit and Administrator retrieval are complete. Immediate next
+work, after owner acceptance, is 11D-3 stopped-instance/raw recovery.
 
 ### Gate 12 — Enable sustainable optional services
 

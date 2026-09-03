@@ -34,7 +34,8 @@ replacement, or merge restore.
 For schemas 13–16, this distinction includes authentication: raw format-1 backup
 contains the SQLite `useraccount` password hash and, at schema 14, keyed browser
 session records; schema 15 persists the fixed shared-vault role, and schema 16 adds
-recent-password state plus reserved audit/recovery structures. It must be protected
+recent-password state, durable security audit records, and the reserved recovery
+structure. It must be protected
 accordingly. `.mvault` never contains users, roles, password hashes, session records,
 audit/recovery state, or credentials. Starting an API against a clean `.mvault`
 restore applies migrations 13–16 and bootstraps a new local administrator from that

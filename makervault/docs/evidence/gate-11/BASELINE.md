@@ -2,7 +2,7 @@
 
 **Gate:** 11 — Evolve authentication deliberately
 
-**Status:** Subgate 11C accepted; subgate 11D-1 verified locally and awaiting owner
+**Status:** Subgate 11D-1 accepted; subgate 11D-2 verified locally and awaiting owner
 acceptance
 
 **Opened:** 2026-08-31
@@ -66,6 +66,12 @@ administration, forced password change, five-minute recent password confirmation
 affected-session revocation, and last-enabled-Administrator protection. The
 schema-16 audit/recovery structures are reserved only: durable audit behavior and
 stopped-instance/raw recovery remain Gate 11D-2 and 11D-3 work.
+
+The owner authorized 11D-2 on 2026-09-03, accepting 11D-1's mandatory account and
+recent-reauthentication boundaries. Gate 11D-2 is implemented at `3c0fa69` and
+locally verified in [`SUBGATE_11D2_RESULTS.md`](SUBGATE_11D2_RESULTS.md). It
+activates durable secret-free audit capture and Administrator-only cursor retrieval
+without changing schema 16. Stopped-instance/raw recovery remains 11D-3 work.
 
 ## Verified entry truth
 

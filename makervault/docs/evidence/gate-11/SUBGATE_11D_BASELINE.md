@@ -4,8 +4,9 @@
 
 **Status:** Implementation authorized
 
-**Progress:** 11D-1 implemented at `cf8fcad` and verified locally; owner acceptance
-pending. 11D-2 and 11D-3 remain unimplemented.
+**Progress:** 11D-1 was accepted when the owner authorized 11D-2 on 2026-09-03.
+11D-2 is implemented at `3c0fa69` and verified locally; owner acceptance is pending.
+11D-3 remains unimplemented.
 
 **Entry commit:** `f5eba6d`
 

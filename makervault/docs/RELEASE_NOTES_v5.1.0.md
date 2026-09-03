@@ -27,6 +27,11 @@ vault into a slicer, printer controller, or multi-user cloud service.
   deletion. Administrators can create and manage accounts with temporary-password
   replacement, affected-session revocation, recent password confirmation, and
   last-Administrator protection.
+- Mandatory durable audit records cover login outcomes, identity/session
+  administration, settings/jobs, content changes and imports, exports, handoff,
+  Trash/permanent deletion, and audit reads without storing bodies, query strings,
+  passwords, tokens, filenames, notes, URLs, or filesystem paths. Administrators
+  can review cursor-paginated outcomes in Settings.
 - Ordered additive migrations, stopped matched backups, clean recovery, and exact
   rollback are source-owned and tested.
 

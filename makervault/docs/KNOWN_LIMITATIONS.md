@@ -15,7 +15,10 @@ These are intentional v5.1 boundaries, not hidden promises.
   and test modes.
 - Raw schema-16 restore does not yet automatically revoke restored sessions. Keep a
   restored service isolated and revoke all sessions before exposure; automated
-  restore detection and identity/session audit remain Gate 11D work.
+  restore detection and identity/session raw-recovery audit remain Gate 11D-3 work.
+- Durable audit is mandatory and Administrator-readable, but this slice has no
+  audit deletion or retention setting. Events remain in SQLite and raw backups
+  indefinitely; portable `.mvault` archives deliberately exclude them.
 - Login throttling is bounded and process-local for the supported single API process.
 
 ## Files, previews, and workshop actions
