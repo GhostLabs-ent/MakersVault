@@ -241,6 +241,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-045 | `VERIFIED` | Local schema 16 adds Administrator-created shared-vault accounts, forced temporary-password replacement, five-minute recent password confirmation, affected-session revocation, and last-enabled-Administrator protection. All 94 routes remain exhaustively classified; schema-16 audit/recovery tables are structural reservations and do not yet imply durable audit or recovery behavior. | `api/account_service.py`, schema-16 migration, account/session API and browser regressions, `docs/evidence/gate-11/SUBGATE_11D1_RESULTS.md` | Owner accepted 11D-1 and authorized 11D-2 on 2026-09-03. Publication remains unauthorized. |
 | T-046 | `VERIFIED` | Local Gate 11D-2 activates schema 16's durable audit table with mandatory outcome capture for every mutation and sensitive security/export/handoff reads, server correlation IDs, actor/role snapshots, bounded canonical targets, body/query/secret exclusion, identity-transaction atomicity, honest post-commit failure behavior, and Administrator-only cursor retrieval. All 95 HTTP routes remain deny-by-default classified; `.mvault` v1 excludes real audit state. | `api/audit_service.py`, `api/audit_middleware.py`, audit/account/portable regressions, browser Security Audit, `docs/evidence/gate-11/SUBGATE_11D2_RESULTS.md` | Owner accepted Gate 11D-2 by authorizing 11D-3 on 2026-09-03. Publication remains unauthorized. |
 | T-047 | `VERIFIED` | Local Gate 11D-3 advances new raw backups to recovery contract 5 with schema-16 identity/session/audit/marker verification and compatible re-audit of contracts 2–4. Exact raw restore revokes copied sessions and queues a startup audit marker. Interactive stopped-instance recovery requires a verified exact pre-change backup, protected password prompt, exclusive file/SQLite lock, and one existing account; it revokes every session and cannot create a bypass identity. | `api/recovery.py`, `api/recovery_mutation.py`, `api/recovery_marker_service.py`, `scripts/recover-administrator.sh`, recovery regressions, `docs/evidence/gate-11/SUBGATE_11D3_RESULTS.md` | Owner accepted Gate 11D-3 on 2026-09-03. Consolidated Gate 11 closeout is next; no 11E work, push, tag, release, deployment, or publication is authorized. |
+| T-048 | `VERIFIED` | Gate 11 closes with persistent Argon2id identities, revocable protected-cookie sessions, three deny-by-default shared-vault roles, account/recent-authentication safety, mandatory audit, contract-5 raw recovery, and stopped-instance Administrator recovery operating as one tested system. The consolidated identity/session/authorization/account/audit/recovery/portable matrix passes 118 tests. | `docs/evidence/gate-11/RESULTS.md`, accepted 11A–11D evidence, full repository gate | Owner accepted 11D-3 and authorized Gate 11E on 2026-09-03. Gate 11E remains at its authenticator design checkpoint; no schema/feature implementation or publication is implicit. |
 
 ### 5.4 Current storage invariants
 
@@ -920,7 +921,7 @@ new vault state.
 
 ### Gate 11 — Evolve authentication deliberately
 
-**Current execution:** `IN PROGRESS — 11D ACCEPTED; GATE 11 CLOSEOUT NEXT`.
+**Current execution:** `GATE 11 COMPLETE — 11E DESIGN CHECKPOINT PENDING`.
 Gate 10 was accepted and the owner directed Gate 11 to open on 2026-08-31. The
 entry identity, token,
 browser, route, ownership, audit, backup, and recovery truth plus the proposed
@@ -984,9 +985,13 @@ accepted 11D-2 by authorizing 11D-3 on 2026-09-03. Gate 11D-3 is implemented at
 `3ed6991` and locally verified in
 [the Gate 11D-3 results](evidence/gate-11/SUBGATE_11D3_RESULTS.md). Recovery contract
 5, restored-session revocation/startup auditing, and stopped-instance existing-
-Administrator recovery are complete. The owner accepted 11D-3 on 2026-09-03; the
-next bounded step is consolidated Gate 11 closeout and recovery/security review,
-not automatic entry into 11E.
+Administrator recovery are complete. The owner accepted 11D-3 and authorized Gate
+11E on 2026-09-03. The consolidated Gate 11 security/recovery matrix passed 118
+tests and is recorded in [Gate 11 results](evidence/gate-11/RESULTS.md). Gate 11E is
+now limited to the proposed stronger-authentication design in
+[its baseline](evidence/gate-11/SUBGATE_11E_BASELINE.md) and
+[owner checkpoint](evidence/gate-11/SUBGATE_11E_OWNER_CHECKPOINT.md); schema and
+feature implementation await that decision.
 
 ### Gate 12 — Enable sustainable optional services
 

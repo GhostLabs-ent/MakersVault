@@ -157,3 +157,11 @@ last-Administrator safety, stopped-instance backup-first recovery, durable
 secret-free audit, raw-recovery session revocation, portability exclusion proof,
 and focused evidence. MFA, API keys, OIDC, public registration, hosted tenancy,
 push, release, deployment, and publication remain unauthorized.
+
+The owner accepted Gate 11D-1 and authorized 11D-2 on 2026-09-03, then accepted
+11D-2 by authorizing 11D-3 the same day. The owner accepted the verified 11D-3
+results on 2026-09-03 and authorized Gate 11E. This authorizes the stronger-
+authentication design checkpoint; the passkey/TOTP, enforcement, origin, and
+recovery decisions still require explicit acceptance before schema or feature code.
+API keys, OIDC, public registration, hosted tenancy, push, release, deployment, and
+publication remain unauthorized.

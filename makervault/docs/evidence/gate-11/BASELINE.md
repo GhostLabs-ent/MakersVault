@@ -2,8 +2,7 @@
 
 **Gate:** 11 — Evolve authentication deliberately
 
-**Status:** Subgate 11D-1 accepted; subgate 11D-2 verified locally and awaiting owner
-acceptance
+**Status:** Gate 11 complete and owner-accepted; Gate 11E design checkpoint pending
 
 **Opened:** 2026-08-31
 
@@ -72,6 +71,14 @@ recent-reauthentication boundaries. Gate 11D-2 is implemented at `3c0fa69` and
 locally verified in [`SUBGATE_11D2_RESULTS.md`](SUBGATE_11D2_RESULTS.md). It
 activates durable secret-free audit capture and Administrator-only cursor retrieval
 without changing schema 16. Stopped-instance/raw recovery remains 11D-3 work.
+
+The owner accepted 11D-2 by authorizing 11D-3 on 2026-09-03. Gate 11D-3 is
+implemented at `3ed6991`, verified in
+[`SUBGATE_11D3_RESULTS.md`](SUBGATE_11D3_RESULTS.md), and was owner-accepted on
+2026-09-03. The consolidated identity/session/authorization/account/audit/recovery
+matrix passed 118 tests, closing Gate 11. The owner then authorized Gate 11E design;
+its authenticator and enforcement package remains at a separate checkpoint before
+schema or feature implementation.
 
 ## Verified entry truth
 
