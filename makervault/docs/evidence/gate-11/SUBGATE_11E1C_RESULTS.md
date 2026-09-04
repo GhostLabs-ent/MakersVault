@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-04
 
-**Status:** Complete; pending owner acceptance
+**Status:** Complete and owner-accepted
 
 **Entry commit:** `e422e9e`
 
@@ -109,5 +109,5 @@ deployment, and publication remain unauthorized.
 
 ## Owner checkpoint
 
-Please accept or amend Gate 11E-1c. Acceptance would authorize planning the next
-bounded 11E-1d slice only; it would not authorize publication or deployment.
+The owner accepted Gate 11E-1c on 2026-09-04 and authorized Gate 11E-1d as the next
+bounded slice. Publication and deployment remain unauthorized.
