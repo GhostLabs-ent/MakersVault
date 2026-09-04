@@ -1,4 +1,4 @@
-from typing import List, Literal, Optional
+from typing import Any, List, Literal, Optional
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, model_validator
 
 
@@ -334,6 +334,58 @@ class ReauthenticateOut(BaseModel):
 
 class PasswordChangeRequest(BaseModel):
   new_password: str = Field(min_length=1, max_length=4096)
+
+
+class PasskeyCredentialOut(BaseModel):
+  id: str
+  label: str
+  transports: List[Literal[
+    "usb", "nfc", "ble", "smart-card", "internal", "cable", "hybrid"
+  ]]
+  device_type: Literal["single_device", "multi_device"]
+  backed_up: bool
+  created_at: str
+  last_used_at: Optional[str] = None
+
+
+class PasskeyAccountOut(BaseModel):
+  available: bool
+  mfa_enabled: bool
+  credentials: List[PasskeyCredentialOut]
+
+
+class PasskeyOptionsOut(BaseModel):
+  model_config = ConfigDict(extra="allow")
+
+
+class PasskeyRegistrationCompleteRequest(BaseModel):
+  model_config = ConfigDict(extra="forbid")
+
+  label: str = Field(min_length=1, max_length=128)
+  credential: dict[str, Any]
+
+
+class PasskeyAssertionRequest(BaseModel):
+  model_config = ConfigDict(extra="forbid")
+
+  credential: dict[str, Any]
+
+
+class PasskeyRenameRequest(BaseModel):
+  model_config = ConfigDict(extra="forbid")
+
+  label: str = Field(min_length=1, max_length=128)
+
+
+class PasskeyRegistrationOut(BaseModel):
+  mfa_enabled: bool
+  credential_count: int
+  credential: PasskeyCredentialOut
+
+
+class PasskeyMutationOut(BaseModel):
+  mfa_enabled: bool
+  credential_count: int
 
 
 class UserCreate(BaseModel):

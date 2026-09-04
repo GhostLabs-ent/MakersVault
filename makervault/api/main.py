@@ -144,6 +144,16 @@ from machine_context_service import (
     set_prepared_machine,
 )
 from migrations import run_migrations
+from passkey_config import validate_passkey_runtime
+from passkey_service import (
+    begin_passkey_reauthentication,
+    begin_passkey_registration,
+    complete_passkey_reauthentication,
+    complete_passkey_registration,
+    list_passkeys,
+    remove_passkey,
+    rename_passkey,
+)
 from recovery_marker_service import process_recovery_markers
 from prepared_print import prepared_filename
 from preview_policy import (
@@ -216,6 +226,14 @@ from schemas import (
     LoginResponse,
     PasswordChangeRequest,
     PasswordResetRequest,
+    PasskeyAccountOut,
+    PasskeyAssertionRequest,
+    PasskeyCredentialOut,
+    PasskeyMutationOut,
+    PasskeyOptionsOut,
+    PasskeyRegistrationCompleteRequest,
+    PasskeyRegistrationOut,
+    PasskeyRenameRequest,
     ReauthenticateOut,
     ReauthenticateRequest,
     BrowserSessionOut,
@@ -283,6 +301,7 @@ from session_service import (
     cleanup_browser_sessions,
     cookie_policy,
     create_browser_session,
+    is_recently_reauthenticated,
     mark_session_reauthenticated,
     list_user_sessions,
     revoke_all_user_sessions,
@@ -302,6 +321,7 @@ async def lifespan(_app: FastAPI):
         security_logger.warning(
             "recovery_markers_audited count=%d", processed_recovery_markers
         )
+    validate_passkey_runtime(engine)
     bootstrap = bootstrap_initial_administrator(
         engine,
         username=AUTH_USERNAME,
@@ -1049,6 +1069,161 @@ def change_password(
         expires_in=max(1, created.idle_expires_at - int(time.time())),
         absolute_expires_at=created.absolute_expires_at,
     )
+
+
+@app.get("/account/passkeys", response_model=PasskeyAccountOut)
+def account_passkeys(
+    response: Response,
+    principal: SessionPrincipal = Depends(require_auth),
+):
+    response.headers["Cache-Control"] = "private, no-store"
+    return list_passkeys(engine, user_id=principal.user_id)
+
+
+@app.post(
+    "/account/passkeys/registration/options",
+    response_model=PasskeyOptionsOut,
+)
+def passkey_registration_options(
+    request: Request,
+    response: Response,
+    principal: SessionPrincipal = Depends(require_auth),
+):
+    result = begin_passkey_registration(
+        engine,
+        user_id=principal.user_id,
+        session_id=principal.session_id,
+        password_recent=is_recently_reauthenticated(principal),
+        audit_context=audit_context_from_request(
+            request, object_type="user", object_id=principal.user_id
+        ),
+    )
+    request.state.audit_recorded = True
+    response.headers["Cache-Control"] = "private, no-store"
+    return result
+
+
+@app.post(
+    "/account/passkeys/registration/verify",
+    response_model=PasskeyRegistrationOut,
+    status_code=201,
+)
+def passkey_registration_verify(
+    body: PasskeyRegistrationCompleteRequest,
+    request: Request,
+    response: Response,
+    principal: SessionPrincipal = Depends(require_auth),
+):
+    result = complete_passkey_registration(
+        engine,
+        user_id=principal.user_id,
+        session_id=principal.session_id,
+        label=body.label,
+        credential=body.credential,
+        audit_context=audit_context_from_request(
+            request, object_type="user", object_id=principal.user_id
+        ),
+    )
+    request.state.audit_recorded = True
+    response.headers["Cache-Control"] = "private, no-store"
+    return result
+
+
+@app.post(
+    "/account/passkeys/reauthentication/options",
+    response_model=PasskeyOptionsOut,
+)
+def passkey_reauthentication_options(
+    request: Request,
+    response: Response,
+    principal: SessionPrincipal = Depends(require_auth),
+):
+    result = begin_passkey_reauthentication(
+        engine,
+        user_id=principal.user_id,
+        session_id=principal.session_id,
+        password_recent=is_recently_reauthenticated(principal),
+        audit_context=audit_context_from_request(
+            request, object_type="user", object_id=principal.user_id
+        ),
+    )
+    request.state.audit_recorded = True
+    response.headers["Cache-Control"] = "private, no-store"
+    return result
+
+
+@app.post(
+    "/account/passkeys/reauthentication/verify",
+    response_model=ReauthenticateOut,
+)
+def passkey_reauthentication_verify(
+    body: PasskeyAssertionRequest,
+    request: Request,
+    response: Response,
+    principal: SessionPrincipal = Depends(require_auth),
+):
+    result = complete_passkey_reauthentication(
+        engine,
+        user_id=principal.user_id,
+        session_id=principal.session_id,
+        credential=body.credential,
+        audit_context=audit_context_from_request(
+            request, object_type="user", object_id=principal.user_id
+        ),
+    )
+    request.state.audit_recorded = True
+    response.headers["Cache-Control"] = "private, no-store"
+    return ReauthenticateOut(**result)
+
+
+@app.patch(
+    "/account/passkeys/{passkey_id}",
+    response_model=PasskeyCredentialOut,
+)
+def rename_account_passkey(
+    passkey_id: str,
+    body: PasskeyRenameRequest,
+    request: Request,
+    response: Response,
+    principal: SessionPrincipal = Depends(require_auth),
+):
+    result = rename_passkey(
+        engine,
+        user_id=principal.user_id,
+        credential_record_id=passkey_id,
+        label=body.label,
+        audit_context=audit_context_from_request(
+            request, object_type="user", object_id=principal.user_id
+        ),
+    )
+    request.state.audit_recorded = True
+    response.headers["Cache-Control"] = "private, no-store"
+    return result
+
+
+@app.delete(
+    "/account/passkeys/{passkey_id}",
+    response_model=PasskeyMutationOut,
+)
+def remove_account_passkey(
+    passkey_id: str,
+    request: Request,
+    response: Response,
+    principal: SessionPrincipal = Depends(require_auth),
+):
+    result = remove_passkey(
+        engine,
+        user_id=principal.user_id,
+        session_id=principal.session_id,
+        credential_record_id=passkey_id,
+        password_recent=is_recently_reauthenticated(principal),
+        audit_context=audit_context_from_request(
+            request, object_type="user", object_id=principal.user_id
+        ),
+    )
+    request.state.audit_recorded = True
+    response.headers["Cache-Control"] = "private, no-store"
+    return result
 
 
 @app.get("/users", response_model=List[UserOut])

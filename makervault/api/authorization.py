@@ -128,6 +128,13 @@ ROUTE_AUTHORIZATION: Mapping[tuple[str, str], RouteRule] = MappingProxyType(
         ("POST", "/sessions/revoke-all"): _recent(Permission.SESSION_MANAGE_SELF),
         ("POST", "/session/reauthenticate"): _session(Permission.IDENTITY_MANAGE_SELF),
         ("POST", "/account/password"): _recent(Permission.IDENTITY_MANAGE_SELF),
+        ("GET", "/account/passkeys"): _session(Permission.IDENTITY_MANAGE_SELF),
+        ("POST", "/account/passkeys/registration/options"): _recent(Permission.IDENTITY_MANAGE_SELF),
+        ("POST", "/account/passkeys/registration/verify"): _session(Permission.IDENTITY_MANAGE_SELF),
+        ("POST", "/account/passkeys/reauthentication/options"): _recent(Permission.IDENTITY_MANAGE_SELF),
+        ("POST", "/account/passkeys/reauthentication/verify"): _session(Permission.IDENTITY_MANAGE_SELF),
+        ("PATCH", "/account/passkeys/{passkey_id}"): _session(Permission.IDENTITY_MANAGE_SELF),
+        ("DELETE", "/account/passkeys/{passkey_id}"): _recent(Permission.IDENTITY_MANAGE_SELF),
 
         ("GET", "/users"): _session(Permission.IDENTITY_MANAGE),
         ("POST", "/users"): _recent(Permission.IDENTITY_MANAGE),

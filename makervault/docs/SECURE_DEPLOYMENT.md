@@ -84,6 +84,29 @@ If startup fails, inspect the API container log. The validation error lists each
 missing or unsafe setting. Correct `.env` and restart; do not restore published
 fallback credentials except temporarily on an isolated recovery network.
 
+## Passkey origin configuration (Gate 11E integration)
+
+The local Gate 11E-1b build contains origin-bound registration and account
+self-management APIs, but it is not independently releaseable: password-first login
+does not enforce the enrolled factor until 11E-1c and browser UI follows in 11E-1d.
+Do not deploy or enable this intermediate slice on a live instance.
+
+The eventual passkey deployment contract requires one stable HTTPS browser origin:
+
+```dotenv
+WEBAUTHN_RP_ID=vault.example.com
+WEBAUTHN_ORIGIN=https://vault.example.com
+WEBAUTHN_RP_NAME=MakersVault
+```
+
+The RP ID is a lowercase DNS name, not a URL. The origin is one exact origin without
+a path and must use the RP ID host or its subdomain. Arbitrary IP/mDNS HTTP remains a
+password-only posture; only `http://localhost` is permitted in development or test.
+Both required settings must be present together. Once an account or policy requires
+MFA, removing or invalidating this configuration stops the API instead of bypassing
+the factor. The same browser origin must also be allowed by `PUBLIC_URL` or
+`CORS_ORIGINS` so the ceremony endpoints accept its unsafe requests.
+
 ## File and archive limits
 
 The default maximum is 512 MiB for each stored or imported file. This is a

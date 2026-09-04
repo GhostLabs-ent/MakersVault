@@ -26,6 +26,9 @@ deployment guidance required by Gate 1.
 | `AUTH_USERNAME` | `admin` | Current single-admin identity; it is not treated as a secret. |
 | `AUTH_PASSWORD` | none in production | Required in production; at least 12 characters and not a published placeholder. |
 | `AUTH_SECRET` | none in production | Required deployment-specific secret for keyed browser-session digests and scoped handoff signing; at least 32 bytes and distinct from the password. |
+| `WEBAUTHN_RP_ID` | empty | Optional passkey relying-party DNS name. Must be configured together with `WEBAUTHN_ORIGIN`; schemes, ports, IP addresses, and uppercase names are rejected. |
+| `WEBAUTHN_ORIGIN` | empty | One exact passkey browser origin. Production requires HTTPS and a host equal to or beneath `WEBAUTHN_RP_ID`; localhost HTTP is limited to development/test. |
+| `WEBAUTHN_RP_NAME` | `MakersVault` | Human-readable relying-party name, limited to 64 characters. |
 | `SESSION_IDLE_TTL` | `43200` seconds | Maximum inactivity before a browser session expires. |
 | `SESSION_ABSOLUTE_TTL` | `604800` seconds | Absolute browser-session lifetime; must be at least the idle lifetime. |
 | `SESSION_TOUCH_INTERVAL` | `300` seconds | Minimum interval between persisted last-seen/idle-expiry updates. |
@@ -35,6 +38,11 @@ deployment guidance required by Gate 1.
 | `TRUSTED_HOSTS` | derived from `PUBLIC_URL`, otherwise permissive | Comma-separated API hostnames. Explicit values override derivation; loopback remains allowed for health checks. |
 | `API_PORT` | `8000` | Published API port. |
 | `WEB_PORT` | `5173` | Published web port. |
+
+Leaving both WebAuthn settings empty preserves password-only behavior. Supplying only
+one, supplying an invalid pair, or starting with stored MFA-required state and no
+valid pair fails loudly. RP/origin changes do not migrate credentials: passkeys are
+cryptographically scoped to the RP where they were created.
 
 ## Ingest and derived-preview budgets
 
