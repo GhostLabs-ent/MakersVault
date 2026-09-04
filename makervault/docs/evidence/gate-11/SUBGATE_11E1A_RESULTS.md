@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-04
 
-**Status:** Implemented and locally verified; owner acceptance pending
+**Status:** Complete and owner-accepted
 
 **Entry commit:** `c399e18`
 
@@ -110,7 +110,8 @@ policy workflows, and final security/recovery closeout remain 11E-1d. TOTP,
 passwordless login, API keys, OIDC/SSO, hosted tenancy, push, tag, release,
 deployment, and publication remain unauthorized.
 
-## Owner checkpoint
+## Owner acceptance
 
-Accept 11E-1a before beginning 11E-1b registration and self-management. Acceptance
-does not authorize login/assertion or UI work beyond the next bounded slice.
+The owner accepted 11E-1a on 2026-09-04, authorizing 11E-1b registration and
+self-management as the next bounded slice. Login/assertion and UI work remain outside
+11E-1b.

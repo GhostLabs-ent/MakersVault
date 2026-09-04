@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-04
 
-**Status:** Accepted design; 11E-1a implemented and locally verified
+**Status:** Accepted design; 11E-1a complete and owner-accepted
 
 **Entry commit:** `a85048b`
 
