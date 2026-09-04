@@ -71,6 +71,7 @@ class AuthenticatedAdministrator:
     username: str
     role: Role
     password_change_required: bool
+    mfa_enabled: bool
 
 
 def _now() -> str:
@@ -210,6 +211,7 @@ def authenticate_initial_administrator(
     *,
     username: str,
     password: str,
+    record_login: bool = True,
 ) -> AuthenticatedAdministrator | None:
     """Authenticate persistently; environment credentials are never a login bypass."""
     try:
@@ -234,7 +236,8 @@ def authenticate_initial_administrator(
         if needs_rehash:
             user.password_hash = _hash_password(password)
             user.password_policy_version = PASSWORD_POLICY_VERSION
-        user.last_login_at = timestamp
+        if record_login:
+            user.last_login_at = timestamp
         user.updated_at = timestamp
         try:
             role = Role(user.role)
@@ -245,7 +248,21 @@ def authenticate_initial_administrator(
             username=user.username,
             role=role,
             password_change_required=user.password_change_required,
+            mfa_enabled=user.mfa_enabled,
         )
         session.add(user)
         session.commit()
         return identity
+
+
+def record_account_login(database_engine: Engine, user_id: str) -> None:
+    """Record a completed login after every required factor has succeeded."""
+    with Session(database_engine) as session:
+        user = session.get(UserAccount, user_id)
+        if user is None or not user.enabled:
+            raise ValueError("completed login requires an enabled account")
+        timestamp = _now()
+        user.last_login_at = timestamp
+        user.updated_at = timestamp
+        session.add(user)
+        session.commit()

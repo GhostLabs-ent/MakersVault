@@ -86,10 +86,13 @@ fallback credentials except temporarily on an isolated recovery network.
 
 ## Passkey origin configuration (Gate 11E integration)
 
-The local Gate 11E-1b build contains origin-bound registration and account
-self-management APIs, but it is not independently releaseable: password-first login
-does not enforce the enrolled factor until 11E-1c and browser UI follows in 11E-1d.
-Do not deploy or enable this intermediate slice on a live instance.
+The local Gate 11E-1c build contains origin-bound registration, account
+self-management, password-first MFA login, and two-factor recent-authentication APIs.
+It is not independently releaseable: the browser login/settings workflows, policy
+administration, live MFA reset, and final recovery/security closeout follow in
+11E-1d. Do not deploy or enable this intermediate slice on a live instance; an
+enrolled account is enforced by the API but the current browser cannot yet complete
+its assertion.
 
 The eventual passkey deployment contract requires one stable HTTPS browser origin:
 

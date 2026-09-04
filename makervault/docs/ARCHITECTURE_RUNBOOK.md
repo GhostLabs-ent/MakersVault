@@ -244,6 +244,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-048 | `VERIFIED` | Gate 11 closes with persistent Argon2id identities, revocable protected-cookie sessions, three deny-by-default shared-vault roles, account/recent-authentication safety, mandatory audit, contract-5 raw recovery, and stopped-instance Administrator recovery operating as one tested system. The consolidated identity/session/authorization/account/audit/recovery/portable matrix passes 118 tests. | `docs/evidence/gate-11/RESULTS.md`, accepted 11A–11D evidence, full repository gate | Owner accepted 11D-3 and authorized Gate 11E on 2026-09-03. Gate 11E remains at its authenticator design checkpoint; no schema/feature implementation or publication is implicit. |
 | T-049 | `VERIFIED` | Local Gate 11E-1a pins a maintained WebAuthn verifier, adds optional-by-default schema-17 account/credential/digest-only-ceremony/singleton-policy state, advances new raw backups to recovery contract 6, consumes pending ceremonies on restore, clears recovered-Administrator factor state, and proves `.mvault` v1 excludes real authenticator records. It exposes no registration or login behavior. | ADR 0019, schema/dependency/recovery/portable regressions, `docs/evidence/gate-11/SUBGATE_11E1A_RESULTS.md` | Owner accepted 11E-1a on 2026-09-04 and authorized 11E-1b registration/self-management. Login/assertion, UI, TOTP, API keys, OIDC, and publication remain unauthorized. |
 | T-050 | `VERIFIED` | Local Gate 11E-1b adds explicit stable RP/origin validation, owner-only UV-required attestation-free registration, bounded digest-only session-bound ceremonies, credential list/rename/removal, passkey reauthentication for current-strength self-management, first-enrollment opt-in, last-credential policy safety, and atomic secret-free audit without changing schema 17 or recovery contract 6. | Passkey configuration/service/API regressions, full repository gate, `docs/evidence/gate-11/SUBGATE_11E1B_RESULTS.md` | Owner accepted 11E-1b on 2026-09-04 and authorized 11E-1c. UI/policy/reset closeout remains 11E-1d; push, deployment, and publication remain prohibited. |
+| T-051 | `VERIFIED` | Local Gate 11E-1c makes password success for an MFA-enabled account create only a five-minute digest-bound pending transaction in a separate host-only cookie. Exact-origin, UV-required assertion verification consumes that transaction before issuing a fresh normal session; bounded per-transaction attempts, per-account pending state, source throttling, generic denials, and replay rejection create no session. High-impact recent authentication now requires recent password and session/RP/origin-bound passkey proof for MFA accounts, including the forced-password-change recovery path. | Password-first/assertion/replay/throttling/recent-auth regressions, 310-test API gate, `docs/evidence/gate-11/SUBGATE_11E1C_RESULTS.md` | Implementation is complete locally and awaits owner acceptance. Browser UI, policy administration, live MFA reset, final recovery/security closeout, and publication remain 11E-1d or later and are not authorized. |
 
 ### 5.4 Current storage invariants
 
@@ -923,7 +924,7 @@ new vault state.
 
 ### Gate 11 — Evolve authentication deliberately
 
-**Current execution:** `GATE 11E-1B ACCEPTED — 11E-1C AUTHORIZED`.
+**Current execution:** `GATE 11E-1C COMPLETE — OWNER CHECKPOINT`.
 Gate 10 was accepted and the owner directed Gate 11 to open on 2026-08-31. The
 entry identity, token,
 browser, route, ownership, audit, backup, and recovery truth plus the proposed
@@ -1001,8 +1002,11 @@ exclusion proof; its evidence is in
 assertions and UI remain later sequential slices. Gate 11E-1b is now implemented and
 verified locally in
 [the 11E-1b results](evidence/gate-11/SUBGATE_11E1B_RESULTS.md). The owner accepted
-11E-1b on 2026-09-04 and authorized 11E-1c. Until 11E-1c is complete, 1b remains an
-intentionally non-releaseable local integration slice.
+11E-1b on 2026-09-04 and authorized 11E-1c. Gate 11E-1c is now implemented and
+verified locally in
+[the 11E-1c results](evidence/gate-11/SUBGATE_11E1C_RESULTS.md). It is at its owner
+checkpoint. Gate 11E-1d and any push, tag, release, deployment, or publication remain
+unauthorized.
 
 ### Gate 12 — Enable sustainable optional services
 

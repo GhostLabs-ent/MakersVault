@@ -137,7 +137,7 @@ def test_fixed_roles_map_to_stable_permissions() -> None:
     assert denied.value.status_code == 403
 
 
-def test_route_inventory_covers_every_role_decision_and_only_three_non_session_routes() -> None:
+def test_route_inventory_covers_every_role_decision_and_only_four_non_session_routes() -> None:
     assert {
         key
         for key, rule in ROUTE_AUTHORIZATION.items()
@@ -145,6 +145,7 @@ def test_route_inventory_covers_every_role_decision_and_only_three_non_session_r
     } == {
         ("GET", "/health"),
         ("POST", "/login"),
+        ("POST", "/login/passkey"),
         ("GET", "/handoff/redeem"),
     }
     assert all(

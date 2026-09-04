@@ -302,7 +302,8 @@ class LoginRequest(BaseModel):
 
 
 class LoginResponse(BaseModel):
-  authenticated: bool = True
+  authenticated: Literal[True] = True
+  mfa_enabled: bool = False
   role: Literal["administrator", "member", "viewer"]
   permissions: List[str]
   password_change_required: bool
@@ -318,6 +319,7 @@ class SessionStatusOut(BaseModel):
   role: Literal["administrator", "member", "viewer"]
   permissions: List[str]
   password_change_required: bool
+  mfa_enabled: bool
   csrf_token: str
   reauthenticated_at: int
   idle_expires_at: int
@@ -330,6 +332,14 @@ class ReauthenticateRequest(BaseModel):
 
 class ReauthenticateOut(BaseModel):
   reauthenticated_at: int
+  mfa_required: bool = False
+
+
+class PasskeyLoginPendingOut(BaseModel):
+  authenticated: Literal[False] = False
+  mfa_required: Literal[True] = True
+  public_key: dict[str, Any]
+  expires_in: int
 
 
 class PasswordChangeRequest(BaseModel):

@@ -119,6 +119,7 @@ ROUTE_AUTHORIZATION: Mapping[tuple[str, str], RouteRule] = MappingProxyType(
     {
         ("GET", "/health"): PUBLIC,
         ("POST", "/login"): PUBLIC,
+        ("POST", "/login/passkey"): PUBLIC,
         ("GET", "/handoff/redeem"): SCOPED_HANDOFF,
 
         ("GET", "/session"): _session(Permission.SESSION_MANAGE_SELF),
@@ -131,7 +132,7 @@ ROUTE_AUTHORIZATION: Mapping[tuple[str, str], RouteRule] = MappingProxyType(
         ("GET", "/account/passkeys"): _session(Permission.IDENTITY_MANAGE_SELF),
         ("POST", "/account/passkeys/registration/options"): _recent(Permission.IDENTITY_MANAGE_SELF),
         ("POST", "/account/passkeys/registration/verify"): _session(Permission.IDENTITY_MANAGE_SELF),
-        ("POST", "/account/passkeys/reauthentication/options"): _recent(Permission.IDENTITY_MANAGE_SELF),
+        ("POST", "/account/passkeys/reauthentication/options"): _session(Permission.IDENTITY_MANAGE_SELF),
         ("POST", "/account/passkeys/reauthentication/verify"): _session(Permission.IDENTITY_MANAGE_SELF),
         ("PATCH", "/account/passkeys/{passkey_id}"): _session(Permission.IDENTITY_MANAGE_SELF),
         ("DELETE", "/account/passkeys/{passkey_id}"): _recent(Permission.IDENTITY_MANAGE_SELF),

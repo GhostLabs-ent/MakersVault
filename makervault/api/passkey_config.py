@@ -56,7 +56,9 @@ def _valid_rp_id(value: str) -> bool:
     return len(labels) >= 2 and all(_DNS_LABEL.fullmatch(label) for label in labels)
 
 
-def _normalize_origin(value: str) -> tuple[Optional[str], Optional[str], Optional[str]]:
+def normalize_passkey_origin(
+    value: str,
+) -> tuple[Optional[str], Optional[str], Optional[str]]:
     try:
         parsed = urlparse(value)
         port = parsed.port
@@ -99,7 +101,7 @@ def load_passkey_config(
         errors.append(
             "WEBAUTHN_RP_ID must be a lowercase DNS name without a scheme, port, or IP address."
         )
-    normalized_origin, scheme, hostname = _normalize_origin(origin)
+    normalized_origin, scheme, hostname = normalize_passkey_origin(origin)
     if origin and normalized_origin is None:
         errors.append(
             "WEBAUTHN_ORIGIN must be one exact HTTP(S) origin without a non-root path."

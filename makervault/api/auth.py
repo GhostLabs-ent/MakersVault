@@ -20,6 +20,7 @@ from session_service import (
   is_recently_reauthenticated,
 )
 from authorization import AccessKind, role_allows, route_rule
+from passkey_service import has_recent_passkey_reauthentication
 
 SECURITY_CONFIG = load_security_config()
 AUTH_USERNAME = SECURITY_CONFIG.username
@@ -29,12 +30,16 @@ AUTH_ALGO = "HS256"
 HANDOFF_AUDIENCE = "makersvault-bridge"
 HANDOFF_ISSUER = "makersvault"
 HANDOFF_TOKEN_TTL = 90
+PRODUCTION_PENDING_LOGIN_COOKIE = "__Host-makersvault_pending_login"
+DEVELOPMENT_PENDING_LOGIN_COOKIE = "makersvault_pending_login_dev"
 AUTH_ENABLED = bool(AUTH_USERNAME and AUTH_PASSWORD)
 UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 PASSWORD_CHANGE_ALLOWED_ROUTES = {
   ("GET", "/session"),
   ("POST", "/logout"),
   ("POST", "/session/reauthenticate"),
+  ("POST", "/account/passkeys/reauthentication/options"),
+  ("POST", "/account/passkeys/reauthentication/verify"),
   ("POST", "/account/password"),
 }
 
@@ -122,6 +127,49 @@ def clear_browser_session_cookies(response: Response) -> None:
     secure=policy.secure,
     httponly=False,
     samesite="lax",
+    path="/",
+  )
+
+
+def pending_login_cookie_name(environment: Optional[str] = None) -> str:
+  production = (environment or SECURITY_CONFIG.environment) == "production"
+  return (
+    PRODUCTION_PENDING_LOGIN_COOKIE
+    if production
+    else DEVELOPMENT_PENDING_LOGIN_COOKIE
+  )
+
+
+def set_pending_login_cookie(
+  response: Response,
+  token: str,
+  *,
+  max_age: int,
+  environment: Optional[str] = None,
+) -> None:
+  production = (environment or SECURITY_CONFIG.environment) == "production"
+  response.set_cookie(
+    pending_login_cookie_name(environment),
+    token,
+    max_age=max(1, min(int(max_age), 300)),
+    secure=production,
+    httponly=True,
+    samesite="strict",
+    path="/",
+  )
+
+
+def clear_pending_login_cookie(
+  response: Response,
+  *,
+  environment: Optional[str] = None,
+) -> None:
+  production = (environment or SECURITY_CONFIG.environment) == "production"
+  response.delete_cookie(
+    pending_login_cookie_name(environment),
+    secure=production,
+    httponly=True,
+    samesite="strict",
     path="/",
   )
 
@@ -235,11 +283,21 @@ def require_auth(request: Request) -> Optional[SessionPrincipal]:
     and route_key not in PASSWORD_CHANGE_ALLOWED_ROUTES
   ):
     raise HTTPException(status_code=403, detail="Password change required")
-  if rule.recent_reauthentication and not is_recently_reauthenticated(principal):
-    raise HTTPException(
-      status_code=403,
-      detail="Recent password confirmation required",
-    )
+  if rule.recent_reauthentication:
+    if not is_recently_reauthenticated(principal):
+      raise HTTPException(
+        status_code=403,
+        detail="Recent password confirmation required",
+      )
+    if principal.mfa_enabled and not has_recent_passkey_reauthentication(
+      engine,
+      user_id=principal.user_id,
+      session_id=principal.session_id,
+    ):
+      raise HTTPException(
+        status_code=403,
+        detail="Recent passkey confirmation required",
+      )
   return principal
 
 

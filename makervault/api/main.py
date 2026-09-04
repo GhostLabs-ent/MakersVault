@@ -3,7 +3,7 @@ from fastapi.responses import FileResponse
 from starlette.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
-from typing import List, Optional
+from typing import List, Optional, Union
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED, BadZipFile
 from contextlib import asynccontextmanager
@@ -23,10 +23,13 @@ from auth import (
     AUTH_USERNAME,
     HANDOFF_TOKEN_TTL,
     clear_browser_session_cookies,
+    clear_pending_login_cookie,
     create_handoff_token,
     decode_handoff_token,
     require_auth,
+    pending_login_cookie_name,
     set_browser_session_cookies,
+    set_pending_login_cookie,
     validate_auth_config,
 )
 from authorization import (
@@ -97,6 +100,7 @@ from import_service import download_import_to_temp, import_asset_from_url, open_
 from identity_service import (
   authenticate_initial_administrator,
   bootstrap_initial_administrator,
+  record_account_login,
 )
 from content_identity import (
     content_hash_failure_details,
@@ -144,10 +148,17 @@ from machine_context_service import (
     set_prepared_machine,
 )
 from migrations import run_migrations
-from passkey_config import validate_passkey_runtime
+from passkey_config import (
+    PasskeyConfigurationError,
+    normalize_passkey_origin,
+    require_passkey_config,
+    validate_passkey_runtime,
+)
 from passkey_service import (
+    begin_passkey_login,
     begin_passkey_reauthentication,
     begin_passkey_registration,
+    complete_passkey_login,
     complete_passkey_reauthentication,
     complete_passkey_registration,
     list_passkeys,
@@ -224,6 +235,7 @@ from schemas import (
     FolderOut,
     LoginRequest,
     LoginResponse,
+    PasskeyLoginPendingOut,
     PasswordChangeRequest,
     PasswordResetRequest,
     PasskeyAccountOut,
@@ -946,7 +958,22 @@ def update_storage_settings(body: StorageSettings, _: Optional[str] = Depends(re
     return storage_settings_out(template, moved, skipped)
 
 
-@app.post("/login", response_model=LoginResponse)
+def require_exact_passkey_origin(request: Request) -> None:
+    try:
+        config = require_passkey_config()
+    except PasskeyConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    origin, _scheme, _hostname = normalize_passkey_origin(
+        request.headers.get("Origin", "")
+    )
+    if origin is None or origin != config.origin:
+        raise HTTPException(status_code=403, detail="Passkey origin required")
+
+
+@app.post(
+    "/login",
+    response_model=Union[LoginResponse, PasskeyLoginPendingOut],
+)
 def login(body: LoginRequest, request: Request, response: Response):
     if not AUTH_ENABLED:
         raise HTTPException(status_code=503, detail="Authentication is not configured on the server")
@@ -963,13 +990,13 @@ def login(body: LoginRequest, request: Request, response: Response):
         engine,
         username=body.username,
         password=body.password,
+        record_login=False,
     )
     if identity is None:
         login_limiter.record_failure(source, body.username)
         security_logger.warning("login_failed source=%s", source)
         raise HTTPException(status_code=401, detail="Invalid username or password")
     login_limiter.record_success(source, body.username)
-    security_logger.info("login_succeeded source=%s", source)
     request.state.audit_actor = AuditActor(
         user_id=identity.id,
         username=identity.username,
@@ -977,6 +1004,34 @@ def login(body: LoginRequest, request: Request, response: Response):
     )
     request.state.audit_object_type = "user"
     request.state.audit_object_id = identity.id
+    if identity.mfa_enabled:
+        require_exact_passkey_origin(request)
+        pending = begin_passkey_login(
+            engine,
+            user_id=identity.id,
+            audit_context=audit_context_from_request(
+                request,
+                action="passkey.authentication.begin",
+                object_type="user",
+                object_id=identity.id,
+            ),
+        )
+        request.state.audit_recorded = True
+        set_pending_login_cookie(
+            response,
+            pending.token,
+            max_age=max(1, pending.expires_at - int(time.time())),
+        )
+        security_logger.info("login_password_succeeded_mfa_pending source=%s", source)
+        response.headers["Cache-Control"] = "private, no-store"
+        return PasskeyLoginPendingOut(
+            public_key=pending.public_key,
+            expires_in=max(1, pending.expires_at - int(time.time())),
+        )
+
+    record_account_login(engine, identity.id)
+    clear_pending_login_cookie(response)
+    security_logger.info("login_succeeded source=%s", source)
     policy = cookie_policy()
     revoke_session_secret(engine, request.cookies.get(policy.session_name))
     created = create_browser_session(
@@ -988,9 +1043,76 @@ def login(body: LoginRequest, request: Request, response: Response):
     set_browser_session_cookies(response, created)
     response.headers["Cache-Control"] = "private, no-store"
     return LoginResponse(
+        mfa_enabled=False,
         role=identity.role.value,
         permissions=sorted(permission.value for permission in permissions_for_role(identity.role)),
         password_change_required=identity.password_change_required,
+        csrf_token=created.csrf_token,
+        expires_in=max(1, created.idle_expires_at - int(time.time())),
+        absolute_expires_at=created.absolute_expires_at,
+    )
+
+
+@app.post("/login/passkey", response_model=LoginResponse)
+def login_with_passkey(
+    body: PasskeyAssertionRequest,
+    request: Request,
+    response: Response,
+):
+    require_exact_passkey_origin(request)
+    source = request.client.host if request.client else "unknown"
+    retry_after = login_limiter.retry_after(source, "")
+    if retry_after:
+        security_logger.warning("login_passkey_throttled source=%s", source)
+        raise HTTPException(
+            status_code=429,
+            detail="Too many login attempts; try again later",
+            headers={"Retry-After": str(retry_after)},
+        )
+    try:
+        completed = complete_passkey_login(
+            engine,
+            token=request.cookies.get(pending_login_cookie_name(), ""),
+            credential=body.credential,
+            audit_context=audit_context_from_request(
+                request,
+                action="passkey.authentication.complete",
+                object_type="user",
+            ),
+        )
+    except HTTPException as exc:
+        if exc.status_code in {401, 413}:
+            login_limiter.record_failure(source, "")
+            security_logger.warning("login_passkey_failed source=%s", source)
+        raise
+    login_limiter.record_success(source, "")
+    login_limiter.record_success(source, completed.username)
+    request.state.audit_actor = AuditActor(
+        user_id=completed.user_id,
+        username=completed.username,
+        role=completed.role,
+    )
+    request.state.audit_object_type = "user"
+    request.state.audit_object_id = completed.user_id
+    policy = cookie_policy()
+    revoke_session_secret(engine, request.cookies.get(policy.session_name))
+    created = create_browser_session(
+        engine,
+        user_id=completed.user_id,
+        client_address=source,
+        user_agent=request.headers.get("User-Agent"),
+    )
+    clear_pending_login_cookie(response)
+    set_browser_session_cookies(response, created)
+    security_logger.info("login_passkey_succeeded source=%s", source)
+    response.headers["Cache-Control"] = "private, no-store"
+    return LoginResponse(
+        mfa_enabled=True,
+        role=completed.role.value,
+        permissions=sorted(
+            permission.value for permission in permissions_for_role(completed.role)
+        ),
+        password_change_required=completed.password_change_required,
         csrf_token=created.csrf_token,
         expires_in=max(1, created.idle_expires_at - int(time.time())),
         absolute_expires_at=created.absolute_expires_at,
@@ -1009,6 +1131,7 @@ def current_session(
         role=principal.role.value,
         permissions=sorted(permission.value for permission in permissions_for_role(principal.role)),
         password_change_required=principal.password_change_required,
+        mfa_enabled=principal.mfa_enabled,
         csrf_token=principal.csrf_token,
         reauthenticated_at=principal.reauthenticated_at,
         idle_expires_at=principal.idle_expires_at,
@@ -1028,7 +1151,10 @@ def reauthenticate_session(
         user_id=principal.user_id,
         session_id=principal.session_id,
     )
-    return ReauthenticateOut(reauthenticated_at=reauthenticated_at)
+    return ReauthenticateOut(
+        reauthenticated_at=reauthenticated_at,
+        mfa_required=principal.mfa_enabled,
+    )
 
 
 @app.post("/account/password", response_model=LoginResponse)
@@ -1060,6 +1186,7 @@ def change_password(
     response.headers["Cache-Control"] = "private, no-store"
     role = Role(account.role)
     return LoginResponse(
+        mfa_enabled=account.mfa_enabled,
         role=role.value,
         permissions=sorted(
             permission.value for permission in permissions_for_role(role)
@@ -1348,6 +1475,7 @@ def logout(
         session_id=principal.session_id,
     )
     clear_browser_session_cookies(response)
+    clear_pending_login_cookie(response)
     response.status_code = 204
     return response
 

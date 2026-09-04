@@ -1,11 +1,13 @@
 from pathlib import Path
 
+from fastapi import Response
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 
 from identity_service import bootstrap_initial_administrator
 from main import app
 from migrations import run_migrations
+from auth import PRODUCTION_PENDING_LOGIN_COOKIE, set_pending_login_cookie
 from session_service import (
     DEVELOPMENT_CSRF_COOKIE,
     DEVELOPMENT_SESSION_COOKIE,
@@ -87,6 +89,24 @@ def test_production_cookie_policy_is_secure_and_separate_from_http_development()
     assert development.session_name == DEVELOPMENT_SESSION_COOKIE
     assert development.csrf_name == DEVELOPMENT_CSRF_COOKIE
     assert development.secure is False
+
+    response = Response()
+    set_pending_login_cookie(
+        response,
+        "pending-secret",
+        max_age=999,
+        environment="production",
+    )
+    pending_header = response.headers["set-cookie"]
+    assert pending_header.startswith(
+        f"{PRODUCTION_PENDING_LOGIN_COOKIE}=pending-secret;"
+    )
+    assert "HttpOnly" in pending_header
+    assert "Secure" in pending_header
+    assert "SameSite=strict" in pending_header
+    assert "Path=/" in pending_header
+    assert "Max-Age=300" in pending_header
+    assert "Domain=" not in pending_header
 
 
 def test_successful_login_rotates_a_presented_session() -> None:

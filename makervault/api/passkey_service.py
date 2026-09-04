@@ -10,10 +10,12 @@ import secrets
 import threading
 import time
 import uuid
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Mapping, Optional
 
 from fastapi import HTTPException
+from sqlalchemy import or_
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
@@ -55,6 +57,7 @@ CHALLENGE_TTL_SECONDS = 300
 CHALLENGE_ATTEMPT_LIMIT = 5
 CHALLENGE_CLEANUP_LIMIT = 200
 MAX_CREDENTIALS_PER_ACCOUNT = 10
+MAX_PENDING_LOGINS_PER_ACCOUNT = 10
 MAX_CEREMONY_RESPONSE_BYTES = 128 * 1024
 MAX_CLIENT_DATA_BYTES = 16 * 1024
 MAX_CREDENTIAL_ID_BYTES = 1024
@@ -63,6 +66,22 @@ LABEL_MAX_LENGTH = 128
 CEREMONY_TIMEOUT_MS = CHALLENGE_TTL_SECONDS * 1000
 _TRANSPORTS = frozenset(item.value for item in AuthenticatorTransport)
 _MUTATION_LOCK = threading.RLock()
+
+
+@dataclass(frozen=True)
+class PendingPasskeyLogin:
+    token: str
+    public_key: dict[str, object]
+    expires_at: int
+
+
+@dataclass(frozen=True)
+class CompletedPasskeyLogin:
+    user_id: str
+    username: str
+    role: Role
+    password_change_required: bool
+    mfa_enabled: bool
 
 
 def _now(value: Optional[int] = None) -> int:
@@ -100,6 +119,15 @@ def _challenge_digest(challenge: bytes) -> str:
     return hmac.new(
         key,
         b"makersvault-webauthn-challenge\0" + challenge,
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def _transaction_digest(token: str) -> str:
+    key = load_security_config().secret.encode("utf-8")
+    return hmac.new(
+        key,
+        b"makersvault-webauthn-login-transaction\0" + token.encode("utf-8"),
         hashlib.sha256,
     ).hexdigest()
 
@@ -231,7 +259,14 @@ def _cleanup_challenges(session: Session, now: int) -> None:
     rows = list(
         session.exec(
             select(WebAuthnChallenge)
-            .where(WebAuthnChallenge.expires_at <= now)
+            .where(
+                WebAuthnChallenge.expires_at <= now,
+                or_(
+                    WebAuthnChallenge.consumed_at.is_(None),
+                    WebAuthnChallenge.consumed_at
+                    <= now - CHALLENGE_TTL_SECONDS,
+                ),
+            )
             .order_by(WebAuthnChallenge.expires_at, WebAuthnChallenge.id)
             .limit(CHALLENGE_CLEANUP_LIMIT)
         )
@@ -293,6 +328,35 @@ def _challenge_row(
     return row
 
 
+def _pending_login_row(
+    session: Session,
+    *,
+    token: str,
+    rp_id: str,
+    origin: str,
+    now: int,
+) -> WebAuthnChallenge:
+    if not token or len(token) > 512:
+        raise HTTPException(status_code=401, detail="Invalid or expired login")
+    row = session.exec(
+        select(WebAuthnChallenge).where(
+            WebAuthnChallenge.transaction_digest == _transaction_digest(token)
+        )
+    ).first()
+    if (
+        row is None
+        or row.purpose != "authentication"
+        or row.session_id is not None
+        or row.rp_id != rp_id
+        or row.origin != origin
+        or row.consumed_at is not None
+        or row.expires_at <= now
+        or row.attempt_count >= CHALLENGE_ATTEMPT_LIMIT
+    ):
+        raise HTTPException(status_code=401, detail="Invalid or expired login")
+    return row
+
+
 def _record_failed_attempt(engine: Engine, challenge_id: str) -> None:
     with _MUTATION_LOCK, Session(engine) as session:
         row = session.get(WebAuthnChallenge, challenge_id)
@@ -300,6 +364,23 @@ def _record_failed_attempt(engine: Engine, challenge_id: str) -> None:
             row.attempt_count = min(CHALLENGE_ATTEMPT_LIMIT, row.attempt_count + 1)
             session.add(row)
             session.commit()
+
+
+def _limit_pending_logins(session: Session, *, user_id: str) -> None:
+    rows = list(
+        session.exec(
+            select(WebAuthnChallenge)
+            .where(
+                WebAuthnChallenge.user_id == user_id,
+                WebAuthnChallenge.purpose == "authentication",
+                WebAuthnChallenge.consumed_at.is_(None),
+            )
+            .order_by(WebAuthnChallenge.created_at, WebAuthnChallenge.id)
+        )
+    )
+    remove_count = max(0, len(rows) - MAX_PENDING_LOGINS_PER_ACCOUNT + 1)
+    for row in rows[:remove_count]:
+        session.delete(row)
 
 
 def _has_recent_passkey_proof(
@@ -323,6 +404,25 @@ def _has_recent_passkey_proof(
             WebAuthnChallenge.consumed_at <= now,
         ).limit(1)
     ).first() is not None
+
+
+def has_recent_passkey_reauthentication(
+    engine: Engine,
+    *,
+    user_id: str,
+    session_id: str,
+    now: Optional[int] = None,
+) -> bool:
+    config = _configured()
+    with Session(engine) as session:
+        return _has_recent_passkey_proof(
+            session,
+            user_id=user_id,
+            session_id=session_id,
+            rp_id=config.rp_id or "",
+            origin=config.origin or "",
+            now=_now(now),
+        )
 
 
 def _require_current_strength(
@@ -366,6 +466,205 @@ def _credential_out(row: WebAuthnCredential) -> dict[str, object]:
         "created_at": row.created_at,
         "last_used_at": row.last_used_at,
     }
+
+
+def begin_passkey_login(
+    engine: Engine,
+    *,
+    user_id: str,
+    audit_context: Optional[AuditContext] = None,
+    now: Optional[int] = None,
+) -> PendingPasskeyLogin:
+    config = _configured()
+    current = _now(now)
+    challenge = secrets.token_bytes(CHALLENGE_BYTES)
+    token = secrets.token_urlsafe(32)
+    with _MUTATION_LOCK, Session(engine) as session:
+        account = _require_account(session, user_id)
+        if not account.mfa_enabled:
+            raise HTTPException(status_code=409, detail="Passkey MFA is not enabled")
+        credentials = list(
+            session.exec(
+                select(WebAuthnCredential)
+                .where(WebAuthnCredential.user_id == user_id)
+                .order_by(WebAuthnCredential.created_at, WebAuthnCredential.id)
+            )
+        )
+        if not credentials:
+            raise HTTPException(
+                status_code=503,
+                detail="MFA account has no usable registered passkey",
+            )
+        options = generate_authentication_options(
+            rp_id=config.rp_id or "",
+            challenge=challenge,
+            timeout=CEREMONY_TIMEOUT_MS,
+            allow_credentials=[_descriptor(row) for row in credentials],
+            user_verification=UserVerificationRequirement.REQUIRED,
+        )
+        public_key = json.loads(options_to_json(options))
+        _cleanup_challenges(session, current)
+        _limit_pending_logins(session, user_id=user_id)
+        session.add(
+            WebAuthnChallenge(
+                user_id=user_id,
+                purpose="authentication",
+                challenge_digest=_challenge_digest(challenge),
+                transaction_digest=_transaction_digest(token),
+                rp_id=config.rp_id or "",
+                origin=config.origin or "",
+                created_at=current,
+                expires_at=current + CHALLENGE_TTL_SECONDS,
+            )
+        )
+        if audit_context is not None:
+            append_audit_event(
+                session,
+                audit_context.for_object("user", user_id),
+                result="success",
+                status_code=200,
+            )
+        session.commit()
+    return PendingPasskeyLogin(
+        token=token,
+        public_key=public_key,
+        expires_at=current + CHALLENGE_TTL_SECONDS,
+    )
+
+
+def complete_passkey_login(
+    engine: Engine,
+    *,
+    token: str,
+    credential: Mapping[str, Any],
+    audit_context: Optional[AuditContext] = None,
+    now: Optional[int] = None,
+) -> CompletedPasskeyLogin:
+    config = _configured()
+    current = _now(now)
+    with Session(engine) as session:
+        pending = _pending_login_row(
+            session,
+            token=token,
+            rp_id=config.rp_id or "",
+            origin=config.origin or "",
+            now=current,
+        )
+        challenge_id = pending.id
+        user_id = pending.user_id
+    try:
+        payload = _bounded_credential_payload(credential)
+        challenge = _challenge_from_credential(payload)
+        credential_id, response_credential_id = _credential_id_from_response(payload)
+    except HTTPException as exc:
+        _record_failed_attempt(engine, challenge_id)
+        if exc.status_code == 413:
+            raise
+        raise HTTPException(status_code=401, detail="Invalid or expired login") from exc
+
+    with Session(engine) as session:
+        pending = _pending_login_row(
+            session,
+            token=token,
+            rp_id=config.rp_id or "",
+            origin=config.origin or "",
+            now=current,
+        )
+        if pending.challenge_digest != _challenge_digest(challenge):
+            stored = None
+        else:
+            stored = session.exec(
+                select(WebAuthnCredential).where(
+                    WebAuthnCredential.user_id == pending.user_id,
+                    WebAuthnCredential.credential_id == credential_id,
+                )
+            ).first()
+        if stored is None:
+            stored_id = None
+            public_key = b""
+            current_sign_count = 0
+        else:
+            stored_id = stored.id
+            public_key = _stored_bytes(
+                stored.public_key, maximum=MAX_PUBLIC_KEY_BYTES
+            )
+            current_sign_count = stored.sign_count
+    if stored_id is None:
+        _record_failed_attempt(engine, challenge_id)
+        raise HTTPException(status_code=401, detail="Invalid or expired login")
+
+    try:
+        verified = verify_authentication_response(
+            credential=payload,
+            expected_challenge=challenge,
+            expected_rp_id=config.rp_id or "",
+            expected_origin=config.origin or "",
+            credential_public_key=public_key,
+            credential_current_sign_count=current_sign_count,
+            require_user_verification=True,
+        )
+    except Exception as exc:
+        _record_failed_attempt(engine, challenge_id)
+        raise HTTPException(
+            status_code=401, detail="Invalid or expired login"
+        ) from exc
+    if not verified.user_verified or verified.credential_id != response_credential_id:
+        _record_failed_attempt(engine, challenge_id)
+        raise HTTPException(status_code=401, detail="Invalid or expired login")
+
+    timestamp = _timestamp()
+    with _MUTATION_LOCK, Session(engine) as session:
+        pending = _pending_login_row(
+            session,
+            token=token,
+            rp_id=config.rp_id or "",
+            origin=config.origin or "",
+            now=current,
+        )
+        if (
+            pending.id != challenge_id
+            or pending.user_id != user_id
+            or pending.challenge_digest != _challenge_digest(challenge)
+        ):
+            raise HTTPException(status_code=401, detail="Invalid or expired login")
+        account = _require_account(session, user_id)
+        stored = session.get(WebAuthnCredential, stored_id)
+        if (
+            not account.mfa_enabled
+            or stored is None
+            or stored.user_id != user_id
+            or stored.sign_count != current_sign_count
+        ):
+            raise HTTPException(status_code=401, detail="Invalid or expired login")
+        try:
+            role = Role(account.role)
+        except ValueError as exc:
+            raise HTTPException(status_code=401, detail="Invalid or expired login") from exc
+        pending.consumed_at = current
+        stored.sign_count = max(stored.sign_count, int(verified.new_sign_count))
+        stored.device_type = _enum_value(verified.credential_device_type)
+        stored.backed_up = bool(verified.credential_backed_up)
+        stored.last_used_at = timestamp
+        account.last_login_at = timestamp
+        account.updated_at = timestamp
+        session.add(pending)
+        session.add(stored)
+        session.add(account)
+        if audit_context is not None:
+            append_audit_event(
+                session,
+                audit_context.for_object("user", user_id),
+                result="success",
+                status_code=200,
+            )
+        session.commit()
+        return CompletedPasskeyLogin(
+            user_id=account.id,
+            username=account.username,
+            role=role,
+            password_change_required=account.password_change_required,
+            mfa_enabled=True,
+        )
 
 
 def list_passkeys(engine: Engine, *, user_id: str) -> dict[str, object]:

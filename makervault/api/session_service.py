@@ -55,6 +55,7 @@ class SessionPrincipal:
     username: str
     role: Role
     password_change_required: bool
+    mfa_enabled: bool
     csrf_token: str
     created_at: int
     last_seen_at: int
@@ -265,6 +266,7 @@ def authenticate_browser_session(
             username=user.username,
             role=role,
             password_change_required=user.password_change_required,
+            mfa_enabled=user.mfa_enabled,
             csrf_token=_csrf_token(secret),
             created_at=row.created_at,
             last_seen_at=row.last_seen_at,

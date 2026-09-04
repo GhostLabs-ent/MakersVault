@@ -46,6 +46,7 @@ _OBJECT_PARAMETERS = {
 }
 _EXPLICIT_ACTIONS: Mapping[tuple[str, str], str] = {
     ("POST", "/login"): "identity.login",
+    ("POST", "/login/passkey"): "identity.login.passkey",
     ("GET", "/users"): "identity.account.list",
     ("POST", "/users"): "identity.account.create",
     ("PATCH", "/users/{user_id}"): "identity.account.update",
