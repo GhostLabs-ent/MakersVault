@@ -88,6 +88,12 @@ def test_fresh_database_reaches_current_schema(tmp_path: Path) -> None:
         "machineprofile",
         "artifactmachine",
         "useraccount",
+        "browsersession",
+        "auditevent",
+        "recoverymarker",
+        "webauthncredential",
+        "webauthnchallenge",
+        "authenticatorpolicy",
         "appconfig",
         "mountscan",
         "schema_migration",
@@ -736,3 +742,73 @@ def test_schema13_to_schema14_adds_empty_browser_sessions_without_changing_users
     assert sessions == 0
     assert "idx_browsersession_secret_digest_unique" in indexes
     assert "idx_browsersession_user_id" in indexes
+
+
+def test_schema16_to_schema17_adds_optional_empty_passkey_state(tmp_path: Path) -> None:
+    database_engine = sqlite_engine(tmp_path / "schema16.db")
+    assert run_migrations(database_engine, MIGRATIONS[:16]) == 16
+    with database_engine.begin() as conn:
+        conn.exec_driver_sql(
+            """
+            INSERT INTO useraccount(
+                id, username, username_normalized, display_name, password_hash,
+                enabled, password_policy_version, password_change_required, role,
+                created_at, updated_at
+            ) VALUES (
+                '00000000-0000-4000-8000-000000000001', 'Owner', 'owner', 'Owner',
+                '$argon2id$v=19$fixture', 1, 1, 0, 'administrator',
+                '2026-09-04T00:00:00Z', '2026-09-04T00:00:00Z'
+            )
+            """
+        )
+        account_before = conn.exec_driver_sql(
+            "SELECT id, username, enabled, role FROM useraccount"
+        ).one()
+
+    assert run_migrations(database_engine, MIGRATIONS[:17]) == 17
+    assert run_migrations(database_engine, MIGRATIONS[:17]) == 17
+
+    with database_engine.connect() as conn:
+        account_after = conn.exec_driver_sql(
+            "SELECT id, username, enabled, role, mfa_enabled FROM useraccount"
+        ).one()
+        policy = conn.exec_driver_sql(
+            "SELECT id, mode, updated_by_user_id FROM authenticatorpolicy"
+        ).one()
+        counts = {
+            table: conn.exec_driver_sql(f"SELECT COUNT(*) FROM {table}").scalar_one()
+            for table in ("webauthncredential", "webauthnchallenge")
+        }
+        credential_indexes = {
+            str(row[1])
+            for row in conn.exec_driver_sql(
+                "PRAGMA index_list(webauthncredential)"
+            ).fetchall()
+        }
+        challenge_indexes = {
+            str(row[1])
+            for row in conn.exec_driver_sql(
+                "PRAGMA index_list(webauthnchallenge)"
+            ).fetchall()
+        }
+
+    assert account_after[:4] == account_before
+    assert account_after[4] == 0
+    assert tuple(policy) == ("global", "optional", None)
+    assert counts == {"webauthncredential": 0, "webauthnchallenge": 0}
+    assert "idx_webauthncredential_credential_id_unique" in credential_indexes
+    assert "idx_webauthnchallenge_challenge_digest_unique" in challenge_indexes
+    assert "idx_webauthnchallenge_transaction_digest_unique" in challenge_indexes
+
+    with pytest.raises(IntegrityError):
+        with database_engine.begin() as conn:
+            conn.exec_driver_sql(
+                "INSERT INTO authenticatorpolicy(id, mode, updated_at) "
+                "VALUES ('second', 'optional', '2026-09-04T00:00:00Z')"
+            )
+
+    with pytest.raises(IntegrityError):
+        with database_engine.begin() as conn:
+            conn.exec_driver_sql(
+                "UPDATE authenticatorpolicy SET mode = 'mandatory' WHERE id = 'global'"
+            )

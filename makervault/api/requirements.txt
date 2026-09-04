@@ -9,3 +9,4 @@ python-multipart==0.0.32
 pillow==12.3.0
 starlette==1.6.0
 PyJWT==2.13.0
+webauthn==3.0.0

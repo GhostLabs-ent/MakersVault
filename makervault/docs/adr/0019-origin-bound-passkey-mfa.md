@@ -1,8 +1,10 @@
 # ADR 0019: Origin-bound passkey MFA
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Proposed:** 2026-09-04
+
+**Accepted:** 2026-09-04
 
 ## Context
 
@@ -77,7 +79,7 @@ remain unaffected until they opt in or an Administrator safely stages enforcemen
 
 ## Approval boundary
 
-This ADR is proposed only. Owner acceptance of the Gate 11E checkpoint is required
-before schema 17, dependency, API, or UI implementation. API keys, OIDC/SSO, TOTP,
-public registration, hosted tenancy, deployment, and publication remain separately
-gated.
+The owner accepted this ADR and the linked Gate 11E checkpoint on 2026-09-04.
+Acceptance authorized 11E-1a only; registration, login, policy UI, API keys,
+OIDC/SSO, TOTP, public registration, hosted tenancy, deployment, and publication
+remain separately gated.

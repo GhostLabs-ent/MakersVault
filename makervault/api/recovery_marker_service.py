@@ -49,6 +49,19 @@ def process_recovery_markers(database_engine: Engine) -> int:
             revoked = details.get("revoked_sessions")
             if not isinstance(revoked, int) or isinstance(revoked, bool) or revoked < 0:
                 raise RuntimeError("invalid pending recovery marker session count")
+            audit_details: dict[str, object] = {"revoked_sessions": revoked}
+            for field in ("revoked_challenges", "removed_credentials"):
+                if field not in details:
+                    continue
+                count = details[field]
+                if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+                    raise RuntimeError("invalid pending recovery marker authenticator count")
+                audit_details[field] = count
+            if "reset_mfa_policy" in details:
+                reset_policy = details["reset_mfa_policy"]
+                if not isinstance(reset_policy, bool):
+                    raise RuntimeError("invalid pending recovery marker policy state")
+                audit_details["reset_mfa_policy"] = reset_policy
             object_type = "recovery_marker"
             object_id = marker.id
             if marker.kind == "administrator_recovery":
@@ -73,7 +86,7 @@ def process_recovery_markers(database_engine: Engine) -> int:
                 ),
                 result="success",
                 status_code=200,
-                details={"revoked_sessions": revoked},
+                details=audit_details,
             )
             marker.processed_at = _timestamp()
             session.add(marker)

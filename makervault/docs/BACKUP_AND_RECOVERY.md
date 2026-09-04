@@ -24,24 +24,27 @@ configuration, and recovery journals.
 
 Gates 10B–10C supply a secret-free logical `.mvault` v1 exporter, independent
 verifier, and clean-instance importer. The exporter accepts schema 12, Gate 11A
-schema 13, Gate 11B schema 14, Gate 11C schema 15, and Gate 11D-1 schema 16
+  schema 13, Gate 11B schema 14, Gate 11C schema 15, Gate 11D-1 schema 16,
+  and Gate 11E-1a schema 17
 sources; the importer deliberately reconstructs the frozen schema 12 content
 contract. This portable workflow is not a replacement for the raw server backup:
 it deliberately excludes deployment configuration, secrets, operational journals,
 quarantine, and external no-copy bytes, and it does not support rollback,
 replacement, or merge restore.
 
-For schemas 13–16, this distinction includes authentication: raw format-1 backup
+For schemas 13–17, this distinction includes authentication: raw format-1 backup
 contains the SQLite `useraccount` password hash and, at schema 14, keyed browser
 session records; schema 15 persists the fixed shared-vault role, and schema 16 adds
 recent-password state, durable security audit records, and the reserved recovery
-structure. It must be protected
+structure. Schema 17 adds the account MFA flag, public passkey credential state,
+digest-only one-time ceremonies, and the enforcement-policy row. It must be protected
 accordingly. `.mvault` never contains users, roles, password hashes, session records,
-audit/recovery state, or credentials. Starting an API against a clean `.mvault`
-restore applies migrations 13–16 and bootstraps a new local administrator from that
+audit/recovery state, passkey credentials, challenges, or policy. Starting an API
+against a clean `.mvault` restore applies migrations 13–17 and bootstraps a new local administrator from that
 installation's validated environment.
 
-Schema-16 raw restore automatically revokes every copied browser session after exact
+Schema-17 raw restore automatically revokes every copied browser session and consumes
+every pending passkey ceremony after exact
 archive equality is proven and before services restart. It writes a pending recovery
 marker; API startup converts that marker into a durable, secret-free audit event
 before accepting requests. Older compatible backups are still re-audited and any
@@ -194,7 +197,8 @@ The restore command refuses non-empty database or storage volumes by default:
 The procedure verifies and extracts the archive before stopping services. It then
 restores managed storage first and SQLite last, corrects ownership, snapshots the
 live targets again, and proves every restored byte matches the archived inventory.
-After that proof it revokes restored sessions, writes the recovery marker, and
+After that proof it revokes restored sessions and pending passkey ceremonies, writes
+the recovery marker, and
 re-audits the resulting database/storage pair. No Artifact, Project, Machine, managed
 file, or portable `.mvault` content is changed by this recovery-only mutation.
 Only services that were running before the operation are restarted.
@@ -251,10 +255,12 @@ source paths remain in SQLite for every affected revision. After recovery, remou
 same `/imports`-relative paths. Until then, managed content continues to work and
 the external file routes return unavailable.
 
-Schema-14 server backup includes keyed server-side browser-session rows but never
+Schema-14+ server backup includes keyed server-side browser-session rows but never
 the browser's HttpOnly cookie value. It excludes source-site cookies, browser
 preferences, and workstation-local bridge configuration/cache. Restored server-side
-sessions are revoked automatically; reinstall or restore the v5.1 bridge separately.
+sessions are revoked automatically. At schema 17, pending passkey ceremonies are
+also consumed while registered public credentials remain available only for their
+configured RP. Reinstall or restore the v5.1 bridge separately.
 
 ## Recover an existing Administrator while stopped
 
@@ -274,10 +280,13 @@ matched backup while leaving the instance stopped, then asks twice for a tempora
 password through the terminal's protected prompt. The offline command verifies that
 the backup contains the exact pre-change SQLite file, acquires an exclusive instance
 lock and SQLite transaction, and only then resets, enables, and promotes that existing
-account. It revokes every browser session and queues an Administrator-recovery audit
-marker. The temporary password must be changed after sign-in.
+account. At schema 17 it also removes that account's passkey credentials and
+ceremonies, disables its MFA flag, and returns global enforcement to Optional so the
+recovered Administrator can sign in and re-enroll. It revokes every browser session
+and queues an Administrator-recovery audit marker. The temporary password must be
+changed after sign-in.
 
-The recovery-purpose backup still contains the complete contract-5 report. It may
+The recovery-purpose backup still contains the complete contract-6 report. It may
 narrowly preserve a database whose sole readiness failure is the absence of an
 enabled Administrator, which is the condition this ceremony repairs. Any content,
 session, audit, marker, schema, or additional identity inconsistency still prevents

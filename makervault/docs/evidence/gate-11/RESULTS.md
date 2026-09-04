@@ -78,5 +78,6 @@ account-only Administrator recovery, and unchanged content records/storage.
 Gate 11 was implemented, tested, documented, accepted, and committed locally only.
 No commit or image was pushed; no tag, release, deployment, or publication occurred.
 
-Gate 11E is separately authorized for design. Its stronger-authenticator contract
-still requires an owner decision before schema or feature implementation.
+Gate 11E was separately authorized and its stronger-authenticator design was accepted
+on 2026-09-04. Its schema-17 foundation is tracked independently in the 11E-1a
+results and does not alter this accepted Gate 11 closeout.

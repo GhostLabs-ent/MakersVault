@@ -25,7 +25,13 @@ AUDIT_DETAILS_MAX_BYTES = 2048
 SOURCE_ADDRESS_MAX = 128
 _SAFE_ACTION = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
 _SAFE_IDENTIFIER = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
-_DETAIL_KEYS = frozenset({"changed_fields", "revoked_sessions"})
+_DETAIL_KEYS = frozenset({
+    "changed_fields",
+    "revoked_sessions",
+    "revoked_challenges",
+    "removed_credentials",
+    "reset_mfa_policy",
+})
 _CHANGED_FIELDS = frozenset({"display_name", "role", "enabled", "password"})
 _OBJECT_PARAMETERS = {
     "user_id": "user",
@@ -144,11 +150,17 @@ def _details_json(details: Optional[Mapping[str, object]]) -> str:
         if any(field not in _CHANGED_FIELDS for field in cleaned):
             raise ValueError("changed_fields contains a value that is not allowed")
         normalized["changed_fields"] = cleaned
-    if "revoked_sessions" in details:
-        count = details["revoked_sessions"]
-        if not isinstance(count, int) or isinstance(count, bool) or count < 0:
-            raise ValueError("revoked_sessions must be a non-negative integer")
-        normalized["revoked_sessions"] = min(count, 1_000_000)
+    for key in ("revoked_sessions", "revoked_challenges", "removed_credentials"):
+        if key in details:
+            count = details[key]
+            if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+                raise ValueError(f"{key} must be a non-negative integer")
+            normalized[key] = min(count, 1_000_000)
+    if "reset_mfa_policy" in details:
+        reset_policy = details["reset_mfa_policy"]
+        if not isinstance(reset_policy, bool):
+            raise ValueError("reset_mfa_policy must be a boolean")
+        normalized["reset_mfa_policy"] = reset_policy
     encoded = json.dumps(normalized, sort_keys=True, separators=(",", ":"))
     if len(encoded.encode("utf-8")) > AUDIT_DETAILS_MAX_BYTES:
         raise ValueError("audit details exceed the storage limit")

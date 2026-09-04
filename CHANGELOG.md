@@ -47,11 +47,11 @@ for versioned release artifacts beginning with v5.1.0.
   administrator token.
 - Artifact-history and Project exports use format 2 with deterministic Machine
   snapshots, stable references, and explicit unresolved-identity reporting.
-- New matched backups use recovery contract 5 with deterministic schema-16 identity,
-  session, audit, recovery, and Machine integrity reporting while compatibly
-  re-auditing historical recovery contracts 2–4.
-- Raw restore revokes copied browser sessions before service exposure and records a
-  durable recovery event at startup.
+- New matched backups use recovery contract 6 with deterministic schema-17 identity,
+  session, audit, recovery, passkey-foundation, and Machine integrity reporting while
+  compatibly re-auditing historical recovery contracts 2–5.
+- Raw restore revokes copied browser sessions and pending passkey ceremonies before
+  service exposure and records a durable recovery event at startup.
 
 ### Security
 

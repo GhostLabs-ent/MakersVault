@@ -735,7 +735,7 @@ def test_schema8_backup_round_trip_represents_revisions_trash_and_quarantine(
     )
 
     assert manifest["format_version"] == 1
-    assert manifest["recovery_contract_version"] == 5
+    assert manifest["recovery_contract_version"] == 6
     assert manifest["database"]["schema_version"] == 8
     assert manifest["database"]["row_counts"]["artifactrevision"] == 5
     assert manifest["database"]["row_counts"]["trashpurgeoperation"] == 1
@@ -774,7 +774,7 @@ def test_schema10_backup_round_trip_represents_project_graph(tmp_path: Path) -> 
     )
 
     assert manifest["format_version"] == 1
-    assert manifest["recovery_contract_version"] == 5
+    assert manifest["recovery_contract_version"] == 6
     assert manifest["database"]["schema_version"] == 10
     assert manifest["database"]["row_counts"]["project"] == 2
     assert manifest["database"]["row_counts"]["projectmembership"] == 4
@@ -820,7 +820,7 @@ def test_schema12_backup_round_trip_represents_machine_context(tmp_path: Path) -
     )
 
     assert manifest["format_version"] == 1
-    assert manifest["recovery_contract_version"] == 5
+    assert manifest["recovery_contract_version"] == 6
     assert manifest["database"]["schema_version"] == 12
     assert manifest["database"]["row_counts"]["machineprofile"] == 3
     assert manifest["database"]["row_counts"]["artifactmachine"] == 3
@@ -842,7 +842,7 @@ def test_schema12_backup_round_trip_represents_machine_context(tmp_path: Path) -
     assert extract_backup(archive, extracted) == manifest
 
 
-def test_schema16_contract5_represents_identity_session_audit_and_recovery(
+def test_schema16_contract6_represents_identity_session_audit_and_recovery(
     tmp_path: Path,
 ) -> None:
     _, _, database_tar, storage_tar = schema16_fixture(tmp_path)
@@ -852,7 +852,7 @@ def test_schema16_contract5_represents_identity_session_audit_and_recovery(
         database_tar, storage_tar, archive, "v5.1.0", "gate11d3-fixture"
     )
 
-    assert manifest["recovery_contract_version"] == 5
+    assert manifest["recovery_contract_version"] == 6
     assert manifest["database"]["schema_version"] == 16
     assert manifest["database"]["row_counts"]["useraccount"] == 2
     assert manifest["database"]["row_counts"]["browsersession"] == 1
@@ -879,7 +879,7 @@ def test_schema16_contract5_represents_identity_session_audit_and_recovery(
         "UPDATE recoverymarker SET kind = 'unknown-recovery'",
     ],
 )
-def test_contract5_rejects_security_domain_corruption(
+def test_contract6_rejects_security_domain_corruption(
     tmp_path: Path,
     mutation: str,
 ) -> None:
@@ -895,7 +895,7 @@ def test_contract5_rejects_security_domain_corruption(
 
 def test_contract4_schema16_is_compatibly_reaudited(tmp_path: Path) -> None:
     _, _, database_tar, storage_tar = schema16_fixture(tmp_path)
-    current = tmp_path / "schema16-contract5.tar.gz"
+    current = tmp_path / "schema16-contract6.tar.gz"
     create_backup(database_tar, storage_tar, current, "v5.1.0", "gate11d3")
     contract4 = tmp_path / "schema16-contract4.tar.gz"
 
@@ -1440,7 +1440,7 @@ def test_verifier_accepts_pre_gate9d_contract3_schema12_and_reaudits_it(
         "post-v5.1-gate9",
         "pre-gate9d-contract3-fixture",
     )
-    assert current["recovery_contract_version"] == 5
+    assert current["recovery_contract_version"] == 6
     contract3_archive = tmp_path / "contract3-schema12.tar.gz"
 
     def contract3_shape(manifest: dict) -> None:

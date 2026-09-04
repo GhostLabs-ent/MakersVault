@@ -87,7 +87,7 @@ def _locked_database(path: Path):
         os.close(descriptor)
 
 
-def _require_schema16(connection: sqlite3.Connection) -> None:
+def _require_security_schema(connection: sqlite3.Connection) -> int:
     tables = {
         str(row[0])
         for row in connection.execute(
@@ -102,6 +102,11 @@ def _require_schema16(connection: sqlite3.Connection) -> None:
     )
     if version < 16:
         raise RecoveryMutationError("database must be migrated to schema 16")
+    if version >= 17 and not {
+        "webauthncredential", "webauthnchallenge", "authenticatorpolicy"
+    }.issubset(tables):
+        raise RecoveryMutationError("database is missing schema-17 authenticator state")
+    return version
 
 
 def _schema_version(connection: sqlite3.Connection) -> int:
@@ -126,6 +131,19 @@ def _revoke_all_sessions(connection: sqlite3.Connection, now_epoch: int) -> int:
     )
     connection.execute(
         "UPDATE browsersession SET revoked_at = ? WHERE revoked_at IS NULL",
+        (now_epoch,),
+    )
+    return active
+
+
+def _revoke_all_challenges(connection: sqlite3.Connection, now_epoch: int) -> int:
+    active = int(
+        connection.execute(
+            "SELECT COUNT(*) FROM webauthnchallenge WHERE consumed_at IS NULL"
+        ).fetchone()[0]
+    )
+    connection.execute(
+        "UPDATE webauthnchallenge SET consumed_at = ? WHERE consumed_at IS NULL",
         (now_epoch,),
     )
     return active
@@ -160,15 +178,23 @@ def mark_restored_database(database_path: Path) -> dict[str, object]:
         )
         marker_id = None
         if version >= 16:
-            _require_schema16(connection)
+            _require_security_schema(connection)
+            revoked_challenges = (
+                _revoke_all_challenges(connection, int(time.time()))
+                if version >= 17 else 0
+            )
+            details: dict[str, object] = {"revoked_sessions": revoked}
+            if version >= 17:
+                details["revoked_challenges"] = revoked_challenges
             marker_id = _insert_marker(
                 connection,
                 "raw_restore",
-                {"revoked_sessions": revoked},
+                details,
             )
     return {
         "marker_id": marker_id,
         "revoked_sessions": revoked,
+        "revoked_challenges": revoked_challenges if version >= 17 else 0,
         "schema_version": version,
     }
 
@@ -186,7 +212,7 @@ def recover_existing_administrator(
     if not normalized or len(normalized) > 256:
         raise RecoveryMutationError("username must contain between 1 and 256 characters")
     with _locked_database(database_path) as (database, connection):
-        _require_schema16(connection)
+        version = _require_security_schema(connection)
         try:
             with tempfile.TemporaryDirectory(prefix="makersvault-admin-recovery-") as work:
                 extracted = Path(work)
@@ -215,21 +241,75 @@ def recover_existing_administrator(
             raise RecoveryMutationError("exactly one existing account must match")
         user_id, stored_username = str(rows[0][0]), str(rows[0][1])
         now = _timestamp()
-        connection.execute(
-            "UPDATE useraccount SET password_hash = ?, enabled = 1, "
-            "password_policy_version = ?, password_change_required = 1, "
-            "role = 'administrator', updated_at = ? WHERE id = ?",
-            (password_hash, password_policy_version, now, user_id),
-        )
+        if version >= 17:
+            connection.execute(
+                "UPDATE useraccount SET password_hash = ?, enabled = 1, "
+                "password_policy_version = ?, password_change_required = 1, "
+                "role = 'administrator', mfa_enabled = 0, updated_at = ? WHERE id = ?",
+                (password_hash, password_policy_version, now, user_id),
+            )
+            removed_credentials = int(
+                connection.execute(
+                    "SELECT COUNT(*) FROM webauthncredential WHERE user_id = ?",
+                    (user_id,),
+                ).fetchone()[0]
+            )
+            revoked_challenges = int(
+                connection.execute(
+                    "SELECT COUNT(*) FROM webauthnchallenge "
+                    "WHERE user_id = ? AND consumed_at IS NULL",
+                    (user_id,),
+                ).fetchone()[0]
+            )
+            connection.execute(
+                "DELETE FROM webauthncredential WHERE user_id = ?", (user_id,)
+            )
+            connection.execute(
+                "DELETE FROM webauthnchallenge WHERE user_id = ?", (user_id,)
+            )
+            current_mode = str(
+                connection.execute(
+                    "SELECT mode FROM authenticatorpolicy WHERE id = 'global'"
+                ).fetchone()[0]
+            )
+            reset_mfa_policy = current_mode != "optional"
+            connection.execute(
+                "UPDATE authenticatorpolicy SET mode = 'optional', updated_at = ?, "
+                "updated_by_user_id = NULL WHERE id = 'global'",
+                (now,),
+            )
+        else:
+            connection.execute(
+                "UPDATE useraccount SET password_hash = ?, enabled = 1, "
+                "password_policy_version = ?, password_change_required = 1, "
+                "role = 'administrator', updated_at = ? WHERE id = ?",
+                (password_hash, password_policy_version, now, user_id),
+            )
+            removed_credentials = 0
+            revoked_challenges = 0
+            reset_mfa_policy = False
         revoked = _revoke_all_sessions(connection, int(time.time()))
+        details: dict[str, object] = {
+            "user_id": user_id,
+            "revoked_sessions": revoked,
+        }
+        if version >= 17:
+            details.update(
+                revoked_challenges=revoked_challenges,
+                removed_credentials=removed_credentials,
+                reset_mfa_policy=reset_mfa_policy,
+            )
         marker_id = _insert_marker(
             connection,
             "administrator_recovery",
-            {"user_id": user_id, "revoked_sessions": revoked},
+            details,
         )
     return {
         "marker_id": marker_id,
         "revoked_sessions": revoked,
+        "revoked_challenges": revoked_challenges,
+        "removed_credentials": removed_credentials,
+        "reset_mfa_policy": reset_mfa_policy,
         "user_id": user_id,
         "username": stored_username,
     }

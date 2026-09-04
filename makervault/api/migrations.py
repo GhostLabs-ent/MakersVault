@@ -733,6 +733,100 @@ def _migration_016_account_audit_and_recovery(conn: Connection) -> None:
         )
 
 
+def _migration_017_origin_bound_passkey_state(conn: Connection) -> None:
+    _add_column(
+        conn,
+        "useraccount",
+        "mfa_enabled",
+        "INTEGER NOT NULL DEFAULT 0 CHECK (mfa_enabled IN (0, 1))",
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_useraccount_mfa_enabled "
+        "ON useraccount(mfa_enabled)"
+    )
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS webauthncredential (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            user_id VARCHAR NOT NULL,
+            credential_id VARCHAR NOT NULL,
+            public_key VARCHAR NOT NULL,
+            sign_count INTEGER NOT NULL DEFAULT 0 CHECK (sign_count >= 0),
+            transports_json VARCHAR NOT NULL DEFAULT '[]',
+            device_type VARCHAR NOT NULL
+                CHECK (device_type IN ('single_device', 'multi_device')),
+            backed_up INTEGER NOT NULL DEFAULT 0 CHECK (backed_up IN (0, 1)),
+            label VARCHAR NOT NULL,
+            created_at VARCHAR NOT NULL,
+            last_used_at VARCHAR,
+            FOREIGN KEY(user_id) REFERENCES useraccount(id) ON DELETE CASCADE
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "CREATE UNIQUE INDEX IF NOT EXISTS "
+        "idx_webauthncredential_credential_id_unique "
+        "ON webauthncredential(credential_id)"
+    )
+    for column in ("user_id", "created_at", "last_used_at"):
+        conn.exec_driver_sql(
+            f"CREATE INDEX IF NOT EXISTS idx_webauthncredential_{column} "
+            f"ON webauthncredential({column})"
+        )
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS webauthnchallenge (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            user_id VARCHAR NOT NULL,
+            purpose VARCHAR NOT NULL
+                CHECK (purpose IN ('registration', 'authentication', 'reauthentication')),
+            challenge_digest VARCHAR NOT NULL,
+            session_id VARCHAR,
+            transaction_digest VARCHAR,
+            rp_id VARCHAR NOT NULL,
+            origin VARCHAR NOT NULL,
+            created_at INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL,
+            consumed_at INTEGER,
+            attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count BETWEEN 0 AND 5),
+            FOREIGN KEY(user_id) REFERENCES useraccount(id) ON DELETE CASCADE,
+            FOREIGN KEY(session_id) REFERENCES browsersession(id) ON DELETE CASCADE
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "CREATE UNIQUE INDEX IF NOT EXISTS "
+        "idx_webauthnchallenge_challenge_digest_unique "
+        "ON webauthnchallenge(challenge_digest)"
+    )
+    conn.exec_driver_sql(
+        "CREATE UNIQUE INDEX IF NOT EXISTS "
+        "idx_webauthnchallenge_transaction_digest_unique "
+        "ON webauthnchallenge(transaction_digest) WHERE transaction_digest IS NOT NULL"
+    )
+    for column in ("user_id", "purpose", "session_id", "expires_at", "consumed_at"):
+        conn.exec_driver_sql(
+            f"CREATE INDEX IF NOT EXISTS idx_webauthnchallenge_{column} "
+            f"ON webauthnchallenge({column})"
+        )
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS authenticatorpolicy (
+            id VARCHAR NOT NULL PRIMARY KEY CHECK (id = 'global'),
+            mode VARCHAR NOT NULL
+                CHECK (mode IN ('optional', 'require_administrators', 'require_all')),
+            updated_at VARCHAR NOT NULL,
+            updated_by_user_id VARCHAR,
+            FOREIGN KEY(updated_by_user_id) REFERENCES useraccount(id) ON DELETE SET NULL
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "INSERT OR IGNORE INTO authenticatorpolicy(id, mode, updated_at, updated_by_user_id) "
+        "VALUES ('global', 'optional', CURRENT_TIMESTAMP, NULL)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
@@ -750,6 +844,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(14, "revocable_browser_sessions", _migration_014_revocable_browser_sessions),
     Migration(15, "shared_vault_roles", _migration_015_shared_vault_roles),
     Migration(16, "account_audit_and_recovery", _migration_016_account_audit_and_recovery),
+    Migration(17, "origin_bound_passkey_state", _migration_017_origin_bound_passkey_state),
 )
 
 

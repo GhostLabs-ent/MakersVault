@@ -242,6 +242,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-046 | `VERIFIED` | Local Gate 11D-2 activates schema 16's durable audit table with mandatory outcome capture for every mutation and sensitive security/export/handoff reads, server correlation IDs, actor/role snapshots, bounded canonical targets, body/query/secret exclusion, identity-transaction atomicity, honest post-commit failure behavior, and Administrator-only cursor retrieval. All 95 HTTP routes remain deny-by-default classified; `.mvault` v1 excludes real audit state. | `api/audit_service.py`, `api/audit_middleware.py`, audit/account/portable regressions, browser Security Audit, `docs/evidence/gate-11/SUBGATE_11D2_RESULTS.md` | Owner accepted Gate 11D-2 by authorizing 11D-3 on 2026-09-03. Publication remains unauthorized. |
 | T-047 | `VERIFIED` | Local Gate 11D-3 advances new raw backups to recovery contract 5 with schema-16 identity/session/audit/marker verification and compatible re-audit of contracts 2–4. Exact raw restore revokes copied sessions and queues a startup audit marker. Interactive stopped-instance recovery requires a verified exact pre-change backup, protected password prompt, exclusive file/SQLite lock, and one existing account; it revokes every session and cannot create a bypass identity. | `api/recovery.py`, `api/recovery_mutation.py`, `api/recovery_marker_service.py`, `scripts/recover-administrator.sh`, recovery regressions, `docs/evidence/gate-11/SUBGATE_11D3_RESULTS.md` | Owner accepted Gate 11D-3 on 2026-09-03. Consolidated Gate 11 closeout is next; no 11E work, push, tag, release, deployment, or publication is authorized. |
 | T-048 | `VERIFIED` | Gate 11 closes with persistent Argon2id identities, revocable protected-cookie sessions, three deny-by-default shared-vault roles, account/recent-authentication safety, mandatory audit, contract-5 raw recovery, and stopped-instance Administrator recovery operating as one tested system. The consolidated identity/session/authorization/account/audit/recovery/portable matrix passes 118 tests. | `docs/evidence/gate-11/RESULTS.md`, accepted 11A–11D evidence, full repository gate | Owner accepted 11D-3 and authorized Gate 11E on 2026-09-03. Gate 11E remains at its authenticator design checkpoint; no schema/feature implementation or publication is implicit. |
+| T-049 | `VERIFIED` | Local Gate 11E-1a pins a maintained WebAuthn verifier, adds optional-by-default schema-17 account/credential/digest-only-ceremony/singleton-policy state, advances new raw backups to recovery contract 6, consumes pending ceremonies on restore, clears recovered-Administrator factor state, and proves `.mvault` v1 excludes real authenticator records. It exposes no registration or login behavior. | ADR 0019, schema/dependency/recovery/portable regressions, `docs/evidence/gate-11/SUBGATE_11E1A_RESULTS.md` | Owner acceptance is pending. 11E-1b registration/self-management, login/assertion, UI, TOTP, API keys, OIDC, and publication remain unauthorized. |
 
 ### 5.4 Current storage invariants
 
@@ -921,7 +922,7 @@ new vault state.
 
 ### Gate 11 — Evolve authentication deliberately
 
-**Current execution:** `GATE 11 COMPLETE — 11E DESIGN CHECKPOINT PENDING`.
+**Current execution:** `GATE 11E-1A VERIFIED — OWNER ACCEPTANCE PENDING`.
 Gate 10 was accepted and the owner directed Gate 11 to open on 2026-08-31. The
 entry identity, token,
 browser, route, ownership, audit, backup, and recovery truth plus the proposed
@@ -988,10 +989,14 @@ accepted 11D-2 by authorizing 11D-3 on 2026-09-03. Gate 11D-3 is implemented at
 Administrator recovery are complete. The owner accepted 11D-3 and authorized Gate
 11E on 2026-09-03. The consolidated Gate 11 security/recovery matrix passed 118
 tests and is recorded in [Gate 11 results](evidence/gate-11/RESULTS.md). Gate 11E is
-now limited to the proposed stronger-authentication design in
-[its baseline](evidence/gate-11/SUBGATE_11E_BASELINE.md) and
-[owner checkpoint](evidence/gate-11/SUBGATE_11E_OWNER_CHECKPOINT.md); schema and
-feature implementation await that decision.
+governed by the accepted stronger-authentication design in
+[its baseline](evidence/gate-11/SUBGATE_11E_BASELINE.md),
+[owner checkpoint](evidence/gate-11/SUBGATE_11E_OWNER_CHECKPOINT.md), and accepted
+[ADR 0019](adr/0019-origin-bound-passkey-mfa.md). Local 11E-1a adds the pinned
+verifier, additive schema 17, recovery contract 6, recovery mutation, and `.mvault`
+exclusion proof; its evidence is in
+[the 11E-1a results](evidence/gate-11/SUBGATE_11E1A_RESULTS.md). Owner acceptance is
+required before 11E-1b registration and self-management begin.
 
 ### Gate 12 — Enable sustainable optional services
 

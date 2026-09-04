@@ -177,6 +177,7 @@ class UserAccount(SQLModel, table=True):
       "role IN ('administrator', 'member', 'viewer')",
       name="ck_useraccount_role",
     ),
+    CheckConstraint("mfa_enabled IN (0, 1)", name="ck_useraccount_mfa_enabled"),
   )
   id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
   username: str
@@ -187,6 +188,7 @@ class UserAccount(SQLModel, table=True):
   password_policy_version: int = Field(default=1)
   password_change_required: bool = Field(default=False)
   role: str = Field(default="viewer", index=True)
+  mfa_enabled: bool = Field(default=False, index=True)
   created_at: str
   updated_at: str
   last_login_at: Optional[str] = None
@@ -212,6 +214,82 @@ class BrowserSession(SQLModel, table=True):
   revoked_at: Optional[int] = Field(default=None, index=True)
   client_address: Optional[str] = None
   user_agent: Optional[str] = None
+
+
+class WebAuthnCredential(SQLModel, table=True):
+  __tablename__ = "webauthncredential"
+  __table_args__ = (
+    UniqueConstraint(
+      "credential_id",
+      name="idx_webauthncredential_credential_id_unique",
+    ),
+    CheckConstraint("sign_count >= 0", name="ck_webauthncredential_sign_count"),
+    CheckConstraint(
+      "device_type IN ('single_device', 'multi_device')",
+      name="ck_webauthncredential_device_type",
+    ),
+    CheckConstraint("backed_up IN (0, 1)", name="ck_webauthncredential_backed_up"),
+  )
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  user_id: str = Field(foreign_key="useraccount.id", index=True)
+  credential_id: str
+  public_key: str
+  sign_count: int = Field(default=0)
+  transports_json: str = Field(default="[]")
+  device_type: str
+  backed_up: bool = Field(default=False)
+  label: str
+  created_at: str = Field(index=True)
+  last_used_at: Optional[str] = Field(default=None, index=True)
+
+
+class WebAuthnChallenge(SQLModel, table=True):
+  __tablename__ = "webauthnchallenge"
+  __table_args__ = (
+    UniqueConstraint(
+      "challenge_digest",
+      name="idx_webauthnchallenge_challenge_digest_unique",
+    ),
+    UniqueConstraint(
+      "transaction_digest",
+      name="idx_webauthnchallenge_transaction_digest_unique",
+    ),
+    CheckConstraint(
+      "purpose IN ('registration', 'authentication', 'reauthentication')",
+      name="ck_webauthnchallenge_purpose",
+    ),
+    CheckConstraint(
+      "attempt_count BETWEEN 0 AND 5",
+      name="ck_webauthnchallenge_attempt_count",
+    ),
+  )
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  user_id: str = Field(foreign_key="useraccount.id", index=True)
+  purpose: str = Field(index=True)
+  challenge_digest: str
+  session_id: Optional[str] = Field(default=None, foreign_key="browsersession.id", index=True)
+  transaction_digest: Optional[str] = None
+  rp_id: str
+  origin: str
+  created_at: int
+  expires_at: int = Field(index=True)
+  consumed_at: Optional[int] = Field(default=None, index=True)
+  attempt_count: int = Field(default=0)
+
+
+class AuthenticatorPolicy(SQLModel, table=True):
+  __tablename__ = "authenticatorpolicy"
+  __table_args__ = (
+    CheckConstraint("id = 'global'", name="ck_authenticatorpolicy_singleton"),
+    CheckConstraint(
+      "mode IN ('optional', 'require_administrators', 'require_all')",
+      name="ck_authenticatorpolicy_mode",
+    ),
+  )
+  id: str = Field(default="global", primary_key=True)
+  mode: str = Field(default="optional")
+  updated_at: str
+  updated_by_user_id: Optional[str] = Field(default=None, foreign_key="useraccount.id")
 
 
 class AuditEvent(SQLModel, table=True):

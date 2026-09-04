@@ -2,15 +2,15 @@
 
 **Date:** 2026-09-04
 
-**Status:** Design checkpoint; no schema or feature implementation yet
+**Status:** Accepted design; 11E-1a implemented and locally verified
 
 **Entry commit:** `a85048b`
 
 **Entry schema:** 16
 
-**Authorization:** The owner accepted 11D-3 and authorized Gate 11E on 2026-09-03.
-Because authenticator type, origin policy, enforcement, and recovery materially
-change lockout risk, implementation remains gated on the decision package below.
+**Authorization:** The owner accepted 11D-3 and authorized Gate 11E on 2026-09-03,
+then accepted this design and ADR 0019 without amendment on 2026-09-04. That decision
+authorized 11E-1a only.
 
 ## Verified entry truth
 
@@ -27,10 +27,11 @@ change lockout risk, implementation remains gated on the decision package below.
   package. A maintained verifier must be pinned and audited; MakersVault must not
   implement WebAuthn cryptography itself.
 
-The current evaluation candidate is [`webauthn` 3.0.0](https://pypi.org/project/webauthn/)
+The accepted pinned verifier is [`webauthn` 3.0.0](https://pypi.org/project/webauthn/)
 (BSD-3-Clause, Python 3.10+). Its published dependency surface adds `cryptography`, `pyOpenSSL`, `cbor2`,
 `pyasn1`, and `pyasn1-modules`; 11E-1a must resolve and pin the complete transitive
-set, run vulnerability/license checks, and measure image impact before acceptance.
+set. The vulnerability/license and image-impact evidence is recorded in the 11E-1a
+results.
 
 ## Standards constraints
 
@@ -159,4 +160,6 @@ Approval should decide all of the following together:
 5. Administrator MFA reset plus stopped-instance recovery instead of recovery codes;
 6. no API key, OIDC, public registration, hosted tenancy, push, or publication.
 
-No schema or feature code should begin until this checkpoint is accepted or amended.
+The owner accepted all six choices without amendment on 2026-09-04. 11E-1a results
+are recorded in [`SUBGATE_11E1A_RESULTS.md`](SUBGATE_11E1A_RESULTS.md). Registration,
+login, and account self-management remain outside this slice.

@@ -7,7 +7,10 @@ verify a backup without starting the MakersVault application.
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 import hashlib
+import ipaddress
 import json
 import os
 import re
@@ -22,12 +25,13 @@ import zlib
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import BinaryIO, Iterable, Optional
+from urllib.parse import urlsplit
 
 
 BACKUP_FORMAT = "makersvault-backup"
 BACKUP_FORMAT_VERSION = 1
-RECOVERY_CONTRACT_VERSION = 5
-SUPPORTED_RECOVERY_CONTRACT_VERSIONS = {2, 3, 4, RECOVERY_CONTRACT_VERSION}
+RECOVERY_CONTRACT_VERSION = 6
+SUPPORTED_RECOVERY_CONTRACT_VERSIONS = {2, 3, 4, 5, RECOVERY_CONTRACT_VERSION}
 COMPONENT_NAMES = ("database.tar", "storage.tar")
 OPTIONAL_NAMES = ("config.env",)
 METADATA_NAMES = ("manifest.json", "checksums.sha256")
@@ -168,6 +172,9 @@ def database_summary(database: Path) -> dict:
                 "browsersession",
                 "auditevent",
                 "recoverymarker",
+                "webauthncredential",
+                "webauthnchallenge",
+                "authenticatorpolicy",
             )
             if table in tables
         )
@@ -347,6 +354,63 @@ def _valid_iso_timestamp(value: object) -> bool:
         return False
 
 
+def _decoded_base64url(value: object, minimum: int, maximum: int) -> Optional[bytes]:
+    candidate = str(value or "")
+    if not candidate or len(candidate) > ((maximum * 4 + 2) // 3):
+        return None
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", candidate):
+        return None
+    try:
+        decoded = base64.urlsafe_b64decode(candidate + "=" * (-len(candidate) % 4))
+    except (ValueError, binascii.Error):
+        return None
+    if not minimum <= len(decoded) <= maximum:
+        return None
+    if base64.urlsafe_b64encode(decoded).rstrip(b"=").decode("ascii") != candidate:
+        return None
+    return decoded
+
+
+def _valid_webauthn_scope(rp_id: object, origin: object) -> bool:
+    relying_party = str(rp_id or "")
+    if (
+        not relying_party
+        or len(relying_party) > 253
+        or relying_party != relying_party.lower()
+        or not re.fullmatch(
+            r"(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*"
+            r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?",
+            relying_party,
+        )
+    ):
+        return False
+    try:
+        ipaddress.ip_address(relying_party)
+        return False
+    except ValueError:
+        pass
+    try:
+        parsed = urlsplit(str(origin or ""))
+        parsed.port
+    except ValueError:
+        return False
+    hostname = (parsed.hostname or "").lower()
+    if (
+        not hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path not in {"", "/"}
+        or parsed.query
+        or parsed.fragment
+        or hostname != relying_party
+        and not hostname.endswith(f".{relying_party}")
+    ):
+        return False
+    if parsed.scheme == "https":
+        return True
+    return parsed.scheme == "http" and hostname == "localhost"
+
+
 def _json_object(value: object, maximum_bytes: int = 2048) -> bool:
     candidate = str(value or "")
     if len(candidate.encode("utf-8")) > maximum_bytes:
@@ -365,7 +429,10 @@ def _parsed_json_object(value: object, maximum_bytes: int = 2048) -> Optional[di
 
 def _valid_audit_details(value: object) -> bool:
     details = _parsed_json_object(value)
-    if details is None or set(details) - {"changed_fields", "revoked_sessions"}:
+    if details is None or set(details) - {
+        "changed_fields", "revoked_sessions", "revoked_challenges",
+        "removed_credentials", "reset_mfa_policy",
+    }:
         return False
     if "changed_fields" in details:
         changed = details["changed_fields"]
@@ -378,22 +445,51 @@ def _valid_audit_details(value: object) -> bool:
         ):
             return False
     revoked = details.get("revoked_sessions", 0)
-    return isinstance(revoked, int) and not isinstance(revoked, bool) and revoked >= 0
+    count_fields = ("revoked_challenges", "removed_credentials")
+    return (
+        isinstance(revoked, int)
+        and not isinstance(revoked, bool)
+        and revoked >= 0
+        and all(
+            isinstance(details.get(field, 0), int)
+            and not isinstance(details.get(field, 0), bool)
+            and details.get(field, 0) >= 0
+            for field in count_fields
+        )
+        and isinstance(details.get("reset_mfa_policy", False), bool)
+    )
 
 
-def _valid_recovery_details(kind: str, value: object, user_ids: set[str]) -> bool:
+def _valid_recovery_details(
+    kind: str,
+    value: object,
+    user_ids: set[str],
+    schema_version: int,
+) -> bool:
     details = _parsed_json_object(value)
     if details is None:
         return False
-    expected = (
-        {"revoked_sessions"}
-        if kind == "raw_restore"
-        else {"user_id", "revoked_sessions"}
-    )
-    if set(details) != expected:
+    if kind == "raw_restore":
+        expected_sets = [{"revoked_sessions"}]
+        if schema_version >= 17:
+            expected_sets.append({"revoked_sessions", "revoked_challenges"})
+    else:
+        expected_sets = [{"user_id", "revoked_sessions"}]
+        if schema_version >= 17:
+            expected_sets.append(
+                {"revoked_challenges", "removed_credentials", "reset_mfa_policy"}
+                | {"user_id", "revoked_sessions"}
+            )
+    if set(details) not in expected_sets:
         return False
     revoked = details.get("revoked_sessions")
     if not isinstance(revoked, int) or isinstance(revoked, bool) or revoked < 0:
+        return False
+    for field in ("revoked_challenges", "removed_credentials"):
+        value = details.get(field, 0)
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            return False
+    if not isinstance(details.get("reset_mfa_policy", False), bool):
         return False
     return kind == "raw_restore" or str(details.get("user_id") or "") in user_ids
 
@@ -452,7 +548,7 @@ def consistency_audit(
                 "id", "username", "username_normalized", "display_name",
                 "password_hash", "enabled", "password_policy_version",
                 "password_change_required", "role", "created_at", "updated_at",
-                "last_login_at",
+                "last_login_at", "mfa_enabled",
             ),
         )
         browser_sessions = _select_available(
@@ -479,9 +575,35 @@ def consistency_audit(
             "recoverymarker",
             ("id", "kind", "created_at", "details_json", "processed_at"),
         )
+        webauthn_credentials = _select_available(
+            connection,
+            "webauthncredential",
+            (
+                "id", "user_id", "credential_id", "public_key", "sign_count",
+                "transports_json", "device_type", "backed_up", "label", "created_at",
+                "last_used_at",
+            ),
+        )
+        webauthn_challenges = _select_available(
+            connection,
+            "webauthnchallenge",
+            (
+                "id", "user_id", "purpose", "challenge_digest", "session_id",
+                "transaction_digest", "rp_id", "origin", "created_at", "expires_at",
+                "consumed_at", "attempt_count",
+            ),
+        )
+        authenticator_policies = _select_available(
+            connection,
+            "authenticatorpolicy",
+            ("id", "mode", "updated_at", "updated_by_user_id"),
+        )
         security_table_columns = {
             table: table_columns(connection, table)
-            for table in ("useraccount", "browsersession", "auditevent", "recoverymarker")
+            for table in (
+                "useraccount", "browsersession", "auditevent", "recoverymarker",
+                "webauthncredential", "webauthnchallenge", "authenticatorpolicy",
+            )
             if table in tables
         }
         asset_columns = table_columns(connection, "asset") if "asset" in tables else set()
@@ -881,6 +1003,21 @@ def consistency_audit(
         expected_security_columns["recoverymarker"] = {
             "id", "kind", "created_at", "details_json", "processed_at",
         }
+    if schema_version >= 17:
+        expected_security_columns.setdefault("useraccount", set()).add("mfa_enabled")
+        expected_security_columns["webauthncredential"] = {
+            "id", "user_id", "credential_id", "public_key", "sign_count",
+            "transports_json", "device_type", "backed_up", "label", "created_at",
+            "last_used_at",
+        }
+        expected_security_columns["webauthnchallenge"] = {
+            "id", "user_id", "purpose", "challenge_digest", "session_id",
+            "transaction_digest", "rp_id", "origin", "created_at", "expires_at",
+            "consumed_at", "attempt_count",
+        }
+        expected_security_columns["authenticatorpolicy"] = {
+            "id", "mode", "updated_at", "updated_by_user_id",
+        }
     missing_security_tables = sorted(set(expected_security_columns) - tables)
     missing_security_columns = sorted(
         f"{table}.{column}"
@@ -919,6 +1056,7 @@ def consistency_audit(
         str(user.get("id") or "") for user in users
         if user.get("enabled") not in {0, 1}
         or user.get("password_change_required") not in {0, 1}
+        or (schema_version >= 17 and user.get("mfa_enabled") not in {0, 1})
         or not isinstance(user.get("password_policy_version"), int)
         or int(user.get("password_policy_version") or 0) < 1
         or not str(user.get("display_name") or "").strip()
@@ -998,6 +1136,176 @@ def consistency_audit(
         for session_id in ids
     })
 
+    session_owner_by_id = {
+        str(browser_session.get("id") or ""): str(browser_session.get("user_id") or "")
+        for browser_session in browser_sessions
+    }
+    credential_ids: dict[str, list[str]] = {}
+    credential_owner_counts: dict[str, int] = {}
+    orphan_credential_ids: list[str] = []
+    invalid_credential_ids: list[str] = []
+    valid_transports = {"ble", "hybrid", "internal", "nfc", "smart-card", "usb"}
+    for credential in webauthn_credentials:
+        record_id = str(credential.get("id") or "")
+        owner_id = str(credential.get("user_id") or "")
+        credential_id = str(credential.get("credential_id") or "")
+        if owner_id not in user_ids:
+            orphan_credential_ids.append(record_id)
+        else:
+            credential_owner_counts[owner_id] = credential_owner_counts.get(owner_id, 0) + 1
+        credential_ids.setdefault(credential_id, []).append(record_id)
+        try:
+            transports = json.loads(str(credential.get("transports_json") or ""))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            transports = None
+        if (
+            not _canonical_uuid(record_id)
+            or _decoded_base64url(credential_id, 1, 1023) is None
+            or _decoded_base64url(credential.get("public_key"), 16, 16384) is None
+            or not isinstance(credential.get("sign_count"), int)
+            or isinstance(credential.get("sign_count"), bool)
+            or int(credential.get("sign_count") or 0) < 0
+            or not isinstance(transports, list)
+            or len(transports) > len(valid_transports)
+            or any(not isinstance(item, str) or item not in valid_transports for item in transports)
+            or len(set(transports)) != len(transports)
+            or str(credential.get("device_type") or "")
+            not in {"single_device", "multi_device"}
+            or credential.get("backed_up") not in {0, 1}
+            or (
+                credential.get("backed_up") == 1
+                and credential.get("device_type") != "multi_device"
+            )
+            or not 1 <= len(str(credential.get("label") or "").strip()) <= 128
+            or not _valid_iso_timestamp(credential.get("created_at"))
+            or (
+                credential.get("last_used_at") is not None
+                and not _valid_iso_timestamp(credential.get("last_used_at"))
+            )
+        ):
+            invalid_credential_ids.append(record_id)
+    duplicate_credential_ids = sorted({
+        record_id
+        for encoded_id, record_ids in credential_ids.items()
+        if encoded_id and len(record_ids) > 1
+        for record_id in record_ids
+    })
+
+    challenge_digests: dict[str, list[str]] = {}
+    transaction_digests: dict[str, list[str]] = {}
+    orphan_challenge_ids: list[str] = []
+    invalid_challenge_ids: list[str] = []
+    for challenge in webauthn_challenges:
+        challenge_id = str(challenge.get("id") or "")
+        owner_id = str(challenge.get("user_id") or "")
+        purpose = str(challenge.get("purpose") or "")
+        challenge_digest = str(challenge.get("challenge_digest") or "")
+        session_id = challenge.get("session_id")
+        transaction_digest = challenge.get("transaction_digest")
+        challenge_digests.setdefault(challenge_digest, []).append(challenge_id)
+        if transaction_digest is not None:
+            transaction_digests.setdefault(str(transaction_digest), []).append(challenge_id)
+        if owner_id not in user_ids:
+            orphan_challenge_ids.append(challenge_id)
+        created = challenge.get("created_at")
+        expires = challenge.get("expires_at")
+        consumed = challenge.get("consumed_at")
+        attempt_count = challenge.get("attempt_count")
+        session_binding_valid = (
+            purpose in {"registration", "reauthentication"}
+            and session_id is not None
+            and transaction_digest is None
+            and session_owner_by_id.get(str(session_id)) == owner_id
+        )
+        transaction_binding_valid = (
+            purpose == "authentication"
+            and session_id is None
+            and digest_pattern.fullmatch(str(transaction_digest or "")) is not None
+        )
+        if (
+            not _canonical_uuid(challenge_id)
+            or not digest_pattern.fullmatch(challenge_digest)
+            or not (session_binding_valid or transaction_binding_valid)
+            or not _valid_webauthn_scope(challenge.get("rp_id"), challenge.get("origin"))
+            or not isinstance(created, int)
+            or isinstance(created, bool)
+            or not isinstance(expires, int)
+            or isinstance(expires, bool)
+            or created < 0
+            or not created < expires <= created + 300
+            or (
+                consumed is not None
+                and (
+                    not isinstance(consumed, int)
+                    or isinstance(consumed, bool)
+                    or consumed < created
+                )
+            )
+            or not isinstance(attempt_count, int)
+            or isinstance(attempt_count, bool)
+            or not 0 <= attempt_count <= 5
+        ):
+            invalid_challenge_ids.append(challenge_id)
+    duplicate_challenge_digest_ids = sorted({
+        challenge_id
+        for digest, challenge_ids in challenge_digests.items()
+        if digest and len(challenge_ids) > 1
+        for challenge_id in challenge_ids
+    })
+    duplicate_transaction_digest_ids = sorted({
+        challenge_id
+        for digest, challenge_ids in transaction_digests.items()
+        if digest and len(challenge_ids) > 1
+        for challenge_id in challenge_ids
+    })
+
+    invalid_policy_ids: list[str] = []
+    if schema_version >= 17:
+        if len(authenticator_policies) != 1:
+            invalid_policy_ids.append("global")
+        for policy in authenticator_policies:
+            policy_id = str(policy.get("id") or "")
+            updater = policy.get("updated_by_user_id")
+            if (
+                policy_id != "global"
+                or str(policy.get("mode") or "")
+                not in {"optional", "require_administrators", "require_all"}
+                or not _valid_iso_timestamp(policy.get("updated_at"))
+                or (updater is not None and str(updater) not in user_ids)
+            ):
+                invalid_policy_ids.append(policy_id)
+    mfa_enabled_without_credential_ids = sorted(
+        str(user.get("id") or "")
+        for user in users
+        if schema_version >= 17
+        and user.get("mfa_enabled") == 1
+        and credential_owner_counts.get(str(user.get("id") or ""), 0) == 0
+    )
+    mfa_disabled_with_credential_account_ids = sorted(
+        str(user.get("id") or "")
+        for user in users
+        if schema_version >= 17
+        and user.get("mfa_enabled") != 1
+        and credential_owner_counts.get(str(user.get("id") or ""), 0) > 0
+    )
+    policy_unenrolled_account_ids: list[str] = []
+    if len(authenticator_policies) == 1:
+        mode = str(authenticator_policies[0].get("mode") or "")
+        policy_unenrolled_account_ids = sorted(
+            str(user.get("id") or "")
+            for user in users
+            if user.get("enabled") == 1
+            and (
+                mode == "require_all"
+                or mode == "require_administrators"
+                and str(user.get("role") or "") == "administrator"
+            )
+            and (
+                user.get("mfa_enabled") != 1
+                or credential_owner_counts.get(str(user.get("id") or ""), 0) == 0
+            )
+        )
+
     action_pattern = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
     invalid_audit_event_ids: list[str] = []
     orphan_audit_actor_event_ids: list[str] = []
@@ -1059,7 +1367,8 @@ def consistency_audit(
             or not _valid_iso_timestamp(marker.get("created_at"))
             or (processed_at is not None and not _valid_iso_timestamp(processed_at))
             or not _valid_recovery_details(
-                str(marker.get("kind") or ""), marker.get("details_json"), user_ids
+                str(marker.get("kind") or ""), marker.get("details_json"), user_ids,
+                schema_version,
             )
         ):
             invalid_recovery_marker_ids.append(marker_id)
@@ -1077,6 +1386,17 @@ def consistency_audit(
         invalid_session_digest_ids,
         duplicate_session_digest_ids,
         invalid_session_time_ids,
+        orphan_credential_ids,
+        invalid_credential_ids,
+        duplicate_credential_ids,
+        orphan_challenge_ids,
+        invalid_challenge_ids,
+        duplicate_challenge_digest_ids,
+        duplicate_transaction_digest_ids,
+        invalid_policy_ids,
+        mfa_enabled_without_credential_ids,
+        mfa_disabled_with_credential_account_ids,
+        policy_unenrolled_account_ids,
         invalid_audit_event_ids,
         orphan_audit_actor_event_ids,
         invalid_recovery_marker_ids,
@@ -1251,7 +1571,10 @@ def consistency_audit(
         })
     security_domain_present = bool(
         schema_version >= 13
-        or {"useraccount", "browsersession", "auditevent", "recoverymarker"} & tables
+        or {
+            "useraccount", "browsersession", "auditevent", "recoverymarker",
+            "webauthncredential", "webauthnchallenge", "authenticatorpolicy",
+        } & tables
     )
     if security_domain_present:
         result.update({
@@ -1274,6 +1597,30 @@ def consistency_audit(
             "invalid_session_digest_ids": sorted(invalid_session_digest_ids),
             "duplicate_session_digest_ids": duplicate_session_digest_ids,
             "invalid_session_time_ids": sorted(invalid_session_time_ids),
+            "webauthn_credential_count": len(webauthn_credentials),
+            "pending_webauthn_challenge_count": sum(
+                1 for challenge in webauthn_challenges
+                if challenge.get("consumed_at") is None
+            ),
+            "orphan_webauthn_credential_ids": sorted(orphan_credential_ids),
+            "invalid_webauthn_credential_ids": sorted(invalid_credential_ids),
+            "duplicate_webauthn_credential_ids": duplicate_credential_ids,
+            "orphan_webauthn_challenge_ids": sorted(orphan_challenge_ids),
+            "invalid_webauthn_challenge_ids": sorted(invalid_challenge_ids),
+            "duplicate_webauthn_challenge_digest_ids": (
+                duplicate_challenge_digest_ids
+            ),
+            "duplicate_webauthn_transaction_digest_ids": (
+                duplicate_transaction_digest_ids
+            ),
+            "invalid_authenticator_policy_ids": sorted(invalid_policy_ids),
+            "mfa_enabled_without_credential_ids": (
+                mfa_enabled_without_credential_ids
+            ),
+            "mfa_disabled_with_credential_account_ids": (
+                mfa_disabled_with_credential_account_ids
+            ),
+            "policy_unenrolled_account_ids": policy_unenrolled_account_ids,
             "invalid_audit_event_ids": sorted(invalid_audit_event_ids),
             "orphan_audit_actor_event_ids": sorted(orphan_audit_actor_event_ids),
             "invalid_recovery_marker_ids": sorted(invalid_recovery_marker_ids),
@@ -1507,7 +1854,7 @@ def verify_extracted_backup(
             return recorded == actual
         return recorded == actual
 
-    compatible_older_contract = recovery_contract in {None, 2, 3, 4}
+    compatible_older_contract = recovery_contract in {None, 2, 3, 4, 5}
     if not report_matches(
         manifest.get("database"),
         summary,

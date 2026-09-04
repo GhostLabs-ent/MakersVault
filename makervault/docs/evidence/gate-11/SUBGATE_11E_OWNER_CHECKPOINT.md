@@ -2,15 +2,15 @@
 
 **Date:** 2026-09-04
 
-**Status:** Decision pending
+**Status:** Accepted without amendment on 2026-09-04
 
 **Proposal:** Implement password-plus-passkey MFA first, optional by default, with
 safe staged Administrator enforcement. Do not implement TOTP, passwordless login,
 API keys, or OIDC in this slice.
 
-## Decision requested
+## Accepted decision
 
-Approve or amend these six linked choices:
+The owner accepted these six linked choices without amendment:
 
 1. WebAuthn/passkeys before TOTP because origin-bound public-key assertions resist
    phishing and require no server-held shared MFA secret.
@@ -45,6 +45,6 @@ Full design and implementation slices are in
 [`SUBGATE_11E_BASELINE.md`](SUBGATE_11E_BASELINE.md), with the proposed durable
 decision in [ADR 0019](../../adr/0019-origin-bound-passkey-mfa.md).
 
-Approval authorizes 11E-1a only: dependency evaluation, schema/recovery design,
+Acceptance authorizes 11E-1a only: dependency evaluation, schema/recovery design,
 migration fixtures, and portability exclusion tests. Each later implementation
 slice remains sequentially evidenced and accepted.

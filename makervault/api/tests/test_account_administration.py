@@ -46,30 +46,34 @@ def test_schema15_to_schema16_adds_administration_audit_and_recovery_state(
 ) -> None:
     database_engine = _engine(tmp_path / "gate11d.db")
     assert run_migrations(database_engine, MIGRATIONS[:15]) == 15
-    identity = bootstrap_initial_administrator(
-        database_engine,
-        username="Owner",
-        password="a sufficiently long owner password",
-    )
+    user_id = str(uuid4())
     browser_id = str(uuid4())
     with database_engine.begin() as connection:
+        connection.exec_driver_sql(
+            "INSERT INTO useraccount("
+            "id, username, username_normalized, display_name, password_hash, enabled, "
+            "password_policy_version, password_change_required, role, created_at, updated_at) "
+            "VALUES (?, 'Owner', 'owner', 'Owner', '$argon2id$v=19$fixture', 1, 1, 0, "
+            "'administrator', '2026-09-03T00:00:00Z', '2026-09-03T00:00:00Z')",
+            (user_id,),
+        )
         connection.exec_driver_sql(
             "INSERT INTO browsersession("
             "id, user_id, secret_digest, created_at, last_seen_at, idle_expires_at, "
             "absolute_expires_at, idle_ttl_seconds) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (browser_id, identity.user_id, "a" * 64, 1234, 1234, 2000, 3000, 766),
+            (browser_id, user_id, "a" * 64, 1234, 1234, 2000, 3000, 766),
         )
     with database_engine.connect() as connection:
         user_before = connection.exec_driver_sql(
-            "SELECT * FROM useraccount WHERE id = ?", (identity.user_id,)
+            "SELECT * FROM useraccount WHERE id = ?", (user_id,)
         ).fetchone()
 
-    assert run_migrations(database_engine) == 16
-    assert run_migrations(database_engine) == 16
+    assert run_migrations(database_engine, MIGRATIONS[:16]) == 16
+    assert run_migrations(database_engine, MIGRATIONS[:16]) == 16
 
     with database_engine.connect() as connection:
         user_after = connection.exec_driver_sql(
-            "SELECT * FROM useraccount WHERE id = ?", (identity.user_id,)
+            "SELECT * FROM useraccount WHERE id = ?", (user_id,)
         ).fetchone()
         reauthenticated_at = connection.exec_driver_sql(
             "SELECT reauthenticated_at FROM browsersession WHERE id = ?",

@@ -68,6 +68,40 @@ def test_startup_converts_pending_recovery_marker_to_secret_free_audit(
         assert "backup" not in serialized
 
 
+def test_startup_preserves_only_bounded_schema17_recovery_counts(
+    tmp_path: Path,
+) -> None:
+    database_engine = create_engine(
+        f"sqlite:///{tmp_path / 'app.db'}",
+        connect_args={"check_same_thread": False},
+    )
+    run_migrations(database_engine)
+    marker_id = "33333333-3333-4333-8333-333333333333"
+    with Session(database_engine) as session:
+        session.add(
+            RecoveryMarker(
+                id=marker_id,
+                kind="raw_restore",
+                created_at="2026-09-04T00:00:00Z",
+                details_json=json.dumps(
+                    {"revoked_sessions": 2, "revoked_challenges": 4}
+                ),
+            )
+        )
+        session.commit()
+
+    assert process_recovery_markers(database_engine) == 1
+
+    with Session(database_engine) as session:
+        event = session.exec(
+            select(AuditEvent).where(AuditEvent.action == "recovery.raw_restore")
+        ).one()
+        assert json.loads(event.details_json) == {
+            "revoked_challenges": 4,
+            "revoked_sessions": 2,
+        }
+
+
 def test_offline_recovery_reads_matching_passwords_only_from_protected_prompt(
     monkeypatch,
     tmp_path: Path,

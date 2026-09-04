@@ -131,7 +131,7 @@ def test_streaming_export_produces_verified_v1_without_mutating_source(tmp_path)
     assert not list(tmp_path.glob(".mvault-export-*"))
 
     header = archive_json(output, "mvault/header.json")
-    assert header["source"] == {"makersvault_version": "5.1.0", "schema_version": 16}
+    assert header["source"] == {"makersvault_version": "5.1.0", "schema_version": 17}
     assert header["optional_features"] == ["derived-thumbnails"]
     artifacts = archive_jsonl(output, "mvault/catalogs/artifacts.jsonl")
     assert artifacts[0]["supporting_file_count"] == 0
@@ -155,7 +155,7 @@ def test_streaming_export_produces_verified_v1_without_mutating_source(tmp_path)
     assert manifest["external"]["unavailable"] == 1
 
 
-def test_schema16_identity_roles_sessions_and_audit_are_excluded_from_portable_v1(tmp_path):
+def test_schema17_identity_sessions_audit_and_authenticators_are_excluded_from_portable_v1(tmp_path):
     database, storage = fixture_database(tmp_path)
     engine = create_engine(f"sqlite:///{database}")
     bootstrap_initial_administrator(
@@ -173,6 +173,45 @@ def test_schema16_identity_roles_sessions_and_audit_are_excluded_from_portable_v
         client_address="192.0.2.10",
         user_agent="portable-secret-test",
     )
+    credential_id = "Y3JlZGVudGlhbC1pZC1tdXN0LW5vdC1leHBvcnQ"
+    public_key = "cHVibGljLWtleS1tdXN0LW5vdC1leHBvcnQ"
+    challenge_digest = "a" * 64
+    transaction_digest = "b" * 64
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            "UPDATE useraccount SET mfa_enabled = 1 WHERE id = ?", (user_id,)
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO webauthncredential(
+                id, user_id, credential_id, public_key, sign_count, transports_json,
+                device_type, backed_up, label, created_at
+            ) VALUES (
+                '11111111-1111-4111-8111-111111111111', ?, ?, ?, 0, '["internal"]',
+                'multi_device', 1, 'portable-passkey-must-not-export',
+                '2026-09-04T00:00:00Z'
+            )
+            """,
+            (user_id, credential_id, public_key),
+        )
+        connection.exec_driver_sql(
+            """
+            INSERT INTO webauthnchallenge(
+                id, user_id, purpose, challenge_digest, session_id, transaction_digest,
+                rp_id, origin, created_at, expires_at, consumed_at, attempt_count
+            ) VALUES (
+                '22222222-2222-4222-8222-222222222222', ?, 'authentication', ?, NULL, ?,
+                'vault.example.test', 'https://vault.example.test', 1000, 1200, NULL, 0
+            )
+            """,
+            (user_id, challenge_digest, transaction_digest),
+        )
+        connection.exec_driver_sql(
+            "UPDATE authenticatorpolicy SET mode = 'require_administrators', "
+            "updated_at = '2026-09-04T00:00:00Z', updated_by_user_id = ? "
+            "WHERE id = 'global'",
+            (user_id,),
+        )
     audit_source = "audit-source-must-not-export"
     record_audit_event(
         engine,
@@ -211,6 +250,12 @@ def test_schema16_identity_roles_sessions_and_audit_are_excluded_from_portable_v
     assert browser_session.secret.encode() not in archive_bytes
     assert browser_session.csrf_token.encode() not in archive_bytes
     assert audit_source.encode() not in archive_bytes
+    assert credential_id.encode() not in archive_bytes
+    assert public_key.encode() not in archive_bytes
+    assert challenge_digest.encode() not in archive_bytes
+    assert transaction_digest.encode() not in archive_bytes
+    assert b"portable-passkey-must-not-export" not in archive_bytes
+    assert b"require_administrators" not in archive_bytes
 
 
 def test_export_never_overwrites_existing_output(tmp_path):
@@ -316,13 +361,13 @@ def test_unknown_schema_fails_before_archive_creation(tmp_path):
     database, storage = fixture_database(tmp_path)
     connection = sqlite3.connect(database)
     connection.execute(
-        "INSERT INTO schema_migration(version, name) VALUES (17, 'future_schema')"
+        "INSERT INTO schema_migration(version, name) VALUES (18, 'future_schema')"
     )
     connection.commit()
     connection.close()
     output = tmp_path / "portable.mvault"
 
-    with pytest.raises(MvaultExportError, match="schema 17"):
+    with pytest.raises(MvaultExportError, match="schema 18"):
         export_archive(database, storage, output)
 
     assert not output.exists()
