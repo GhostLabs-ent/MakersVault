@@ -243,7 +243,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-047 | `VERIFIED` | Local Gate 11D-3 advances new raw backups to recovery contract 5 with schema-16 identity/session/audit/marker verification and compatible re-audit of contracts 2–4. Exact raw restore revokes copied sessions and queues a startup audit marker. Interactive stopped-instance recovery requires a verified exact pre-change backup, protected password prompt, exclusive file/SQLite lock, and one existing account; it revokes every session and cannot create a bypass identity. | `api/recovery.py`, `api/recovery_mutation.py`, `api/recovery_marker_service.py`, `scripts/recover-administrator.sh`, recovery regressions, `docs/evidence/gate-11/SUBGATE_11D3_RESULTS.md` | Owner accepted Gate 11D-3 on 2026-09-03. Consolidated Gate 11 closeout is next; no 11E work, push, tag, release, deployment, or publication is authorized. |
 | T-048 | `VERIFIED` | Gate 11 closes with persistent Argon2id identities, revocable protected-cookie sessions, three deny-by-default shared-vault roles, account/recent-authentication safety, mandatory audit, contract-5 raw recovery, and stopped-instance Administrator recovery operating as one tested system. The consolidated identity/session/authorization/account/audit/recovery/portable matrix passes 118 tests. | `docs/evidence/gate-11/RESULTS.md`, accepted 11A–11D evidence, full repository gate | Owner accepted 11D-3 and authorized Gate 11E on 2026-09-03. Gate 11E remains at its authenticator design checkpoint; no schema/feature implementation or publication is implicit. |
 | T-049 | `VERIFIED` | Local Gate 11E-1a pins a maintained WebAuthn verifier, adds optional-by-default schema-17 account/credential/digest-only-ceremony/singleton-policy state, advances new raw backups to recovery contract 6, consumes pending ceremonies on restore, clears recovered-Administrator factor state, and proves `.mvault` v1 excludes real authenticator records. It exposes no registration or login behavior. | ADR 0019, schema/dependency/recovery/portable regressions, `docs/evidence/gate-11/SUBGATE_11E1A_RESULTS.md` | Owner accepted 11E-1a on 2026-09-04 and authorized 11E-1b registration/self-management. Login/assertion, UI, TOTP, API keys, OIDC, and publication remain unauthorized. |
-| T-050 | `VERIFIED` | Local Gate 11E-1b adds explicit stable RP/origin validation, owner-only UV-required attestation-free registration, bounded digest-only session-bound ceremonies, credential list/rename/removal, passkey reauthentication for current-strength self-management, first-enrollment opt-in, last-credential policy safety, and atomic secret-free audit without changing schema 17 or recovery contract 6. | Passkey configuration/service/API regressions, full repository gate, `docs/evidence/gate-11/SUBGATE_11E1B_RESULTS.md` | Owner acceptance is pending. This sequential slice is not releaseable alone because password-first pending login and assertion-before-session issuance remain 11E-1c. UI/policy/reset closeout remains 11E-1d; push, deployment, and publication remain prohibited. |
+| T-050 | `VERIFIED` | Local Gate 11E-1b adds explicit stable RP/origin validation, owner-only UV-required attestation-free registration, bounded digest-only session-bound ceremonies, credential list/rename/removal, passkey reauthentication for current-strength self-management, first-enrollment opt-in, last-credential policy safety, and atomic secret-free audit without changing schema 17 or recovery contract 6. | Passkey configuration/service/API regressions, full repository gate, `docs/evidence/gate-11/SUBGATE_11E1B_RESULTS.md` | Owner accepted 11E-1b on 2026-09-04 and authorized 11E-1c. UI/policy/reset closeout remains 11E-1d; push, deployment, and publication remain prohibited. |
 
 ### 5.4 Current storage invariants
 
@@ -923,7 +923,7 @@ new vault state.
 
 ### Gate 11 — Evolve authentication deliberately
 
-**Current execution:** `GATE 11E-1B COMPLETE LOCALLY — OWNER ACCEPTANCE PENDING`.
+**Current execution:** `GATE 11E-1B ACCEPTED — 11E-1C AUTHORIZED`.
 Gate 10 was accepted and the owner directed Gate 11 to open on 2026-08-31. The
 entry identity, token,
 browser, route, ownership, audit, backup, and recovery truth plus the proposed
@@ -1000,8 +1000,9 @@ exclusion proof; its evidence is in
 11E-1a on 2026-09-04 and authorized 11E-1b registration and self-management. Login
 assertions and UI remain later sequential slices. Gate 11E-1b is now implemented and
 verified locally in
-[the 11E-1b results](evidence/gate-11/SUBGATE_11E1B_RESULTS.md). It awaits owner
-acceptance; 11E-1c remains unauthorized, and 1b must not be released independently.
+[the 11E-1b results](evidence/gate-11/SUBGATE_11E1B_RESULTS.md). The owner accepted
+11E-1b on 2026-09-04 and authorized 11E-1c. Until 11E-1c is complete, 1b remains an
+intentionally non-releaseable local integration slice.
 
 ### Gate 12 — Enable sustainable optional services
 

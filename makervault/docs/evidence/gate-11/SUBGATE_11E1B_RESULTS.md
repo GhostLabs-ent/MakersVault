@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-04
 
-**Status:** Complete locally; owner acceptance pending
+**Status:** Complete and owner-accepted
 
 **Entry commit:** `c7caafd`
 
@@ -118,3 +118,9 @@ login UI, policy administration, live Administrator reset, browser ceremony test
 raw-backup revalidation, final security review, and closeout remain 11E-1d. TOTP,
 passwordless login, API keys, OIDC/SSO, hosted tenancy, push, tag, release, deployment,
 and publication remain unauthorized.
+
+## Owner acceptance
+
+The owner accepted Gate 11E-1b on 2026-09-04 and authorized 11E-1c password-first
+pending login, assertion-before-session issuance, throttling/replay validation, and
+MFA-aware recent authentication. Gate 11E-1d and publication remain unauthorized.
