@@ -1059,7 +1059,8 @@ entitlement must not disable local access or export.
 
 ### Gate 13 — End-state audit and re-cock
 
-**Current execution:** `IN PROGRESS — 13A EVIDENCE REVIEW`, opened by owner direction
+**Current execution:** `IN PROGRESS — 13B AUTHORIZED`; the owner accepted 13A at
+`c2e9f94` on 2026-09-05. Gate 13 was opened by owner direction
 on 2026-09-05 at `236c0fd`. The [baseline](evidence/gate-13/BASELINE.md) sequences
 13A truth inventory, 13B current lifecycle/harness qualification, 13C user-workflow
 and release-readiness evidence, and 13D owner acceptance/re-baselining. The
@@ -1285,9 +1286,9 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Gate 13 is active. Review [13A results](evidence/gate-13/SUBGATE_13A_RESULTS.md) and
-its truth/security/carry-forward ledgers, then authorize 13B's bounded harness
-repairs and current-build upgrade/restore/portable-startup drills. Gate 12 remains
+Gate 13A is accepted. Execute 13B's authorized bounded harness repairs and
+current-build upgrade/restore/portable-startup drills against the
+[13A results](evidence/gate-13/SUBGATE_13A_RESULTS.md) and truth/security ledgers. Gate 12 remains
 deferred to desktop. End-state acceptance and the next roadmap remain 13D owner
 decisions; the frozen Gate 5 release baseline is unchanged. Push, tag, image
 publication, deployment, and release remain separately gated. Keep the

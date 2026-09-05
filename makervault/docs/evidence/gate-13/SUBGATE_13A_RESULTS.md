@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-05
 
-**Status:** EVIDENCE REVIEW; opening audit complete, owner acceptance pending
+**Status:** ACCEPTED by the owner on 2026-09-05 at evidence commit `c2e9f94`
 
 **Tested entry:** `236c0fd14faf6cddb7e46a78657e6000cdb4d79f`
 
@@ -110,7 +110,8 @@ stale harnesses, explicit desktop deferral, and proposed future work. No applica
 schema, manifest, dependency, or verification-harness code changed in 13A.
 Historical gate evidence and the untracked desktop architecture draft are intact.
 
-**Recommendation:** accept 13A and proceed to 13B: repair the cookie/CSRF/schema
+**Owner decision:** 13A accepted and 13B authorized on 2026-09-05. Proceed to
+13B: repair the cookie/CSRF/schema
 assumptions in the current-build harnesses and execute the joined disposable
 upgrade/recovery/portable-startup workflow. Do not restore JWT compatibility, weaken
 production cookie policy, or edit old results to qualify a new baseline.

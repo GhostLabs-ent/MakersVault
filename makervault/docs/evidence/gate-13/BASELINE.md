@@ -2,7 +2,7 @@
 
 **Opened:** 2026-09-05, by owner direction
 
-**Status:** IN PROGRESS; 13A evidence review, not Gate 13 acceptance
+**Status:** IN PROGRESS; 13A accepted, 13B authorized on 2026-09-05
 
 **Audit entry:** `236c0fd14faf6cddb7e46a78657e6000cdb4d79f`
 
@@ -79,6 +79,6 @@ carry-forward is not a claim that its implementation or tests exist.
 
 **Accepted by/date:** Pending. Opening Gate 13 is not acceptance of its end state.
 
-**Next recommendation:** Review 13A, then authorize the bounded 13B verification
-repairs and lifecycle drills. Keep Gate 12 on the desktop track and publication
-behind its separate explicit decision.
+**Current owner direction:** 13A was accepted at `c2e9f94` and 13B's bounded
+verification repairs and lifecycle drills were authorized on 2026-09-05. Keep
+Gate 12 on the desktop track and publication behind its separate explicit decision.
