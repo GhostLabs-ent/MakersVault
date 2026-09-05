@@ -4,7 +4,7 @@
 
 **Baseline date:** 2026-09-04
 
-**Committed baseline:** `main` at `f1a8734`
+**Committed baseline:** `main` at `1a209aa`
 
 **Immutable v5.1 source baseline:** `f6ff55b33fd64c7a5037e8eb642bed048c3e0e4f`
 
@@ -1006,7 +1006,7 @@ verified locally in
 11E-1b on 2026-09-04 and authorized 11E-1c. Gate 11E-1c is now implemented and
 verified locally in
 [the 11E-1c results](evidence/gate-11/SUBGATE_11E1C_RESULTS.md). The owner accepted
-11E-1c on 2026-09-04 and authorized 11E-1d. Gate 11E-1d is now implemented and
+11E-1c on 2026-09-04 and authorized 11E-1d. Gate 11E-1d is implemented at `1a209aa` and
 verified locally in
 [the 11E-1d results](evidence/gate-11/SUBGATE_11E1D_RESULTS.md). It completes the
 browser, policy, live reset, recovery revalidation, and security closeout boundary
