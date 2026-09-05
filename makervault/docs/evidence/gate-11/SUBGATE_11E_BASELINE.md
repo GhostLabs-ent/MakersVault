@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-04
 
-**Status:** Accepted design; 11E-1a–1c owner-accepted; 11E-1d at closeout checkpoint
+**Status:** Accepted design; 11E-1a–1d complete and owner-accepted
 
 **Entry commit:** `a85048b`
 
@@ -163,4 +163,6 @@ Approval should decide all of the following together:
 The owner accepted all six choices without amendment on 2026-09-04, then accepted
 11E-1a, 11E-1b, and 11E-1c sequentially. The final authorized 11E-1d workflow,
 policy, reset, browser, and recovery review is recorded in
-[`SUBGATE_11E1D_RESULTS.md`](SUBGATE_11E1D_RESULTS.md), pending owner acceptance.
+[`SUBGATE_11E1D_RESULTS.md`](SUBGATE_11E1D_RESULTS.md). The owner accepted that
+closeout on 2026-09-05 and deferred Gate 12 to the desktop version. Gate 13 is the
+next gate for the current track; it has not yet started.

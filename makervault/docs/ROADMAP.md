@@ -25,13 +25,16 @@ The binding details are in [V5.1_SCOPE.md](V5.1_SCOPE.md).
 
 ## After v5.1 — identity and history foundation
 
-**Status update (2026-09-04):** The identity/history, Project, adapter, Machine,
+**Status update (2026-09-05):** The identity/history, Project, adapter, Machine,
 portability, and shared-vault authentication sequence is implemented in later local
-history through accepted Gates 6–11 and the authorized Gate 11E passkey slices. The
+history through accepted Gates 6–11 and the accepted Gate 11E passkey slices. The
 frozen Gate 5 candidate remains at `f6ff55b`. The sections below preserve the
 direction that produced those features; their current status is tracked in the
 runbook. Sustainability, API-key/OIDC decisions, hosted/provider work, and the
-disabled print-monitoring experiment remain separately gated.
+disabled print-monitoring experiment remain separately gated. The owner deferred
+Gate 12 sustainable optional services to the desktop version on 2026-09-05. Its
+free-core and non-lock-in commitments remain binding; Gate 13 is the next gate for
+the current track and has not yet started.
 
 ### Content identity
 
@@ -235,9 +238,8 @@ Each stage needs migrations, auditability, recovery, and threat-focused tests.
 Multi-user authentication should not be slipped into an unrelated release as a
 small settings feature.
 
-**Current status (2026-09-04):** Gates 11A–11D are accepted. Gate 11E-1a through
-11E-1c are accepted, and 11E-1d is at its local closeout checkpoint. The shared
-vault now has persistent Argon2id accounts, protected revocable sessions, three
+**Current status (2026-09-05):** Gates 11A–11D and 11E-1a–1d are accepted and
+closed. The shared vault now has persistent Argon2id accounts, protected revocable sessions, three
 fixed deny-by-default roles, mandatory audit, stopped-instance recovery, and
 optional password-plus-passkey MFA. API keys and OIDC/SSO remain separate future
 decisions; no push, release, deployment, hosted tenancy, or publication is implied.

@@ -2,9 +2,9 @@
 
 **Status:** Governing working document
 
-**Baseline date:** 2026-09-04
+**Baseline date:** 2026-09-05
 
-**Committed baseline:** `main` at `1a209aa`
+**Committed baseline:** `main` at `6b2ed08` (implementation `1a209aa`)
 
 **Immutable v5.1 source baseline:** `f6ff55b33fd64c7a5037e8eb642bed048c3e0e4f`
 
@@ -245,7 +245,8 @@ be made explicit before deployment boundaries are multiplied.
 | T-049 | `VERIFIED` | Local Gate 11E-1a pins a maintained WebAuthn verifier, adds optional-by-default schema-17 account/credential/digest-only-ceremony/singleton-policy state, advances new raw backups to recovery contract 6, consumes pending ceremonies on restore, clears recovered-Administrator factor state, and proves `.mvault` v1 excludes real authenticator records. It exposes no registration or login behavior. | ADR 0019, schema/dependency/recovery/portable regressions, `docs/evidence/gate-11/SUBGATE_11E1A_RESULTS.md` | Owner accepted 11E-1a on 2026-09-04 and authorized 11E-1b registration/self-management. Login/assertion, UI, TOTP, API keys, OIDC, and publication remain unauthorized. |
 | T-050 | `VERIFIED` | Local Gate 11E-1b adds explicit stable RP/origin validation, owner-only UV-required attestation-free registration, bounded digest-only session-bound ceremonies, credential list/rename/removal, passkey reauthentication for current-strength self-management, first-enrollment opt-in, last-credential policy safety, and atomic secret-free audit without changing schema 17 or recovery contract 6. | Passkey configuration/service/API regressions, full repository gate, `docs/evidence/gate-11/SUBGATE_11E1B_RESULTS.md` | Owner accepted 11E-1b on 2026-09-04 and authorized 11E-1c. UI/policy/reset closeout remains 11E-1d; push, deployment, and publication remain prohibited. |
 | T-051 | `VERIFIED` | Local Gate 11E-1c makes password success for an MFA-enabled account create only a five-minute digest-bound pending transaction in a separate host-only cookie. Exact-origin, UV-required assertion verification consumes that transaction before issuing a fresh normal session; bounded per-transaction attempts, per-account pending state, source throttling, generic denials, and replay rejection create no session. High-impact recent authentication now requires recent password and session/RP/origin-bound passkey proof for MFA accounts, including the forced-password-change recovery path. | Password-first/assertion/replay/throttling/recent-auth regressions, 310-test API gate, `docs/evidence/gate-11/SUBGATE_11E1C_RESULTS.md` | Owner accepted 11E-1c on 2026-09-04 and authorized 11E-1d. Push, deployment, and publication remain prohibited. |
-| T-052 | `VERIFIED` | Local Gate 11E-1d completes native browser registration/login/step-up and credential management, Administrator-selectable Optional/Require Administrators/Require Everyone policy with enrollment and account-mutation invariants, and explicit current-strength other-account MFA reset that preserves the password and revokes sessions. Schema 17 and recovery contract 6 remain unchanged; raw restore and stopped-instance recovery behavior are revalidated. | 313 API tests, 32 web tests/build, Chromium virtual-authenticator drill, Compose/security/bridge/container gates, `docs/evidence/gate-11/SUBGATE_11E1D_RESULTS.md` | Implementation is complete at the owner checkpoint. Owner acceptance is required before Gate 12; push, tag, release, deployment, and publication remain prohibited. |
+| T-052 | `VERIFIED` | Local Gate 11E-1d completes native browser registration/login/step-up and credential management, Administrator-selectable Optional/Require Administrators/Require Everyone policy with enrollment and account-mutation invariants, and explicit current-strength other-account MFA reset that preserves the password and revokes sessions. Schema 17 and recovery contract 6 remain unchanged; raw restore and stopped-instance recovery behavior are revalidated. | 313 API tests, 32 web tests/build, Chromium virtual-authenticator drill, Compose/security/bridge/container gates, `docs/evidence/gate-11/SUBGATE_11E1D_RESULTS.md` | Owner accepted closeout on 2026-09-05 at implementation `1a209aa` and evidence `6b2ed08`. Push, tag, release, deployment, and publication remain prohibited. |
+| T-053 | `DECIDED` | Gate 12 sustainable optional services is deferred to the desktop version by owner direction. Its delivery evidence is outstanding; free-core, portability, and non-lock-in commitments remain in force. | Owner direction 2026-09-05; Gate 12 status and `docs/SUSTAINABILITY.md` | Carry Gate 12 into the desktop roadmap. Gate 13 becomes the next gate for the current track, with this explicit deferral in its traceability audit; it has not yet started. |
 
 ### 5.4 Current storage invariants
 
@@ -925,7 +926,7 @@ new vault state.
 
 ### Gate 11 — Evolve authentication deliberately
 
-**Current execution:** `GATE 11E-1D COMPLETE — OWNER CHECKPOINT`.
+**Current execution:** `GATE 11E-1 ACCEPTED — CLOSED 2026-09-05`.
 Gate 10 was accepted and the owner directed Gate 11 to open on 2026-08-31. The
 entry identity, token,
 browser, route, ownership, audit, backup, and recovery truth plus the proposed
@@ -1010,11 +1011,18 @@ verified locally in
 verified locally in
 [the 11E-1d results](evidence/gate-11/SUBGATE_11E1D_RESULTS.md). It completes the
 browser, policy, live reset, recovery revalidation, and security closeout boundary
-without changing schema 17 or recovery contract 6. Owner acceptance is required
-before Gate 12. Any push, tag, release, deployment, or publication remains
-unauthorized.
+without changing schema 17 or recovery contract 6. The owner accepted closeout on
+2026-09-05 and deferred Gate 12 to the desktop version. Gate 13 is next for the
+current track and has not yet started. Any push, tag, release, deployment, or
+publication remains unauthorized.
 
 ### Gate 12 — Enable sustainable optional services
+
+**Current execution:** `DEFERRED — DESKTOP VERSION`, by owner decision on
+2026-09-05. This gate is carried into the desktop roadmap with its requirements and
+exit evidence intact. It is not implemented or verified and is not a prerequisite
+to the current track's Gate 13 audit. The free-core, portability, and non-lock-in
+commitments in `SUSTAINABILITY.md` remain in force.
 
 **Objective:** Add paid convenience only after the free product can perform and
 verify the same core ownership/recovery functions locally.
@@ -1038,6 +1046,11 @@ vendor, recurring cost, telemetry category, and price model.
 entitlement must not disable local access or export.
 
 ### Gate 13 — End-state audit and re-cock
+
+**Current execution:** `NOT STARTED — NEXT GATE FOR CURRENT TRACK`.
+Gate 11E-1 is accepted. The owner-deferred Gate 12 must be recorded in the audit as
+desktop follow-up with outstanding evidence, not counted as delivered. This
+sequencing update does not start Gate 13 or authorize publication.
 
 **Objective:** Demonstrate that the strategy documents' goals are met, record what
 was learned, and deliberately create the next roadmap.
@@ -1223,7 +1236,7 @@ implementation. Gate 13 closes the roadmap only when the listed proof exists.
 | Optional advisory print-failure alerts without printer control | Independent post-v5.1 experiment | Disabled-by-default provider isolation, measured detection quality, secret/privacy review, Discord delivery, and proof that monitor failure cannot impair the vault |
 | Open, portable backup and storage evolution | Gate 10 | Independently documented and verified `.mvault` round trip |
 | Deliberate authentication evolution | Gates 1 and 11 | Authorization, recovery, session, and audit test suites |
-| Complete open source plus paid convenience | Gate 12 | Sustainability decision tests and non-lock-in exit drill |
+| Complete open source plus paid convenience | Gate 12 — deferred to desktop version, owner decision 2026-09-05 | Free-core commitments remain binding; service decision tests and non-lock-in exit drill remain outstanding for desktop delivery |
 | All confirmed security findings resolved or explicitly accepted | Gates 0–2, 5, 8, 10–11 | Finding-by-finding evidence ledger with no unowned residual risk |
 
 ## 14. Re-cock protocol
@@ -1248,9 +1261,9 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Accept or amend the verified
-[Gate 11E-1d results](evidence/gate-11/SUBGATE_11E1D_RESULTS.md). Acceptance closes
-the passkey slice and permits a Gate 12 architecture checkpoint; it does not permit
-push, tag, image publication, deployment, or release. Keep the
+Gate 11E-1d is accepted and closed. Gate 12 is deferred to the desktop version.
+The next step is Gate 13's end-state audit and re-cock, including explicit
+traceability of the desktop deferral; that gate has not yet started. Push, tag,
+image publication, deployment, and release remain separately gated. Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
 disabled by default.

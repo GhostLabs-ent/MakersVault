@@ -48,3 +48,12 @@ decision in [ADR 0019](../../adr/0019-origin-bound-passkey-mfa.md).
 Acceptance authorizes 11E-1a only: dependency evaluation, schema/recovery design,
 migration fixtures, and portability exclusion tests. Each later implementation
 slice remains sequentially evidenced and accepted.
+
+## Closeout acceptance
+
+The owner accepted the final
+[11E-1d results](SUBGATE_11E1D_RESULTS.md) on 2026-09-05, completing the sequential
+11E-1a–1d passkey scope. Implementation is pinned at `1a209aa` and closeout evidence
+at `6b2ed08`. The owner deferred Gate 12 to the desktop version; its sustainability
+commitments remain carried forward. Gate 13 is next for the current track, with
+implementation, release, and publication subject to their existing checkpoints.

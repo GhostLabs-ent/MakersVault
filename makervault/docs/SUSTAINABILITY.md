@@ -1,5 +1,10 @@
 # MakersVault Sustainability Policy
 
+**Delivery status (2026-09-05):** The owner deferred Gate 12 sustainable optional
+services to the desktop version. This carries the gate's service design and
+verification into that roadmap; it does not mark the gate delivered or change the
+free-core, portability, security, and non-lock-in commitments below.
+
 ## Commitment
 
 > **MakersVault will remain free and open-source at its core.**

@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-04
 
-**Status:** Complete — owner checkpoint
+**Status:** Complete and owner-accepted on 2026-09-05
 
 **Entry commit:** `f1a8734`
 
@@ -149,9 +149,13 @@ Documentation now distinguishes the frozen Gate 5 candidate (`f6ff55b`, schema 5
 from this later local schema-17 development. Gate 11E evidence does not qualify a
 replacement release candidate.
 
-## Owner checkpoint
+## Owner acceptance and next gate
 
-Accepting this evidence closes Gate 11E-1. Gate 12 may then open only as its own
-architecture checkpoint. TOTP, passwordless login, recovery codes, API keys,
+The owner accepted this closeout on 2026-09-05, closing Gate 11E-1 at implementation
+commit `1a209aa` and evidence commit `6b2ed08`. Gate 12 (sustainable optional
+services) is explicitly deferred to the desktop version. It is carried forward,
+not marked implemented or verified; the free-core and portability commitments
+continue to apply. Gate 13 is the next gate for the current track and has not been
+started by this acceptance. TOTP, passwordless login, recovery codes, API keys,
 OIDC/SSO, hosted tenancy, object storage, print monitoring, push, tag, release,
 deployment, and publication remain outside this closeout.

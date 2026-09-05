@@ -1,10 +1,10 @@
 # MakersVault v5.1 — Draft Release Notes
 
 > **Status:** In development. v5.1 has not been published yet. Gates 0–11 are
-> owner-accepted, and Gate 11E-1d is at its local stronger-authentication closeout
-> checkpoint. This draft tracks later local development; the qualified Gate 5
-> candidate remains frozen at `f6ff55b`. Sustainability and qualification of any
-> later release revision remain separately gated.
+> owner-accepted, and Gate 11E-1d was accepted for closeout on 2026-09-05. Gate 12
+> is deferred to the desktop version; Gate 13 is next and has not yet started.
+> This draft tracks later local development; the qualified Gate 5 candidate remains
+> frozen at `f6ff55b`. Qualification of a later release revision remains gated.
 
 MakersVault v5.1 is a confidence release focused on a faster library, clearer
 organization, safer self-hosting, and model entries that carry useful workshop
@@ -170,8 +170,8 @@ commands.
 
 ## Verification completed so far
 
-- Gates 0–11 have accepted source-owned evidence and local rollback points; Gate
-  11E-1d is awaiting owner closeout.
+- Gates 0–11 and Gate 11E-1 have accepted source-owned evidence and local rollback
+  points; the owner accepted 11E-1d closeout on 2026-09-05.
 - Current API suite: 313 tests passing in bounded container partitions.
 - Current web suite: 32 tests across 11 files, plus type checking and production build.
 - Go bridge tests and executable build pass.
@@ -188,12 +188,13 @@ All v5.1 feature-development commits remain local until the coordinated rollout.
 
 ## What remains before later development can ship
 
-1. Owner acceptance of Gate 11E-1d and re-cock of the runbook.
-2. Gate 12 sustainability/non-lock-in decisions without withholding core local or
-   security capability.
-3. Gate 13 full invariant, documentation, upgrade/recovery, performance, security,
+Gate 11E-1 is accepted. Gate 12 sustainable optional services is deferred to the
+desktop version; its free-core and non-lock-in commitments remain binding.
+
+1. Gate 13 full invariant, documentation, upgrade/recovery, performance, security,
    artifact, and clean-machine release-candidate qualification.
-4. Explicit owner ship/no-ship approval before any push, tag, image publication, or
+2. Record Gate 12 as outstanding desktop follow-up in the final roadmap audit.
+3. Explicit owner ship/no-ship approval before any push, tag, image publication, or
    release.
 
 ## Ideas after v5.1 — not committed release scope
