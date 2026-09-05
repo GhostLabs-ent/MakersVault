@@ -202,7 +202,8 @@ def test_mfa_login_issues_session_only_after_assertion_and_strengthens_recent_au
 ) -> None:
     _passkey_environment(monkeypatch)
     monkeypatch.setattr(
-        "auth.configured_browser_origins", lambda: {"http://localhost"}
+        "auth.configured_browser_origins",
+        lambda: {"http://localhost", "http://testserver"},
     )
     credential_id = b"global-admin-passkey"
     account_id = ""
@@ -328,6 +329,10 @@ def test_mfa_login_issues_session_only_after_assertion_and_strengthens_recent_au
             )
             assert passkey_reauth.status_code == 200
             assert client.delete("/sessions/missing", headers=headers).status_code == 404
+            assert client.delete(
+                "/sessions/missing",
+                headers={**headers, "Origin": "http://testserver"},
+            ).status_code == 403
 
             with Session(engine) as session:
                 account = session.get(UserAccount, account_id)

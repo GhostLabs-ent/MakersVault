@@ -153,7 +153,7 @@ Checksums detect accidental corruption and incomplete copies. They are not a
 signature from the project; release artifact signing is a separate concern.
 
 The outer archive remains `makersvault-backup` format version 1. New backups use
-recovery contract 5. Current tools accept contracts 2–4 and legacy no-marker
+recovery contract 6. Current tools accept contracts 2–5 and legacy no-marker
 manifests, then perform the complete current compatibility re-audit rather than
 trusting the older report subset. The tools add a
 separate recovery-contract version for schema-aware reports. This compatibility does

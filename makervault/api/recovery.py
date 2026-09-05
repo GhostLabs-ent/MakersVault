@@ -439,7 +439,7 @@ def _valid_audit_details(value: object) -> bool:
         if (
             not isinstance(changed, list)
             or any(
-                field not in {"display_name", "role", "enabled", "password"}
+                field not in {"display_name", "role", "enabled", "password", "mode"}
                 for field in changed
             )
         ):

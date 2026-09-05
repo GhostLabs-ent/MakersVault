@@ -4,10 +4,10 @@ import {
   BrowserSession,
   UnauthorizedError,
   getBrowserSessions,
-  reauthenticateSession,
   revokeAllBrowserSessions,
   revokeBrowserSession,
 } from "../lib/api";
+import { confirmCurrentAuthentication } from "../lib/passkeyFlows";
 
 
 type Props = {
@@ -72,9 +72,9 @@ export default function SessionSettings({ onBack, onUnauthorized }: Props) {
   const confirmPassword = async () => {
     setMessage(null);
     try {
-      await reauthenticateSession(password);
+      await confirmCurrentAuthentication(password);
       setPassword("");
-      setMessage("Password confirmed. Session revocation is available for five minutes.");
+      setMessage("Identity confirmed. Session revocation is available for five minutes.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Password confirmation failed.");
     }
@@ -97,6 +97,7 @@ export default function SessionSettings({ onBack, onUnauthorized }: Props) {
       {message && <div className="text-sm">{message}</div>}
       <div className="rounded-lg border border-panel bg-panel-soft p-4">
         <div className="text-sm font-medium">Confirm before revoking sessions</div>
+        <p className="mt-1 text-xs text-muted">Accounts using MFA will also be prompted for a passkey.</p>
         <div className="mt-2 flex flex-wrap gap-2">
           <input className="min-w-64 flex-1 rounded-md border border-panel-strong bg-panel px-3 py-2 text-sm" type="password" autoComplete="current-password" placeholder="Current password" value={password} onChange={event => setPassword(event.target.value)} />
           <button className="rounded-md bg-accent px-3 py-2 text-sm disabled:opacity-50" disabled={!password} onClick={() => void confirmPassword()}>Confirm</button>

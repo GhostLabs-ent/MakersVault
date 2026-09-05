@@ -315,6 +315,7 @@ class LoginResponse(BaseModel):
 class SessionStatusOut(BaseModel):
   authenticated: bool = True
   session_id: str
+  user_id: str
   username: str
   role: Literal["administrator", "member", "viewer"]
   permissions: List[str]
@@ -398,6 +399,26 @@ class PasskeyMutationOut(BaseModel):
   credential_count: int
 
 
+class AuthenticatorPolicyUpdate(BaseModel):
+  model_config = ConfigDict(extra="forbid")
+
+  mode: Literal["optional", "require_administrators", "require_all"]
+
+
+class AuthenticatorPolicyOut(BaseModel):
+  available: bool
+  mode: Literal["optional", "require_administrators", "require_all"]
+  require_administrators_blockers: List[str]
+  require_all_blockers: List[str]
+  updated_at: str
+
+
+class MfaResetOut(BaseModel):
+  mfa_enabled: Literal[False] = False
+  removed_credentials: int
+  revoked_sessions: int
+
+
 class UserCreate(BaseModel):
   model_config = ConfigDict(extra="forbid")
 
@@ -432,6 +453,7 @@ class UserOut(BaseModel):
   role: Literal["administrator", "member", "viewer"]
   enabled: bool
   password_change_required: bool
+  mfa_enabled: bool
   created_at: str
   updated_at: str
   last_login_at: Optional[str] = None

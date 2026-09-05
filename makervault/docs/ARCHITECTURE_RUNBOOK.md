@@ -2,9 +2,9 @@
 
 **Status:** Governing working document
 
-**Baseline date:** 2026-08-22
+**Baseline date:** 2026-09-04
 
-**Committed baseline:** `main` at `c004c60`
+**Committed baseline:** `main` at `f1a8734`
 
 **Immutable v5.1 source baseline:** `f6ff55b33fd64c7a5037e8eb642bed048c3e0e4f`
 
@@ -199,10 +199,10 @@ be made explicit before deployment boundaries are multiplied.
 | T-003 | `VERIFIED` | Production web packaging is a static build served by unprivileged Nginx with runtime API configuration. | `web/Dockerfile`, `web/nginx.conf`, `web/40-runtime-config.sh` | The former production Vite-server finding is resolved in the Gate 0 baseline. |
 | T-004 | `VERIFIED` | Production deployment separates `/app/data` and `/app/storage`; development layout differs. | Docker Compose files | Backup instructions must distinguish production and development. |
 | T-005 | `VERIFIED` | Production Compose requires explicit credentials, and API startup independently rejects missing, published, short, or reused secrets. Development fixtures require an explicit non-production mode. | `api/security_config.py`, Compose manifests, Gate 1 slice 1A evidence | Authentication configuration is fail-closed; later Gate 1 slices still govern network, token, and bridge exposure. |
-| T-006 | `VERIFIED` | Auth is one environment-configured administrator with 12-hour HS256 JWTs. There is no user, role, revocation, or MFA model. | `api/auth.py`, models | Multi-user security is a later dedicated architecture gate. |
+| T-006 | `SUPERSEDED` | At the original baseline, auth was one environment-configured administrator with 12-hour HS256 JWTs and no user, role, revocation, or MFA model. | Gate 11 source baseline | T-042–T-052 replace this historical boundary. |
 | T-007 | `VERIFIED` | Some file handoffs place bearer material in URLs, including custom-protocol handoff. | API schemas/routes and bridge code | Replace broad reusable bearer URLs with narrow, short-lived grants. |
 | T-008 | `VERIFIED` | The bridge accepts custom protocol input, downloads a URL, caches the result, and launches a local application. | `slicer-bridge` source | The bridge is a workstation trust boundary and needs protocol hardening. |
-| T-009 | `VERIFIED` | Startup uses an ordered, immutable SQLite migration ledger at schema version 12, with dependency locking and fail-closed version/name checks. Schemas 6–12 add revision/content truth, immutable workflows, recoverable Trash, Projects, descriptive Machine profiles, and optional Artifact-machine context additively. | `api/migrations.py`, `api/db.py`, API migration tests | Larger model changes must extend this migration mechanism and retain old-database fixtures. |
+| T-009 | `VERIFIED` | Startup uses an ordered, immutable SQLite migration ledger at schema version 17, with dependency locking and fail-closed version/name checks. Schemas 6–12 add content/history/Trash/Projects/Machines; schemas 13–17 add persistent identity, sessions, roles, account/audit/recovery structures, and passkey state additively. | `api/migrations.py`, `api/db.py`, API migration tests | Larger model changes must extend this migration mechanism and retain old-database fixtures. |
 | T-010 | `VERIFIED` | Metadata is split between SQLite and filesystem content; updates are not one atomic transaction. | API storage and asset services | File mutations require staging, compensation, and reconciliation. |
 | T-011 | `VERIFIED` | Current records include `Folder`, `Asset`, `Project`, `ProjectMembership`, `ProjectRelationship`, `MachineProfile`, `ArtifactMachine`, immutable `ArtifactRevision`, scoped `AssetFile`, durable content jobs, `TrashPurgeOperation`, and `AppConfig`; several bounded journal/result structures are stored as JSON text. | `api/models.py`, Gate 6 evidence, Gate 7A/7C evidence, Gate 9A/9B evidence | Lifecycle/export work must build on these records rather than replace data in place. |
 | T-012 | `VERIFIED` | Managed historical revisions, thumbnails, bundles, and purge quarantine use explicit storage layouts; no-copy revision records reference external paths. | revision/file/Trash services and Gate 6D recovery evidence | Backup completeness and storage invariants are enforced by schema-aware matched-pair verification. |
@@ -212,7 +212,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-016 | `VERIFIED` | The repository owns a unified `make verify` harness and GitHub Actions workflow covering API migrations/routes, web type-check/tests/build, bridge tests/build, Compose validation, and container smoke behavior. | `Makefile`, `.github/workflows/ci.yml`, Gate 0 evidence | Later gates extend the shared harness and cannot substitute undocumented local checks. |
 | T-017 | `VERIFIED` | Large route and UI files concentrate behavior in `api/main.py` and `AssetGrid.tsx`. | source inventory | New work should extract seams incrementally; no rewrite gate is authorized. |
 | T-018 | `VERIFIED` | Canonical local and production Compose manifests are named; compatibility aliases are tested; generated/runtime artifacts are ignored and absent from Git tracking. | ADR 0001, Compose validation, root `.gitignore`, Gate 0 evidence | Deployment and repository ownership drift is now detectable by the shared harness. |
-| T-019 | `DECIDED` | v5.1 is single-admin; multi-user/MFA/SSO is deferred. | product strategy and v5.1 scope | Security analysis statements that assume v5.1 multi-user are stale. |
+| T-019 | `DECIDED` | The frozen Gate 5 v5.1 candidate is single-admin. Later local Gates 11 and 11E implement shared-vault accounts and optional passkey MFA; API keys and OIDC/SSO remain deferred. | Immutable Gate 5 boundary; Gate 11/11E checkpoints | Current development evidence must not be presented as qualification of a replacement v5.1 release candidate. |
 | T-020 | `DECIDED` | v5.1 is a confidence release, not the Project/Revision rewrite. | v5.1 scope | Reliability gates outrank future architecture work. |
 | T-021 | `VERIFIED` | Gate 5 qualifies and locally accepts immutable v5.1 source `f6ff55b`; upgrade, recovery, exact-image, reproducibility, performance, import, and browser evidence pass. Publication remains deferred. | `docs/evidence/gate-5/RESULTS.md`, acceptance commit `c004c60` | Gate 6 branches from a fixed release boundary and cannot alter the v5.1 candidate. |
 | T-022 | `VERIFIED` | The immutable v5.1/schema-5 boundary had one mutable primary-file state per Asset, no content digest or revisions, and immediate best-effort deletion outside a filesystem/database transaction. | Gate 6 source audit and `docs/evidence/gate-6/BASELINE.md` | This remains the measured migration baseline and pre-Gate-6 rollback boundary. |
@@ -245,6 +245,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-049 | `VERIFIED` | Local Gate 11E-1a pins a maintained WebAuthn verifier, adds optional-by-default schema-17 account/credential/digest-only-ceremony/singleton-policy state, advances new raw backups to recovery contract 6, consumes pending ceremonies on restore, clears recovered-Administrator factor state, and proves `.mvault` v1 excludes real authenticator records. It exposes no registration or login behavior. | ADR 0019, schema/dependency/recovery/portable regressions, `docs/evidence/gate-11/SUBGATE_11E1A_RESULTS.md` | Owner accepted 11E-1a on 2026-09-04 and authorized 11E-1b registration/self-management. Login/assertion, UI, TOTP, API keys, OIDC, and publication remain unauthorized. |
 | T-050 | `VERIFIED` | Local Gate 11E-1b adds explicit stable RP/origin validation, owner-only UV-required attestation-free registration, bounded digest-only session-bound ceremonies, credential list/rename/removal, passkey reauthentication for current-strength self-management, first-enrollment opt-in, last-credential policy safety, and atomic secret-free audit without changing schema 17 or recovery contract 6. | Passkey configuration/service/API regressions, full repository gate, `docs/evidence/gate-11/SUBGATE_11E1B_RESULTS.md` | Owner accepted 11E-1b on 2026-09-04 and authorized 11E-1c. UI/policy/reset closeout remains 11E-1d; push, deployment, and publication remain prohibited. |
 | T-051 | `VERIFIED` | Local Gate 11E-1c makes password success for an MFA-enabled account create only a five-minute digest-bound pending transaction in a separate host-only cookie. Exact-origin, UV-required assertion verification consumes that transaction before issuing a fresh normal session; bounded per-transaction attempts, per-account pending state, source throttling, generic denials, and replay rejection create no session. High-impact recent authentication now requires recent password and session/RP/origin-bound passkey proof for MFA accounts, including the forced-password-change recovery path. | Password-first/assertion/replay/throttling/recent-auth regressions, 310-test API gate, `docs/evidence/gate-11/SUBGATE_11E1C_RESULTS.md` | Owner accepted 11E-1c on 2026-09-04 and authorized 11E-1d. Push, deployment, and publication remain prohibited. |
+| T-052 | `VERIFIED` | Local Gate 11E-1d completes native browser registration/login/step-up and credential management, Administrator-selectable Optional/Require Administrators/Require Everyone policy with enrollment and account-mutation invariants, and explicit current-strength other-account MFA reset that preserves the password and revokes sessions. Schema 17 and recovery contract 6 remain unchanged; raw restore and stopped-instance recovery behavior are revalidated. | 313 API tests, 32 web tests/build, Chromium virtual-authenticator drill, Compose/security/bridge/container gates, `docs/evidence/gate-11/SUBGATE_11E1D_RESULTS.md` | Implementation is complete at the owner checkpoint. Owner acceptance is required before Gate 12; push, tag, release, deployment, and publication remain prohibited. |
 
 ### 5.4 Current storage invariants
 
@@ -924,7 +925,7 @@ new vault state.
 
 ### Gate 11 — Evolve authentication deliberately
 
-**Current execution:** `GATE 11E-1C ACCEPTED — 11E-1D AUTHORIZED`.
+**Current execution:** `GATE 11E-1D COMPLETE — OWNER CHECKPOINT`.
 Gate 10 was accepted and the owner directed Gate 11 to open on 2026-08-31. The
 entry identity, token,
 browser, route, ownership, audit, backup, and recovery truth plus the proposed
@@ -1005,8 +1006,13 @@ verified locally in
 11E-1b on 2026-09-04 and authorized 11E-1c. Gate 11E-1c is now implemented and
 verified locally in
 [the 11E-1c results](evidence/gate-11/SUBGATE_11E1C_RESULTS.md). The owner accepted
-11E-1c on 2026-09-04 and authorized 11E-1d. Any push, tag, release, deployment, or
-publication remains unauthorized.
+11E-1c on 2026-09-04 and authorized 11E-1d. Gate 11E-1d is now implemented and
+verified locally in
+[the 11E-1d results](evidence/gate-11/SUBGATE_11E1D_RESULTS.md). It completes the
+browser, policy, live reset, recovery revalidation, and security closeout boundary
+without changing schema 17 or recovery contract 6. Owner acceptance is required
+before Gate 12. Any push, tag, release, deployment, or publication remains
+unauthorized.
 
 ### Gate 12 — Enable sustainable optional services
 
@@ -1243,7 +1249,8 @@ invariants and evidence standard do not change silently.
 ## 15. Immediate next action
 
 Accept or amend the verified
-[Gate 11B results](evidence/gate-11/SUBGATE_11B_RESULTS.md) before authorizing any
-11C roles or permission enforcement. Keep the
+[Gate 11E-1d results](evidence/gate-11/SUBGATE_11E1D_RESULTS.md). Acceptance closes
+the passkey slice and permits a Gate 12 architecture checkpoint; it does not permit
+push, tag, image publication, deployment, or release. Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
-disabled by default; it is not part of Gate 11.
+disabled by default.

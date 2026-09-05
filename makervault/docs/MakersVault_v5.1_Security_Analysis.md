@@ -12,10 +12,19 @@
 
 > **Gate 0 revalidation notice:** This document is the original review snapshot,
 > not the current finding ledger. The working tree has since moved production web
-> serving to unprivileged Nginx, multi-user work has been explicitly deferred from
-> v5.1, and repository/CI controls have changed. Current dispositions and scan
+> serving to unprivileged Nginx, and repository/CI controls have changed. Current dispositions and scan
 > evidence are recorded in
 > [security/GATE_0_REVALIDATION.md](security/GATE_0_REVALIDATION.md).
+
+> **Gate 11E update:** Later local development implements the shared-vault identity
+> and passkey sequence beyond the frozen Gate 5 candidate. The TOTP-first entity sketches and
+> unchecked recommendations below remain historical review input, not current
+> architecture. Accepted [ADR 0018](adr/0018-shared-vault-identity-and-authorization.md),
+> [ADR 0019](adr/0019-origin-bound-passkey-mfa.md), the
+> [Gate 11 evidence](evidence/gate-11/RESULTS.md), and the
+> [Gate 11E evidence](evidence/gate-11/SUBGATE_11E_BASELINE.md) govern the implemented
+> persistent accounts, fixed roles, revocable sessions, mandatory audit/recovery,
+> and password-plus-passkey MFA boundary.
 
 ## Executive Summary
 

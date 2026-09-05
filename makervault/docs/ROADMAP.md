@@ -25,6 +25,14 @@ The binding details are in [V5.1_SCOPE.md](V5.1_SCOPE.md).
 
 ## After v5.1 — identity and history foundation
 
+**Status update (2026-09-04):** The identity/history, Project, adapter, Machine,
+portability, and shared-vault authentication sequence is implemented in later local
+history through accepted Gates 6–11 and the authorized Gate 11E passkey slices. The
+frozen Gate 5 candidate remains at `f6ff55b`. The sections below preserve the
+direction that produced those features; their current status is tracked in the
+runbook. Sustainability, API-key/OIDC decisions, hosted/provider work, and the
+disabled print-monitoring experiment remain separately gated.
+
 ### Content identity
 
 Extend SHA-256 content identity into:
@@ -227,13 +235,12 @@ Each stage needs migrations, auditability, recovery, and threat-focused tests.
 Multi-user authentication should not be slipped into an unrelated release as a
 small settings feature.
 
-**Current status (2026-08-31):** Gate 10 is accepted and Gate 11 is open for its
-architecture decision only. The proposed
-[Gate 11 baseline](evidence/gate-11/BASELINE.md) keeps one installation as a shared
-vault, introduces persistent identity and revocable sessions before roles, and
-leaves MFA, API keys, and OIDC/SSO as later sequential checkpoints. No Gate 11
-schema or implementation is authorized until the
-[owner policy package](evidence/gate-11/OWNER_CHECKPOINT.md) is accepted or amended.
+**Current status (2026-09-04):** Gates 11A–11D are accepted. Gate 11E-1a through
+11E-1c are accepted, and 11E-1d is at its local closeout checkpoint. The shared
+vault now has persistent Argon2id accounts, protected revocable sessions, three
+fixed deny-by-default roles, mandatory audit, stopped-instance recovery, and
+optional password-plus-passkey MFA. API keys and OIDC/SSO remain separate future
+decisions; no push, release, deployment, hosted tenancy, or publication is implied.
 
 ## Explicitly deprioritized
 

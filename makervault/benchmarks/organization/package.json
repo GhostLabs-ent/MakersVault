@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "baseline": "node organization-baseline.mjs",
-    "mount-scan": "node mount-scan-verification.mjs"
+    "mount-scan": "node mount-scan-verification.mjs",
+    "passkey": "node passkey-browser-smoke.mjs"
   },
   "devDependencies": {
     "playwright-core": "1.62.1"

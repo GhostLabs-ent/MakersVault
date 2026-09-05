@@ -1,8 +1,10 @@
 # MakersVault v5.1 — Draft Release Notes
 
-> **Status:** In development. v5.1 has not been published yet. Gates 0–4 are
-> complete in the local release candidate; upgrade, recovery, packaging, and final
-> release approval remain Gate 5 work.
+> **Status:** In development. v5.1 has not been published yet. Gates 0–11 are
+> owner-accepted, and Gate 11E-1d is at its local stronger-authentication closeout
+> checkpoint. This draft tracks later local development; the qualified Gate 5
+> candidate remains frozen at `f6ff55b`. Sustainability and qualification of any
+> later release revision remain separately gated.
 
 MakersVault v5.1 is a confidence release focused on a faster library, clearer
 organization, safer self-hosting, and model entries that carry useful workshop
@@ -95,7 +97,7 @@ Before scanning, the interface explains the ownership choice:
 
 - Production deployments fail closed when administrator credentials or the signing
   secret are absent, unsafe, reused, or still set to published defaults.
-- Login abuse is throttled for the supported single-administrator deployment model.
+- Login and passkey abuse are throttled for the supported single API process.
 - Security, host, CORS, and protected-file response headers are generated and tested.
 - Remote imports validate redirects, DNS resolution, and the connected peer to
   prevent requests from escaping into private or otherwise blocked network targets.
@@ -106,6 +108,24 @@ Before scanning, the interface explains the ownership choice:
 - Supported remote access remains an operator-managed HTTPS reverse proxy or private
   VPN. Exposing the application ports directly to the public Internet is unsupported.
 
+### Shared-vault accounts and passkey MFA
+
+- Persistent local accounts use Argon2id passwords, revocable protected-cookie
+  sessions, and fixed Administrator, Member, and Viewer permissions enforced by a
+  deny-by-default route inventory.
+- Administrators create accounts with temporary-password replacement, manage
+  authority, and review mandatory secret-free security audit outcomes.
+- Optional password-plus-passkey MFA uses origin-bound, UV-required WebAuthn
+  ceremonies. No passwordless or username-less login is added.
+- Users manage their own passkeys and are encouraged to keep two. Administrators may
+  stage Require Administrators or Require Everyone only after targeted accounts
+  enroll.
+- Explicit live MFA reset applies to another eligible account, leaves its password
+  unchanged, and revokes its browser sessions. Backup-first stopped-instance
+  recovery remains the last-Administrator path.
+- Passkeys require one stable HTTPS hostname/RP configuration. Invalidating that
+  configuration while MFA is in use fails closed instead of bypassing the factor.
+
 ### Safer desktop handoff
 
 - Slicer and engraving handoff uses a short-lived grant for one exact file rather
@@ -113,78 +133,68 @@ Before scanning, the interface explains the ownership choice:
 - Each workstation confirms the exact MakersVault origin locally.
 - The bridge validates file role, extension, redirect behavior, size, and origin
   before launching the configured application.
-- Gate 5 will package and verify the matching v5.1 bridge installers.
+- The final release gate will reverify the matching v5.1 bridge installers and
+  recorded artifact provenance.
 
 ## Upgrade-impact summary
 
-- The candidate database schema is version 5.
+- The current development database schema is version 17; the frozen Gate 5
+  candidate remains schema 5.
 - Migrations are ordered, additive, idempotent, and fail closed on unknown or
-  mismatched versions.
-- Schema 4 adds persistent preview outcomes.
-- Schema 5 adds bounded mounted-scan records.
-- Existing model bytes are not rewritten merely by applying these migrations.
+  mismatched versions. Schemas 6–17 add content identity/history, Trash, Projects,
+  Machines, persistent identity/sessions/audit, and passkey state without rewriting
+  existing model bytes merely because migration runs.
 - Production instances may need new deployment-specific authentication environment
   values before the v5.1 containers will start.
 - API, web, and bridge components must be upgraded as a matched release.
 
-Do not use this draft as the final upgrade procedure. Gate 5 will publish the tested
-stop, matched database/storage backup, upgrade, verification, rollback, and clean-
-machine recovery commands.
+Use the tested [upgrade procedure](UPGRADE_V5.1.md) and
+[backup/recovery guide](BACKUP_AND_RECOVERY.md), not this draft summary, for operator
+commands.
 
 ## Intentional limits and deferrals
 
 - No manual thumbnail uploads.
 - No visible G-code browser or ordinary prepared G-code download workflow.
 - No slicing, printer control, telemetry, or print-farm scheduling.
-- Fixed shared-vault roles and deny-by-default permissions are present, but account
-  administration, MFA, API keys, OIDC, private libraries, and per-object ACLs remain
-  gated.
-- Permanent multi-model deletion remains constrained until Trash and restore exist.
+- No public registration, custom roles, private libraries, or per-object ACLs.
+- No passwordless login, TOTP, recovery codes, API keys, or OIDC/SSO.
 - **Select every server match** remains deferred until a server-side bulk contract
   can avoid loading thousands of IDs into the browser.
 - STEP/STP files remain storable and usable in supported handoff workflows, but
   automatic card-preview parsing is intentionally skipped by the v5.1 preview policy.
 - Continuous NAS watching, live per-file scan events, and sophisticated mounted
   exclusions are future work.
-- Content hashing, provenance, changed-source detection, and duplicate suggestions
-  were deliberately deferred from v5.1 Gate 4B. They require bounded backfill and
-  recovery proof and must never silently merge or delete models.
-- The full Project → Artifact → Revision architecture is not part of v5.1.
+- Duplicate matching remains advisory and never silently merges or deletes models;
+  externally mounted changed-source behavior remains explicit and bounded.
 
 ## Verification completed so far
 
-- Gates 0–4 have accepted source-owned evidence and local rollback points.
-- Current API suite: 75 tests passing twice consecutively.
-- Current web suite: 13 tests across 5 files, plus type checking and production build.
+- Gates 0–11 have accepted source-owned evidence and local rollback points; Gate
+  11E-1d is awaiting owner closeout.
+- Current API suite: 313 tests passing in bounded container partitions.
+- Current web suite: 32 tests across 11 files, plus type checking and production build.
 - Go bridge tests and executable build pass.
 - Development, production, compatibility, benchmark, security, and smoke Compose
   configurations pass validation.
-- Fresh container smoke passes with non-root processes and schema 5.
+- Fresh container smoke passes with non-root processes and schema 17.
 - Preview, 600-model organization, and real-browser mounted-scan workflows pass their
   deterministic acceptance checks.
+- A Chromium virtual-authenticator drill passes passkey registration, current-strength
+  confirmation, Administrator policy enablement, logout, and fresh
+  password-plus-passkey login.
 
 All v5.1 feature-development commits remain local until the coordinated rollout.
 
-## What remains before v5.1 ships
+## What remains before later development can ship
 
-Gate 5 is the release gate. It must:
-
-1. Classify essential data, rebuildable data, and externally owned no-copy data.
-2. Write and execute stop, snapshot, upgrade, verify, rollback/restore, and clean-
-   machine recovery procedures.
-3. Upgrade representative pre-v5.1 libraries containing nested folders, legacy
-   thumbnails, supporting files, prepared metadata, renamed models, missing mounted
-   sources, and interrupted background work.
-4. Restore a documented backup into a clean installation and prove the matched
-   database/storage rollback path.
-5. Run the performance, security, import, organization, bridge, and container
-   matrices against a versioned release candidate.
-6. Finish the changelog, security policy, contribution guide, issue templates,
-   upgrade guide, known limitations, and final release notes.
-7. Build versioned Docker and bridge artifacts from the release revision, then record
-   their checksums, SBOM/provenance, and source revision.
-8. Present the release candidate, limitations, and P1 deferrals for the owner’s final
-   ship/no-ship approval.
+1. Owner acceptance of Gate 11E-1d and re-cock of the runbook.
+2. Gate 12 sustainability/non-lock-in decisions without withholding core local or
+   security capability.
+3. Gate 13 full invariant, documentation, upgrade/recovery, performance, security,
+   artifact, and clean-machine release-candidate qualification.
+4. Explicit owner ship/no-ship approval before any push, tag, image publication, or
+   release.
 
 ## Ideas after v5.1 — not committed release scope
 
@@ -199,11 +209,10 @@ The original idea notes are preserved here for later validation:
   - train or evaluate models against user-controlled, auditable data; and
   - require evidence that recommendations are useful and safe before presenting them
     as product guidance.
-- SHA-256 identity, duplicate suggestions, integrity checks, mounted changed-source
-  detection, and provenance.
-- Artifact revisions and recoverable Trash.
-- Projects containing artifacts, revision history, supporting documentation, and a
-  small useful relationship vocabulary.
+- Provider-backed storage only after the accepted local-first capability contract
+  can be preserved without application-owned lock-in.
+- API keys and OIDC/SSO only through their own identity, audit, revocation, recovery,
+  and threat-model checkpoints.
 
 These ideas begin with product and data-boundary design; they are not promises for
 v5.1 and do not grant MakersVault machine-control authority.

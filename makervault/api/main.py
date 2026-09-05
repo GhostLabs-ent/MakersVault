@@ -161,9 +161,12 @@ from passkey_service import (
     complete_passkey_login,
     complete_passkey_reauthentication,
     complete_passkey_registration,
+    get_authenticator_policy,
     list_passkeys,
     remove_passkey,
     rename_passkey,
+    reset_account_passkeys,
+    update_authenticator_policy,
 )
 from recovery_marker_service import process_recovery_markers
 from prepared_print import prepared_filename
@@ -242,6 +245,9 @@ from schemas import (
     PasskeyAssertionRequest,
     PasskeyCredentialOut,
     PasskeyMutationOut,
+    AuthenticatorPolicyOut,
+    AuthenticatorPolicyUpdate,
+    MfaResetOut,
     PasskeyOptionsOut,
     PasskeyRegistrationCompleteRequest,
     PasskeyRegistrationOut,
@@ -571,6 +577,7 @@ def user_to_out(user: UserAccount) -> UserOut:
         role=user.role,
         enabled=user.enabled,
         password_change_required=user.password_change_required,
+        mfa_enabled=user.mfa_enabled,
         created_at=user.created_at,
         updated_at=user.updated_at,
         last_login_at=user.last_login_at,
@@ -1127,6 +1134,7 @@ def current_session(
     response.headers["Cache-Control"] = "private, no-store"
     return SessionStatusOut(
         session_id=principal.session_id,
+        user_id=principal.user_id,
         username=principal.username,
         role=principal.role.value,
         permissions=sorted(permission.value for permission in permissions_for_role(principal.role)),
@@ -1353,6 +1361,45 @@ def remove_account_passkey(
     return result
 
 
+@app.get(
+    "/settings/authenticator-policy",
+    response_model=AuthenticatorPolicyOut,
+)
+def authenticator_policy(
+    response: Response,
+    _: SessionPrincipal = Depends(require_auth),
+):
+    response.headers["Cache-Control"] = "private, no-store"
+    return get_authenticator_policy(engine)
+
+
+@app.patch(
+    "/settings/authenticator-policy",
+    response_model=AuthenticatorPolicyOut,
+)
+def change_authenticator_policy(
+    body: AuthenticatorPolicyUpdate,
+    request: Request,
+    response: Response,
+    principal: SessionPrincipal = Depends(require_auth),
+):
+    result = update_authenticator_policy(
+        engine,
+        actor_user_id=principal.user_id,
+        session_id=principal.session_id,
+        password_recent=is_recently_reauthenticated(principal),
+        mode=body.mode,
+        audit_context=audit_context_from_request(
+            request,
+            object_type="authenticator_policy",
+            object_id="global",
+        ),
+    )
+    request.state.audit_recorded = True
+    response.headers["Cache-Control"] = "private, no-store"
+    return result
+
+
 @app.get("/users", response_model=List[UserOut])
 def users(_: SessionPrincipal = Depends(require_auth)):
     return [user_to_out(user) for user in list_accounts(engine)]
@@ -1423,6 +1470,30 @@ def reset_user_password(
     )
     request.state.audit_recorded = True
     return user_to_out(account)
+
+
+@app.post("/users/{user_id}/mfa-reset", response_model=MfaResetOut)
+def reset_user_mfa(
+    user_id: str,
+    request: Request,
+    response: Response,
+    principal: SessionPrincipal = Depends(require_auth),
+):
+    result = reset_account_passkeys(
+        engine,
+        actor_user_id=principal.user_id,
+        target_user_id=user_id,
+        session_id=principal.session_id,
+        password_recent=is_recently_reauthenticated(principal),
+        audit_context=audit_context_from_request(
+            request,
+            object_type="user",
+            object_id=user_id,
+        ),
+    )
+    request.state.audit_recorded = True
+    response.headers["Cache-Control"] = "private, no-store"
+    return result
 
 
 @app.get("/audit", response_model=AuditPageOut)

@@ -58,6 +58,9 @@ CHALLENGE_ATTEMPT_LIMIT = 5
 CHALLENGE_CLEANUP_LIMIT = 200
 MAX_CREDENTIALS_PER_ACCOUNT = 10
 MAX_PENDING_LOGINS_PER_ACCOUNT = 10
+AUTHENTICATOR_POLICY_MODES = frozenset(
+    {"optional", "require_administrators", "require_all"}
+)
 MAX_CEREMONY_RESPONSE_BYTES = 128 * 1024
 MAX_CLIENT_DATA_BYTES = 16 * 1024
 MAX_CREDENTIAL_ID_BYTES = 1024
@@ -65,7 +68,7 @@ MAX_PUBLIC_KEY_BYTES = 4096
 LABEL_MAX_LENGTH = 128
 CEREMONY_TIMEOUT_MS = CHALLENGE_TTL_SECONDS * 1000
 _TRANSPORTS = frozenset(item.value for item in AuthenticatorTransport)
-_MUTATION_LOCK = threading.RLock()
+AUTHENTICATOR_MUTATION_LOCK = threading.RLock()
 
 
 @dataclass(frozen=True)
@@ -358,7 +361,7 @@ def _pending_login_row(
 
 
 def _record_failed_attempt(engine: Engine, challenge_id: str) -> None:
-    with _MUTATION_LOCK, Session(engine) as session:
+    with AUTHENTICATOR_MUTATION_LOCK, Session(engine) as session:
         row = session.get(WebAuthnChallenge, challenge_id)
         if row is not None and row.consumed_at is None:
             row.attempt_count = min(CHALLENGE_ATTEMPT_LIMIT, row.attempt_count + 1)
@@ -411,9 +414,12 @@ def has_recent_passkey_reauthentication(
     *,
     user_id: str,
     session_id: str,
+    origin: Optional[str] = None,
     now: Optional[int] = None,
 ) -> bool:
     config = _configured()
+    if origin is not None and origin != config.origin:
+        return False
     with Session(engine) as session:
         return _has_recent_passkey_proof(
             session,
@@ -456,6 +462,236 @@ def _policy_requires_account(session: Session, account: UserAccount) -> bool:
     )
 
 
+def account_satisfies_authenticator_policy_candidate(
+    session: Session,
+    *,
+    account_id: Optional[str],
+    role: Role,
+    enabled: bool,
+) -> None:
+    """Reject account creation/authority changes that would violate MFA policy."""
+    policy = session.get(AuthenticatorPolicy, "global")
+    mode = policy.mode if policy is not None else "optional"
+    targeted = bool(enabled) and (
+        mode == "require_all"
+        or mode == "require_administrators" and role is Role.ADMINISTRATOR
+    )
+    if not targeted:
+        return
+    enrolled = False
+    if account_id:
+        account = session.get(UserAccount, account_id)
+        enrolled = bool(account and account.mfa_enabled) and session.exec(
+            select(WebAuthnCredential.id).where(
+                WebAuthnCredential.user_id == account_id
+            ).limit(1)
+        ).first() is not None
+    if not enrolled:
+        raise HTTPException(
+            status_code=409,
+            detail="Authenticator policy requires this enabled account to enroll a passkey first",
+        )
+
+
+def _authenticator_policy_status(session: Session) -> dict[str, object]:
+    policy = session.get(AuthenticatorPolicy, "global")
+    if policy is None:
+        raise HTTPException(status_code=500, detail="Authenticator policy is unavailable")
+    credentials = set(session.exec(select(WebAuthnCredential.user_id)))
+    accounts = list(
+        session.exec(
+            select(UserAccount)
+            .where(UserAccount.enabled.is_(True))
+            .order_by(UserAccount.username_normalized, UserAccount.id)
+        )
+    )
+    unenrolled = [
+        account
+        for account in accounts
+        if not account.mfa_enabled or account.id not in credentials
+    ]
+    return {
+        "mode": policy.mode,
+        "require_administrators_blockers": [
+            account.username
+            for account in unenrolled
+            if account.role == Role.ADMINISTRATOR.value
+        ],
+        "require_all_blockers": [account.username for account in unenrolled],
+        "updated_at": policy.updated_at,
+    }
+
+
+def get_authenticator_policy(engine: Engine) -> dict[str, object]:
+    try:
+        available = load_passkey_config().enabled
+    except PasskeyConfigurationError:
+        available = False
+    with Session(engine) as session:
+        return {
+            "available": available,
+            **_authenticator_policy_status(session),
+        }
+
+
+def update_authenticator_policy(
+    engine: Engine,
+    *,
+    actor_user_id: str,
+    session_id: str,
+    password_recent: bool,
+    mode: str,
+    audit_context: Optional[AuditContext] = None,
+    now: Optional[int] = None,
+) -> dict[str, object]:
+    config = _configured()
+    if mode not in AUTHENTICATOR_POLICY_MODES:
+        raise HTTPException(status_code=422, detail="Invalid authenticator policy")
+    current = _now(now)
+    with AUTHENTICATOR_MUTATION_LOCK, Session(engine) as session:
+        actor = _require_account(session, actor_user_id)
+        if actor.role != Role.ADMINISTRATOR.value:
+            raise HTTPException(status_code=403, detail="Administrator access required")
+        _require_active_session(session, actor_user_id, session_id, current)
+        _require_current_strength(
+            session,
+            actor,
+            session_id,
+            password_recent=password_recent,
+            rp_id=config.rp_id or "",
+            origin=config.origin or "",
+            now=current,
+        )
+        status = _authenticator_policy_status(session)
+        blockers_key = (
+            "require_administrators_blockers"
+            if mode == "require_administrators"
+            else "require_all_blockers"
+        )
+        blockers = [] if mode == "optional" else list(status[blockers_key])
+        if blockers:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Every enabled targeted account must enroll before this policy can be enabled: "
+                    + ", ".join(blockers)
+                ),
+            )
+        policy = session.get(AuthenticatorPolicy, "global")
+        if policy is None:
+            raise HTTPException(status_code=500, detail="Authenticator policy is unavailable")
+        policy.mode = mode
+        policy.updated_at = _timestamp()
+        policy.updated_by_user_id = actor_user_id
+        session.add(policy)
+        if audit_context is not None:
+            append_audit_event(
+                session,
+                audit_context.for_object("authenticator_policy", "global"),
+                result="success",
+                status_code=200,
+                details={"changed_fields": ["mode"]},
+            )
+        session.commit()
+        return {
+            "available": True,
+            **_authenticator_policy_status(session),
+        }
+
+
+def reset_account_passkeys(
+    engine: Engine,
+    *,
+    actor_user_id: str,
+    target_user_id: str,
+    session_id: str,
+    password_recent: bool,
+    audit_context: Optional[AuditContext] = None,
+    now: Optional[int] = None,
+) -> dict[str, object]:
+    config = _configured()
+    current = _now(now)
+    if actor_user_id == target_user_id:
+        raise HTTPException(
+            status_code=409,
+            detail="Use your own passkey settings to remove your credentials",
+        )
+    with AUTHENTICATOR_MUTATION_LOCK, Session(engine) as session:
+        actor = _require_account(session, actor_user_id)
+        if actor.role != Role.ADMINISTRATOR.value:
+            raise HTTPException(status_code=403, detail="Administrator access required")
+        _require_active_session(session, actor_user_id, session_id, current)
+        _require_current_strength(
+            session,
+            actor,
+            session_id,
+            password_recent=password_recent,
+            rp_id=config.rp_id or "",
+            origin=config.origin or "",
+            now=current,
+        )
+        target = session.get(UserAccount, target_user_id)
+        if target is None:
+            raise HTTPException(status_code=404, detail="Account not found")
+        if target.enabled and _policy_requires_account(session, target):
+            raise HTTPException(
+                status_code=409,
+                detail="Required authenticator policy prevents resetting this account",
+            )
+        credentials = list(
+            session.exec(
+                select(WebAuthnCredential).where(
+                    WebAuthnCredential.user_id == target_user_id
+                )
+            )
+        )
+        if not target.mfa_enabled and not credentials:
+            raise HTTPException(status_code=409, detail="Account has no passkey MFA to reset")
+        challenges = list(
+            session.exec(
+                select(WebAuthnChallenge).where(
+                    WebAuthnChallenge.user_id == target_user_id
+                )
+            )
+        )
+        browser_sessions = list(
+            session.exec(
+                select(BrowserSession).where(
+                    BrowserSession.user_id == target_user_id,
+                    BrowserSession.revoked_at.is_(None),
+                )
+            )
+        )
+        for row in credentials:
+            session.delete(row)
+        for row in challenges:
+            session.delete(row)
+        for row in browser_sessions:
+            row.revoked_at = current
+            session.add(row)
+        target.mfa_enabled = False
+        target.updated_at = _timestamp()
+        session.add(target)
+        if audit_context is not None:
+            append_audit_event(
+                session,
+                audit_context.for_object("user", target_user_id),
+                result="success",
+                status_code=200,
+                details={
+                    "removed_credentials": len(credentials),
+                    "revoked_challenges": len(challenges),
+                    "revoked_sessions": len(browser_sessions),
+                },
+            )
+        session.commit()
+        return {
+            "mfa_enabled": False,
+            "removed_credentials": len(credentials),
+            "revoked_sessions": len(browser_sessions),
+        }
+
+
 def _credential_out(row: WebAuthnCredential) -> dict[str, object]:
     return {
         "id": row.id,
@@ -479,7 +715,7 @@ def begin_passkey_login(
     current = _now(now)
     challenge = secrets.token_bytes(CHALLENGE_BYTES)
     token = secrets.token_urlsafe(32)
-    with _MUTATION_LOCK, Session(engine) as session:
+    with AUTHENTICATOR_MUTATION_LOCK, Session(engine) as session:
         account = _require_account(session, user_id)
         if not account.mfa_enabled:
             raise HTTPException(status_code=409, detail="Passkey MFA is not enabled")
@@ -613,7 +849,7 @@ def complete_passkey_login(
         raise HTTPException(status_code=401, detail="Invalid or expired login")
 
     timestamp = _timestamp()
-    with _MUTATION_LOCK, Session(engine) as session:
+    with AUTHENTICATOR_MUTATION_LOCK, Session(engine) as session:
         pending = _pending_login_row(
             session,
             token=token,
@@ -700,7 +936,7 @@ def begin_passkey_registration(
     config = _configured()
     current = _now(now)
     challenge = secrets.token_bytes(CHALLENGE_BYTES)
-    with _MUTATION_LOCK, Session(engine) as session:
+    with AUTHENTICATOR_MUTATION_LOCK, Session(engine) as session:
         account = _require_account(session, user_id)
         _require_active_session(session, user_id, session_id, current)
         _require_current_strength(
@@ -839,7 +1075,7 @@ def complete_passkey_registration(
         label=cleaned_label,
         created_at=timestamp,
     )
-    with _MUTATION_LOCK, Session(engine) as session:
+    with AUTHENTICATOR_MUTATION_LOCK, Session(engine) as session:
         account = _require_account(session, user_id)
         _require_active_session(session, user_id, session_id, current)
         challenge_row = _challenge_row(
@@ -913,7 +1149,7 @@ def begin_passkey_reauthentication(
     config = _configured()
     current = _now(now)
     challenge = secrets.token_bytes(CHALLENGE_BYTES)
-    with _MUTATION_LOCK, Session(engine) as session:
+    with AUTHENTICATOR_MUTATION_LOCK, Session(engine) as session:
         account = _require_account(session, user_id)
         _require_active_session(session, user_id, session_id, current)
         if not password_recent:
@@ -1031,7 +1267,7 @@ def complete_passkey_reauthentication(
         raise HTTPException(
             status_code=400, detail="Passkey ceremony could not be verified"
         )
-    with _MUTATION_LOCK, Session(engine) as session:
+    with AUTHENTICATOR_MUTATION_LOCK, Session(engine) as session:
         _require_account(session, user_id)
         _require_active_session(session, user_id, session_id, current)
         challenge_row = _challenge_row(
@@ -1075,7 +1311,7 @@ def rename_passkey(
 ) -> dict[str, object]:
     _configured()
     cleaned_label = _clean_label(label)
-    with _MUTATION_LOCK, Session(engine) as session:
+    with AUTHENTICATOR_MUTATION_LOCK, Session(engine) as session:
         _require_account(session, user_id)
         row = session.get(WebAuthnCredential, credential_record_id)
         if row is None or row.user_id != user_id:
@@ -1106,7 +1342,7 @@ def remove_passkey(
 ) -> dict[str, object]:
     config = _configured()
     current = _now(now)
-    with _MUTATION_LOCK, Session(engine) as session:
+    with AUTHENTICATOR_MUTATION_LOCK, Session(engine) as session:
         account = _require_account(session, user_id)
         _require_active_session(session, user_id, session_id, current)
         _require_current_strength(

@@ -41,6 +41,7 @@ when necessary:
 MAKERSVAULT_SMOKE_API_PORT=28000 \
 MAKERSVAULT_SMOKE_WEB_PORT=25173 \
 make verify-smoke
+make verify-passkeys
 ```
 
 The smoke project is removed with its named volumes on success, failure, or
@@ -58,6 +59,15 @@ make verify-smoke
 
 CI invokes these same targets. A local workaround that CI does not execute is not
 release evidence.
+
+The passkey drill installs locked Playwright dependencies inside a disposable
+container and drives Chromium with a virtual authenticator through registration,
+identity confirmation, required-Administrator policy, logout, and password-plus-
+passkey login. It runs against an isolated local Compose project on ports `18005`
+and `15178`, removes its own volumes afterward, and writes a secret-free result to
+`benchmarks/organization/.artifacts/passkey-browser.json`. This validates the browser
+and server integration; physical device and operating-system credential prompts
+still need release qualification on the supported platforms.
 
 ## Schema migration rules
 

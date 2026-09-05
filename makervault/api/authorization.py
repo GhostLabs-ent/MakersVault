@@ -136,11 +136,14 @@ ROUTE_AUTHORIZATION: Mapping[tuple[str, str], RouteRule] = MappingProxyType(
         ("POST", "/account/passkeys/reauthentication/verify"): _session(Permission.IDENTITY_MANAGE_SELF),
         ("PATCH", "/account/passkeys/{passkey_id}"): _session(Permission.IDENTITY_MANAGE_SELF),
         ("DELETE", "/account/passkeys/{passkey_id}"): _recent(Permission.IDENTITY_MANAGE_SELF),
+        ("GET", "/settings/authenticator-policy"): _session(Permission.SETTINGS_MANAGE),
+        ("PATCH", "/settings/authenticator-policy"): _recent(Permission.SETTINGS_MANAGE),
 
         ("GET", "/users"): _session(Permission.IDENTITY_MANAGE),
         ("POST", "/users"): _recent(Permission.IDENTITY_MANAGE),
         ("PATCH", "/users/{user_id}"): _recent(Permission.IDENTITY_MANAGE),
         ("POST", "/users/{user_id}/password-reset"): _recent(Permission.IDENTITY_MANAGE),
+        ("POST", "/users/{user_id}/mfa-reset"): _recent(Permission.IDENTITY_MANAGE),
         ("GET", "/audit"): _session(Permission.AUDIT_READ),
 
         ("GET", "/assets"): _session(Permission.VAULT_READ),

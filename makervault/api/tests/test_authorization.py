@@ -158,6 +158,10 @@ def test_route_inventory_covers_every_role_decision_and_only_four_non_session_ro
     assert ROUTE_AUTHORIZATION[("POST", "/settings/content-identity/backfill")].permission is Permission.JOBS_MANAGE
     assert ROUTE_AUTHORIZATION[("POST", "/users")].permission is Permission.IDENTITY_MANAGE
     assert ROUTE_AUTHORIZATION[("POST", "/users")].recent_reauthentication is True
+    assert ROUTE_AUTHORIZATION[("PATCH", "/settings/authenticator-policy")].permission is Permission.SETTINGS_MANAGE
+    assert ROUTE_AUTHORIZATION[("PATCH", "/settings/authenticator-policy")].recent_reauthentication is True
+    assert ROUTE_AUTHORIZATION[("POST", "/users/{user_id}/mfa-reset")].permission is Permission.IDENTITY_MANAGE
+    assert ROUTE_AUTHORIZATION[("POST", "/users/{user_id}/mfa-reset")].recent_reauthentication is True
 
 
 def test_every_application_route_has_exactly_one_access_classification() -> None:

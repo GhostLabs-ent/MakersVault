@@ -38,5 +38,7 @@ jobs:
         run: make verify-compose
       - name: Run container smoke test
         run: make verify-smoke
+      - name: Verify browser passkey ceremonies
+        run: make verify-passkeys
       - name: Verify release identity and publication contract
         run: make verify-release

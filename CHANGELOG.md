@@ -5,6 +5,11 @@ for versioned release artifacts beginning with v5.1.0.
 
 ## [5.1.0] - Unreleased
 
+This working inventory includes later local roadmap work through Gate 11E. The
+qualified Gate 5 candidate remains frozen at `f6ff55b` (schema 5); schema-17
+development and passkey changes still require their own final release qualification
+and owner ship decision.
+
 ### Added
 
 - Human-readable model names unique within a folder, creator/collection metadata,
@@ -19,7 +24,7 @@ for versioned release artifacts beginning with v5.1.0.
 - Fail-closed production authentication, login throttling, protected response/host
   policy, pinned remote-import connections, bounded ingest/archive/image resources,
   and short-lived workstation handoff grants.
-- Ordered schema migrations through version 5 with mismatch/unknown-version refusal.
+- Ordered schema migrations through version 17 with mismatch/unknown-version refusal.
 - Matched stopped backup, independent verification, clean restore, exact rollback,
   and a representative upgrade/recovery drill.
 - Versioned API/web image identity, six bridge platform binaries, SPDX SBOMs,
@@ -35,6 +40,12 @@ for versioned release artifacts beginning with v5.1.0.
 - Durable, bounded, secret-free security audit with Administrator-only pagination.
 - Interactive stopped-instance Administrator recovery backed by a mandatory exact
   pre-change backup, full session revocation, and startup audit markers.
+- Optional password-plus-passkey MFA with origin-bound WebAuthn registration,
+  password-first sign-in, passkey-aware five-minute identity confirmation, and
+  self-service credential management.
+- Administrator-selectable Optional, Require Administrators, and Require Everyone
+  passkey policy with enrollment blockers, required-factor safety, explicit
+  other-account MFA reset, and stopped-instance last-Administrator recovery.
 
 ### Changed
 
@@ -52,6 +63,8 @@ for versioned release artifacts beginning with v5.1.0.
   compatibly re-auditing historical recovery contracts 2–5.
 - Raw restore revokes copied browser sessions and pending passkey ceremonies before
   service exposure and records a durable recovery event at startup.
+- High-impact operations by an MFA-enabled account require recent password and
+  UV-required passkey proof bound to the same session, RP ID, and exact origin.
 
 ### Security
 
@@ -60,12 +73,15 @@ for versioned release artifacts beginning with v5.1.0.
 - Bounded ZIP expansion/traversal, uploads, imports, previews, images, temp files,
   free-space reserve, mounted paths, redirect count, and bridge downloads.
 - Added checksummed safe-extraction recovery archives and release SBOM/provenance.
+- Added bounded digest-only WebAuthn ceremonies, generic login failures, replay and
+  origin/RP checks, current-strength policy changes, and secret-free passkey audit.
 
 ### Known limitations
 
 See [Known Limitations](makervault/docs/KNOWN_LIMITATIONS.md). Major deferrals include
- MFA/SSO, private per-model ACLs, automatic STEP card previews, hosted object storage,
- and server-wide “select every match.”
+passwordless login, TOTP, recovery codes, API keys/OIDC/SSO, private per-model ACLs,
+automatic STEP card previews, hosted object storage, and server-wide “select every
+match.”
 
 ## [5] - Historical beta
 

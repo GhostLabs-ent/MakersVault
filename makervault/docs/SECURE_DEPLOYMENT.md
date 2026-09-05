@@ -1,7 +1,13 @@
 # Secure Deployment and v5.1 Authentication Upgrade
 
-MakersVault v5.1 remains a single-administrator, self-hosted application. It does
-not include user accounts, roles, MFA, SSO, or hosted identity.
+This guide describes the current local build through Gate 11E. The frozen Gate 5
+candidate remains at `f6ff55b`; release qualification and deployment approval for
+later work are separate.
+
+The current MakersVault build is a self-hosted shared-vault application with persistent local
+accounts, fixed Administrator/Member/Viewer roles, revocable browser sessions, and
+optional password-plus-passkey MFA. It does not include public registration,
+passwordless login, TOTP, recovery codes, API keys, OIDC/SSO, or hosted identity.
 
 ## New production installation
 
@@ -28,15 +34,16 @@ Production Compose stops before creating containers when `AUTH_PASSWORD` or
 missing, published placeholders, too short, or identical. This second check also
 protects non-Compose deployments.
 
-In the local Gate 11A build, the validated environment username and password are
-used once to create the persistent administrator when the identity table is empty.
+The validated environment username and password are used once to create the
+persistent administrator when the identity table is empty.
 After that succeeds, login uses the Argon2id hash in SQLite. Changing
 `AUTH_USERNAME` or `AUTH_PASSWORD` in `.env` does not rename the administrator,
 rotate its password, or provide a recovery bypass. Preserve the original credential
-and a matched raw backup; account-management and stopped-instance recovery remain
-later gated work. `AUTH_SECRET` keys stored session digests and the separate bridge
-handoff signing key, so changing it invalidates existing browser sessions and
-outstanding short-lived handoff grants.
+and a matched raw backup. Administrators manage local accounts in **Settings →
+Accounts & Access**; emergency recovery uses the documented stopped-instance
+procedure. `AUTH_SECRET` keys stored session and ceremony digests plus the separate
+bridge handoff signing key, so changing it invalidates existing browser sessions,
+pending authentication ceremonies, and outstanding short-lived handoff grants.
 
 ## Upgrading an existing installation
 
@@ -67,9 +74,9 @@ Do not reuse the administrator password as `AUTH_SECRET`. Published values such
 as `super-secret`, `password`, `changeme-secret`, and
 `replace-with-random-secret` are rejected in production.
 
-After changing `AUTH_SECRET`, existing browser sessions become invalid. Sign in
-again with the persistent administrator credential. Schema 14 adds revocable
-browser sessions but does not transform stored model files.
+After changing `AUTH_SECRET`, existing browser sessions and pending authentication
+ceremonies become invalid. Sign in again with a persistent account credential.
+The authentication migrations do not transform stored model files.
 
 Production sessions use `__Host-` cookies with `Secure`, `HttpOnly` for the session
 secret, `SameSite=Lax`, `Path=/`, and no `Domain`. Production browser access
@@ -84,17 +91,9 @@ If startup fails, inspect the API container log. The validation error lists each
 missing or unsafe setting. Correct `.env` and restart; do not restore published
 fallback credentials except temporarily on an isolated recovery network.
 
-## Passkey origin configuration (Gate 11E integration)
+## Passkey origin configuration and policy
 
-The local Gate 11E-1c build contains origin-bound registration, account
-self-management, password-first MFA login, and two-factor recent-authentication APIs.
-It is not independently releaseable: the browser login/settings workflows, policy
-administration, live MFA reset, and final recovery/security closeout follow in
-11E-1d. Do not deploy or enable this intermediate slice on a live instance; an
-enrolled account is enforced by the API but the current browser cannot yet complete
-its assertion.
-
-The eventual passkey deployment contract requires one stable HTTPS browser origin:
+Passkeys require one stable HTTPS browser origin:
 
 ```dotenv
 WEBAUTHN_RP_ID=vault.example.com
@@ -109,6 +108,36 @@ Both required settings must be present together. Once an account or policy requi
 MFA, removing or invalidating this configuration stops the API instead of bypassing
 the factor. The same browser origin must also be allowed by `PUBLIC_URL` or
 `CORS_ORIGINS` so the ceremony endpoints accept its unsafe requests.
+
+Establish the final hostname before anyone enrolls. Passkeys are scoped to the RP ID
+and origin; changing them does not migrate credentials. If a hostname must change,
+reset or replace affected credentials while the old origin is still available, or
+use the stopped-instance Administrator recovery procedure if no Administrator can
+sign in.
+
+Passkey policy is **Optional** by default. Each user opts in by adding a passkey in
+**Settings → Accounts & Access**; the first successful enrollment enables MFA for
+that account, so future sign-ins require both password and passkey. Keeping two
+passkeys is recommended. An Administrator can select **Require Administrators** or
+**Require everyone** only after every enabled targeted account has enrolled. The
+setting is an Administrator choice, not a mandatory default.
+
+Required policy is fail-closed. It prevents a targeted account's last passkey from
+being removed or reset and prevents creating, enabling, or promoting an unenrolled
+target. To add an Administrator while **Require Administrators** is active, create a
+non-Administrator, let that user replace the temporary password and enroll, then
+promote the account. **Require everyone** must be temporarily lowered to Optional
+while a new enabled account is created, completes its password change, and enrolls;
+restore the required policy afterward.
+
+An Administrator may explicitly reset passkey MFA for another account only after
+current-strength confirmation. Reset deletes that account's passkeys and pending
+ceremonies, revokes its browser sessions, and leaves its password unchanged. First
+lower or otherwise make the account non-targeted by a required policy. An
+Administrator cannot use the live reset on their own account. If all Administrators
+lose their factors, follow [Backup and Recovery](BACKUP_AND_RECOVERY.md): the
+backup-first stopped-instance procedure resets one existing account and returns the
+global policy to Optional. There is no weaker TOTP, email, or recovery-code bypass.
 
 ## File and archive limits
 
@@ -166,11 +195,12 @@ or define a trusted custom command in the local bridge config.
 
 ## Login and browser sessions
 
-Failed logins receive a short progressive cooldown beginning after the third
-failure and capped at 60 seconds. The control is bounded, process-local, and
-matches the supported single API process; restarting the API clears its attempt
-history. Audit events include the immediate client address and outcome but never
-the supplied password or issued session secret.
+Failed logins and passkey completions receive a short progressive cooldown beginning
+after the third failure and capped at 60 seconds. The control is bounded,
+process-local, and matches the supported single API process; restarting the API
+clears its attempt history. Audit events include the immediate client address and
+outcome but never the supplied password, issued session secret, credential ID,
+public key, challenge, assertion, or authenticator response.
 
 Audit capture is mandatory and cannot be disabled or narrowed in Settings. It
 covers every mutation plus account/session administration, exports, handoff

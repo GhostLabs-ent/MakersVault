@@ -23,6 +23,10 @@ from identity_service import (
     verify_password_hash,
 )
 from models import BrowserSession, UserAccount
+from passkey_service import (
+    AUTHENTICATOR_MUTATION_LOCK,
+    account_satisfies_authenticator_policy_candidate,
+)
 
 
 ACCOUNT_NAME_MAX_LENGTH = 256
@@ -131,7 +135,13 @@ def create_account(
         created_at=timestamp,
         updated_at=timestamp,
     )
-    with _MUTATION_LOCK, Session(database_engine) as session:
+    with _MUTATION_LOCK, AUTHENTICATOR_MUTATION_LOCK, Session(database_engine) as session:
+        account_satisfies_authenticator_policy_candidate(
+            session,
+            account_id=None,
+            role=Role(role),
+            enabled=True,
+        )
         session.add(account)
         try:
             session.flush()
@@ -168,10 +178,16 @@ def update_account(
 ) -> UserAccount:
     if display_name is None and role is None and enabled is None:
         raise HTTPException(status_code=422, detail="No account changes were supplied")
-    with _MUTATION_LOCK, Session(database_engine) as session:
+    with _MUTATION_LOCK, AUTHENTICATOR_MUTATION_LOCK, Session(database_engine) as session:
         account = _require_account(session, user_id)
         next_role = Role(role).value if role is not None else account.role
         next_enabled = bool(enabled) if enabled is not None else account.enabled
+        account_satisfies_authenticator_policy_candidate(
+            session,
+            account_id=account.id,
+            role=Role(next_role),
+            enabled=next_enabled,
+        )
         removes_enabled_administrator = (
             account.enabled
             and account.role == Role.ADMINISTRATOR.value

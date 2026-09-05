@@ -268,9 +268,10 @@ def require_auth(request: Request) -> Optional[SessionPrincipal]:
   if principal is None:
     raise HTTPException(status_code=401, detail="Unauthorized")
   request.state.session_principal = principal
+  request_origin: Optional[str] = None
   if request.method.upper() in UNSAFE_METHODS:
-    origin = _normalize_origin(request.headers.get("Origin", ""))
-    if origin is None or origin not in configured_browser_origins():
+    request_origin = _normalize_origin(request.headers.get("Origin", ""))
+    if request_origin is None or request_origin not in configured_browser_origins():
       raise HTTPException(status_code=403, detail="Trusted browser origin required")
     if not csrf_matches(principal, request.headers.get("X-CSRF-Token")):
       raise HTTPException(status_code=403, detail="Valid CSRF token required")
@@ -293,6 +294,7 @@ def require_auth(request: Request) -> Optional[SessionPrincipal]:
       engine,
       user_id=principal.user_id,
       session_id=principal.session_id,
+      origin=request_origin,
     ):
       raise HTTPException(
         status_code=403,

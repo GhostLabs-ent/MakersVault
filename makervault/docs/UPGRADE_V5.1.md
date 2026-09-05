@@ -1,5 +1,9 @@
 # Upgrade to MakersVault v5.1
 
+The original Gate 5 upgrade candidate remains frozen at `f6ff55b`. Account and
+passkey notes below describe later local development and must be requalified
+against its eventual release revision before rollout.
+
 This procedure upgrades a production Compose installation. Read
 [Backup and Recovery](BACKUP_AND_RECOVERY.md) first. v5.1 migrations are additive,
 but rollback is a matched snapshot restore—not a reverse database migration.
@@ -31,6 +35,19 @@ The existing `.env` must provide a unique administrator password of at least 12
 characters and a distinct random signing secret of at least 32 bytes. Keep the
 current file; do not run `setup-env.sh` over an existing installation. See
 [Secure Deployment](SECURE_DEPLOYMENT.md) for the complete security contract.
+
+Existing accounts remain password-only after migration. If passkey MFA will be
+used, configure its stable final HTTPS origin before enrollment:
+
+```dotenv
+WEBAUTHN_RP_ID=vault.example.com
+WEBAUTHN_ORIGIN=https://vault.example.com
+WEBAUTHN_RP_NAME=MakersVault
+```
+
+Do not enable a required policy during the upgrade itself. First return the vault
+to service, let targeted accounts enroll, verify recovery access, and then stage
+the policy in **Settings → Accounts & Access**.
 
 ## 2. Create the rollback point
 
@@ -103,6 +120,9 @@ Then sign in and verify:
 - preview fallback/retry on a complex model;
 - mounted-import state and one available no-copy source;
 - the v5.1 bridge from each workstation that uses local handoff.
+- password login for every required account; if passkeys are configured, enroll two
+  for an Administrator where practical, test a fresh password-plus-passkey login,
+  and only then select a required policy.
 
 Changing `AUTH_SECRET` intentionally invalidates old browser sessions. Sign in
 again; do not interpret that as lost vault data.
@@ -129,8 +149,10 @@ database that the v5.1 image has migrated; the snapshot restore is the downgrade
 ## What the upgrade does not restore
 
 External index-in-place bytes, browser cookie values, import-site cookies, and
-workstation bridge configuration are not server-backup content. Schema-14 raw
-backup includes keyed server-side session records, but not the browser's cookie
-value; follow the isolated restore and revoke-all procedure. Remount external
-libraries at the same paths and reinstall the matching v5.1 bridge where needed.
-See [Backup and Recovery](BACKUP_AND_RECOVERY.md) for details.
+workstation bridge configuration are not server-backup content. Schema-17 raw
+backup includes keyed server-side session records but not the browser's cookie
+value. It also contains public passkey credential state, but never private keys or
+device-unlock material. Raw restore revokes sessions and consumes pending passkey
+ceremonies; registered credentials remain bound to the configured RP. Remount
+external libraries at the same paths and reinstall the matching v5.1 bridge where
+needed. See [Backup and Recovery](BACKUP_AND_RECOVERY.md) for details.

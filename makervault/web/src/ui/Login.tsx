@@ -1,5 +1,6 @@
 import React from "react";
-import { login } from "../lib/api";
+import { completePasskeyLogin, login } from "../lib/api";
+import { getPasskeyAssertion } from "../lib/passkeys";
 import { ResolvedTheme } from "../lib/settings";
 import type { VaultRole } from "../lib/capabilities";
 
@@ -36,8 +37,13 @@ export default function Login({ onSuccess, apiUp, theme }: Props) {
     setLoading(true);
     try {
       const res = await login(username, password);
-      if (!res.authenticated) throw new Error("Login failed");
-      onSuccess(res.role, res.password_change_required);
+      if (res.authenticated) {
+        onSuccess(res.role, res.password_change_required);
+        return;
+      }
+      const credential = await getPasskeyAssertion(res.public_key);
+      const completed = await completePasskeyLogin(credential);
+      onSuccess(completed.role, completed.password_change_required);
     } catch (err) {
       console.error(err);
       if (err instanceof Error) {
@@ -99,7 +105,7 @@ export default function Login({ onSuccess, apiUp, theme }: Props) {
           disabled={loading}
           className="w-full px-3 py-2 rounded-md bg-accent font-medium disabled:opacity-60"
         >
-          {loading ? "Signing in..." : "Sign in"}
+          {loading ? "Waiting for authentication…" : "Sign in"}
         </button>
       </form>
     </div>

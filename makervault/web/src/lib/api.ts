@@ -1392,7 +1392,8 @@ export function getApiBase() {
 }
 
 export type LoginResult = {
-  authenticated: boolean;
+  authenticated: true;
+  mfa_enabled: boolean;
   role: VaultRole;
   permissions: string[];
   password_change_required: boolean;
@@ -1401,13 +1402,24 @@ export type LoginResult = {
   absolute_expires_at: number;
 };
 
+export type PendingPasskeyLogin = {
+  authenticated: false;
+  mfa_required: true;
+  public_key: Record<string, unknown>;
+  expires_in: number;
+};
+
+export type LoginResponse = LoginResult | PendingPasskeyLogin;
+
 export type SessionStatus = {
   authenticated: boolean;
   session_id: string;
+  user_id: string;
   username: string;
   role: VaultRole;
   permissions: string[];
   password_change_required: boolean;
+  mfa_enabled: boolean;
   csrf_token: string;
   reauthenticated_at: number;
   idle_expires_at: number;
@@ -1425,7 +1437,7 @@ export type BrowserSession = {
   user_agent?: string | null;
 };
 
-export async function login(username: string, password: string): Promise<LoginResult> {
+export async function login(username: string, password: string): Promise<LoginResponse> {
   const res = await sessionFetch(`${apiBase()}/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1441,6 +1453,20 @@ export async function login(username: string, password: string): Promise<LoginRe
     }
     throw new Error(message);
   }
+  const body = await res.json() as LoginResponse;
+  if (body.authenticated) setSessionCsrfToken(body.csrf_token);
+  return body;
+}
+
+export async function completePasskeyLogin(
+  credential: Record<string, unknown>,
+): Promise<LoginResult> {
+  const res = await sessionFetch(`${apiBase()}/login/passkey`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ credential }),
+  });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Passkey login failed"));
   const body = await res.json() as LoginResult;
   setSessionCsrfToken(body.csrf_token);
   return body;
@@ -1492,6 +1518,7 @@ export type VaultUser = {
   role: VaultRole;
   enabled: boolean;
   password_change_required: boolean;
+  mfa_enabled: boolean;
   created_at: string;
   updated_at: string;
   last_login_at?: string | null;
@@ -1531,8 +1558,13 @@ async function accountRequest<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
-export async function reauthenticateSession(password: string): Promise<number> {
-  const body = await accountRequest<{ reauthenticated_at: number }>(
+export type ReauthenticationResult = {
+  reauthenticated_at: number;
+  mfa_required: boolean;
+};
+
+export async function reauthenticateSession(password: string): Promise<ReauthenticationResult> {
+  return accountRequest<ReauthenticationResult>(
     "/session/reauthenticate",
     {
       method: "POST",
@@ -1540,7 +1572,116 @@ export async function reauthenticateSession(password: string): Promise<number> {
       body: JSON.stringify({ password }),
     },
   );
-  return body.reauthenticated_at;
+}
+
+export type PasskeyCredential = {
+  id: string;
+  label: string;
+  transports: string[];
+  device_type: "single_device" | "multi_device";
+  backed_up: boolean;
+  created_at: string;
+  last_used_at?: string | null;
+};
+
+export type PasskeyAccount = {
+  available: boolean;
+  mfa_enabled: boolean;
+  credentials: PasskeyCredential[];
+};
+
+export async function getPasskeys(): Promise<PasskeyAccount> {
+  return accountRequest<PasskeyAccount>("/account/passkeys", { cache: "no-store" });
+}
+
+export async function beginPasskeyRegistration(): Promise<Record<string, unknown>> {
+  return accountRequest<Record<string, unknown>>(
+    "/account/passkeys/registration/options",
+    { method: "POST" },
+  );
+}
+
+export async function completePasskeyRegistration(
+  label: string,
+  credential: Record<string, unknown>,
+): Promise<PasskeyAccount> {
+  await accountRequest("/account/passkeys/registration/verify", {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ label, credential }),
+  });
+  return getPasskeys();
+}
+
+export async function beginPasskeyReauthentication(): Promise<Record<string, unknown>> {
+  return accountRequest<Record<string, unknown>>(
+    "/account/passkeys/reauthentication/options",
+    { method: "POST" },
+  );
+}
+
+export async function completePasskeyReauthentication(
+  credential: Record<string, unknown>,
+): Promise<number> {
+  const result = await accountRequest<{ reauthenticated_at: number }>(
+    "/account/passkeys/reauthentication/verify",
+    {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ credential }),
+    },
+  );
+  return result.reauthenticated_at;
+}
+
+export async function renamePasskey(id: string, label: string): Promise<PasskeyCredential> {
+  return accountRequest<PasskeyCredential>(
+    `/account/passkeys/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ label }),
+    },
+  );
+}
+
+export async function removePasskey(id: string): Promise<{ mfa_enabled: boolean }> {
+  return accountRequest(`/account/passkeys/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+export type AuthenticatorPolicyMode =
+  | "optional"
+  | "require_administrators"
+  | "require_all";
+
+export type AuthenticatorPolicy = {
+  available: boolean;
+  mode: AuthenticatorPolicyMode;
+  require_administrators_blockers: string[];
+  require_all_blockers: string[];
+  updated_at: string;
+};
+
+export async function getAuthenticatorPolicy(): Promise<AuthenticatorPolicy> {
+  return accountRequest("/settings/authenticator-policy", { cache: "no-store" });
+}
+
+export async function updateAuthenticatorPolicy(
+  mode: AuthenticatorPolicyMode,
+): Promise<AuthenticatorPolicy> {
+  return accountRequest("/settings/authenticator-policy", {
+    method: "PATCH",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ mode }),
+  });
+}
+
+export async function resetUserMfa(id: string): Promise<void> {
+  await accountRequest(`/users/${encodeURIComponent(id)}/mfa-reset`, {
+    method: "POST",
+  });
 }
 
 export async function changeOwnPassword(newPassword: string): Promise<LoginResult> {

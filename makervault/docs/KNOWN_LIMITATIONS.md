@@ -1,25 +1,35 @@
-# MakersVault v5.1 Known Limitations
+# MakersVault Known Limitations — Current Development
 
-These are intentional v5.1 boundaries, not hidden promises.
+These describe the current local roadmap build through Gate 11E. The frozen Gate 5
+candidate at `f6ff55b` has the narrower [v5.1 scope](V5.1_SCOPE.md); local feature
+completion is not release qualification.
 
 ## Identity and access
 
 - Administrators can create and manage persistent local accounts with three fixed
   shared-vault roles, temporary-password reset, and last-Administrator protection.
   Public registration, invitations/email reset, username rename, account deletion,
-  custom roles, MFA, OIDC/SSO, API keys, private models, and per-model ACLs remain
-  unavailable. The environment credential is one-time bootstrap input, not an
-  online password-change or recovery mechanism.
+  custom roles, passwordless login, TOTP, recovery codes, OIDC/SSO, API keys,
+  private models, and per-model ACLs remain unavailable. Password-plus-passkey MFA
+  is optional by default and requires one stable HTTPS RP/origin configuration. The
+  environment credential is one-time bootstrap input, not an online password-change
+  or recovery mechanism.
+- Required passkey policy is deliberately staged. Every enabled targeted account
+  must enroll first; Require Everyone must be lowered to Optional while a new enabled
+  account is onboarded. Live Administrator MFA reset applies only to another
+  non-required account, revokes its sessions, and does not change its password.
 - Browser authentication uses revocable HttpOnly cookies and no tokenized file URLs.
   Production requires HTTPS; non-Secure cookies exist only in explicit development
   and test modes.
 - Raw restore and stopped-instance Administrator recovery revoke every browser
-  session. There is no online/email recovery: emergency recovery requires a stopped
-  instance, an exact verified pre-change backup, and an existing account.
+  session; raw restore also consumes pending passkey ceremonies. There is no
+  online/email/code recovery: emergency recovery requires a stopped instance, an
+  exact verified pre-change backup, and an existing account.
 - Durable audit is mandatory and Administrator-readable, but this slice has no
   audit deletion or retention setting. Events remain in SQLite and raw backups
   indefinitely; portable `.mvault` archives deliberately exclude them.
-- Login throttling is bounded and process-local for the supported single API process.
+- Login/passkey throttling is bounded and process-local for the supported single API
+  process.
 
 ## Files, previews, and workshop actions
 
@@ -36,11 +46,16 @@ These are intentional v5.1 boundaries, not hidden promises.
 
 ## Organization and history
 
-- Permanent multi-model deletion remains constrained until recoverable Trash exists.
+- Ordinary deletion moves Artifacts to recoverable Trash; permanent deletion remains
+  an explicit Administrator action and historical revisions cannot be erased one by
+  one.
 - “Select every server match” is deferred; bulk actions operate on explicitly loaded
   and selected IDs.
-- There are no artifact revisions, rollback history, Projects, relationships, or
-  duplicate/content-identity engine in v5.1.
+- Artifact history is linear and immutable: restoring an old revision creates a new
+  current revision rather than rewriting history. Project relationships use the
+  bounded accepted vocabulary and same-active-Project rules, not an arbitrary graph.
+- SHA-256 matches are suggestions and integrity evidence; MakersVault never silently
+  merges or deletes duplicate content.
 - Model-name uniqueness is folder-scoped. External no-copy files cannot be renamed
   because MakersVault does not own their bytes.
 
@@ -51,21 +66,23 @@ These are intentional v5.1 boundaries, not hidden promises.
 - Index-in-place bytes are outside MakersVault backups. Restore/remount them at the
   same container-visible paths; absent sources remain unavailable without blocking
   managed files.
-- v5.1 records exact source paths but does not hash them or detect changed content.
-  Hashing, provenance, changed-source state, and duplicate suggestions are deferred.
+- Index-in-place content can be hashed and report available, missing, or changed
+  state, but MakersVault does not repair, overwrite, or relocate the external source.
 - Remote import supports public HTTP(S) destinations only. Private-network URLs,
   outbound proxy routing, and arbitrary credential forwarding are unsupported.
 
 ## Backup and deployment
 
-- The v5.1 recovery archive is an operator backup for the canonical Compose layout,
-  not the future portable `.mvault` export/storage-provider format.
+- The raw recovery archive is an operator backup for the canonical Compose layout;
+  portable `.mvault` v1 is a separate secret-free logical export/clean-import format,
+  not an in-place disaster-recovery replacement.
 - Archives contain `.env` secrets and are not encrypted. Mode `600`, off-host access
   controls, and encryption-at-rest are operator responsibilities.
 - SHA-256 inventories detect corruption but are not signatures. Published release
   artifacts use separate GitHub/Sigstore attestations.
-- Server backup excludes browser sessions/preferences/cookies and workstation bridge
-  configuration/cache.
+- Server backup includes keyed session rows and public passkey state but excludes the
+  browser's cookie value, preferences, and workstation bridge configuration/cache.
+  Restore revokes copied sessions and consumes pending ceremonies before exposure.
 - Direct public exposure of the API or web port is unsupported. MakersVault does not
   provision TLS certificates or emit HSTS for mixed LAN/proxy deployments.
 

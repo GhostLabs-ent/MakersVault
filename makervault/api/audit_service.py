@@ -32,7 +32,9 @@ _DETAIL_KEYS = frozenset({
     "removed_credentials",
     "reset_mfa_policy",
 })
-_CHANGED_FIELDS = frozenset({"display_name", "role", "enabled", "password"})
+_CHANGED_FIELDS = frozenset(
+    {"display_name", "role", "enabled", "password", "mode"}
+)
 _OBJECT_PARAMETERS = {
     "user_id": "user",
     "session_id": "session",
@@ -59,6 +61,9 @@ _EXPLICIT_ACTIONS: Mapping[tuple[str, str], str] = {
     ("POST", "/account/passkeys/reauthentication/verify"): "passkey.reauthentication.complete",
     ("PATCH", "/account/passkeys/{passkey_id}"): "passkey.credential.rename",
     ("DELETE", "/account/passkeys/{passkey_id}"): "passkey.credential.remove",
+    ("GET", "/settings/authenticator-policy"): "passkey.policy.read",
+    ("PATCH", "/settings/authenticator-policy"): "passkey.policy.update",
+    ("POST", "/users/{user_id}/mfa-reset"): "passkey.administrator.reset",
     ("GET", "/sessions"): "session.list",
     ("POST", "/logout"): "session.logout",
     ("DELETE", "/sessions/{session_id}"): "session.revoke",
@@ -106,10 +111,15 @@ class AuditContext:
     object_id: Optional[str] = None
 
     def for_object(self, object_type: str, object_id: str) -> "AuditContext":
+        safe_object_id = (
+            "global"
+            if object_type == "authenticator_policy" and object_id == "global"
+            else _safe_identifier(object_id)
+        )
         return replace(
             self,
             object_type=_bounded(object_type, 64),
-            object_id=_safe_identifier(object_id),
+            object_id=safe_object_id,
         )
 
 

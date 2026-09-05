@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-04
 
-**Status:** Accepted design; 11E-1a complete and owner-accepted
+**Status:** Accepted design; 11E-1a–1c owner-accepted; 11E-1d at closeout checkpoint
 
 **Entry commit:** `a85048b`
 
@@ -160,6 +160,7 @@ Approval should decide all of the following together:
 5. Administrator MFA reset plus stopped-instance recovery instead of recovery codes;
 6. no API key, OIDC, public registration, hosted tenancy, push, or publication.
 
-The owner accepted all six choices without amendment on 2026-09-04. 11E-1a results
-are recorded in [`SUBGATE_11E1A_RESULTS.md`](SUBGATE_11E1A_RESULTS.md). Registration,
-login, and account self-management remain outside this slice.
+The owner accepted all six choices without amendment on 2026-09-04, then accepted
+11E-1a, 11E-1b, and 11E-1c sequentially. The final authorized 11E-1d workflow,
+policy, reset, browser, and recovery review is recorded in
+[`SUBGATE_11E1D_RESULTS.md`](SUBGATE_11E1D_RESULTS.md), pending owner acceptance.

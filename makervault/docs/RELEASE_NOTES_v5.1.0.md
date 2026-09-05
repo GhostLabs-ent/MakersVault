@@ -1,5 +1,9 @@
 # MakersVault v5.1.0
 
+**Working draft:** The highlights below include later local roadmap work through
+Gate 11E. The qualified Gate 5 source remains `f6ff55b` at schema 5. These edits do
+not replace that frozen candidate or establish a new release artifact.
+
 MakersVault v5.1.0 is a confidence release: faster library browsing, clearer
 organization, safer self-hosting, and richer workshop context without turning the
 vault into a slicer, printer controller, or multi-user cloud service.
@@ -32,6 +36,11 @@ vault into a slicer, printer controller, or multi-user cloud service.
   Trash/permanent deletion, and audit reads without storing bodies, query strings,
   passwords, tokens, filenames, notes, URLs, or filesystem paths. Administrators
   can review cursor-paginated outcomes in Settings.
+- Optional password-plus-passkey MFA uses origin-bound WebAuthn ceremonies while
+  retaining the password as the first factor. Users manage their own credentials;
+  Administrators can stage Require Administrators or Require Everyone only after
+  targeted accounts enroll, and can explicitly reset another account's MFA without
+  changing its password.
 - Ordered additive migrations, stopped matched backups, clean recovery, and exact
   rollback are source-owned and tested.
 
@@ -43,10 +52,12 @@ pulling images, follow the tested
 and create an off-host verified archive using
 [Backup and Recovery](https://github.com/VincentCinque/MakersVault/blob/v5.1.0/makervault/docs/BACKUP_AND_RECOVERY.md).
 
-The release schema is version 16. Existing model bytes are not rewritten merely by
+The current development schema is version 17. Existing model bytes are not rewritten merely by
 applying its additive migrations. Production deployments must provide a unique
 administrator password and a distinct random signing secret. Changing the signing
-secret invalidates old browser sessions but does not remove vault data.
+secret invalidates old browser sessions and pending authentication ceremonies but
+does not remove vault data. Passkey use additionally requires one stable HTTPS RP ID
+and exact origin as documented in the secure-deployment guide.
 
 ## Artifacts and verification
 
@@ -79,8 +90,9 @@ benchmark. See [Gate 5 evidence](evidence/gate-5/RESULTS.md) for the full matrix
 ## Intentional boundaries
 
 v5.1 does not add manual thumbnail uploads, account self-registration, private
-libraries or per-object ACLs, MFA/SSO, slicing or printer control, automatic STEP
-card previews, continuous NAS watching, or server-wide “select every match.” See the complete
+libraries or per-object ACLs, passwordless/TOTP authentication, recovery codes, API
+keys or OIDC/SSO, slicing or printer control, automatic STEP card previews,
+continuous NAS watching, or server-wide “select every match.” See the complete
 [Known Limitations](https://github.com/VincentCinque/MakersVault/blob/v5.1.0/makervault/docs/KNOWN_LIMITATIONS.md).
 
 The full change inventory is in

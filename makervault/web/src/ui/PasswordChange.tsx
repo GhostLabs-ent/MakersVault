@@ -1,6 +1,7 @@
 import React from "react";
 
 import { changeOwnPassword, type LoginResult } from "../lib/api";
+import { confirmCurrentAuthentication } from "../lib/passkeyFlows";
 
 
 type Props = {
@@ -13,6 +14,7 @@ type Props = {
 export default function PasswordChange({ required = false, onChanged, onCancel }: Props) {
   const [password, setPassword] = React.useState("");
   const [confirmation, setConfirmation] = React.useState("");
+  const [currentPassword, setCurrentPassword] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
 
@@ -25,7 +27,9 @@ export default function PasswordChange({ required = false, onChanged, onCancel }
     setSaving(true);
     setMessage(null);
     try {
+      await confirmCurrentAuthentication(currentPassword);
       const session = await changeOwnPassword(password);
+      setCurrentPassword("");
       setPassword("");
       setConfirmation("");
       onChanged(session);
@@ -46,6 +50,10 @@ export default function PasswordChange({ required = false, onChanged, onCancel }
         {required && <p className="mt-2 text-sm">Your temporary or legacy password must be replaced before opening the vault.</p>}
       </div>
       <label className="flex flex-col gap-1 text-sm">
+        <span>Current password</span>
+        <input className="rounded-md border border-panel-strong bg-panel px-3 py-2" type="password" autoComplete="current-password" maxLength={4096} value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} required />
+      </label>
+      <label className="flex flex-col gap-1 text-sm">
         <span>New password</span>
         <input className="rounded-md border border-panel-strong bg-panel px-3 py-2" type="password" autoComplete="new-password" minLength={15} maxLength={4096} value={password} onChange={event => setPassword(event.target.value)} required />
       </label>
@@ -55,7 +63,7 @@ export default function PasswordChange({ required = false, onChanged, onCancel }
       </label>
       {message && <p className="text-sm text-red-700 dark:text-red-300" aria-live="polite">{message}</p>}
       <div className="flex gap-2">
-        <button className="rounded-md bg-accent px-3 py-2 text-sm disabled:opacity-50" disabled={saving || password.length < 15 || confirmation.length < 15} type="submit">{saving ? "Changing…" : "Change password"}</button>
+        <button className="rounded-md bg-accent px-3 py-2 text-sm disabled:opacity-50" disabled={saving || !currentPassword || password.length < 15 || confirmation.length < 15} type="submit">{saving ? "Changing…" : "Change password"}</button>
         {onCancel && <button className="rounded-md border border-panel-strong px-3 py-2 text-sm" type="button" onClick={onCancel}>{required ? "Sign out" : "Cancel"}</button>}
       </div>
     </form>

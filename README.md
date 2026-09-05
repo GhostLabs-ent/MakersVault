@@ -30,7 +30,7 @@
   <li>Secure deployment defaults and tested upgrade/recovery guidance.</li>
   <li>Polish for metadata, supporting files, prepared-print summaries, LightBurn, and the local bridge.</li>
 </ul>
-<p>Multi-user accounts, MFA, SSO, and the full Project/Artifact/Revision architecture are deliberately deferred. See <a href="makervault/docs/V5.1_SCOPE.md">the v5.1 release contract</a> and <a href="makervault/docs/ARCHITECTURE_RUNBOOK.md">architecture runbook</a>.</p>
+<p>The frozen Gate 5 v5.1 candidate remains at <code>f6ff55b</code>. Later local roadmap work adds Artifact history, Trash, Projects, Machines, portable vaults, shared-vault accounts, and optional passkey MFA. Its evidence and owner checkpoints are in the <a href="makervault/docs/ARCHITECTURE_RUNBOOK.md">architecture runbook</a>; it does not replace the <a href="makervault/docs/V5.1_SCOPE.md">frozen release contract</a> without release qualification.</p>
 
 <h2>Getting Started</h2>
 <p>Makers Vault is deployable using Docker pull or Docker Compose:</p>
@@ -43,7 +43,7 @@ docker compose -f docker-compose.deploy.yml up -d
 ```
 
 <p><code>makervault/docker-compose.deploy.yml</code> is the canonical production manifest. <code>makervault/docker-compose.yml</code> is the canonical local source-build manifest. The historical <code>docker-deploy.yml</code> filename is retained only as a compatibility alias.</p>
-<p><strong>Security notice:</strong> production startup requires an explicit administrator password and deployment-specific signing secret. The setup helper creates both without overwriting an existing <code>.env</code>. Do not expose MakersVault ports directly to the public Internet.</p>
+<p><strong>Security notice:</strong> production startup requires an explicit administrator password and deployment-specific signing secret. The setup helper creates both without overwriting an existing <code>.env</code>. Optional passkey MFA additionally requires one stable HTTPS RP ID and origin. Do not expose MakersVault ports directly to the public Internet.</p>
 <p><strong>Existing installation:</strong> do not start new images until you have followed the tested <a href="makervault/docs/UPGRADE_V5.1.md">v5.1 upgrade procedure</a> and created a verified matched backup using the <a href="makervault/docs/BACKUP_AND_RECOVERY.md">backup and recovery guide</a>. SQLite and managed storage must always be backed up and restored together.</p>
 
 <h3>Setting up the .env file</h3>

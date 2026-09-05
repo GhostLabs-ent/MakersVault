@@ -14,6 +14,8 @@ ADMIN_ID = "11111111-1111-4111-8111-111111111111"
 SESSION_ID = "22222222-2222-4222-8222-222222222222"
 CREDENTIAL_ID = "33333333-3333-4333-8333-333333333333"
 CHALLENGE_ID = "44444444-4444-4444-8444-444444444444"
+AUDIT_ID = "55555555-5555-4555-8555-555555555555"
+CORRELATION_ID = "66666666-6666-4666-8666-666666666666"
 ENCODED_CREDENTIAL_ID = "Y3JlZGVudGlhbC1pZC1maXh0dXJl"
 ENCODED_PUBLIC_KEY = "cHVibGljLWtleS1tYXRlcmlhbC1maXh0dXJl"
 
@@ -74,6 +76,17 @@ def schema17_fixture(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
             updated_at = '2026-09-04T00:00:00Z',
             updated_by_user_id = '{ADMIN_ID}'
         WHERE id = 'global';
+        INSERT INTO auditevent(
+            id, occurred_at, correlation_id, actor_user_id, actor_username,
+            actor_role, action, result, object_type, object_id, method, route,
+            permission, status_code, source_address, details_json
+        ) VALUES (
+            '{AUDIT_ID}', '2026-09-04T00:00:01Z', '{CORRELATION_ID}',
+            '{ADMIN_ID}', 'Admin', 'administrator', 'passkey.policy.update',
+            'success', 'authenticator_policy', 'global', 'PATCH',
+            '/settings/authenticator-policy', 'settings.manage', 200,
+            '127.0.0.1', '{{"changed_fields":["mode"]}}'
+        );
         """
     )
     connection.commit()

@@ -48,6 +48,8 @@ def test_login_issues_http_only_session_without_returning_a_bearer() -> None:
         assert current.status_code == 200
         assert current.headers["cache-control"] == "private, no-store"
         assert current.json()["username"] == "admin"
+        assert current.json()["user_id"]
+        assert current.json()["mfa_enabled"] is False
         assert current.json()["session_id"]
 
     # TestClient's cookie jar exposes values but not Set-Cookie flags.
