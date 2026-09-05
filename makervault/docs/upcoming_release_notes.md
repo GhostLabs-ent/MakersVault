@@ -2,7 +2,7 @@
 
 > **Status:** In development. v5.1 has not been published yet. Gates 0–11 are
 > owner-accepted, and Gate 11E-1d was accepted for closeout on 2026-09-05. Gate 12
-> is deferred to the desktop version; Gate 13 is next and has not yet started.
+> is deferred to the desktop version; Gate 13 is active with 13A in evidence review.
 > This draft tracks later local development; the qualified Gate 5 candidate remains
 > frozen at `f6ff55b`. Qualification of a later release revision remains gated.
 
@@ -28,8 +28,9 @@ printer controller, or multi-user cloud service.
 - LightBurn preview generation follows the same bounded and persistent workflow.
 - No manual thumbnail-upload chore was added.
 
-The accepted preview benchmark recorded zero navigation-blocking long tasks in the
-candidate workflow and zero original model requests on its warm library pass.
+The frozen Gate 5 candidate's preview benchmark recorded zero navigation-blocking
+long tasks and zero warm original-model requests. Gate 13 has not yet requalified
+those timings on the later schema-17 build.
 
 ### Modern organization for larger libraries
 
@@ -50,8 +51,9 @@ candidate workflow and zero original model requests on its warm library pass.
 - Model-name conflicts within a folder return an understandable result and do not
   overwrite either model.
 
-The accepted organization benchmark exercised 600 models and 104 nested folders
-with zero measured interaction long tasks.
+The frozen candidate's organization benchmark exercised 600 models and 104 nested
+folders with zero measured interaction long tasks; this is historical Gate 5
+evidence, not a new current-build measurement.
 
 ### Better model identity and context
 
@@ -178,8 +180,9 @@ commands.
 - Development, production, compatibility, benchmark, security, and smoke Compose
   configurations pass validation.
 - Fresh container smoke passes with non-root processes and schema 17.
-- Preview, 600-model organization, and real-browser mounted-scan workflows pass their
-  deterministic acceptance checks.
+- Preview, 600-model organization, and mounted-scan browser workflows passed on the
+  frozen Gate 5 candidate. Gate 13 found their JWT-based harnesses need updating
+  before they can requalify the current cookie-session build.
 - A Chromium virtual-authenticator drill passes passkey registration, current-strength
   confirmation, Administrator policy enablement, logout, and fresh
   password-plus-passkey login.
@@ -191,8 +194,16 @@ All v5.1 feature-development commits remain local until the coordinated rollout.
 Gate 11E-1 is accepted. Gate 12 sustainable optional services is deferred to the
 desktop version; its free-core and non-lock-in commitments remain binding.
 
-1. Gate 13 full invariant, documentation, upgrade/recovery, performance, security,
-   artifact, and clean-machine release-candidate qualification.
+Gate 13A re-ran the complete current repository gate (313 API tests, 32 web tests,
+builds, bridge, Compose/security, fresh schema-17 smoke and Chromium passkeys) and
+the 1,200-Artifact portable round trip. All passed. Its
+[audit results](evidence/gate-13/SUBGATE_13A_RESULTS.md) explicitly leave current
+operator lifecycle, browser performance, fresh advisory and exact-image release
+qualification open.
+
+1. Complete Gate 13B–13D: current verification-harness repairs, joined upgrade/raw
+   restore/portable-startup proof, browser/security/platform qualification, and owner
+   acceptance of the end state and next roadmap.
 2. Record Gate 12 as outstanding desktop follow-up in the final roadmap audit.
 3. Explicit owner ship/no-ship approval before any push, tag, image publication, or
    release.

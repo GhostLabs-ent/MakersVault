@@ -31,6 +31,7 @@
   <li>Polish for metadata, supporting files, prepared-print summaries, LightBurn, and the local bridge.</li>
 </ul>
 <p>The frozen Gate 5 v5.1 candidate remains at <code>f6ff55b</code>. Later local roadmap work adds Artifact history, Trash, Projects, Machines, portable vaults, shared-vault accounts, and optional passkey MFA. Its evidence and owner checkpoints are in the <a href="makervault/docs/ARCHITECTURE_RUNBOOK.md">architecture runbook</a>; it does not replace the <a href="makervault/docs/V5.1_SCOPE.md">frozen release contract</a> without release qualification.</p>
+<p><strong>Current local status:</strong> Gate 13's <a href="makervault/docs/evidence/gate-13/SUBGATE_13A_RESULTS.md">end-state audit</a> is open. Current regression and portable-scale verification pass; current-build operator lifecycle, browser and release qualification remain in progress. Gate 12 optional services is deferred to the desktop version. Nothing here announces a new published release.</p>
 
 <h2>Getting Started</h2>
 <p>Makers Vault is deployable using Docker pull or Docker Compose:</p>

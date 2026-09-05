@@ -4,6 +4,12 @@ The original Gate 5 upgrade candidate remains frozen at `f6ff55b`. Account and
 passkey notes below describe later local development and must be requalified
 against its eventual release revision before rollout.
 
+Gate 13A confirmed that current migration/recovery regressions pass while the old
+Compose recovery and exact-release smoke scripts retain schema-5 assumptions.
+The [current audit](evidence/gate-13/SUBGATE_13A_RESULTS.md) keeps joined schema-17
+operator lifecycle and exact-image qualification open; these instructions do not
+select or publish replacement artifacts.
+
 This procedure upgrades a production Compose installation. Read
 [Backup and Recovery](BACKUP_AND_RECOVERY.md) first. v5.1 migrations are additive,
 but rollback is a matched snapshot restore—not a reverse database migration.

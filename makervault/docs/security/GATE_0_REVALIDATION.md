@@ -2,6 +2,12 @@
 
 **Status:** Gate 0 record; reconciled through accepted Gates 1–2 evidence
 
+**Historical scope:** These findings describe their named Gate 0–2 baselines and
+the frozen candidate's accepted residuals. For current schema-17 development use
+[Gate 13 revalidation](GATE_13_REVALIDATION.md), including removal of browser
+JWT/query authentication, durable sessions/roles/audit/passkeys, and outstanding
+current advisory/release evidence. The historical results below are preserved.
+
 **Revalidated:** 2026-08-13; Gate 1 and Gate 2 accepted updates recorded 2026-08-14
 
 **Committed anchor:** `80ddc5bb8849c0532ecf4de91010e450df28b940`

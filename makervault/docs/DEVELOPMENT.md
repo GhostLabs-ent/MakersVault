@@ -33,6 +33,17 @@ This performs:
    Compose configurations.
 5. A clean container smoke test with temporary named volumes, HTTP health checks,
    non-root runtime assertions, and schema-version verification.
+6. A Chromium virtual-authenticator passkey workflow in its own disposable project.
+7. The static release identity/publication contract check.
+
+`make verify` is not the complete release qualification. Gate 13A identified that
+the older preview/organization/mounted-import and exact-image harnesses still use
+JWT Bearer auth, and recovery/release drills assert schema 5. Their historical
+results remain valid for their named baselines; they need current cookie/CSRF and
+schema handling before rerunning against later development. See the
+[Gate 13 audit](evidence/gate-13/SUBGATE_13A_RESULTS.md) for the tracked repairs and
+remaining lifecycle/browser/platform evidence. Do not re-enable obsolete auth to
+make a harness pass.
 
 The smoke test uses host ports `18000` and `15173` by default. Override them only
 when necessary:
@@ -55,6 +66,8 @@ make verify-web
 make verify-bridge
 make verify-compose
 make verify-smoke
+make verify-passkeys
+make verify-release
 ```
 
 CI invokes these same targets. A local workaround that CI does not execute is not

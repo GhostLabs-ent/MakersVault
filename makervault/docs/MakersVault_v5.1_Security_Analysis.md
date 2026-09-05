@@ -10,11 +10,13 @@
 
 ---
 
-> **Gate 0 revalidation notice:** This document is the original review snapshot,
-> not the current finding ledger. The working tree has since moved production web
-> serving to unprivileged Nginx, and repository/CI controls have changed. Current dispositions and scan
-> evidence are recorded in
-> [security/GATE_0_REVALIDATION.md](security/GATE_0_REVALIDATION.md).
+> **Historical review notice:** This document preserves the original review
+> snapshot, not current application behavior. Gate 13's current-development
+> finding dispositions and outstanding verification are recorded in
+> [security/GATE_13_REVALIDATION.md](security/GATE_13_REVALIDATION.md).
+> [security/GATE_0_REVALIDATION.md](security/GATE_0_REVALIDATION.md) preserves the
+> earlier Gate 0–2 dispositions and date-bound dependency scans. No old scan is
+> represented as current advisory clearance.
 
 > **Gate 11E update:** Later local development implements the shared-vault identity
 > and passkey sequence beyond the frozen Gate 5 candidate. The TOTP-first entity sketches and

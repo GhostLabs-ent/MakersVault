@@ -5,6 +5,14 @@ stopped snapshot. Never back up or restore only one side. A database can point t
 files that are absent from a mismatched storage snapshot, while storage alone
 cannot reconstruct names, folders, metadata, or relationships.
 
+**Qualification scope (2026-09-05):** The frozen Gate 5 candidate has its named
+production recovery drill. Current schema-17 recovery/portable regression tests
+also pass, but the old `gate5-recovery-drill.sh` still expects schema 5 and is not
+current whole-instance proof. [Gate 13](evidence/gate-13/SUBGATE_13A_RESULTS.md)
+tracks the joined current-build upgrade, restore, rollback and portable-import
+startup drill before later release qualification. Do not use an obsolete drill's
+result as evidence that a later deployment is ready.
+
 The supported production procedure uses `docker-compose.deploy.yml`, the exact
 Compose project name used by the installation, and these canonical mounts:
 

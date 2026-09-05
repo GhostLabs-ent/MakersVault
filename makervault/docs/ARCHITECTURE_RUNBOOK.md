@@ -4,7 +4,7 @@
 
 **Baseline date:** 2026-09-05
 
-**Committed baseline:** `main` at `6b2ed08` (implementation `1a209aa`)
+**Committed baseline:** `main` at `236c0fd` (implementation `1a209aa`; Gate 13 audit entry)
 
 **Immutable v5.1 source baseline:** `f6ff55b33fd64c7a5037e8eb642bed048c3e0e4f`
 
@@ -169,21 +169,24 @@ publication remains reserved for a coordinated rollout.
 
 ```text
 Browser
-  React 18 + TypeScript + Vite + Tailwind + Three.js/OCCT
-                 |
-                 | HTTP/JSON and file responses
-                 v
-FastAPI application
-  route-heavy API + auth + import/storage/model services
-          |                         |
-          v                         v
-SQLite metadata              Managed filesystem storage
-                              + external mounted no-copy files
+  React/TypeScript + bounded preview workers + native passkey ceremonies
+                  |
+                  | protected cookie session; exact-Origin/CSRF mutations
+                  v
+Static unprivileged Nginx -> FastAPI (one shared-vault API process)
+  exhaustive route permissions + identity/session/passkey/audit services
+  library/import + revision/Trash + Project/Machine + recovery services
+           |                         |
+           v                         v
+SQLite schema 17             LocalContentStore + remaining filesystem seams
+  identity/roles/audit          managed revision/supporting/prepared bytes
+  Project <-> Artifact         thumbnails/quarantine; external no-copy references
+                `-- revisions
 
-Browser custom protocol link
-          |
-          v
-Go desktop bridge -> local slicer or engraving application
+Offline matched raw backup/restore: format 1, recovery contract 6
+Offline .mvault v1: content-only export -> verified clean schema-12 import
+
+Browser exact-file grant -> paired Go bridge -> configured local application
 ```
 
 The target is a well-factored modular monolith, not a fleet of microservices.
@@ -191,6 +194,11 @@ Background work may run in a separate process later, but domain boundaries are t
 be made explicit before deployment boundaries are multiplied.
 
 ### 5.3 Truth ledger
+
+This is a cumulative gate history. Each row's evidence and consequence describe
+its named gate; later accepted rows supersede earlier authorization checkpoints.
+Use section 15 and the active Gate 13 record for current authority, not an older
+row's future-tense wording.
 
 | ID | State | Current truth | Primary evidence | Consequence |
 |---|---|---|---|---|
@@ -246,7 +254,9 @@ be made explicit before deployment boundaries are multiplied.
 | T-050 | `VERIFIED` | Local Gate 11E-1b adds explicit stable RP/origin validation, owner-only UV-required attestation-free registration, bounded digest-only session-bound ceremonies, credential list/rename/removal, passkey reauthentication for current-strength self-management, first-enrollment opt-in, last-credential policy safety, and atomic secret-free audit without changing schema 17 or recovery contract 6. | Passkey configuration/service/API regressions, full repository gate, `docs/evidence/gate-11/SUBGATE_11E1B_RESULTS.md` | Owner accepted 11E-1b on 2026-09-04 and authorized 11E-1c. UI/policy/reset closeout remains 11E-1d; push, deployment, and publication remain prohibited. |
 | T-051 | `VERIFIED` | Local Gate 11E-1c makes password success for an MFA-enabled account create only a five-minute digest-bound pending transaction in a separate host-only cookie. Exact-origin, UV-required assertion verification consumes that transaction before issuing a fresh normal session; bounded per-transaction attempts, per-account pending state, source throttling, generic denials, and replay rejection create no session. High-impact recent authentication now requires recent password and session/RP/origin-bound passkey proof for MFA accounts, including the forced-password-change recovery path. | Password-first/assertion/replay/throttling/recent-auth regressions, 310-test API gate, `docs/evidence/gate-11/SUBGATE_11E1C_RESULTS.md` | Owner accepted 11E-1c on 2026-09-04 and authorized 11E-1d. Push, deployment, and publication remain prohibited. |
 | T-052 | `VERIFIED` | Local Gate 11E-1d completes native browser registration/login/step-up and credential management, Administrator-selectable Optional/Require Administrators/Require Everyone policy with enrollment and account-mutation invariants, and explicit current-strength other-account MFA reset that preserves the password and revokes sessions. Schema 17 and recovery contract 6 remain unchanged; raw restore and stopped-instance recovery behavior are revalidated. | 313 API tests, 32 web tests/build, Chromium virtual-authenticator drill, Compose/security/bridge/container gates, `docs/evidence/gate-11/SUBGATE_11E1D_RESULTS.md` | Owner accepted closeout on 2026-09-05 at implementation `1a209aa` and evidence `6b2ed08`. Push, tag, release, deployment, and publication remain prohibited. |
-| T-053 | `DECIDED` | Gate 12 sustainable optional services is deferred to the desktop version by owner direction. Its delivery evidence is outstanding; free-core, portability, and non-lock-in commitments remain in force. | Owner direction 2026-09-05; Gate 12 status and `docs/SUSTAINABILITY.md` | Carry Gate 12 into the desktop roadmap. Gate 13 becomes the next gate for the current track, with this explicit deferral in its traceability audit; it has not yet started. |
+| T-053 | `DECIDED` | Gate 12 sustainable optional services is deferred to the desktop version by owner direction. Its delivery evidence is outstanding; free-core, portability, and non-lock-in commitments remain in force. | Owner direction 2026-09-05; Gate 12 status and `docs/SUSTAINABILITY.md` | Carry Gate 12 into the desktop roadmap and explicitly trace the deferral in Gate 13; do not count it as delivered. |
+| T-054 | `VERIFIED` | Gate 13A reruns the existing complete repository gate on `236c0fd`: 313 API tests, 32 web tests/type/build, bridge/Compose/security/fresh schema-17 smoke/passkey checks, and the static release contract pass. A current 1,200-Artifact portable round trip preserves 3,790 catalog/payload members within its 256 MiB worker budget. | `docs/evidence/gate-13/SUBGATE_13A_RESULTS.md`, current test-image identities and commands | Gate 13 is IN PROGRESS; 13A awaits owner review. These development results do not qualify a new release candidate or prove portable-import startup. |
+| T-055 | `VERIFIED` | Legacy preview/organization/mounted-import and exact-image release harnesses still use JWT Bearer authentication; recovery/release drills assert schema 5. They cannot qualify current cookie-session/schema-17 behavior unchanged. | `docs/evidence/gate-13/TRACEABILITY.md`, findings G13-01–03 and named source scripts | Repair current-build verification in 13B, repeat current workflows in 13C, preserve historical Gate 5 evidence, and never weaken production authentication to satisfy a stale test. |
 
 ### 5.4 Current storage invariants
 
@@ -332,10 +342,12 @@ Artifact/Revision -- OpenWithPolicy --> ApplicationAdapter
 PreparedPrint ---- Machine context --> MachineProfile (descriptive)
 ```
 
-This is a logical target, not a finalized table schema. Gate 6 decides revision
-ownership rules; Gate 7 decides project migration and relationships. In
-particular, whether a supporting document belongs to an artifact or one revision
-must be proven through real workflows before tables are committed.
+This remains a conceptual target, not the current physical schema. Accepted Gates
+6–7 and ADRs 0007/0009–0011 resolved ownership and relationships: an existing Asset
+is the compatible Artifact projection, Project membership is optional and
+many-to-many, revisions are immutable, and supporting/prepared ownership is
+explicit. There is no temporary AssetGroup or separate ContentBlob table. The
+current map is in section 5.2; remaining architectural work is tracked by Gate 13.
 
 Content identity and logical identity are separate:
 
@@ -1012,8 +1024,8 @@ verified locally in
 [the 11E-1d results](evidence/gate-11/SUBGATE_11E1D_RESULTS.md). It completes the
 browser, policy, live reset, recovery revalidation, and security closeout boundary
 without changing schema 17 or recovery contract 6. The owner accepted closeout on
-2026-09-05 and deferred Gate 12 to the desktop version. Gate 13 is next for the
-current track and has not yet started. Any push, tag, release, deployment, or
+2026-09-05 and deferred Gate 12 to the desktop version. Gate 13 was then authorized
+and is active for the current track. Any push, tag, release, deployment, or
 publication remains unauthorized.
 
 ### Gate 12 — Enable sustainable optional services
@@ -1047,10 +1059,17 @@ entitlement must not disable local access or export.
 
 ### Gate 13 — End-state audit and re-cock
 
-**Current execution:** `NOT STARTED — NEXT GATE FOR CURRENT TRACK`.
-Gate 11E-1 is accepted. The owner-deferred Gate 12 must be recorded in the audit as
-desktop follow-up with outstanding evidence, not counted as delivered. This
-sequencing update does not start Gate 13 or authorize publication.
+**Current execution:** `IN PROGRESS — 13A EVIDENCE REVIEW`, opened by owner direction
+on 2026-09-05 at `236c0fd`. The [baseline](evidence/gate-13/BASELINE.md) sequences
+13A truth inventory, 13B current lifecycle/harness qualification, 13C user-workflow
+and release-readiness evidence, and 13D owner acceptance/re-baselining. The
+[13A results](evidence/gate-13/SUBGATE_13A_RESULTS.md),
+[traceability ledger](evidence/gate-13/TRACEABILITY.md), and
+[security revalidation](security/GATE_13_REVALIDATION.md) are ready for review.
+The full existing verification passes, but legacy JWT/schema-5 end-to-end harnesses
+require repair before they can qualify current schema 17. Gate 12 remains desktop
+follow-up with outstanding evidence, not delivered work. No new release candidate
+or publication is authorized.
 
 **Objective:** Demonstrate that the strategy documents' goals are met, record what
 was learned, and deliberately create the next roadmap.
@@ -1207,9 +1226,12 @@ The initial required ADR queue is:
 8. Trash retention and permanent deletion.
 9. Existing-Asset to Project/Artifact migration.
 10. Portable archive compatibility and encryption boundary.
-11. Multi-user tenancy and authorization model — proposed as
-    [ADR 0018](adr/0018-shared-vault-identity-and-authorization.md); owner decision
-    pending.
+11. Multi-user tenancy and authorization model —
+    [ADR 0018](adr/0018-shared-vault-identity-and-authorization.md), accepted
+    2026-08-31; implemented through Gate 11.
+12. Origin-bound password-plus-passkey MFA —
+    [ADR 0019](adr/0019-origin-bound-passkey-mfa.md), accepted 2026-09-04;
+    implemented through accepted Gate 11E-1.
 
 An ADR describes a decision; it does not replace implementation evidence.
 
@@ -1217,6 +1239,8 @@ An ADR describes a decision; it does not replace implementation evidence.
 
 This matrix prevents a goal from disappearing between documents and
 implementation. Gate 13 closes the roadmap only when the listed proof exists.
+The current goal-by-goal dispositions, named tests, gaps, and carry-forward
+dependencies are in [Gate 13 traceability](evidence/gate-13/TRACEABILITY.md).
 
 | Source commitment | Delivery gates | Final proof |
 |---|---|---|
@@ -1261,9 +1285,11 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Gate 11E-1d is accepted and closed. Gate 12 is deferred to the desktop version.
-The next step is Gate 13's end-state audit and re-cock, including explicit
-traceability of the desktop deferral; that gate has not yet started. Push, tag,
-image publication, deployment, and release remain separately gated. Keep the
+Gate 13 is active. Review [13A results](evidence/gate-13/SUBGATE_13A_RESULTS.md) and
+its truth/security/carry-forward ledgers, then authorize 13B's bounded harness
+repairs and current-build upgrade/restore/portable-startup drills. Gate 12 remains
+deferred to desktop. End-state acceptance and the next roadmap remain 13D owner
+decisions; the frozen Gate 5 release baseline is unchanged. Push, tag, image
+publication, deployment, and release remain separately gated. Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and
 disabled by default.

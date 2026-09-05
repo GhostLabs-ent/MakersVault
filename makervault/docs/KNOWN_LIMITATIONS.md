@@ -4,6 +4,12 @@ These describe the current local roadmap build through Gate 11E. The frozen Gate
 candidate at `f6ff55b` has the narrower [v5.1 scope](V5.1_SCOPE.md); local feature
 completion is not release qualification.
 
+Gate 13 is now auditing that distinction. Its
+[13A results](evidence/gate-13/SUBGATE_13A_RESULTS.md) record passing current tests
+and the outstanding cookie-session/schema-17 end-to-end harness, operator lifecycle,
+browser/performance, advisory and real-platform qualification. Gate 12 optional
+services remains deferred to desktop, not delivered.
+
 ## Identity and access
 
 - Administrators can create and manage persistent local accounts with three fixed
@@ -41,8 +47,8 @@ completion is not release qualification.
   configured resource policy; an individual retry still has a finite budget.
 - Prepared G-code is hidden behind the prepared summary/handoff contract. MakersVault
   does not slice, validate machine safety, send printer jobs, or control printers.
-- Supporting files are grouped with a model, but v5.1 is not a general document or
-  arbitrary relationship graph system.
+- Supporting files are grouped with an Artifact; current Project relationships
+  follow the accepted bounded vocabulary, not an arbitrary document graph.
 
 ## Organization and history
 
@@ -76,10 +82,13 @@ completion is not release qualification.
 - The raw recovery archive is an operator backup for the canonical Compose layout;
   portable `.mvault` v1 is a separate secret-free logical export/clean-import format,
   not an in-place disaster-recovery replacement.
-- Archives contain `.env` secrets and are not encrypted. Mode `600`, off-host access
-  controls, and encryption-at-rest are operator responsibilities.
-- SHA-256 inventories detect corruption but are not signatures. Published release
-  artifacts use separate GitHub/Sigstore attestations.
+- Raw server-backup archives contain `.env` secrets and are not encrypted. Mode
+  `600`, off-host access controls, and encryption-at-rest are operator
+  responsibilities. `.mvault` is secret-free content interchange, not a public-data
+  format; private designs and source paths still require protection.
+- SHA-256 inventories detect corruption but are not signatures. The release workflow
+  defines separate GitHub/Sigstore attestations; no later local build is certified
+  or published merely because the static workflow contract passes.
 - Server backup includes keyed session rows and public passkey state but excludes the
   browser's cookie value, preferences, and workstation bridge configuration/cache.
   Restore revokes copied sessions and consumes pending ceremonies before exposure.

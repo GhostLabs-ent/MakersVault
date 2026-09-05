@@ -7,6 +7,22 @@ Execution is governed by [ARCHITECTURE_RUNBOOK.md](ARCHITECTURE_RUNBOOK.md). A
 roadmap item is complete only after its gate evidence is accepted and the
 architecture is re-baselined.
 
+## Active gate — end-state audit
+
+**2026-09-05:** Gate 13 is open at `236c0fd`. Its
+[13A baseline and results](evidence/gate-13/SUBGATE_13A_RESULTS.md) are in evidence
+review, not final acceptance. Current regression and portable-scale checks pass;
+legacy JWT/schema-5 end-to-end harnesses still need current-build qualification.
+
+The proposed remaining sequence is 13B lifecycle/harness repairs, 13C browser and
+release-readiness evidence, then 13D owner acceptance of the end state and next
+roadmap. The [traceability/carry-forward register](evidence/gate-13/TRACEABILITY.md)
+records every unmet commitment with its reason, owner and dependency. It includes
+Gate 12's explicit desktop deferral, later identity/provider/adapter/UX work,
+real-platform qualification, architecture debt and the independent monitoring
+experiment. These are not automatic feature authorizations. Publication and any
+replacement for the frozen Gate 5 candidate require separate owner decisions.
+
 ## v5.1 — confidence release
 
 Theme: make the current product fast, safe, and deliberate.
@@ -33,8 +49,8 @@ direction that produced those features; their current status is tracked in the
 runbook. Sustainability, API-key/OIDC decisions, hosted/provider work, and the
 disabled print-monitoring experiment remain separately gated. The owner deferred
 Gate 12 sustainable optional services to the desktop version on 2026-09-05. Its
-free-core and non-lock-in commitments remain binding; Gate 13 is the next gate for
-the current track and has not yet started.
+free-core and non-lock-in commitments remain binding; Gate 13 is now active for
+the current track.
 
 ### Content identity
 
@@ -197,17 +213,18 @@ The complete boundary and discovery gate are in
 
 ## Backup and portable export
 
-The long-term portable archive may resemble:
+Gate 10 implemented the documented [portable format v1](MVAULT_FORMAT_V1.md),
+separate from raw SQLite/storage disaster-recovery archives:
 
 ```text
-makersvault-backup.mvault
-+-- manifest.json
-+-- database/
-+-- projects/
-+-- assets/
-+-- thumbnails/
-+-- metadata/
-`-- checksums.sha256
+library.mvault (tar.gz)
+`-- mvault/
+    +-- header.json
+    +-- content/
+    +-- derived/
+    +-- catalogs/
+    +-- manifest.json
+    `-- checksums.sha256
 ```
 
 Requirements:
@@ -239,10 +256,11 @@ Multi-user authentication should not be slipped into an unrelated release as a
 small settings feature.
 
 **Current status (2026-09-05):** Gates 11A–11D and 11E-1a–1d are accepted and
-closed. The shared vault now has persistent Argon2id accounts, protected revocable sessions, three
-fixed deny-by-default roles, mandatory audit, stopped-instance recovery, and
-optional password-plus-passkey MFA. API keys and OIDC/SSO remain separate future
-decisions; no push, release, deployment, hosted tenancy, or publication is implied.
+closed. The shared vault now has persistent Argon2id accounts, protected revocable
+sessions, three fixed deny-by-default roles, mandatory audit, stopped-instance
+recovery, and optional password-plus-passkey MFA. API keys and OIDC/SSO remain
+separate future decisions; no push, release, deployment, hosted tenancy, or
+publication is implied.
 
 ## Explicitly deprioritized
 
