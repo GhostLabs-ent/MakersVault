@@ -2,11 +2,14 @@
 
 **Opened:** 2026-09-05, by owner direction
 
-**Status:** IN PROGRESS; 13A accepted, 13B authorized on 2026-09-05
+**Status:** IN PROGRESS; 13A accepted, 13B ready for owner evidence review
 
 **Audit entry:** `236c0fd14faf6cddb7e46a78657e6000cdb4d79f`
 
 **Latest application implementation:** `1a209aa8711b1717aa4400d25cd269953eb1357a`
+
+**Current verification implementation:** `2c68d70dcf36e9e912a6caf23fa33026c7a665bb`;
+complete verification passed. See [13B results](SUBGATE_13B_RESULTS.md).
 
 ## Objective and authority
 
@@ -49,12 +52,14 @@ each slice and whenever the runbook's authority checkpoints apply.
 ## Assumptions to test, not acceptance evidence
 
 - Older end-to-end scripts can qualify schema 17 unchanged: **disproved by source
-  audit**. Browser/import/release harnesses still consume JWTs, and recovery/release
-  smoke scripts assert schema 5. See findings G13-01 and G13-02.
+  audit at 13A entry**. 13B repairs the authentication/schema contracts. Current
+  browser matrix and release qualification remain 13C. See findings G13-01–03.
 - Passing focused tests plus a fresh install proves a full current production
-  upgrade/restore: **not established**; 13B must exercise the operator sequence.
+  upgrade/restore: **not established by that evidence alone**; 13B's joined
+  production-HTTPS operator sequence now passes on named local development images.
 - A portable content round trip proves restored schema-17 login: **not
-  established**; v1 reconstruction intentionally stops at schema 12.
+  established by that evidence alone**; v1 reconstruction intentionally stops at
+  schema 12. 13B separately proves schema-17 startup with new identity only.
 - The current feature set belongs in the frozen v5.1 release: **not decided**.
 
 ## Data, security, migration, and rollback
@@ -73,7 +78,8 @@ or rewrite the historical Gate 5 qualification to make a new test pass.
 
 Gate 13's required clean install, representative upgrade, disaster restore,
 portable export/import, trust-boundary review, and complete traceability remain
-individually tracked in [13A results](SUBGATE_13A_RESULTS.md). Partial evidence is
+individually tracked in [13A results](SUBGATE_13A_RESULTS.md) and supplemented by
+[13B lifecycle results](SUBGATE_13B_RESULTS.md). Partial evidence is
 labelled by layer. No unresolved goal is accepted by omission, and an owned
 carry-forward is not a claim that its implementation or tests exist.
 
@@ -82,3 +88,4 @@ carry-forward is not a claim that its implementation or tests exist.
 **Current owner direction:** 13A was accepted at `c2e9f94` and 13B's bounded
 verification repairs and lifecycle drills were authorized on 2026-09-05. Keep
 Gate 12 on the desktop track and publication behind its separate explicit decision.
+13B is ready for review; wait for owner acceptance/direction before starting 13C.

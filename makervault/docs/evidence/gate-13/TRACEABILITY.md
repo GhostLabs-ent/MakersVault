@@ -2,16 +2,18 @@
 
 **Date:** 2026-09-05
 
-**Baseline:** `236c0fd` / application `1a209aa`, schema 17
+**Baseline:** audit entry `236c0fd` / application `1a209aa`; current verification
+`2c68d70`, schema 17 unchanged
 
-**Status:** 13A evidence review; final Gate 13 acceptance pending
+**Status:** 13A accepted; 13B ready for owner review; final Gate 13 acceptance pending
 
 ## Reading this ledger
 
 `VERIFIED` below is limited to the named source/test/runtime layer. It does not
 mean release-qualified, supported on every platform, or owner-accepted at Gate 13.
 Historical Gate 5 benchmarks remain evidence for `f6ff55b`, not current schema-17
-performance. The [13A results](SUBGATE_13A_RESULTS.md) name current executions.
+performance. The [13A results](SUBGATE_13A_RESULTS.md) and
+[13B lifecycle results](SUBGATE_13B_RESULTS.md) name current executions.
 Carry-forward IDs have reasons, dependencies, and a review checkpoint below.
 
 Source commitments are from [Product Strategy](../../PRODUCT_STRATEGY.md),
@@ -31,12 +33,12 @@ Test paths in this table are relative to `api/tests/` unless qualified otherwise
 | P04 — supporting documents and prepared context | Visible supporting files, internal prepared role and supplied summary, scoped slicer handoff; `test_handoff.py`, `test_revisions.py`, `test_project_lifecycle_export.py` | No thumbnail-upload chore or machine operation; browser reprise in G13-01 |
 | P05 — observable copy/no-copy imports | Restartable scans, bounded failures/counts, repeat-path safety; `test_mount_scan.py`, `test_mount_security.py` | G13-01 current mounted browser drill; C04 continuous watching/exclusions/live per-file progress |
 | P06 — content identity, provenance and trust | SHA-256 ingest/backfill/changed-state and suggestion-only duplicates; `test_content_identity.py`, `test_revisions.py` | VERIFIED at API/test layer; no automatic repair or merge promise |
-| P07 — revisions and recoverable deletion | Immutable linear revisions; restore-as-new; metadata-only Trash; explicit journaled purge and accepted retention choices; `test_revisions.py`, `test_trash.py` | VERIFIED at API/test layer; rollback and whole-instance workflow remain G13-02 |
+| P07 — revisions and recoverable deletion | Immutable linear revisions; restore-as-new; metadata-only Trash; explicit journaled purge and accepted retention choices; `test_revisions.py`, `test_trash.py` | VERIFIED at API/test layer and supplemented by 13B's G13-02 raw restore/exact stopped rollback proof |
 | P08 — Project → Artifact → Revision and useful relationships | Optional many-to-many Project membership, bounded canonical relationships, provenance/lifecycle/history exports; `test_projects.py`, `test_project_relationships.py`, `test_project_lifecycle_export.py` | ADRs 0009–0011 govern the concrete model; legacy Asset projection remains, not an `AssetGroup`. No arbitrary graph, separate ContentBlob table, or byte-deduplication claim |
 | P09 — safe broad local-tool workflows | Versioned built-in/local adapters and exact-file grants; `test_handoff.py`, web `handoff.test.ts`, bridge adapter/handoff/install contract tests | C03 real workstation qualification; C05 dedicated KiCad integration/community SDK not delivered by FreeCAD/Inkscape support |
 | P10 — descriptive Machine context | Six categories, explicit links and portable snapshots; `test_machines.py`, `test_machine_relationships.py`, `test_machine_portability.py` | VERIFIED at API/test layer; no telemetry, safety certification, compatibility inference, or commands |
-| P11 — independent free backup/export/restore | Raw format 1/contract 6; local ContentStore; schema-17 content export → verified `.mvault` v1 → clean schema-12 import; recovery/portable/content-store suites and current 1,200-Artifact drill | G13-02 full startup/upgrade/restore sequence; C02 for S3, live/merge import, browser jobs and synchronization |
-| P12 — secure defaults and trustworthy upgrades | Fail-closed secrets, bootstrap identity, protected cookie sessions, three roles, audit, optional passkeys, stopped recovery; current complete test gate and fresh-container smoke | G13-02 current operator lifecycle; G13-03 current exact-image release; finding-by-finding [security ledger](../../security/GATE_13_REVALIDATION.md) |
+| P11 — independent free backup/export/restore | Raw format 1/contract 6; local ContentStore; schema-17 content export → verified `.mvault` v1 → clean schema-12 import; recovery/portable/content-store suites and current 1,200-Artifact drill | G13-02 joined startup/upgrade/restore VERIFIED in 13B; C02 remains for S3, live/merge import, browser jobs and synchronization |
+| P12 — secure defaults and trustworthy upgrades | Fail-closed secrets, bootstrap identity, protected cookie sessions, three roles, audit, optional passkeys, stopped recovery; current complete test gate and fresh-container smoke | G13-02 current operator lifecycle VERIFIED in 13B; G13-03 selected-release qualification remains open; finding-by-finding [security ledger](../../security/GATE_13_REVALIDATION.md) |
 | P13 — deliberate authentication evolution | Accepted ADRs 0018/0019 implemented; identity/session/authorization/account/audit/passkey/recovery suites | C01 API keys/OIDC and alternate recovery/factors; private tenancy intentionally excluded, not accidentally omitted |
 | P14 — complete free core plus optional paid convenience | Local organization/history/projects/adapters/export/backup work without entitlement checks; current tests run without any paid service | **DECIDED:** Gate 12 deferred to desktop. C06 carries all service/support/donation/vendor/exit decisions and outstanding proof; not VERIFIED service delivery |
 | P15 — optional advisory failure alerts | Documented independent disabled-by-default discovery only, `EXPERIMENTAL_PRINT_MONITORING.md` | C07: no provider/feed/model/Discord implementation or accuracy claim |
@@ -66,10 +68,17 @@ the next accepted slice. Re-review at that slice and again at 13D.
 
 | ID | Source evidence / effect | Required next proof |
 |---|---|---|
-| G13-01 | `benchmarks/preview/preview-baseline.mjs`, organization and mounted-scan `.mjs` harnesses read login `.token` and send Bearer auth; current `test_sessions.py` explicitly rejects those mechanisms | 13B: cookie/CSRF test helpers with no production bypass; 13C: current browser/corpus/mount matrix with exact baseline and fixture |
-| G13-02 | `scripts/gate5-recovery-drill.sh` still asserts post-upgrade schema 5. Current API migration/recovery tests do not constitute one production-Compose upgrade → backup → independent restore → rollback → portable-startup drill | 13B: dedicated current-build disposable lifecycle drill; keep old candidate evidence intact; include schema-17 security state and startup behavior |
-| G13-03 | `scripts/release-candidate-smoke.sh` reads `.token`, sends Bearer auth, and asserts schema 5; `make verify-release` is a static contract check, not exact-image runtime qualification | 13B: current smoke contract; 13C: owner-selected immutable scope/revision and matched-image/bridge/reproducibility evidence before any release claim |
+| G13-01 | 13A found legacy JWT auth in preview/organization/mounted-scan harnesses. **13B harness portion VERIFIED:** shared cookie/CSRF helper, five safety tests, three consumer syntax checks and real production-HTTPS upload/read/Trash/logout | 13C remains OPEN: current browser/corpus/mount matrix and current Trash UI expectations, exact baseline and fixture; helper qualification is not a complete browser pass |
+| G13-02 | 13A found stale schema-5 recovery assertions and no joined current lifecycle. **13B VERIFIED:** `gate13-lifecycle-drill.py` passes schema 4→17, contract-6 restore, pre-start revocation/audit, schema 12→17 portable bootstrap and exact stopped rollback on `2c68d70` | Ready for 13B owner review; injected interruption tests and three no-mutation operator refusals pass. Named local development evidence, not release or physical-power-loss qualification |
+| G13-03 | 13A found stale JWT/schema-5 exact-image smoke. **13B harness portion VERIFIED:** current production-HTTPS identity/security/persistence/schema-17 smoke against immutable local image IDs | 13C remains OPEN: owner-selected immutable scope/revision and matched-image/bridge/reproducibility evidence before any release claim; static `verify-release` remains only a contract check |
 | G13-04 | Original security ledger still assigns removed browser JWT/session/RBAC behavior to future Gate 11; dependency audit dates are historical | Current finding dispositions reconciled in 13A; 13C repeats advisory scans/operator trust review and records explicit residual decisions |
+
+P07/P11/P12 now also have G13-02's joined current lifecycle proof, supplementing
+their focused API tests. Raw restore preserves the complete content/security graph
+with only required recovery mutations. Portable import preserves content without
+transferring identity and requires renameable filesystem staging before copying to
+empty production volumes. See 13B for exact derived-preview and external-state
+boundaries; no broad catalog or payload comparison was removed.
 
 ## Carry-forward register — next-roadmap proposal, not new authorization
 

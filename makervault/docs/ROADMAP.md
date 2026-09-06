@@ -9,13 +9,14 @@ architecture is re-baselined.
 
 ## Active gate — end-state audit
 
-**2026-09-05:** Gate 13 is open at `236c0fd`. Its
-[13A baseline and results](evidence/gate-13/SUBGATE_13A_RESULTS.md) are in evidence
-review, not final acceptance. Current regression and portable-scale checks pass;
-legacy JWT/schema-5 end-to-end harnesses still need current-build qualification.
+**2026-09-05:** Gate 13A is owner-accepted. The
+[13B lifecycle results](evidence/gate-13/SUBGATE_13B_RESULTS.md) are ready for review
+at verification implementation `2c68d70`: the complete gate and production-HTTPS
+upgrade/restore/rollback/portable-startup checks pass. This is local development
+evidence, not final end-state acceptance or a newly qualified release.
 
-The proposed remaining sequence is 13B lifecycle/harness repairs, 13C browser and
-release-readiness evidence, then 13D owner acceptance of the end state and next
+After 13B acceptance, the remaining sequence is 13C browser and release-readiness
+evidence, then 13D owner acceptance of the end state and next
 roadmap. The [traceability/carry-forward register](evidence/gate-13/TRACEABILITY.md)
 records every unmet commitment with its reason, owner and dependency. It includes
 Gate 12's explicit desktop deferral, later identity/provider/adapter/UX work,

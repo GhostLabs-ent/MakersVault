@@ -6,8 +6,12 @@
 lifecycle verification only. No production feature, policy, schema or publication
 change is authorized by this slice.
 
-**Status:** Implementation complete; development drill passed. Clean committed
-baseline verification and owner evidence review are pending.
+**Status:** READY FOR OWNER EVIDENCE REVIEW; not accepted.
+
+**Tested implementation:** `2c68d70dcf36e9e912a6caf23fa33026c7a665bb`.
+
+**Verification date:** 2026-09-05 local / 2026-09-06 UTC. Schema 17, raw outer
+format 1 / recovery contract 6, and application behavior remain unchanged.
 
 ## Implementation boundary
 
@@ -79,12 +83,74 @@ baseline verification and owner evidence review are pending.
   All other fields, graph records and stored payloads remain binding. This is not
   a broad preview exclusion or a new preview-rendering performance claim.
 
-## Evidence to freeze after committed verification
+## Committed verification
 
-The development run passed all joined assertions and compared **18 portable
-members**. Its dirty-source result is debugging evidence only. Record the clean
-revision, immutable local image IDs, complete verification and failure/interruption
-regression results here before marking 13B ready for owner review.
+`make verify` returned zero on `2c68d70`; its lifecycle result explicitly reports
+`dirty:false`, `version:development-gate13b` and that full source revision. At entry,
+the only untracked file was the unrelated desktop draft. The web test image was
+also run directly, so its result does not rely on a cached build layer.
+
+| Check | Result |
+|---|---|
+| Complete repository gate | PASS, including the new harness/lifecycle targets |
+| API | **313 passed in 138.82 s** |
+| Web direct test image | Typecheck PASS; **32 tests / 11 files passed**; production build PASS |
+| Fixture assertions | **7 Python tests**; missing revocation, changed credentials/policy/content, nonempty volume seeding, and unapproved preview differences cannot silently pass |
+| Shared session client | **5 Node tests**; all three consuming browser harnesses also pass syntax checks |
+| Canonical production HTTPS lifecycle | PASS: schema **4 → 17**, contract-6 restore, pre-start invalidation, startup audit, exact stopped schema-4 rollback and fresh install |
+| Supplied-image smoke entry point | `current-image-smoke.py` separately PASS on the same two immutable IDs and expected version/revision; production web shell, cookie/CSRF, restart, non-root and logout checks |
+| Portable startup | PASS: schema **17 export → 12 clean import → 17 startup**; fresh identity only; **18 portable members** compared before and after startup with the exact documented transitions |
+| Other repository targets | Bridge tests/build; Compose/security checks; schema-17 development container smoke; Chromium 151 virtual passkey registration/step-up/required-Administrator/login; static release contract PASS |
+
+Immutable **local development** image IDs used by the lifecycle (not registry
+release digests):
+
+```text
+API sha256:9b8b729644b3938584b293e90713bc40971afd612539dfca4daa94854c018a85
+Web sha256:80f1dcdf8f853d2af8b924c046fbf266b3f4db3e755638b4e5c7cb0bf28036f8
+```
+
+The lifecycle asserts both OCI version/revision labels and runs these IDs, not
+mutable tags. Existing browser-data freshness and >500 kB bundle warnings remain
+visible; no dependency or bundling change was made to suppress them.
+
+The secret-free machine-readable lifecycle result is frozen in
+[`lifecycle.json`](lifecycle.json). Reproduction commands from the repository root:
+
+```bash
+make verify
+docker run --rm makersvault-web-gate0-test
+python3 makervault/scripts/current-image-smoke.py \
+  --api-image sha256:9b8b729644b3938584b293e90713bc40971afd612539dfca4daa94854c018a85 \
+  --web-image sha256:80f1dcdf8f853d2af8b924c046fbf266b3f4db3e755638b4e5c7cb0bf28036f8 \
+  --version development-gate13b \
+  --revision 2c68d70dcf36e9e912a6caf23fa33026c7a665bb
+git diff --check
+```
+
+The thin shell compatibility wrappers delegate to these Python entry points.
+The standalone image check was executed through its Python entry point; it is
+not a new release build.
+
+### Failure/interruption evidence by layer
+
+The joined production drill proves three operator refusal paths leave the target
+snapshot unchanged. The complete 313-test run also executes:
+
+- `test_mvault_import.py`: capacity failure before publication; failure and
+  KeyboardInterrupt after storage publication; next-invocation journal recovery;
+  stable CLI cancellation; rejection of untrusted cleanup paths.
+- `test_mvault_export.py`: interrupted catalog writes, capacity failure and stable
+  CLI cancellation without publishing partial output.
+- `test_migrations.py`: prior-version idempotence, failed migration not recorded,
+  recorded-name mismatch and unknown-newer-schema startup refusal.
+- Schema-17 recovery/session/passkey regressions: preserved public credentials,
+  revoked sessions/ceremonies and audited stopped recovery.
+
+Those are source-owned injected failure/recovery tests, not a physical host power-
+loss experiment or a live mid-copy interruption of a user vault. Raw rollback is
+verified byte-for-byte while stopped; starting the old frozen candidate remains
+its historical matched-image proof, not a new Gate 13B execution.
 
 ## Isolation, limits and next checkpoint
 
@@ -92,6 +158,9 @@ Only generated fixtures and unique `mv-g13-*` projects are touched by the lifecy
 drill. Cleanup removes their containers/networks/volumes and private temporary
 files; built local development images remain. The desktop draft and any unrelated
 running workload are excluded. Raw/authentication material is never a report field.
+After the committed lifecycle and standalone smoke, read-only Docker inventories
+showed no remaining `mv-g13-*` containers, volumes or networks. No user vault data
+was removed; the deleted test fixtures were generated and reproducible.
 
 13C still owns the complete current browser/corpus/mounted-import matrix (including
 current Trash UI expectations), platform/physical-device evidence, fresh dependency

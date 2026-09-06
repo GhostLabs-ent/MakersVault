@@ -4,7 +4,7 @@
 
 **Baseline date:** 2026-09-05
 
-**Committed baseline:** `main` at `236c0fd` (implementation `1a209aa`; Gate 13 audit entry)
+**Committed baseline:** `main` verification at `2c68d70` (application behavior `1a209aa`; Gate 13B evidence review)
 
 **Immutable v5.1 source baseline:** `f6ff55b33fd64c7a5037e8eb642bed048c3e0e4f`
 
@@ -255,8 +255,9 @@ row's future-tense wording.
 | T-051 | `VERIFIED` | Local Gate 11E-1c makes password success for an MFA-enabled account create only a five-minute digest-bound pending transaction in a separate host-only cookie. Exact-origin, UV-required assertion verification consumes that transaction before issuing a fresh normal session; bounded per-transaction attempts, per-account pending state, source throttling, generic denials, and replay rejection create no session. High-impact recent authentication now requires recent password and session/RP/origin-bound passkey proof for MFA accounts, including the forced-password-change recovery path. | Password-first/assertion/replay/throttling/recent-auth regressions, 310-test API gate, `docs/evidence/gate-11/SUBGATE_11E1C_RESULTS.md` | Owner accepted 11E-1c on 2026-09-04 and authorized 11E-1d. Push, deployment, and publication remain prohibited. |
 | T-052 | `VERIFIED` | Local Gate 11E-1d completes native browser registration/login/step-up and credential management, Administrator-selectable Optional/Require Administrators/Require Everyone policy with enrollment and account-mutation invariants, and explicit current-strength other-account MFA reset that preserves the password and revokes sessions. Schema 17 and recovery contract 6 remain unchanged; raw restore and stopped-instance recovery behavior are revalidated. | 313 API tests, 32 web tests/build, Chromium virtual-authenticator drill, Compose/security/bridge/container gates, `docs/evidence/gate-11/SUBGATE_11E1D_RESULTS.md` | Owner accepted closeout on 2026-09-05 at implementation `1a209aa` and evidence `6b2ed08`. Push, tag, release, deployment, and publication remain prohibited. |
 | T-053 | `DECIDED` | Gate 12 sustainable optional services is deferred to the desktop version by owner direction. Its delivery evidence is outstanding; free-core, portability, and non-lock-in commitments remain in force. | Owner direction 2026-09-05; Gate 12 status and `docs/SUSTAINABILITY.md` | Carry Gate 12 into the desktop roadmap and explicitly trace the deferral in Gate 13; do not count it as delivered. |
-| T-054 | `VERIFIED` | Gate 13A reruns the existing complete repository gate on `236c0fd`: 313 API tests, 32 web tests/type/build, bridge/Compose/security/fresh schema-17 smoke/passkey checks, and the static release contract pass. A current 1,200-Artifact portable round trip preserves 3,790 catalog/payload members within its 256 MiB worker budget. | `docs/evidence/gate-13/SUBGATE_13A_RESULTS.md`, current test-image identities and commands | Gate 13 is IN PROGRESS; 13A awaits owner review. These development results do not qualify a new release candidate or prove portable-import startup. |
-| T-055 | `VERIFIED` | Legacy preview/organization/mounted-import and exact-image release harnesses still use JWT Bearer authentication; recovery/release drills assert schema 5. They cannot qualify current cookie-session/schema-17 behavior unchanged. | `docs/evidence/gate-13/TRACEABILITY.md`, findings G13-01–03 and named source scripts | Repair current-build verification in 13B, repeat current workflows in 13C, preserve historical Gate 5 evidence, and never weaken production authentication to satisfy a stale test. |
+| T-054 | `VERIFIED` | Gate 13A reruns the existing complete repository gate on `236c0fd`: 313 API tests, 32 web tests/type/build, bridge/Compose/security/fresh schema-17 smoke/passkey checks, and the static release contract pass. A current 1,200-Artifact portable round trip preserves 3,790 catalog/payload members within its 256 MiB worker budget. | `docs/evidence/gate-13/SUBGATE_13A_RESULTS.md`, current test-image identities and commands | Owner accepted 13A at `c2e9f94` on 2026-09-05 and authorized 13B. These development results do not qualify a new release candidate or alone prove portable-import startup. |
+| T-055 | `VERIFIED` | At 13A entry, preview/organization/mounted-import and exact-image release harnesses used legacy JWT authentication; recovery/release drills asserted schema 5 and could not qualify current behavior unchanged. | `docs/evidence/gate-13/TRACEABILITY.md`, findings G13-01–03 and named source scripts | Harness assumptions replaced by T-056; current browser/release matrix remains 13C. Historical Gate 5 evidence is preserved and production authentication unchanged. |
+| T-056 | `VERIFIED` | Gate 13B replaces the stale authentication/schema assumptions identified by T-055. Full verification at `2c68d70` passes 313 API / 32 web / 7 Python harness / 5 Node client tests plus production-HTTPS schema 4→17 upgrade, contract-6 restore with pre-start invalidation, exact stopped rollback, and portable 17→12→17 fresh-identity startup. | `docs/evidence/gate-13/SUBGATE_13B_RESULTS.md`; immutable local development image IDs, 18 portable members, refusal/interruption evidence | 13B ready for owner review, not accepted. Current browser/platform/advisory and selected-release qualification remain 13C; Gate 12 remains desktop-deferred and publication prohibited. |
 
 ### 5.4 Current storage invariants
 
@@ -1059,18 +1060,20 @@ entitlement must not disable local access or export.
 
 ### Gate 13 — End-state audit and re-cock
 
-**Current execution:** `IN PROGRESS — 13B AUTHORIZED`; the owner accepted 13A at
+**Current execution:** `IN PROGRESS — 13B EVIDENCE REVIEW`; the owner accepted 13A at
 `c2e9f94` on 2026-09-05. Gate 13 was opened by owner direction
 on 2026-09-05 at `236c0fd`. The [baseline](evidence/gate-13/BASELINE.md) sequences
 13A truth inventory, 13B current lifecycle/harness qualification, 13C user-workflow
 and release-readiness evidence, and 13D owner acceptance/re-baselining. The
-[13A results](evidence/gate-13/SUBGATE_13A_RESULTS.md),
+[13B results](evidence/gate-13/SUBGATE_13B_RESULTS.md),
 [traceability ledger](evidence/gate-13/TRACEABILITY.md), and
 [security revalidation](security/GATE_13_REVALIDATION.md) are ready for review.
-The full existing verification passes, but legacy JWT/schema-5 end-to-end harnesses
-require repair before they can qualify current schema 17. Gate 12 remains desktop
-follow-up with outstanding evidence, not delivered work. No new release candidate
-or publication is authorized.
+The expanded full verification passes on `2c68d70`: current cookie/CSRF/schema-17
+harnesses and the joined production-HTTPS lifecycle supplement the accepted 13A
+inventory. The browser/platform/advisory and selected-release matrix remains 13C;
+13B does not reuse old timing as current evidence. Gate 12 remains desktop follow-up
+with outstanding evidence, not delivered work. No new release candidate or
+publication is authorized.
 
 **Objective:** Demonstrate that the strategy documents' goals are met, record what
 was learned, and deliberately create the next roadmap.
@@ -1286,10 +1289,11 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Gate 13A is accepted. Execute 13B's authorized bounded harness repairs and
-current-build upgrade/restore/portable-startup drills against the
-[13A results](evidence/gate-13/SUBGATE_13A_RESULTS.md) and truth/security ledgers. Gate 12 remains
-deferred to desktop. End-state acceptance and the next roadmap remain 13D owner
+Gate 13B is ready for owner acceptance at the
+[13B evidence checkpoint](evidence/gate-13/SUBGATE_13B_RESULTS.md). After acceptance
+and direction, begin 13C's current browser/workflow, advisory, platform and operator
+release-readiness evidence; request owner inputs at the existing boundaries.
+Gate 12 remains deferred to desktop. End-state acceptance and the next roadmap remain 13D owner
 decisions; the frozen Gate 5 release baseline is unchanged. Push, tag, image
 publication, deployment, and release remain separately gated. Keep the
 [print-monitoring experiment](EXPERIMENTAL_PRINT_MONITORING.md) independent and

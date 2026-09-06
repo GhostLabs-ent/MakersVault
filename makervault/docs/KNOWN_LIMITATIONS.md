@@ -5,10 +5,12 @@ candidate at `f6ff55b` has the narrower [v5.1 scope](V5.1_SCOPE.md); local featu
 completion is not release qualification.
 
 Gate 13 is now auditing that distinction. Its
-[13A results](evidence/gate-13/SUBGATE_13A_RESULTS.md) record passing current tests
-and the outstanding cookie-session/schema-17 end-to-end harness, operator lifecycle,
-browser/performance, advisory and real-platform qualification. Gate 12 optional
-services remains deferred to desktop, not delivered.
+[13B results](evidence/gate-13/SUBGATE_13B_RESULTS.md) qualify current cookie/CSRF
+harnesses and the production-HTTPS lifecycle on local development images.
+Browser/performance, advisory, real-platform and selected-release qualification
+remain 13C work. Gate 12 optional services remains deferred to desktop, not delivered.
+Docker portable import requires private renameable staging, then a verified copy
+into empty stopped volumes; it cannot publish directly over a storage mount point.
 
 ## Identity and access
 

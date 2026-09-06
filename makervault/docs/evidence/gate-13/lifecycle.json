@@ -1,0 +1,32 @@
+{
+  "benchmark_session_helper": "passed",
+  "dirty": false,
+  "exact_schema4_rollback": true,
+  "external_availability_normalized": true,
+  "fresh_identity_only": true,
+  "fresh_smoke": {
+    "https_secure_cookie_csrf": true,
+    "logout_revocation": true,
+    "non_root_api_web": true,
+    "restart_bytes": "1455ce259069704cf240787e3ba134426f9d6b04cdc49b7716a824ee905a65f6",
+    "schema": 17
+  },
+  "images": {
+    "api": "sha256:9b8b729644b3938584b293e90713bc40971afd612539dfca4daa94854c018a85",
+    "web": "sha256:80f1dcdf8f853d2af8b924c046fbf266b3f4db3e755638b4e5c7cb0bf28036f8"
+  },
+  "offline_portable_graph_equal": true,
+  "portable_import_schema": 12,
+  "portable_members_compared": 18,
+  "portable_staged_pair_verified": true,
+  "portable_startup_schema": 17,
+  "pre_start_revocation": true,
+  "raw_restore_contract": 6,
+  "refusals": ["nonempty_raw_target", "corrupt_raw_archive", "nonempty_portable_target"],
+  "revision": "2c68d70dcf36e9e912a6caf23fa33026c7a665bb",
+  "startup_audit": true,
+  "startup_preview_reconciliation": "legacy_3mf_pending",
+  "status": "passed",
+  "upgrade": "4-to-17",
+  "version": "development-gate13b"
+}

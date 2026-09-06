@@ -2,9 +2,10 @@
 
 **Date:** 2026-09-05
 
-**Status:** 13A evidence review; source/regression audit, not release clearance
+**Status:** 13A accepted; 13B lifecycle evidence review, not release clearance
 
-**Baseline:** `236c0fd` / implementation `1a209aa`, schema 17
+**Baseline:** audit entry `236c0fd` / application `1a209aa`; current verification
+`2c68d70`, schema 17 unchanged
 
 This is the current-development disposition of all sixteen findings from the
 [original security review](../MakersVault_v5.1_Security_Analysis.md). The
@@ -12,7 +13,9 @@ This is the current-development disposition of all sixteen findings from the
 accepted JWT/session limitations still apply to the frozen Gate 5 candidate;
 they are not current behavior in the later Gate 11 build.
 
-The full repository verification passed on this baseline. This review joins that
+The expanded full repository verification and production-HTTPS lifecycle passed
+at `2c68d70`; see [13B results](../evidence/gate-13/SUBGATE_13B_RESULTS.md).
+This review joins that
 regression evidence to the accepted gate records and the current trust boundaries.
 It is not an external penetration test, a new dependency-advisory scan, a hardware
 security-key test, or authorization for unrestricted public/hosted deployment.
@@ -48,8 +51,8 @@ bounded to the original finding, not a claim that a subsystem has no other risks
 | Browser → API | Exhaustive permission inventory; only health, password login, passkey-login completion and scoped redemption are non-session routes; exact-Origin/CSRF on cookie mutations; current-strength privileged authentication | One shared installation, not object privacy; production HTTPS remains mandatory |
 | Hostile file/remote server → vault | Bounded streaming, DNS/redirect transport policy, archive/image budgets, regular no-follow mounted descriptors and persisted preview failures | Fresh whole-browser load results and provider behavior remain separate evidence |
 | Vault → workstation | Exact supplied file/role/adapter grants, independently confirmed origin, local constrained executable configuration | Does not establish file or machine safety; OS/app launch qualification needs real platforms |
-| Live state → raw recovery | Matched archive auditing; schema-17 public credentials retained; copied sessions and pending ceremonies revoked; recovery marker audited before startup exposure | Full current operator Compose lifecycle is G13-02; raw archives contain secrets and require operator protection |
-| Vault → portable archive | Independent bounded verification, content-only export, clean schema-12 reconstruction, no credentials/session/audit/provider activation; current scale round trip and adversarial tests | Not raw rollback, merge, live restore or schema-17 login proof; no-copy bytes need separate preservation/remount |
+| Live state → raw recovery | Matched archive auditing; schema-17 public credentials retained; copied sessions and pending ceremonies revoked; recovery marker audited before startup exposure. 13B proves the joined production-Compose HTTPS sequence with the same signing secret | G13-02 verified on named development images; raw archives contain secrets and require operator protection. Fixture public credentials are not physical-device proof |
+| Vault → portable archive | Independent bounded verification, content-only export, clean schema-12 reconstruction, no credentials/session/audit/provider activation; current scale/adversarial tests. 13B also proves schema-17 startup with only a new Administrator and Optional policy | Not raw rollback, merge or live restore; use private renameable staging before empty-volume population. No-copy bytes need separate preservation/remount |
 | Source → distributable build | Pinned locks/base images/actions, local verification and release identity contract | Historical vulnerability scans and Gate 5 artifacts do not qualify current advisories or later artifacts |
 
 ## Owned residuals and review checkpoints
@@ -58,8 +61,9 @@ The MakersVault maintainer owns these decisions; local delivery work supplies th
 tests. Review them at 13C and explicitly disposition them at 13D. Existing accepted
 restrictions continue; this audit does not silently accept a new risk.
 
-- **G13-01–03:** stale end-to-end harnesses and missing current lifecycle/release
-  proof. Repair and rerun in 13B/13C, not a reason to weaken authentication.
+- **G13-01–03:** 13B repairs stale authentication/schema contracts and proves the
+  current lifecycle; 13C still owns the complete browser/mount/corpus and selected-
+  release matrix. No auth or production policy was weakened to repair a harness.
 - **G13-04:** fresh Python/web/Go/container advisory review is outstanding. Historical
   zero-finding scans are date-bound. New findings require owned remediation or an
   explicit supported-scope/risk decision before release.

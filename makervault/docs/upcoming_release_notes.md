@@ -2,7 +2,7 @@
 
 > **Status:** In development. v5.1 has not been published yet. Gates 0–11 are
 > owner-accepted, and Gate 11E-1d was accepted for closeout on 2026-09-05. Gate 12
-> is deferred to the desktop version; Gate 13 is active with 13A in evidence review.
+> is deferred to the desktop version; Gate 13A is accepted and 13B is in evidence review.
 > This draft tracks later local development; the qualified Gate 5 candidate remains
 > frozen at `f6ff55b`. Qualification of a later release revision remains gated.
 
@@ -12,6 +12,18 @@ context. It improves the existing product without turning MakersVault into a sli
 printer controller, or multi-user cloud service.
 
 ## Highlights
+
+### Current lifecycle verification (Gate 13B)
+
+- Current harnesses use protected cookie sessions and CSRF, with no legacy JWT bypass.
+- Local production-HTTPS verification covers schema-17 upgrade, matched raw
+  restore, pre-start session/challenge invalidation, exact stopped rollback and
+  portable clean-import startup with a new Administrator.
+- Docker portable-import guidance now specifies private staging before populating
+  empty volumes. No manual thumbnail requirement or application policy changed.
+- The complete gate passes at `2c68d70`; current browser/performance, advisory,
+  platform and selected-release qualification remain separate 13C work. See
+  [13B evidence](evidence/gate-13/SUBGATE_13B_RESULTS.md).
 
 ### Faster, resilient model previews
 
