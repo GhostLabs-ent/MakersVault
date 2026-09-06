@@ -5,10 +5,13 @@
 - Docker with Docker Compose.
 - GNU Make.
 - `curl` for the container health check.
+- Python 3.11+ and OpenSSL for the host-side verification/recovery orchestration.
+- Linux Docker host networking for the lifecycle drill's Node HTTPS probe.
 
-Host Python, Node, and Go installations are optional because the source-owned
-verification targets use versioned container toolchains. Release image digests
-are recorded later at the release-candidate gate.
+Application dependencies, Node, and Go run in versioned container toolchains.
+The host-side lifecycle harness uses only Python's standard library. Its private
+test certificate is trusted only by fixture clients; no host trust store or DNS
+configuration is changed. Release image digests are recorded at the candidate gate.
 
 Python direct dependencies are declared in `requirements.txt` and
 `requirements-dev.txt`. The successful Python 3.11/Linux environments are frozen
@@ -35,14 +38,16 @@ This performs:
    non-root runtime assertions, and schema-version verification.
 6. A Chromium virtual-authenticator passkey workflow in its own disposable project.
 7. The static release identity/publication contract check.
+8. Cookie/CSRF fixture-client safety and recovery-comparison unit tests.
+9. A generated schema-4 → schema-17 production-HTTPS lifecycle: raw backup/restore,
+   exact stopped rollback, staged portable clean import/startup, and fresh install.
 
-`make verify` is not the complete release qualification. Gate 13A identified that
-the older preview/organization/mounted-import and exact-image harnesses still use
-JWT Bearer auth, and recovery/release drills assert schema 5. Their historical
-results remain valid for their named baselines; they need current cookie/CSRF and
-schema handling before rerunning against later development. See the
-[Gate 13 audit](evidence/gate-13/SUBGATE_13A_RESULTS.md) for the tracked repairs and
-remaining lifecycle/browser/platform evidence. Do not re-enable obsolete auth to
+`make verify` is not the complete release qualification. Gate 13B replaces obsolete
+JWT/schema-5 assumptions in current harnesses with cookie/CSRF/schema-17 checks;
+historical results still belong to their original baselines. The complete current
+browser/corpus/mounted-import matrix, physical devices, platform integration and
+owner-selected matched release artifacts remain separate 13C work. See the
+[Gate 13 baseline](evidence/gate-13/BASELINE.md). Never re-enable obsolete auth to
 make a harness pass.
 
 The smoke test uses host ports `18000` and `15173` by default. Override them only
@@ -68,10 +73,27 @@ make verify-compose
 make verify-smoke
 make verify-passkeys
 make verify-release
+make verify-harness
+make verify-lifecycle
 ```
 
 CI invokes these same targets. A local workaround that CI does not execute is not
 release evidence.
+
+`verify-lifecycle` allows dirty development sources but explicitly reports them as
+such. For immutable evidence, commit the scoped implementation locally and run
+`python3 makervault/scripts/gate13-lifecycle-drill.py` without `--allow-dirty`.
+It builds development-labelled API/web images, validates their OCI identities,
+and starts their immutable image IDs in unique disposable production-Compose
+projects with loopback-only ephemeral ports. It removes only its generated
+projects/volumes and private fixtures; built local development images remain.
+This does not assemble, tag, push, or qualify a replacement release candidate.
+
+`scripts/gate5-recovery-drill.sh` is now a compatibility command for that current
+lifecycle drill. `scripts/release-candidate-smoke.sh` checks supplied image identities
+with production HTTPS, cookie/CSRF, restart persistence, logout and schema 17.
+Gate 5's original scripts/evidence remain reproducible from `f6ff55b`; do not use
+the current commands to retroactively change its qualification.
 
 The passkey drill installs locked Playwright dependencies inside a disposable
 container and drives Chromium with a virtual authenticator through registration,

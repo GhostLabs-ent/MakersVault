@@ -1,6 +1,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { chromium } from "playwright-core";
+import { loginSession } from "../session-client.mjs";
 
 const corpusDir = resolve(process.env.MAKERSVAULT_BENCHMARK_CORPUS || "../benchmarks/preview/corpus/generated");
 const outputPath = resolve(process.env.MAKERSVAULT_BENCHMARK_OUTPUT || "../benchmarks/preview/.artifacts/baseline.json");
@@ -17,23 +18,15 @@ const percentile = (values, ratio) => {
   return ordered[Math.min(ordered.length - 1, Math.floor(ordered.length * ratio))];
 };
 
-async function seedCorpus(manifest) {
-  const login = await fetch(`${apiUrl}/login`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  });
-  if (!login.ok) throw new Error(`API login failed: ${login.status} ${await login.text()}`);
-  const { token } = await login.json();
+async function seedCorpus(manifest, session) {
   const uploaded = [];
   for (const fixture of manifest.fixtures) {
     const bytes = await readFile(resolve(corpusDir, fixture.filename));
     const data = new FormData();
     data.set("file", new Blob([bytes], { type: "application/octet-stream" }), fixture.filename);
     data.set("tags", `gate-2,${fixture.category}`);
-    const response = await fetch(`${apiUrl}/upload`, {
+    const response = await session.fetch("/upload", {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
       body: data,
     });
     if (!response.ok) throw new Error(`Upload failed for ${fixture.filename}: ${response.status} ${await response.text()}`);
@@ -293,9 +286,8 @@ async function runLightBurnProbe(page, tracker, token) {
   const data = new FormData();
   data.set("file", new Blob([`<LightBurnProject><Preview>data:image/png;base64,${png}</Preview></LightBurnProject>`], { type: "application/xml" }), "lightburn-preview-probe.lbrn2");
   data.set("tags", "gate-2,lightburn-probe");
-  const upload = await fetch(`${apiUrl}/upload`, {
+  const upload = await token.fetch("/upload", {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
     body: data,
   });
   if (!upload.ok) throw new Error(`LightBurn probe upload failed: ${upload.status} ${await upload.text()}`);
@@ -312,7 +304,7 @@ async function runLightBurnProbe(page, tracker, token) {
   const persistenceStarted = Date.now();
   let persisted = null;
   while (Date.now() - persistenceStarted < 10_000) {
-    const response = await fetch(`${apiUrl}/assets?limit=1000`, { headers: { Authorization: `Bearer ${token}` } });
+    const response = await token.fetch("/assets?limit=1000");
     const assets = await response.json();
     persisted = assets.find(item => item.id === asset.id);
     if (persisted?.preview_status === "ready" && persisted?.thumb_url) break;
@@ -343,7 +335,8 @@ async function runLightBurnProbe(page, tracker, token) {
 
 async function main() {
   const manifest = JSON.parse(await readFile(resolve(corpusDir, "manifest.json"), "utf8"));
-  const uploaded = await seedCorpus(manifest);
+  const token = await loginSession(apiUrl, webUrl, username, password);
+  const uploaded = await seedCorpus(manifest, token);
   const expectedColdFiles = uploaded.filter(asset => asset.preview_status === "pending" && !asset.thumb_url).length;
   const browser = await chromium.launch({ headless: true, args: ["--enable-precise-memory-info"] });
   activeBrowser = browser;
@@ -376,13 +369,7 @@ async function main() {
     await page.locator('[title="Double-click to open large preview"]').nth(manifest.fixture_count - 1).waitFor({ timeout: 30_000 });
   }, expectedColdFiles);
 
-  const listResponse = await fetch(`${apiUrl}/login`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  });
-  const { token } = await listResponse.json();
-  const assetsResponse = await fetch(`${apiUrl}/assets?limit=1000`, { headers: { Authorization: `Bearer ${token}` } });
+  const assetsResponse = await token.fetch("/assets?limit=1000");
   const persistedAssets = await assetsResponse.json();
   const expectedWarmFiles = persistedAssets.filter(
     asset => ["pending", "retry_requested"].includes(asset.preview_status) && !asset.thumb_url,

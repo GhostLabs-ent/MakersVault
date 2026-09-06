@@ -1,6 +1,6 @@
-.PHONY: verify verify-api verify-web verify-bridge verify-compose verify-smoke verify-passkeys verify-release
+.PHONY: verify verify-api verify-web verify-bridge verify-compose verify-smoke verify-passkeys verify-release verify-harness verify-lifecycle
 
-verify: verify-api verify-web verify-bridge verify-compose verify-smoke verify-passkeys verify-release
+verify: verify-api verify-web verify-bridge verify-compose verify-smoke verify-passkeys verify-release verify-harness verify-lifecycle
 
 verify-api:
 	docker build --target test -t makersvault-api-gate0-test makervault/api
@@ -33,3 +33,12 @@ verify-release:
 
 verify-passkeys:
 	./makervault/scripts/passkey-browser-smoke.sh
+
+verify-harness:
+	python3 -m unittest discover -s makervault/scripts/tests -v
+	docker run --rm -v "$(CURDIR)/makervault/benchmarks:/bench:ro" \
+		node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 \
+		sh -c 'node --check /bench/preview/preview-baseline.mjs && node --check /bench/organization/organization-baseline.mjs && node --check /bench/organization/mount-scan-verification.mjs && node --test /bench/session-client.test.mjs'
+
+verify-lifecycle:
+	python3 makervault/scripts/gate13-lifecycle-drill.py --allow-dirty

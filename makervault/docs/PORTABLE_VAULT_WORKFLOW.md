@@ -22,10 +22,11 @@ and restore logical vault content into a clean compatible instance.
 The source checkout needs the API's locked Python dependencies. Development data
 normally uses `makervault/data/db/app.db` and `makervault/data/storage`; production
 containers use `/app/data/app.db` and `/app/storage`. A production operator may run
-the same Python modules in a one-off copy of the matching API image with those
-volumes mounted, but must keep the regular API/web services stopped and bind a
-private output directory explicitly. Do not copy only SQLite or only storage out of
-a live installation.
+the same Python modules in a one-off copy of the matching API image, but must keep
+the regular API/web services stopped and bind a private working directory
+explicitly. Export may read the stopped canonical volumes. Import must use the
+staging layout below, not a Docker volume root. Do not copy only SQLite or only
+storage out of a live installation.
 
 ## Export and verify
 
@@ -90,6 +91,34 @@ External records retain their source paths but are deliberately unavailable unti
 the operator restores the mount. Confirm the final JSON result, remount external
 libraries if applicable, preserve the source archive, and only then start the new
 instance.
+
+### Docker import staging
+
+The importer publishes by atomically renaming sibling staging paths. Its database
+and storage parents must be writable by the invoking UID, and the storage target
+must not itself be a mount point. Pointing import directly at a container's
+`/app/storage` volume root is unsupported; changing ownership does not make that
+mount point renameable.
+
+Mount a private operator-owned parent (for example `/secure/makersvault-portable`
+at `/work`) and choose new children such as `/work/restore/database/app.db` and
+`/work/restore/storage`. Keep the whole working directory and its publication
+journal together through success, cancellation, or retry. After import succeeds:
+
+1. Keep the new production instance stopped and confirm **both** destination
+   volumes are empty; never use this as a replacement workflow.
+2. Copy the completed database directory and storage tree as one pair into the
+   new canonical volumes. Retain the staged pair and source archive.
+3. Compare the copied SQLite checksum and complete stored-file path/checksum
+   inventory with staging before starting either service. A partial copy is not
+   an import success and must not be started.
+4. Start the matching application with the new installation's validated secrets
+   and final HTTPS origin. It migrates the reconstructed schema 12 to schema 17,
+   creates its own Administrator and starts with Optional passkey policy. Old
+   accounts, sessions and credentials are not transferred by `.mvault`.
+
+Gate 13B's generated lifecycle drill exercises this staging/copy/startup sequence.
+Raw `restore.sh` remains the supported direct-volume disaster recovery workflow.
 
 ## Cancellation, failure, and retry
 

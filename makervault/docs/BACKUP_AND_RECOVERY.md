@@ -6,12 +6,11 @@ files that are absent from a mismatched storage snapshot, while storage alone
 cannot reconstruct names, folders, metadata, or relationships.
 
 **Qualification scope (2026-09-05):** The frozen Gate 5 candidate has its named
-production recovery drill. Current schema-17 recovery/portable regression tests
-also pass, but the old `gate5-recovery-drill.sh` still expects schema 5 and is not
-current whole-instance proof. [Gate 13](evidence/gate-13/SUBGATE_13A_RESULTS.md)
-tracks the joined current-build upgrade, restore, rollback and portable-import
-startup drill before later release qualification. Do not use an obsolete drill's
-result as evidence that a later deployment is ready.
+production recovery drill. Gate 13B supplies a separate current schema-17
+production-HTTPS upgrade, restore, stopped rollback and portable-startup harness.
+Its [results](evidence/gate-13/SUBGATE_13B_RESULTS.md) distinguish verified local
+development images from release qualification. Historical Gate 5 commands/evidence
+remain reproducible at `f6ff55b`; their results do not qualify later deployments.
 
 The supported production procedure uses `docker-compose.deploy.yml`, the exact
 Compose project name used by the installation, and these canonical mounts:
@@ -98,6 +97,13 @@ then publishes storage first and SQLite last. Stable IDs, history, Trash, Projec
 Machines, prepared metadata, and portable settings are preserved. Managed content
 receives provider-safe internal keys; external no-copy revisions retain their
 recorded paths but are marked unavailable until the operator remounts them.
+
+The storage target must be a renameable child of a writable parent, not a Docker
+volume mount point. Use a private staging parent, then verify and copy the complete
+stopped pair into empty production volumes before startup. See the
+[Docker staging procedure](PORTABLE_VAULT_WORKFLOW.md#docker-import-staging).
+Derived preview disposition may be re-evaluated on startup because operational
+attempt/timestamp state is not portable; this does not change authoritative files.
 
 The importer never applies secrets or mount activation and never overwrites a
 populated vault. A pre-publication failure leaves the target unchanged. A caught
@@ -321,16 +327,25 @@ a new v5.1 backup verifies. Never point production at these development bind pat
 
 ## Tested recovery contract
 
-The source-owned `scripts/gate5-recovery-drill.sh` operates only on generated
-fixtures and unique disposable Compose projects. A clean committed revision must:
+The source-owned `scripts/gate13-lifecycle-drill.py` (also invoked by the historical
+`scripts/gate5-recovery-drill.sh` command) operates only on generated fixtures and
+unique disposable production-Compose projects. A clean committed revision must:
 
 1. create and verify a stopped schema-4 backup;
-2. upgrade nested folders, renamed content, old thumbnails, supporting/prepared
+2. upgrade schema 4 to 17 with nested folders, renamed content, old thumbnails, supporting/prepared
    files, prepared summaries, external records, and interrupted preview state;
-3. validate IDs, metadata, and bytes through authenticated APIs;
-4. restore into an independent empty project with external no-copy bytes absent;
-5. restore the original project byte-for-byte to the pre-upgrade snapshot; and
-6. remove its project-scoped containers, networks, and volumes.
+3. validate IDs, metadata, and bytes through production HTTPS cookie/CSRF APIs;
+4. add revision/Trash/Project/Machine and identity/security state, back up and
+   restore into an independent empty project with external no-copy bytes absent;
+5. prove exact raw content/graph preservation and pre-start session/challenge
+   invalidation, then verify recovery auditing and fresh sign-in;
+6. export/independently verify/import portable content into private schema-12
+   staging, compare the copied pair, start schema 17 with new identity only, and
+   re-export with narrowly asserted external/derived-state transitions;
+7. reject corrupt/raw-nonempty/portable-nonempty targets without changing them;
+8. restore the original project byte-for-byte to its stopped schema-4 snapshot,
+   and check a blank current production install; and
+9. remove its project-scoped containers, networks, and volumes.
 
 `--allow-dirty` exists only for developing the drill. Its output is not release
 evidence because the image cannot be tied to an immutable source revision.

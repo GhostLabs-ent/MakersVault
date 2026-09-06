@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { chromium, firefox, webkit } from "playwright-core";
+import { loginSession } from "../session-client.mjs";
 
 const apiUrl = (process.env.MAKERSVAULT_BENCHMARK_API_URL || "http://localhost:18003").replace(/\/$/, "");
 const webUrl = (process.env.MAKERSVAULT_BENCHMARK_WEB_URL || "http://localhost:15176").replace(/\/$/, "");
@@ -30,20 +31,13 @@ const summarize = values => ({
 });
 
 async function login() {
-  const response = await fetch(`${apiUrl}/login`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  });
-  if (!response.ok) throw new Error(`API login failed: ${response.status} ${await response.text()}`);
-  return (await response.json()).token;
+  return loginSession(apiUrl, webUrl, username, password);
 }
 
 async function apiJson(token, path, init = {}) {
-  const response = await fetch(`${apiUrl}${path}`, {
+  const response = await token.fetch(path, {
     ...init,
     headers: {
-      Authorization: `Bearer ${token}`,
       ...(init.body ? { "content-type": "application/json" } : {}),
       ...(init.headers || {}),
     },
@@ -59,9 +53,8 @@ async function uploadModel(token, { filename, title, notes, tags, folderId, cont
   if (notes) data.set("notes", notes);
   if (tags?.length) data.set("tags", tags.join(","));
   if (folderId) data.set("folder_id", folderId);
-  const response = await fetch(`${apiUrl}/upload`, {
+  const response = await token.fetch("/upload", {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
     body: data,
   });
   if (!response.ok) throw new Error(`Upload ${filename} failed: ${response.status} ${await response.text()}`);
@@ -71,9 +64,8 @@ async function uploadModel(token, { filename, title, notes, tags, folderId, cont
 async function uploadRelatedFile(token, assetId, filename, content, type) {
   const data = new FormData();
   data.set("file", new Blob([content], { type }), filename);
-  const response = await fetch(`${apiUrl}/asset/${assetId}/files`, {
+  const response = await token.fetch(`/asset/${assetId}/files`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
     body: data,
   });
   if (!response.ok) throw new Error(`Related upload ${filename} failed: ${response.status} ${await response.text()}`);
@@ -191,7 +183,7 @@ async function measureApi(token, path, repetitions = 20) {
   let itemCount = null;
   for (let index = 0; index < repetitions; index += 1) {
     const started = performance.now();
-    const response = await fetch(`${apiUrl}${path}`, { headers: { Authorization: `Bearer ${token}` } });
+    const response = await token.fetch(path);
     const body = await response.json();
     durations.push(performance.now() - started);
     if (!response.ok) throw new Error(`GET ${path} failed: ${response.status}`);
@@ -313,9 +305,7 @@ async function main() {
   await bulkTagInput.press("Enter");
   await bulkToolbar.getByRole("button", { name: "Apply to 2" }).click();
   await page.getByText("Completed successfully.").waitFor();
-  const taggedAssetsResponse = await fetch(`${apiUrl}/assets?q=${encodeURIComponent("Gate 3 bulk source")}&limit=25`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const taggedAssetsResponse = await token.fetch(`/assets?q=${encodeURIComponent("Gate 3 bulk source")}&limit=25`);
   const taggedAssets = await taggedAssetsResponse.json();
   const tagPreservationVerified = taggedAssets.length === 2
     && taggedAssets.every(asset => asset.tags.includes("gate-3-added"))

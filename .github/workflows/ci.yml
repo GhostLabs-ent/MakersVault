@@ -42,3 +42,7 @@ jobs:
         run: make verify-passkeys
       - name: Verify release identity and publication contract
         run: make verify-release
+      - name: Verify cookie-session harness safety
+        run: make verify-harness
+      - name: Verify production lifecycle and portable startup
+        run: make verify-lifecycle

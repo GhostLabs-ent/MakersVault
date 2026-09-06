@@ -89,6 +89,7 @@ if [ -n "$playwright_image" ]; then
     -e MAKERSVAULT_BENCHMARK_OUTPUT="/work/.artifacts/$output_name" \
     -e MAKERSVAULT_BENCHMARK_BROWSER="$browser_name" \
     -v "$app_dir/benchmarks/organization:/work" \
+    -v "$app_dir/benchmarks/session-client.mjs:/session-client.mjs:ro" \
     -w /work \
     "$playwright_image" npm run baseline
 else

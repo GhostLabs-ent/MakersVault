@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { chromium } from "playwright-core";
+import { loginSession } from "../session-client.mjs";
 
 const apiUrl = (process.env.MAKERSVAULT_BENCHMARK_API_URL || "http://localhost:18004").replace(/\/$/, "");
 const webUrl = (process.env.MAKERSVAULT_BENCHMARK_WEB_URL || "http://localhost:15177").replace(/\/$/, "");
@@ -10,19 +11,11 @@ const password = process.env.MAKERSVAULT_BENCHMARK_PASSWORD || "local-developmen
 let browser = null;
 
 async function loginApi() {
-  const response = await fetch(`${apiUrl}/login`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  });
-  if (!response.ok) throw new Error(`API login failed: ${response.status} ${await response.text()}`);
-  return (await response.json()).token;
+  return loginSession(apiUrl, webUrl, username, password);
 }
 
 async function latestScan(token) {
-  const response = await fetch(`${apiUrl}/settings/mount-import/scan`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const response = await token.fetch("/settings/mount-import/scan");
   if (!response.ok) throw new Error(`Scan status failed: ${response.status} ${await response.text()}`);
   return response.json();
 }

@@ -4,11 +4,11 @@ The original Gate 5 upgrade candidate remains frozen at `f6ff55b`. Account and
 passkey notes below describe later local development and must be requalified
 against its eventual release revision before rollout.
 
-Gate 13A confirmed that current migration/recovery regressions pass while the old
-Compose recovery and exact-release smoke scripts retain schema-5 assumptions.
-The [current audit](evidence/gate-13/SUBGATE_13A_RESULTS.md) keeps joined schema-17
-operator lifecycle and exact-image qualification open; these instructions do not
-select or publish replacement artifacts.
+Gate 13B replaces legacy JWT/schema-5 harness assumptions and exercises the joined
+schema-17 operator lifecycle on named local development images. Its
+[current evidence](evidence/gate-13/SUBGATE_13B_RESULTS.md) is not release clearance:
+13C still owns browser/platform/advisory and selected-release qualification. These
+instructions do not select or publish replacement artifacts.
 
 This procedure upgrades a production Compose installation. Read
 [Backup and Recovery](BACKUP_AND_RECOVERY.md) first. v5.1 migrations are additive,
