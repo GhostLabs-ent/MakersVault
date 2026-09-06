@@ -6,7 +6,7 @@
 lifecycle verification only. No production feature, policy, schema or publication
 change is authorized by this slice.
 
-**Status:** READY FOR OWNER EVIDENCE REVIEW; not accepted.
+**Status:** ACCEPTED by the owner on 2026-09-06 at evidence commit `2f61b37`.
 
 **Tested implementation:** `2c68d70dcf36e9e912a6caf23fa33026c7a665bb`.
 
@@ -169,4 +169,5 @@ is reused as a current result. The qualified unpublished Gate 5 candidate remain
 `f6ff55b`; release scope/revision and any push, tag, image publication or deployment
 require separate owner decisions. Gate 12 remains deferred to desktop.
 
-**Accepted by/date:** Pending; this document does not accept 13B or open 13C.
+**Accepted by/date:** Owner, 2026-09-06. Gate 13C authorized; release scope,
+publication and final Gate 13 acceptance remain separately gated.

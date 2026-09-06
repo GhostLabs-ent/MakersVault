@@ -2,7 +2,7 @@
 
 **Opened:** 2026-09-05, by owner direction
 
-**Status:** IN PROGRESS; 13A accepted, 13B ready for owner evidence review
+**Status:** IN PROGRESS; 13A–13B accepted, 13C authorized on 2026-09-06
 
 **Audit entry:** `236c0fd14faf6cddb7e46a78657e6000cdb4d79f`
 
@@ -88,4 +88,6 @@ carry-forward is not a claim that its implementation or tests exist.
 **Current owner direction:** 13A was accepted at `c2e9f94` and 13B's bounded
 verification repairs and lifecycle drills were authorized on 2026-09-05. Keep
 Gate 12 on the desktop track and publication behind its separate explicit decision.
-13B is ready for review; wait for owner acceptance/direction before starting 13C.
+The owner accepted 13B at `2f61b37` on 2026-09-06 and authorized 13C. Follow the
+[13C working record](SUBGATE_13C_RESULTS.md); pause for required platform/scope
+decisions before claiming release readiness or assembling a replacement candidate.
