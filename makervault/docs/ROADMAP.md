@@ -9,14 +9,16 @@ architecture is re-baselined.
 
 ## Active gate — end-state audit
 
-**2026-09-05:** Gate 13A is owner-accepted. The
-[13B lifecycle results](evidence/gate-13/SUBGATE_13B_RESULTS.md) are ready for review
+**2026-09-06:** Gates 13A–13B are owner-accepted. The accepted
+[13B lifecycle results](evidence/gate-13/SUBGATE_13B_RESULTS.md) were captured
 at verification implementation `2c68d70`: the complete gate and production-HTTPS
 upgrade/restore/rollback/portable-startup checks pass. This is local development
 evidence, not final end-state acceptance or a newly qualified release.
 
-After 13B acceptance, the remaining sequence is 13C browser and release-readiness
-evidence, then 13D owner acceptance of the end state and next
+[13C](evidence/gate-13/SUBGATE_13C_RESULTS.md) is in progress. Fresh dependency
+findings require an owner remediation decision; deployment guidance now explicitly
+requires production HTTPS even on LAN/VPN. Browser/platform and release-readiness
+evidence remain unfinished, followed by 13D owner acceptance of the end state and next
 roadmap. The [traceability/carry-forward register](evidence/gate-13/TRACEABILITY.md)
 records every unmet commitment with its reason, owner and dependency. It includes
 Gate 12's explicit desktop deferral, later identity/provider/adapter/UX work,

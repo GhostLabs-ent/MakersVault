@@ -36,27 +36,34 @@ configuration removes `/api` before forwarding the request to FastAPI.
 The external proxy should preserve `Host`, `X-Forwarded-For`, and
 `X-Forwarded-Proto`. TLS terminates at the external proxy in this topology.
 
-## Optional: separate UI and API hostnames
+## Optional: separate same-site HTTPS UI and API hostnames
 
 The following remains supported for direct access or an existing deployment:
 
 ```text
-https://makersvault.example    -> web:5173
-https://makersvaultapi.example -> api:8000
+https://vault.example.com -> web:5173
+https://api.example.com   -> api:8000
 ```
 
 It requires explicit browser-visible API and CORS configuration:
 
 ```dotenv
-PUBLIC_URL=https://makersvault.example
-VITE_API_URL=https://makersvaultapi.example
-CORS_ORIGINS=https://makersvault.example
-TRUSTED_HOSTS=makersvaultapi.example
+PUBLIC_URL=https://vault.example.com
+VITE_API_URL=https://api.example.com
+CORS_ORIGINS=https://vault.example.com
+TRUSTED_HOSTS=api.example.com
 ```
 
 This topology has two certificates/routes and a cross-origin browser boundary. It
 is no longer the recommended default because the web container can provide the
 same-origin gateway itself.
+
+Both hosts must be same-site HTTPS: cross-origin is not the same as cross-site.
+The current `SameSite=Lax` session cookie is not sent with ordinary cross-site
+fetches, even when CORS permits the origin. Unrelated registrable domains are not
+a supported authenticated UI/API split. Prefer the one-host topology instead of
+relaxing cookie security. This follows the browser's
+[SameSite cookie rules](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie#samesitesamesite-value).
 
 ## Troubleshooting
 
@@ -67,11 +74,12 @@ same-origin gateway itself.
 - If the external proxy shares the Compose network, attach it to the MakersVault
   network and target service `web` on port `5173`; otherwise target the host's
   published web port.
-- Remote access requires HTTPS at the reverse proxy or equivalent protection from
-  a private network/VPN. Direct public exposure of MakersVault ports is
-  unsupported for v5.1.
+- Current production browser access requires HTTPS at the reverse proxy, including
+  over a private network/VPN. A VPN does not change Secure-cookie requirements.
+  Direct public exposure of unprotected MakersVault ports is unsupported.
 - Preserve the browser-visible `Host` header. `PUBLIC_URL` enables the matching
   API host policy automatically in the recommended one-host topology; configure
   `TRUSTED_HOSTS` for a separate API hostname.
 - Add HSTS at the external proxy only after confirming the hostname will remain
-  HTTPS-only. The bundled gateway intentionally also supports trusted-LAN HTTP.
+  HTTPS-only. The gateway's private upstream HTTP and development mode are not
+  production browser HTTP exceptions.

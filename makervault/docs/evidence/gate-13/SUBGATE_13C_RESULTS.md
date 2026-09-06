@@ -2,7 +2,8 @@
 
 **Opened:** 2026-09-06, following owner acceptance of 13B at `2f61b37`.
 
-**Status:** IN PROGRESS; no release scope or replacement candidate selected.
+**Status:** IN PROGRESS — OWNER REMEDIATION CHECKPOINT; no release scope or
+replacement candidate selected. This is not a request to accept or close 13C.
 
 **Entry verification:** `2c68d70`; accepted 13B evidence `2f61b37`. Application
 behavior remains the local schema-17 implementation, not the frozen Gate 5 release.
@@ -44,6 +45,57 @@ be changed. No push, tag, publication, live deployment or feature expansion.
 
 ## Evidence and owner decisions
 
-Pending execution. Gate 12 remains owner-deferred to desktop. Physical-device and
-native-workstation availability has been requested; no answer is assumed. Final
-13C acceptance and release scope/revision remain owner checkpoints.
+### Completed at this checkpoint
+
+- Recorded 13B acceptance and opened 13C at `fa273b6`.
+- Added a read-only advisory audit helper, pinned scanner/container inputs,
+  private raw reports and five tests that prevent failed/incomplete scans from
+  masquerading as clean results. Captured fresh web, Python, Go and image scans.
+- [Advisory review](ADVISORY_REVIEW.md): three affected web packages, including
+  direct production `fflate`; no findings for the two Python locks, Go source or
+  the two browser-harness locks. Runtime image scans add 283 API / 158 web package
+  matches, including critical/high ratings and reported available fixes. Those
+  are package matches requiring triage, not demonstrated app exploits or 441
+  independent flaws. Nothing has been waived.
+- Preserved [scan identities, counts and raw-report hashes](advisory-audit.json)
+  and [all reduced image-match records](advisory-image-matches.json). The accepted
+  13B entry image IDs and unchanged application locks identify what was scanned;
+  the new helper/operator documents do not change application behavior.
+- Corrected README, secure-deployment and reverse-proxy guidance: production HTTPS
+  includes LAN/VPN; setup does not install TLS; unrelated cross-site UI/API splits
+  do not work with current Lax cookies. Development mode and published fallback
+  credentials are not production recovery workarounds. This is documentation/source
+  review, not a new browser qualification of every proxy topology.
+- `make verify-harness verify-release`: **12 Python harness tests, 5 Node session
+  helper tests, three browser-script syntax checks and static release contract
+  passed**. The 313 API / 32 web and joined lifecycle pass remain the named 13B
+  evidence; the complete application gate was not rerun for this documentation/
+  audit-tooling checkpoint.
+
+### Proposed remediation — owner approval required
+
+1. Patch direct `fflate` to 0.8.3 and compatibly refresh the two affected build
+   dependencies (`browserslist` 4.28.7, `postcss-selector-parser` 6.1.3); add bounded
+   malformed-ZIP64 regression coverage. No broad `audit fix --force` or feature
+   rewrite. General ZIP upload-worker isolation remains a separate scope decision.
+2. Refresh supported, digest-pinned runtime bases/packages and review inherited
+   Python installer/vendor packages. Preserve the Python release line unless a
+   separate compatibility decision is needed; do not blindly follow CPE matches
+   into a major upgrade. Re-scan replacements and explicitly disposition any
+   remaining vendor/no-fix/unknown matches with evidence and owner risk decisions.
+3. Run targeted regressions and the complete repository gate, name new local
+   image identities, then resume the already-authorized current browser/workflow
+   matrix without relaxing budgets, HTTPS or cookie security.
+
+No application code, dependency locks, runtime Dockerfiles or release pins were
+changed at this checkpoint. All work stays local; no push/tag/publication/deployment.
+
+### Still outstanding
+
+Browser assertion refresh and current cold/warm/detail/LightBurn, organization/
+Trash, supporting/prepared and mounted-import runs have **not** been completed in
+13C. Historical timing is not reused. Physical-device and native-workstation
+availability has been requested; no answer or platform limitation is assumed.
+Release scope/revision, matched distribution qualification, final 13C acceptance
+and 13D end-state review remain owner checkpoints. Gate 12 remains desktop-deferred
+and the unrelated desktop draft remains untouched.

@@ -1,0 +1,405 @@
+{
+  "status": "owner_remediation_checkpoint_not_release_clearance",
+  "interpretation": "Dated scanner observations. Image matches are not exploitability determinations; no findings waived or dependencies changed.",
+  "summaries": {
+    "languages": {
+      "captured_at": "2026-09-06T23:49:17.316435+00:00",
+      "images": {},
+      "lock_sha256": {
+        "api/requirements-dev.lock": "c1d57225e64cbfb3706b8e42ccb6b70cce445b448b3d2ab0fc121022ab8bb5a9",
+        "api/requirements.lock": "21a943baca1c298e9da2967bdb25c86854ab8235d98f5944b1e94d655d4bbd7f",
+        "benchmarks/organization/package-lock.json": "90685f4ed1d4fe25eb1ab4b7a4b58c199d3419f1e2bd9daa1c63fdf2c4fa2da2",
+        "benchmarks/preview/package-lock.json": "2bc7841853ef1546e351a9f653d35bec022e6f63bf015150c14fb3861200c799",
+        "slicer-bridge/go.mod": "49d06f23e0ec7f8e48794df1b7fcce355463df06189a378a10482c55abafe253",
+        "web/package-lock.json": "9d62b44023d0af640f0f6cb8f6fac30a61b14cbce1360460a8e6236389cd3bac"
+      },
+      "phase": "languages",
+      "scans": {
+        "go": {
+          "config": {
+            "db": "https://vuln.go.dev",
+            "db_last_modified": "2026-09-02T19:12:04Z",
+            "go_version": "go1.26.6",
+            "protocol_version": "v1.0.0",
+            "scan_level": "symbol",
+            "scan_mode": "source",
+            "scanner_name": "govulncheck",
+            "scanner_version": "v1.7.0"
+          },
+          "exit_code": 0,
+          "findings": []
+        },
+        "npm-organization": {
+          "exit_code": 0,
+          "vulnerabilities": {
+            "critical": 0,
+            "high": 0,
+            "info": 0,
+            "low": 0,
+            "moderate": 0,
+            "total": 0
+          }
+        },
+        "npm-preview": {
+          "exit_code": 0,
+          "vulnerabilities": {
+            "critical": 0,
+            "high": 0,
+            "info": 0,
+            "low": 0,
+            "moderate": 0,
+            "total": 0
+          }
+        },
+        "npm-production": {
+          "exit_code": 1,
+          "vulnerabilities": {
+            "critical": 0,
+            "high": 0,
+            "info": 0,
+            "low": 0,
+            "moderate": 1,
+            "total": 1
+          }
+        },
+        "npm-web": {
+          "exit_code": 1,
+          "vulnerabilities": {
+            "critical": 0,
+            "high": 1,
+            "info": 0,
+            "low": 1,
+            "moderate": 1,
+            "total": 3
+          }
+        },
+        "python-development": {
+          "advisories": 0,
+          "dependencies": 43,
+          "exit_code": 0,
+          "skipped": []
+        },
+        "python-runtime": {
+          "advisories": 0,
+          "dependencies": 35,
+          "exit_code": 0,
+          "skipped": []
+        }
+      },
+      "source_revision": "fa273b6cc07fea1539c35e4f78d46eb8cf2b828d",
+      "status": "audit_completed_not_release_clearance"
+    },
+    "images": {
+      "captured_at": "2026-09-06T23:46:22.489520+00:00",
+      "images": {
+        "api": {
+          "id": "sha256:9b8b729644b3938584b293e90713bc40971afd612539dfca4daa94854c018a85",
+          "labels": {
+            "org.opencontainers.image.created": "unknown",
+            "org.opencontainers.image.revision": "2c68d70dcf36e9e912a6caf23fa33026c7a665bb",
+            "org.opencontainers.image.source": "https://github.com/VincentCinque/MakersVault",
+            "org.opencontainers.image.title": "MakersVault API",
+            "org.opencontainers.image.version": "development-gate13b"
+          }
+        },
+        "web": {
+          "id": "sha256:80f1dcdf8f853d2af8b924c046fbf266b3f4db3e755638b4e5c7cb0bf28036f8",
+          "labels": {
+            "maintainer": "NGINX Docker Maintainers <docker-maint@nginx.com>",
+            "org.opencontainers.image.created": "unknown",
+            "org.opencontainers.image.description": "Unprivileged NGINX Dockerfiles",
+            "org.opencontainers.image.licenses": "Apache-2.0",
+            "org.opencontainers.image.revision": "2c68d70dcf36e9e912a6caf23fa33026c7a665bb",
+            "org.opencontainers.image.source": "https://github.com/VincentCinque/MakersVault",
+            "org.opencontainers.image.title": "MakersVault Web",
+            "org.opencontainers.image.url": "https://github.com/nginx/docker-nginx-unprivileged",
+            "org.opencontainers.image.version": "development-gate13b"
+          }
+        }
+      },
+      "lock_sha256": {
+        "api/requirements-dev.lock": "c1d57225e64cbfb3706b8e42ccb6b70cce445b448b3d2ab0fc121022ab8bb5a9",
+        "api/requirements.lock": "21a943baca1c298e9da2967bdb25c86854ab8235d98f5944b1e94d655d4bbd7f",
+        "benchmarks/organization/package-lock.json": "90685f4ed1d4fe25eb1ab4b7a4b58c199d3419f1e2bd9daa1c63fdf2c4fa2da2",
+        "benchmarks/preview/package-lock.json": "2bc7841853ef1546e351a9f653d35bec022e6f63bf015150c14fb3861200c799",
+        "slicer-bridge/go.mod": "49d06f23e0ec7f8e48794df1b7fcce355463df06189a378a10482c55abafe253",
+        "web/package-lock.json": "9d62b44023d0af640f0f6cb8f6fac30a61b14cbce1360460a8e6236389cd3bac"
+      },
+      "phase": "images",
+      "scans": {
+        "image-api": {
+          "database": {
+            "providers": {
+              "alma": {
+                "captured": "2026-09-06T00:36:44Z",
+                "input": "xxh64:f008ae47448f4509"
+              },
+              "alpine": {
+                "captured": "2026-09-06T00:36:24Z",
+                "input": "xxh64:66ad5968bbca49f7"
+              },
+              "amazon": {
+                "captured": "2026-09-06T00:36:27Z",
+                "input": "xxh64:42e263fcc7e4beee"
+              },
+              "arch": {
+                "captured": "2026-09-06T00:36:32Z",
+                "input": "xxh64:c3da83229dbf7f3b"
+              },
+              "bitnami": {
+                "captured": "2026-09-06T00:36:21Z",
+                "input": "xxh64:830a0ac718a4f8d0"
+              },
+              "chainguard": {
+                "captured": "2026-09-06T00:36:33Z",
+                "input": "xxh64:7878de4bf6cb64b6"
+              },
+              "chainguard-libraries": {
+                "captured": "2026-09-06T00:36:57Z",
+                "input": "xxh64:afbb03d9d5da05a1"
+              },
+              "debian": {
+                "captured": "2026-09-06T00:37:01Z",
+                "input": "xxh64:42c29aa9d9c745a0"
+              },
+              "echo": {
+                "captured": "2026-09-06T00:36:16Z",
+                "input": "xxh64:dbaafc8da2c71a9c"
+              },
+              "eol": {
+                "captured": "2026-09-06T00:36:53Z",
+                "input": "xxh64:cc51e7d4491a8ab5"
+              },
+              "epss": {
+                "captured": "2026-09-06T00:36:27Z",
+                "input": "xxh64:c0655bc8f1d53ee4"
+              },
+              "fedora": {
+                "captured": "2026-09-06T00:36:55Z",
+                "input": "xxh64:7537bfc54308546e"
+              },
+              "github": {
+                "captured": "2026-09-06T00:36:34Z",
+                "input": "xxh64:495dadc0ee96f700"
+              },
+              "govulndb": {
+                "captured": "2026-09-06T00:36:33Z",
+                "input": "xxh64:c51fa0c1bca2cb82"
+              },
+              "hummingbird": {
+                "captured": "2026-09-06T00:38:42Z",
+                "input": "xxh64:5087d8762f609b2e"
+              },
+              "kev": {
+                "captured": "2026-09-06T00:36:22Z",
+                "input": "xxh64:f4617dc88453f1d4"
+              },
+              "mariner": {
+                "captured": "2026-09-06T00:36:30Z",
+                "input": "xxh64:6b2fdaf11345f674"
+              },
+              "minimos": {
+                "captured": "2026-09-06T00:36:30Z",
+                "input": "xxh64:342fcd0e5db2aecd"
+              },
+              "nvd": {
+                "captured": "2026-09-06T00:38:01Z",
+                "input": "xxh64:64a8167b2559d8f0"
+              },
+              "oracle": {
+                "captured": "2026-09-06T00:36:35Z",
+                "input": "xxh64:a42cf7bb2b14c7ee"
+              },
+              "photon": {
+                "captured": "2026-09-06T00:36:29Z",
+                "input": "xxh64:bfbb9065778f8ea7"
+              },
+              "rhel": {
+                "captured": "2026-09-06T00:38:16Z",
+                "input": "xxh64:bcbc61c7891de24f"
+              },
+              "secureos": {
+                "captured": "2026-09-06T00:36:53Z",
+                "input": "xxh64:aa335b09b851621b"
+              },
+              "sles": {
+                "captured": "2026-09-06T00:37:26Z",
+                "input": "xxh64:f4edcf63d4835715"
+              },
+              "ubuntu": {
+                "captured": "2026-09-06T00:39:22Z",
+                "input": "xxh64:4ac98359e649eb53"
+              },
+              "wolfi": {
+                "captured": "2026-09-06T00:36:52Z",
+                "input": "xxh64:634931e83625fe68"
+              }
+            },
+            "status": {
+              "built": "2026-09-06T06:27:35Z",
+              "from": "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.9_2026-09-06T00:36:16Z_1788676055.tar.zst?checksum=sha256%3A3c93034d0475d25fc82addd47b2300f99564ea4f35fd9e0b957b701049a15020",
+              "path": "/cache/6/vulnerability.db",
+              "schemaVersion": "v6.1.9",
+              "valid": true
+            }
+          },
+          "exit_code": 0,
+          "matches": 283,
+          "scanner": "0.118.0",
+          "severity": {
+            "Critical": 13,
+            "High": 84,
+            "Low": 10,
+            "Medium": 78,
+            "Negligible": 54,
+            "Unknown": 44
+          }
+        },
+        "image-web": {
+          "database": {
+            "providers": {
+              "alma": {
+                "captured": "2026-09-06T00:36:44Z",
+                "input": "xxh64:f008ae47448f4509"
+              },
+              "alpine": {
+                "captured": "2026-09-06T00:36:24Z",
+                "input": "xxh64:66ad5968bbca49f7"
+              },
+              "amazon": {
+                "captured": "2026-09-06T00:36:27Z",
+                "input": "xxh64:42e263fcc7e4beee"
+              },
+              "arch": {
+                "captured": "2026-09-06T00:36:32Z",
+                "input": "xxh64:c3da83229dbf7f3b"
+              },
+              "bitnami": {
+                "captured": "2026-09-06T00:36:21Z",
+                "input": "xxh64:830a0ac718a4f8d0"
+              },
+              "chainguard": {
+                "captured": "2026-09-06T00:36:33Z",
+                "input": "xxh64:7878de4bf6cb64b6"
+              },
+              "chainguard-libraries": {
+                "captured": "2026-09-06T00:36:57Z",
+                "input": "xxh64:afbb03d9d5da05a1"
+              },
+              "debian": {
+                "captured": "2026-09-06T00:37:01Z",
+                "input": "xxh64:42c29aa9d9c745a0"
+              },
+              "echo": {
+                "captured": "2026-09-06T00:36:16Z",
+                "input": "xxh64:dbaafc8da2c71a9c"
+              },
+              "eol": {
+                "captured": "2026-09-06T00:36:53Z",
+                "input": "xxh64:cc51e7d4491a8ab5"
+              },
+              "epss": {
+                "captured": "2026-09-06T00:36:27Z",
+                "input": "xxh64:c0655bc8f1d53ee4"
+              },
+              "fedora": {
+                "captured": "2026-09-06T00:36:55Z",
+                "input": "xxh64:7537bfc54308546e"
+              },
+              "github": {
+                "captured": "2026-09-06T00:36:34Z",
+                "input": "xxh64:495dadc0ee96f700"
+              },
+              "govulndb": {
+                "captured": "2026-09-06T00:36:33Z",
+                "input": "xxh64:c51fa0c1bca2cb82"
+              },
+              "hummingbird": {
+                "captured": "2026-09-06T00:38:42Z",
+                "input": "xxh64:5087d8762f609b2e"
+              },
+              "kev": {
+                "captured": "2026-09-06T00:36:22Z",
+                "input": "xxh64:f4617dc88453f1d4"
+              },
+              "mariner": {
+                "captured": "2026-09-06T00:36:30Z",
+                "input": "xxh64:6b2fdaf11345f674"
+              },
+              "minimos": {
+                "captured": "2026-09-06T00:36:30Z",
+                "input": "xxh64:342fcd0e5db2aecd"
+              },
+              "nvd": {
+                "captured": "2026-09-06T00:38:01Z",
+                "input": "xxh64:64a8167b2559d8f0"
+              },
+              "oracle": {
+                "captured": "2026-09-06T00:36:35Z",
+                "input": "xxh64:a42cf7bb2b14c7ee"
+              },
+              "photon": {
+                "captured": "2026-09-06T00:36:29Z",
+                "input": "xxh64:bfbb9065778f8ea7"
+              },
+              "rhel": {
+                "captured": "2026-09-06T00:38:16Z",
+                "input": "xxh64:bcbc61c7891de24f"
+              },
+              "secureos": {
+                "captured": "2026-09-06T00:36:53Z",
+                "input": "xxh64:aa335b09b851621b"
+              },
+              "sles": {
+                "captured": "2026-09-06T00:37:26Z",
+                "input": "xxh64:f4edcf63d4835715"
+              },
+              "ubuntu": {
+                "captured": "2026-09-06T00:39:22Z",
+                "input": "xxh64:4ac98359e649eb53"
+              },
+              "wolfi": {
+                "captured": "2026-09-06T00:36:52Z",
+                "input": "xxh64:634931e83625fe68"
+              }
+            },
+            "status": {
+              "built": "2026-09-06T06:27:35Z",
+              "from": "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.9_2026-09-06T00:36:16Z_1788676055.tar.zst?checksum=sha256%3A3c93034d0475d25fc82addd47b2300f99564ea4f35fd9e0b957b701049a15020",
+              "path": "/cache/6/vulnerability.db",
+              "schemaVersion": "v6.1.9",
+              "valid": true
+            }
+          },
+          "exit_code": 0,
+          "matches": 158,
+          "scanner": "0.118.0",
+          "severity": {
+            "Critical": 13,
+            "High": 59,
+            "Low": 12,
+            "Medium": 74
+          }
+        }
+      },
+      "source_revision": "fa273b6cc07fea1539c35e4f78d46eb8cf2b828d",
+      "status": "audit_completed_not_release_clearance"
+    }
+  },
+  "raw_report_sha256": {
+    "/tmp/makersvault-gate13c-languages-pinned-fa273b6/go.json": "fe19f59930d2d94a61c9787aebee9af1b7e50f0b98c00abf6c850d7d55297368",
+    "/tmp/makersvault-gate13c-languages-pinned-fa273b6/npm-organization.json": "06c18d6ae5bb95560b3aaf924119c2ecbd29a69e9f4f8a67dc2bb1d7bc726c5e",
+    "/tmp/makersvault-gate13c-languages-pinned-fa273b6/npm-preview.json": "06c18d6ae5bb95560b3aaf924119c2ecbd29a69e9f4f8a67dc2bb1d7bc726c5e",
+    "/tmp/makersvault-gate13c-languages-pinned-fa273b6/npm-production.json": "35a289fc697da78c5986fe070a6439019152dc61086af489b40a05c0a4260e4f",
+    "/tmp/makersvault-gate13c-languages-pinned-fa273b6/npm-web.json": "f27701cc3dca512b79acd5a4a845c7ec3e9d38e2807a1f0b001a12e702d9e0ea",
+    "/tmp/makersvault-gate13c-languages-pinned-fa273b6/partial-summary.json": "05bdf27e196ea2ff68f51901475a6c017b415c90c5dd119ee80abd2f7005a557",
+    "/tmp/makersvault-gate13c-languages-pinned-fa273b6/python-development.json": "787c9e16049c623b47d253b1ab7be688ed01d48a1bc40910176944fc7575539a",
+    "/tmp/makersvault-gate13c-languages-pinned-fa273b6/python-runtime.json": "f50b4efc5f4490acd1397fad6780c56263e01d3eaae541818d27cde41a701641",
+    "/tmp/makersvault-gate13c-languages-pinned-fa273b6/summary.json": "885e272dacaae82f1810110393c3016d6c83a4836034aeb9766d56312e2b7008",
+    "/tmp/makersvault-gate13c-images-fa273b6-retry/image-api.json": "11f5eabc1d23248711a0564ace066b3038dc1af03da532725befc1992d79f1ad",
+    "/tmp/makersvault-gate13c-images-fa273b6-retry/image-web.json": "ae13f49cd5d5f5cec6c94f6fd5bd98996e7b0988ab7e0904635a462ad2852eee",
+    "/tmp/makersvault-gate13c-images-fa273b6-retry/partial-summary.json": "95495adf4dcc612a4db730e877cc813643b3845229e8bf0442f073e780830e31",
+    "/tmp/makersvault-gate13c-images-fa273b6-retry/summary.json": "8725d796fc8a5dd50fafb6a59f97ab118540cc44a3f9bed3e2c4d54f424a8803",
+    "makervault/scripts/gate13-advisory-audit.py": "e27b69adaca35b61eecd0acf1da6de937fadda2ab47d1d53c7773c151ac912fe"
+  }
+}

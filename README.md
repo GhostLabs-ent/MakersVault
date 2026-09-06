@@ -31,7 +31,7 @@
   <li>Polish for metadata, supporting files, prepared-print summaries, LightBurn, and the local bridge.</li>
 </ul>
 <p>The frozen Gate 5 v5.1 candidate remains at <code>f6ff55b</code>. Later local roadmap work adds Artifact history, Trash, Projects, Machines, portable vaults, shared-vault accounts, and optional passkey MFA. Its evidence and owner checkpoints are in the <a href="makervault/docs/ARCHITECTURE_RUNBOOK.md">architecture runbook</a>; it does not replace the <a href="makervault/docs/V5.1_SCOPE.md">frozen release contract</a> without release qualification.</p>
-<p><strong>Current local status:</strong> Gate 13A is accepted; <a href="makervault/docs/evidence/gate-13/SUBGATE_13B_RESULTS.md">13B lifecycle evidence</a> is ready for review. Current regression, production-HTTPS upgrade/recovery/rollback and portable-import startup pass. Browser, platform and release qualification remain 13C work. Gate 12 optional services is deferred to the desktop version. Nothing here announces a new published release.</p>
+<p><strong>Current local status:</strong> Gates 13A–13B are accepted. <a href="makervault/docs/evidence/gate-13/SUBGATE_13C_RESULTS.md">13C is in progress</a>, with fresh dependency findings awaiting a remediation decision. The accepted 13B regression and production-HTTPS lifecycle evidence remain valid for their named development images; current browser, platform and release qualification are not complete. Gate 12 optional services is deferred to the desktop version. Nothing here announces a new published release.</p>
 
 <h2>Getting Started</h2>
 <p>Makers Vault is deployable using Docker pull or Docker Compose:</p>
@@ -40,11 +40,12 @@
 ```bash
 cd makervault
 ./scripts/setup-env.sh
+# Configure your final HTTPS origin and external TLS proxy before browser access.
 docker compose -f docker-compose.deploy.yml up -d
 ```
 
 <p><code>makervault/docker-compose.deploy.yml</code> is the canonical production manifest. <code>makervault/docker-compose.yml</code> is the canonical local source-build manifest. The historical <code>docker-deploy.yml</code> filename is retained only as a compatibility alias.</p>
-<p><strong>Security notice:</strong> production startup requires an explicit administrator password and deployment-specific signing secret. The setup helper creates both without overwriting an existing <code>.env</code>. Optional passkey MFA additionally requires one stable HTTPS RP ID and origin. Do not expose MakersVault ports directly to the public Internet.</p>
+<p><strong>Security notice:</strong> current production browser access requires HTTPS, including over a LAN or VPN. Startup also requires an explicit administrator password and deployment-specific signing secret. The setup helper creates credentials without overwriting an existing <code>.env</code>; it does not install TLS. Optional passkey MFA additionally requires one stable RP ID and HTTPS origin. Do not expose unprotected MakersVault ports directly to the public Internet.</p>
 <p><strong>Existing installation:</strong> do not start new images until you have followed the tested <a href="makervault/docs/UPGRADE_V5.1.md">v5.1 upgrade procedure</a> and created a verified matched backup using the <a href="makervault/docs/BACKUP_AND_RECOVERY.md">backup and recovery guide</a>. SQLite and managed storage must always be backed up and restored together.</p>
 
 <h3>Setting up the .env file</h3>
@@ -55,7 +56,7 @@ docker compose -f docker-compose.deploy.yml up -d
 ```
 
 <p>The helper writes the canonical <code>.env.example</code> values, generates a random administrator password and 256-bit signing secret, protects the file with mode <code>600</code>, and prints the password once. For an existing installation, keep the current <code>.env</code> and follow the <a href="makervault/docs/SECURE_DEPLOYMENT.md">secure deployment and upgrade guide</a>.</p>
-<p>For direct/LAN mode, set <code>VITE_API_URL</code> to a browser-reachable API URL (for example, <code>http://10.0.0.160:8000</code>). Plain HTTP is appropriate only on a genuinely trusted network because it does not protect credentials or tokens from network observers.</p>
+<p>Use the same HTTPS origin on your LAN or VPN. Plain HTTP does not satisfy current production Secure-cookie requirements; it is reserved for explicit development/test browser access and private proxy-to-container traffic. See <a href="makervault/docs/SECURE_DEPLOYMENT.md">secure deployment</a> before configuring a new installation.</p>
 
 <h3>Reverse Proxy Support (Any Provider)</h3>
 <p>Makers Vault is reverse-proxy agnostic. Nginx Proxy Manager, Traefik, Nginx, Caddy, HAProxy, and Apache all work.</p>
@@ -67,17 +68,17 @@ docker compose -f docker-compose.deploy.yml up -d
 <p>A second public API hostname is optional, not required. See <a href="makervault/docs/architecture/REVERSE_PROXY.md">the reverse-proxy topology guide</a>.</p>
 
 <h4>Recommended flow for proxied setups</h4>
-<p>Start containers:</p>
+<p>After configuring the final HTTPS origin and TLS routing, start containers:</p>
 
 ```bash
 docker compose -f docker-compose.deploy.yml up -d
 ```
 
 <ol>
+  <li>Set <code>PUBLIC_URL</code> and <code>CORS_ORIGINS</code> to the final HTTPS origin in <code>.env</code>; leave <code>VITE_API_URL</code> empty.</li>
+  <li>Configure a trusted TLS certificate and reverse proxy that forwards all paths to the web service, preserving Host. Keep upstream ports private.</li>
   <li>Bring the stack up with Docker Compose.</li>
-  <li>Configure one reverse-proxy host that sends all paths to the web service.</li>
-  <li>Set <code>PUBLIC_URL</code> in <code>.env</code> (for example, <code>https://makersvault.example.com</code>) and restart.</li>
-  <li>Open Makers Vault at your public domain.</li>
+  <li>Open Makers Vault at its HTTPS domain.</li>
 </ol>
 <p>When served on standard proxy ports (80/443), Makers Vault automatically calls the API at <code>&lt;current-origin&gt;/api</code>.</p>
 
@@ -85,15 +86,15 @@ docker compose -f docker-compose.deploy.yml up -d
 <ul>
   <li>Set <code>PUBLIC_URL</code> to your public domain URL.</li>
   <li>Leave <code>VITE_API_URL</code> empty unless you intentionally want a non-default API target.</li>
-  <li>Set <code>CORS_ORIGINS</code> as needed for direct/LAN access or additional origins.</li>
+  <li>Set <code>CORS_ORIGINS</code> to explicit supported HTTPS browser origins.</li>
   <li>For a separate public API hostname, set <code>TRUSTED_HOSTS</code> to that API hostname.</li>
 </ul>
 <p>Example:</p>
 
-```yaml
+```dotenv
 PUBLIC_URL=https://makersvault.example.com
-CORS_ORIGINS=https://makersvault.example.com,http://10.0.0.160:5173
-TRUSTED_HOSTS=makersvault.example.com,10.0.0.160
+CORS_ORIGINS=https://makersvault.example.com
+TRUSTED_HOSTS=makersvault.example.com
 VITE_API_URL=
 VITE_ALLOWED_HOSTS=
 ```

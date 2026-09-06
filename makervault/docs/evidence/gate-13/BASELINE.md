@@ -2,7 +2,7 @@
 
 **Opened:** 2026-09-05, by owner direction
 
-**Status:** IN PROGRESS; 13A–13B accepted, 13C authorized on 2026-09-06
+**Status:** IN PROGRESS; 13A–13B accepted, 13C advisory/remediation checkpoint on 2026-09-06
 
 **Audit entry:** `236c0fd14faf6cddb7e46a78657e6000cdb4d79f`
 

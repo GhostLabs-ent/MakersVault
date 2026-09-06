@@ -1,11 +1,11 @@
 # Gate 13 strategy and invariant traceability
 
-**Date:** 2026-09-05
+**Date:** 2026-09-06
 
 **Baseline:** audit entry `236c0fd` / application `1a209aa`; current verification
 `2c68d70`, schema 17 unchanged
 
-**Status:** 13A accepted; 13B ready for owner review; final Gate 13 acceptance pending
+**Status:** 13A–13B accepted; 13C advisory/remediation checkpoint; final Gate 13 acceptance pending
 
 ## Reading this ledger
 
@@ -58,20 +58,21 @@ Test paths in this table are relative to `api/tests/` unless qualified otherwise
 | I07 — original files/metadata portable without subscription | Independent verifier, current scale export/import/re-export, corruption/nonempty-target tests; external bytes explicitly outside vault ownership |
 | I08 — local integrations confer no hidden control | API/bridge grant separation, role/extension/catalog/origin restrictions and constrained local arguments; no remote executable or shell authority |
 | I09 — no temporary AssetGroup | Actual Project membership and ArtifactRevision migration tests; accepted ADRs 0009–0011 specialize the original conceptual hierarchy |
-| I10 — hostile file cannot monopolize library | Import/archive/image/preview budgets and failure persistence; adversarial API tests; current browser timing requires G13-01 |
+| I10 — hostile file cannot monopolize library | Server/preview controls have tests, but 13C finds an open main-thread ZIP upload dependency advisory. G13-04 remediation and G13-01 current browser timing remain required; this is not yet a whole-browser guarantee |
 
 ## Open audit findings — repair inside Gate 13
 
-These are verification gaps, not demonstrated data loss or a discovered auth bypass.
+These include verification gaps and fresh dependency findings, not demonstrated
+data loss or a discovered authentication bypass.
 Owner: MakersVault maintainer; implementation/evidence: local delivery work under
 the next accepted slice. Re-review at that slice and again at 13D.
 
 | ID | Source evidence / effect | Required next proof |
 |---|---|---|
 | G13-01 | 13A found legacy JWT auth in preview/organization/mounted-scan harnesses. **13B harness portion VERIFIED:** shared cookie/CSRF helper, five safety tests, three consumer syntax checks and real production-HTTPS upload/read/Trash/logout | 13C remains OPEN: current browser/corpus/mount matrix and current Trash UI expectations, exact baseline and fixture; helper qualification is not a complete browser pass |
-| G13-02 | 13A found stale schema-5 recovery assertions and no joined current lifecycle. **13B VERIFIED:** `gate13-lifecycle-drill.py` passes schema 4→17, contract-6 restore, pre-start revocation/audit, schema 12→17 portable bootstrap and exact stopped rollback on `2c68d70` | Ready for 13B owner review; injected interruption tests and three no-mutation operator refusals pass. Named local development evidence, not release or physical-power-loss qualification |
+| G13-02 | 13A found stale schema-5 recovery assertions and no joined current lifecycle. **13B VERIFIED:** `gate13-lifecycle-drill.py` passes schema 4→17, contract-6 restore, pre-start revocation/audit, schema 12→17 portable bootstrap and exact stopped rollback on `2c68d70` | Owner accepted 13B at `2f61b37`; injected interruption tests and three no-mutation operator refusals pass. Named local development evidence, not release or physical-power-loss qualification |
 | G13-03 | 13A found stale JWT/schema-5 exact-image smoke. **13B harness portion VERIFIED:** current production-HTTPS identity/security/persistence/schema-17 smoke against immutable local image IDs | 13C remains OPEN: owner-selected immutable scope/revision and matched-image/bridge/reproducibility evidence before any release claim; static `verify-release` remains only a contract check |
-| G13-04 | Original security ledger still assigns removed browser JWT/session/RBAC behavior to future Gate 11; dependency audit dates are historical | Current finding dispositions reconciled in 13A; 13C repeats advisory scans/operator trust review and records explicit residual decisions |
+| G13-04 | 13A reconciled stale security claims. [13C fresh scans](ADVISORY_REVIEW.md) report three affected web packages plus runtime-image package matches; operator HTTPS/recovery prose corrected | OPEN owner remediation checkpoint: patch/refresh and re-scan named replacements, review vendor/CPE/no-fix matches, explicitly disposition residuals. Zero findings for application Python locks, Go and harness locks do not clear whole images |
 
 P07/P11/P12 now also have G13-02's joined current lifecycle proof, supplementing
 their focused API tests. Raw restore preserves the complete content/security graph

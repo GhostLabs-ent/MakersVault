@@ -15,6 +15,7 @@ From the `makervault` directory:
 
 ```bash
 ./scripts/setup-env.sh
+# Configure the final HTTPS origin and external TLS proxy before browser access.
 docker compose -f docker-compose.deploy.yml up -d
 ```
 
@@ -28,6 +29,15 @@ The setup helper:
 
 The administrator username defaults to `admin` and may be changed in `.env`.
 Changing the username is optional; the password and signing secret are required.
+
+`setup-env.sh` creates credentials, not a certificate or reverse proxy. Before
+starting a new current production instance, configure `PUBLIC_URL` and
+`CORS_ORIGINS` to its final HTTPS origin and leave `VITE_API_URL` empty for the
+recommended same-origin `/api` gateway. Arrange a trusted TLS certificate/proxy
+as described in [Reverse Proxy](architecture/REVERSE_PROXY.md). For a host-local
+proxy, bind published API/web ports to loopback (for example `API_PORT=127.0.0.1:8000`
+and `WEB_PORT=127.0.0.1:5173`); choose private network routing when the proxy itself
+runs in a container. Do not expose unprotected upstream ports publicly.
 
 Production Compose stops before creating containers when `AUTH_PASSWORD` or
 `AUTH_SECRET` is empty. The API also refuses to start when production values are
@@ -88,8 +98,9 @@ administrator may retain at most 20 active sessions; all values fail closed when
 invalid.
 
 If startup fails, inspect the API container log. The validation error lists each
-missing or unsafe setting. Correct `.env` and restart; do not restore published
-fallback credentials except temporarily on an isolated recovery network.
+missing or unsafe setting. Correct `.env` and restart; never restore published
+fallback credentials or switch production into development mode to regain access.
+Use the backup-first stopped-instance recovery procedure for account recovery.
 
 ## Passkey origin configuration and policy
 
@@ -102,8 +113,9 @@ WEBAUTHN_RP_NAME=MakersVault
 ```
 
 The RP ID is a lowercase DNS name, not a URL. The origin is one exact origin without
-a path and must use the RP ID host or its subdomain. Arbitrary IP/mDNS HTTP remains a
-password-only posture; only `http://localhost` is permitted in development or test.
+a path and must use the RP ID host or its subdomain. Arbitrary IP/mDNS HTTP is not a
+supported passkey origin. The passkey origin validator permits `http://localhost`
+only in development or test; this does not create a production HTTP exception.
 Both required settings must be present together. Once an account or policy requires
 MFA, removing or invalidating this configuration stops the API instead of bypassing
 the factor. The same browser origin must also be allowed by `PUBLIC_URL` or
@@ -183,8 +195,9 @@ web handoff.
 
 On first use, the bridge opens a confirmation page served only from a random
 loopback address and displays the exact MakersVault API origin. Confirm only the
-address you intended to use. HTTPS is expected for remote deployments; an HTTP
-origin should be trusted only on a LAN you control. Confirmed origins are stored
+address you intended to use. Use the production HTTPS origin; any supported local
+HTTP bridge path is a development/transport capability, not permission to deploy
+the production browser UI without HTTPS. Confirmed origins are stored
 in the bridge's local `trusted_origins` config.
 
 Every handoff is limited to one file and slicing or engraving for 90 seconds.
@@ -242,19 +255,23 @@ IP/name, list both API hosts in `TRUSTED_HOSTS` and both browser origins in
 
 The external HTTPS reverse proxy should preserve `Host` and, only after the
 operator confirms the hostname will remain HTTPS-only, add an appropriate HSTS
-policy. MakersVault does not emit HSTS itself because the same container supports
-intentional HTTP on trusted LANs and cannot make that permanence decision.
+policy. MakersVault does not emit HSTS itself because TLS terminates outside the
+container and the operator owns that permanence decision. Internal upstream HTTP
+and explicit development HTTP do not make production browser HTTP supported.
 
 ## Supported network posture
 
-- Localhost and a genuinely trusted LAN may use direct access. Plain HTTP does
-  not protect credentials or tokens from other network observers.
-- Remote access requires an operator-managed HTTPS reverse proxy or a private
-  network/VPN providing equivalent transport protection.
+- Current production browser access requires HTTPS, including on LANs and VPNs.
+  A VPN does not satisfy the browser's Secure-cookie requirement by itself.
+- Plain HTTP is for explicit development/test origins and private proxy-to-service
+  upstream traffic, not production browser sign-in.
 - One HTTPS hostname routed to the web container is recommended. The web
   container forwards same-origin `/api/*` requests internally.
-- Existing two-hostname UI/API deployments remain supported when
-  `VITE_API_URL` and `CORS_ORIGINS` are configured explicitly.
+- Two-hostname UI/API deployments must use same-site HTTPS hostnames (for example
+  `vault.example.com` and `api.example.com`) and explicit `VITE_API_URL`,
+  `CORS_ORIGINS` and `TRUSTED_HOSTS`. Unrelated sites cannot rely on the current
+  `SameSite=Lax` cookie for cross-site fetches. Do not change cookie policy to make
+  an unsupported topology work; use the same-origin gateway.
 - Direct exposure of the API or web ports to the public Internet is unsupported
   for v5.1.
 

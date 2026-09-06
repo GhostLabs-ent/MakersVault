@@ -2,9 +2,9 @@
 
 **Status:** Governing working document
 
-**Baseline date:** 2026-09-05
+**Baseline date:** 2026-09-06
 
-**Committed baseline:** `main` verification at `2c68d70` (application behavior `1a209aa`; Gate 13B evidence review)
+**Committed baseline:** `main` verification at `2c68d70` (application behavior `1a209aa`; Gate 13B accepted at `2f61b37`, 13C opened at `fa273b6`)
 
 **Immutable v5.1 source baseline:** `f6ff55b33fd64c7a5037e8eb642bed048c3e0e4f`
 
@@ -257,7 +257,8 @@ row's future-tense wording.
 | T-053 | `DECIDED` | Gate 12 sustainable optional services is deferred to the desktop version by owner direction. Its delivery evidence is outstanding; free-core, portability, and non-lock-in commitments remain in force. | Owner direction 2026-09-05; Gate 12 status and `docs/SUSTAINABILITY.md` | Carry Gate 12 into the desktop roadmap and explicitly trace the deferral in Gate 13; do not count it as delivered. |
 | T-054 | `VERIFIED` | Gate 13A reruns the existing complete repository gate on `236c0fd`: 313 API tests, 32 web tests/type/build, bridge/Compose/security/fresh schema-17 smoke/passkey checks, and the static release contract pass. A current 1,200-Artifact portable round trip preserves 3,790 catalog/payload members within its 256 MiB worker budget. | `docs/evidence/gate-13/SUBGATE_13A_RESULTS.md`, current test-image identities and commands | Owner accepted 13A at `c2e9f94` on 2026-09-05 and authorized 13B. These development results do not qualify a new release candidate or alone prove portable-import startup. |
 | T-055 | `VERIFIED` | At 13A entry, preview/organization/mounted-import and exact-image release harnesses used legacy JWT authentication; recovery/release drills asserted schema 5 and could not qualify current behavior unchanged. | `docs/evidence/gate-13/TRACEABILITY.md`, findings G13-01–03 and named source scripts | Harness assumptions replaced by T-056; current browser/release matrix remains 13C. Historical Gate 5 evidence is preserved and production authentication unchanged. |
-| T-056 | `VERIFIED` | Gate 13B replaces the stale authentication/schema assumptions identified by T-055. Full verification at `2c68d70` passes 313 API / 32 web / 7 Python harness / 5 Node client tests plus production-HTTPS schema 4→17 upgrade, contract-6 restore with pre-start invalidation, exact stopped rollback, and portable 17→12→17 fresh-identity startup. | `docs/evidence/gate-13/SUBGATE_13B_RESULTS.md`; immutable local development image IDs, 18 portable members, refusal/interruption evidence | 13B ready for owner review, not accepted. Current browser/platform/advisory and selected-release qualification remain 13C; Gate 12 remains desktop-deferred and publication prohibited. |
+| T-056 | `VERIFIED` | Gate 13B replaces the stale authentication/schema assumptions identified by T-055. Full verification at `2c68d70` passes 313 API / 32 web / 7 Python harness / 5 Node client tests plus production-HTTPS schema 4→17 upgrade, contract-6 restore with pre-start invalidation, exact stopped rollback, and portable 17→12→17 fresh-identity startup. | `docs/evidence/gate-13/SUBGATE_13B_RESULTS.md`; immutable local development image IDs, 18 portable members, refusal/interruption evidence | Owner accepted 13B at `2f61b37` on 2026-09-06. Current browser/platform/advisory and selected-release qualification remain 13C; Gate 12 remains desktop-deferred and publication prohibited. |
+| T-057 | `VERIFIED` | Dated 13C scans on unchanged entry locks/images report three affected web packages and 283 API / 158 web image package matches. Python application locks, Go source and browser-harness locks report no findings for their stated scope. Production HTTPS/operator prose is reconciled; audit helpers and the static release contract pass. | `docs/evidence/gate-13/SUBGATE_13C_RESULTS.md`, advisory review, machine-readable identities/hashes and all reduced image matches | These are observed results, not security clearance. Remediation and runtime-image triage require an owner scope decision; browser/platform/release qualification remain unfinished. No application pins changed or publication authorized. |
 
 ### 5.4 Current storage invariants
 
@@ -1060,7 +1061,7 @@ entitlement must not disable local access or export.
 
 ### Gate 13 — End-state audit and re-cock
 
-**Current execution:** `IN PROGRESS — 13C AUTHORIZED`; the owner accepted 13B at
+**Current execution:** `IN PROGRESS — 13C ADVISORY CHECKPOINT`; the owner accepted 13B at
 `2f61b37` on 2026-09-06 and authorized the [13C working record](evidence/gate-13/SUBGATE_13C_RESULTS.md).
 The owner accepted 13A at
 `c2e9f94` on 2026-09-05. Gate 13 was opened by owner direction
@@ -1069,10 +1070,12 @@ on 2026-09-05 at `236c0fd`. The [baseline](evidence/gate-13/BASELINE.md) sequenc
 and release-readiness evidence, and 13D owner acceptance/re-baselining. The
 [13B results](evidence/gate-13/SUBGATE_13B_RESULTS.md),
 [traceability ledger](evidence/gate-13/TRACEABILITY.md), and
-[security revalidation](security/GATE_13_REVALIDATION.md) are ready for review.
+[security revalidation](security/GATE_13_REVALIDATION.md) retain their named evidence.
 The expanded full verification passes on `2c68d70`: current cookie/CSRF/schema-17
 harnesses and the joined production-HTTPS lifecycle supplement the accepted 13A
-inventory. The browser/platform/advisory and selected-release matrix remains 13C;
+inventory. Fresh 13C dependency findings require a remediation decision before
+qualification continues; see the working record. The browser/platform and
+selected-release matrix remains 13C;
 13B does not reuse old timing as current evidence. Gate 12 remains desktop follow-up
 with outstanding evidence, not delivered work. No new release candidate or
 publication is authorized.
@@ -1291,9 +1294,11 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Gate 13B was accepted at `2f61b37` on 2026-09-06. Execute
-[13C's working record](evidence/gate-13/SUBGATE_13C_RESULTS.md): current browser/workflow, advisory, platform and operator
-release-readiness evidence; request owner inputs at the existing boundaries.
+Gate 13B was accepted at `2f61b37` on 2026-09-06. Review
+[13C's advisory checkpoint](evidence/gate-13/SUBGATE_13C_RESULTS.md) and approve a
+bounded remediation scope before changing application dependencies. Then resume
+current browser/workflow, platform and operator release-readiness evidence;
+request owner inputs at the existing boundaries.
 Gate 12 remains deferred to desktop. End-state acceptance and the next roadmap remain 13D owner
 decisions; the frozen Gate 5 release baseline is unchanged. Push, tag, image
 publication, deployment, and release remain separately gated. Keep the
