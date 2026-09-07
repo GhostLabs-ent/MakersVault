@@ -255,11 +255,24 @@ async function main() {
 
   const navigationStarted = performance.now();
   await page.goto(webUrl, { waitUntil: "domcontentloaded" });
+  const documentLoaded = performance.now();
+  await page.locator('input[autocomplete="username"]').waitFor();
+  const loginFormVisible = performance.now();
   await page.locator('input[autocomplete="username"]').fill(username);
   await page.locator('input[autocomplete="current-password"]').fill(password);
+  const formFilled = performance.now();
   await page.getByRole("button", { name: "Sign in" }).click();
+  const signInClicked = performance.now();
   await page.locator('[title="Double-click to open large preview"]').first().waitFor({ timeout: 30_000 });
   const firstCardsMs = performance.now() - navigationStarted;
+  const startupBreakdown = {
+    documentMs: documentLoaded - navigationStarted,
+    formWaitMs: loginFormVisible - documentLoaded,
+    formFillMs: formFilled - loginFormVisible,
+    signInClickMs: signInClicked - formFilled,
+    afterClickToCardsMs: performance.now() - signInClicked,
+    includesLoginAutomation: true,
+  };
   const initialCardCount = await page.locator('[title="Double-click to open large preview"]').count();
 
   await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "selection"; });
@@ -468,7 +481,8 @@ async function main() {
     browser: {
       engine: browserName,
       performanceBudgetEnforced: browserName === "chromium",
-      firstCardsMs,
+    firstCardsMs,
+    startupBreakdown,
       initialCardCount,
       loadMoreMs,
       loadedCardCount,

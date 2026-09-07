@@ -25,9 +25,10 @@ Its small NSS tools addition uses the signed Ubuntu repository. Chromium's NSS
 peer trust and Firefox's certificate-install policy follow their documented Linux
 trust mechanisms; WebKit uses the container trust store. Playwright's patched
 Firefox requires `browser.policies.alternatePath` to select the fixture policy;
-it does not automatically load distribution policies (the first run failed TLS
-preflight for this reason). The runner's Firefox launches explicitly select the
-container-local policy; no certificate validation setting is disabled. See the
+it does not automatically load distribution policies. The runner's Firefox launches
+explicitly select the container-local policy, but the second run still failed TLS
+preflight; policy selection alone is not a demonstrated fix. No certificate
+validation setting is disabled. See the
 [upstream Playwright policy-provider patch](https://github.com/microsoft/playwright/blob/main/browser_patches/firefox/patches/bootstrap.diff).
 This is not native Safari,
 Windows/macOS, mobile or hardware-passkey coverage.
