@@ -2,10 +2,15 @@
 # project-scoped named volumes that the smoke script removes on exit.
 services:
   api:
+    ports: !override
+      - "127.0.0.1:${API_PORT:-18000}:8000"
     volumes:
       - makersvault_smoke_storage:/app/storage
       - makersvault_smoke_db:/app/data
       - ./api:/app
+  web:
+    ports: !override
+      - "127.0.0.1:${WEB_PORT:-15173}:5173"
 
 volumes:
   makersvault_smoke_storage:

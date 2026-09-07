@@ -2,9 +2,14 @@
 # project-scoped named volumes and removed by organization-benchmark.sh.
 services:
   api:
+    ports: !override
+      - "127.0.0.1:${API_PORT:-18003}:8000"
     volumes:
       - makersvault_organization_benchmark_storage:/app/storage
       - makersvault_organization_benchmark_db:/app/data
+  web:
+    ports: !override
+      - "127.0.0.1:${WEB_PORT:-15176}:5173"
 
 volumes:
   makersvault_organization_benchmark_storage:

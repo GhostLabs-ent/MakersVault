@@ -63,3 +63,7 @@ release-contract checks pass. The first API test invocation hit the command
 wrapper's 120-second cap before returning a final result; it is not counted as
 passing. The full gate will run through a long-lived executor with normal cleanup
 and named disposable smoke/passkey projects.
+The verification-only smoke and organization/passkey overlays now explicitly
+replace published ports with loopback bindings, so their development-mode fixture
+credentials are not exposed on the host's other network interfaces. Canonical
+deployment manifests and their security defaults are unchanged.
