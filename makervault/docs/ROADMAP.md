@@ -15,9 +15,12 @@ at verification implementation `2c68d70`: the complete gate and production-HTTPS
 upgrade/restore/rollback/portable-startup checks pass. This is local development
 evidence, not final end-state acceptance or a newly qualified release.
 
-[13C](evidence/gate-13/SUBGATE_13C_RESULTS.md) is in progress. Fresh dependency
-findings require an owner remediation decision; deployment guidance now explicitly
-requires production HTTPS even on LAN/VPN. Browser/platform and release-readiness
+[13C](evidence/gate-13/SUBGATE_13C_RESULTS.md) is in progress. Approved dependency/
+runtime maintenance and the complete gate pass at `84b020d`; the
+[residual archive proposal](evidence/gate-13/REMEDIATION_RESIDUALS.md) needs a
+compatibility decision before implementation. Remaining image findings are not
+waived. Deployment guidance explicitly requires production HTTPS even on LAN/VPN.
+Browser/platform and release-readiness
 evidence remain unfinished, followed by 13D owner acceptance of the end state and next
 roadmap. The [traceability/carry-forward register](evidence/gate-13/TRACEABILITY.md)
 records every unmet commitment with its reason, owner and dependency. It includes

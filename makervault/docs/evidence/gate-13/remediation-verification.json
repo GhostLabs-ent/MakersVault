@@ -1,0 +1,89 @@
+{
+  "evidence_kind": "Local Gate 13C maintenance verification, not release qualification",
+  "executed_on_local_date": "2026-09-06",
+  "timezone": "America/New_York",
+  "source_revision": "84b020ddf18795b482040d8b669c081897fff31a",
+  "verification_sources_dirty": false,
+  "make_verify": {
+    "command": "MAKERSVAULT_SMOKE_PROJECT=mv-g13c-smoke-0907a MAKERSVAULT_PASSKEY_PROJECT=mv-g13c-passkey-0907a make verify",
+    "exit_code": 0,
+    "api_tests": {
+      "passed": 313,
+      "seconds": 157.3
+    },
+    "web_tests": {
+      "passed": 37,
+      "typecheck": "passed",
+      "production_build": "passed"
+    },
+    "go_bridge_tests_and_build": "passed",
+    "compose_security_validation": "passed",
+    "development_container_smoke": "passed",
+    "chromium_virtual_passkey_smoke": "passed",
+    "browser_user_agent": "HeadlessChrome/151.0.7922.34 (Linux)",
+    "python_harness_tests": 12,
+    "node_session_tests": 5,
+    "browser_script_syntax_checks": 3,
+    "static_release_contract": "passed"
+  },
+  "lifecycle_stdout": {
+    "benchmark_session_helper": "passed",
+    "dirty": false,
+    "exact_schema4_rollback": true,
+    "external_availability_normalized": true,
+    "fresh_identity_only": true,
+    "fresh_smoke": {
+      "https_secure_cookie_csrf": true,
+      "logout_revocation": true,
+      "non_root_api_web": true,
+      "restart_bytes": "1455ce259069704cf240787e3ba134426f9d6b04cdc49b7716a824ee905a65f6",
+      "schema": 17
+    },
+    "images": {
+      "api": "sha256:264e59b7cb6b79cc7e0fbfb88f6d81b24c871bb700fbcee1c0267080fd830ac1",
+      "web": "sha256:c2e33eea6f75b3e2fb1a567d05dddf0a29b55de0f13ccbbfd1f12826bb974fc7"
+    },
+    "offline_portable_graph_equal": true,
+    "portable_import_schema": 12,
+    "portable_members_compared": 18,
+    "portable_staged_pair_verified": true,
+    "portable_startup_schema": 17,
+    "pre_start_revocation": true,
+    "raw_restore_contract": 6,
+    "refusals": [
+      "nonempty_raw_target",
+      "corrupt_raw_archive",
+      "nonempty_portable_target"
+    ],
+    "revision": "84b020ddf18795b482040d8b669c081897fff31a",
+    "startup_audit": true,
+    "startup_preview_reconciliation": "legacy_3mf_pending",
+    "status": "passed",
+    "upgrade": "4-to-17",
+    "version": "development-gate13b"
+  },
+  "audited_image_smoke_stdout": {
+    "https_secure_cookie_csrf": true,
+    "images": {
+      "api": "sha256:95c066523b6ed63925652654cde21bec72bad0efda6b2d0df1b5228ecf465f17",
+      "web": "sha256:cf188cd2b841006321ade0f336714849c11cf888179136dc240af9d1a88d8907"
+    },
+    "logout_revocation": true,
+    "non_root_api_web": true,
+    "restart_bytes": "1455ce259069704cf240787e3ba134426f9d6b04cdc49b7716a824ee905a65f6",
+    "revision": "84b020ddf18795b482040d8b669c081897fff31a",
+    "schema": 17,
+    "status": "passed"
+  },
+  "identity_boundary": "The lifecycle runner labels its builds development-gate13b. Those IDs are not the separately labelled development-gate13c audit IDs. Both identify the same clean source revision; the exact audited images received the separate production-HTTPS smoke, not a falsely attributed full lifecycle.",
+  "not_completed": [
+    "current preview/organization/Trash/mounted-import browser matrix",
+    "physical-device/native-workstation qualification",
+    "all residual-advisory dispositions",
+    "release candidate selection or matched distribution qualification"
+  ],
+  "excluded_attempts": [
+    "Initial API test command hit lean-ctx 120-second cap without a final result; the complete native long-lived make verify rerun is the passing result.",
+    "Optional instrumented archive allocation diagnostic was blocked before execution by the local command allowlist. No allowlist changes or retry bypass; source inspection is the evidence, not a claimed dynamic result."
+  ]
+}

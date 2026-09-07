@@ -2,8 +2,9 @@
 
 **Opened:** 2026-09-06, following owner acceptance of 13B at `2f61b37`.
 
-**Status:** IN PROGRESS — REMEDIATION APPROVED; no release scope or
-replacement candidate selected. This is not a request to accept or close 13C.
+**Status:** IN PROGRESS — APPROVED MAINTENANCE VERIFIED; residual archive scope
+decision required. No release scope or replacement candidate selected. This is
+not a request to accept or close 13C.
 
 **Entry verification:** `2c68d70`; accepted 13B evidence `2f61b37`. Application
 behavior remains the local schema-17 implementation, not the frozen Gate 5 release.
@@ -45,7 +46,7 @@ be changed. No push, tag, publication, live deployment or feature expansion.
 
 ## Evidence and owner decisions
 
-### Completed at this checkpoint
+### Initial advisory checkpoint (`4c38fcf`, preserved history)
 
 - Recorded 13B acceptance and opened 13C at `fa273b6`.
 - Added a read-only advisory audit helper, pinned scanner/container inputs,
@@ -90,8 +91,34 @@ The owner approved the following scope after checkpoint `4c38fcf` on 2026-09-06
    image identities, then resume the already-authorized current browser/workflow
    matrix without relaxing budgets, HTTPS or cookie security.
 
-No application code, dependency locks, runtime Dockerfiles or release pins were
-changed at this checkpoint. All work stays local; no push/tag/publication/deployment.
+At the initial `4c38fcf` checkpoint, application code, dependency locks, runtime
+Dockerfiles and release pins were unchanged. The subsequently approved maintenance
+is now implemented locally at `39307f5` / `84b020d`; release pins remain unchanged.
+
+### Maintenance verification and new residual checkpoint
+
+- [Remediation results](REMEDIATION_RESULTS.md): complete `make verify` passes at
+  clean `84b020d`: 313 API / 37 web tests, 12 Python harness / 5 Node client tests,
+  Go/build/Compose/security checks, Chromium virtual-passkey smoke and joined
+  production-HTTPS lifecycle. The exact audited images also pass HTTPS/security/
+  persistence smoke; the record distinguishes those IDs from lifecycle-build IDs.
+- Targeted web/installer locks and runtime bases are refreshed. Full/production
+  web, Python runtime/development/installer, Go and browser-harness scans report
+  no advisories for their stated scope/date. Image scans still report **181 API /
+  3 web package matches**; all observations and hashes are preserved separately
+  from the entry scan. Nothing is suppressed or waived.
+- [Residual review](REMEDIATION_RESIDUALS.md): seven interpreter matches are
+  excluded by explicit PSF branch ranges, not by a blanket CPE exemption. Remaining
+  OS/interpreter findings stay open. Source inspection confirms an affected
+  BZIP2/LZMA ZIP read path for CVE-2026-15310; existing outer byte/ratio limits do
+  not bound its internal allocation. No production memory-exhaustion test is claimed.
+- Request approval for the residual review's Stored/Deflate-only parsing guard
+  and bounded regressions before changing archive compatibility. Conforming 3MF,
+  ZIP64, original bytes and no-manual-thumbnail behavior must remain intact. Then
+  resume the current browser/workflow matrix. No Python release-line migration,
+  broader upload-worker redesign or residual-risk acceptance is implied.
+
+All work stays local; no push/tag/publication/deployment.
 
 ### Still outstanding
 

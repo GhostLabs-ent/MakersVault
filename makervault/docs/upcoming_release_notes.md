@@ -2,7 +2,7 @@
 
 > **Status:** In development. v5.1 has not been published yet. Gates 0–11 are
 > owner-accepted, and Gate 11E-1d was accepted for closeout on 2026-09-05. Gate 12
-> is deferred to the desktop version; Gate 13A is accepted and 13B is in evidence review.
+> is deferred to the desktop version; Gates 13A–13B are accepted and 13C is in progress.
 > This draft tracks later local development; the qualified Gate 5 candidate remains
 > frozen at `f6ff55b`. Qualification of a later release revision remains gated.
 
@@ -12,6 +12,18 @@ context. It improves the existing product without turning MakersVault into a sli
 printer controller, or multi-user cloud service.
 
 ## Highlights
+
+### Local dependency/runtime maintenance (Gate 13C)
+
+- Patched the reviewed ZIP64 dependency issue with bounded regression coverage;
+  refreshed compatible build dependencies, hash-locked Python installers and
+  digest-pinned Python/Nginx runtime bases. Python remains on the 3.11 line.
+- The complete gate passes at clean `84b020d`: 313 API / 37 web tests and current
+  production-HTTPS lifecycle verification. Refreshed application/tool locks report
+  no advisories for the recorded scan date; whole-image findings remain open.
+- A separate Python archive-allocation finding needs an approved compatibility
+  guard before implementation. No claim of release security clearance or newly
+  qualified browser performance is made; see [13C evidence](evidence/gate-13/REMEDIATION_RESULTS.md).
 
 ### Current lifecycle verification (Gate 13B)
 
