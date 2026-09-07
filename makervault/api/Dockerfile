@@ -1,8 +1,11 @@
-FROM python:3.11-slim@sha256:a630a63cdb314e2d138a2fca3e375e319e8568346ffafac5b980f888630ac4f1 AS base
+FROM python:3.11-slim@sha256:9534e5a8e315485d4061ed659af0fd78a284c015f9b73661b41d6bab25604534 AS base
 ARG SOURCE_DATE_EPOCH=0
 ENV SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH"
 WORKDIR /app
 
+COPY requirements-build.lock ./
+# The base image's installer/vendor packages are outside the application lock.
+RUN python -m pip install --no-cache-dir --require-hashes -r requirements-build.lock
 COPY requirements.txt requirements.lock ./
 RUN pip install --no-cache-dir -r requirements.lock
 

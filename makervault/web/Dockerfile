@@ -15,7 +15,8 @@ FROM dependencies AS build
 COPY . .
 RUN npm run build
 
-FROM nginxinc/nginx-unprivileged:1.27-alpine@sha256:65e3e85dbaed8ba248841d9d58a899b6197106c23cb0ff1a132b7bfe0547e4c0
+# HTTP/static proxy only; image-processing/mail modules are not used by MakersVault.
+FROM nginxinc/nginx-unprivileged:1.30-alpine-slim@sha256:b1d850535f815f18e9dd12ca7e9f4d36de36a49e246ccd8ef64289b0d06bde49
 ARG SOURCE_DATE_EPOCH=0
 ENV SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH"
 ARG MAKERSVAULT_VERSION=development

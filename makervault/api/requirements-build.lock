@@ -1,0 +1,5 @@
+# Build/install tools inherited by runtime; audited separately from app dependencies.
+pip==26.2 \
+    --hash=sha256:931c303696af6fa3417112103b1cad26890e5a07eccb5b99783700e33f2b8aad
+setuptools==83.0.0 \
+    --hash=sha256:29b23c360f22f414dc7336bb39178cc7bcbf6021ed2733cde173f09dba19abb3

@@ -2,7 +2,7 @@
 
 **Opened:** 2026-09-06, following owner acceptance of 13B at `2f61b37`.
 
-**Status:** IN PROGRESS — OWNER REMEDIATION CHECKPOINT; no release scope or
+**Status:** IN PROGRESS — REMEDIATION APPROVED; no release scope or
 replacement candidate selected. This is not a request to accept or close 13C.
 
 **Entry verification:** `2c68d70`; accepted 13B evidence `2f61b37`. Application
@@ -72,7 +72,10 @@ be changed. No push, tag, publication, live deployment or feature expansion.
   evidence; the complete application gate was not rerun for this documentation/
   audit-tooling checkpoint.
 
-### Proposed remediation — owner approval required
+### Approved remediation
+
+The owner approved the following scope after checkpoint `4c38fcf` on 2026-09-06
+(America/New_York). Execution is recorded in [remediation results](REMEDIATION_RESULTS.md).
 
 1. Patch direct `fflate` to 0.8.3 and compatibly refresh the two affected build
    dependencies (`browserslist` 4.28.7, `postcss-selector-parser` 6.1.3); add bounded

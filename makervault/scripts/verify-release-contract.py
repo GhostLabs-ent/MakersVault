@@ -52,7 +52,7 @@ def main() -> int:
     for image in (
         "python:3.11-slim@sha256:",
         "node:20-alpine@sha256:",
-        "nginxinc/nginx-unprivileged:1.27-alpine@sha256:",
+        "nginxinc/nginx-unprivileged:1.30-alpine-slim@sha256:",
     ):
         require(image in api_dockerfile + web_dockerfile, f"Base image is not digest-pinned: {image}")
 

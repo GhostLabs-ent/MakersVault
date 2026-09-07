@@ -13,7 +13,7 @@ from uuid import uuid4
 from verification_runtime import APP, REPO, run, install_signal_handlers
 
 NODE = "node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293"
-PYTHON = "python:3.11-slim@sha256:a630a63cdb314e2d138a2fca3e375e319e8568346ffafac5b980f888630ac4f1"
+PYTHON = "python:3.11-slim@sha256:9534e5a8e315485d4061ed659af0fd78a284c015f9b73661b41d6bab25604534"
 GRYPE = "anchore/grype@sha256:8a93fc48da96bd6ec5981279d099b69de11541dc68fdf222fb9161f8ff284af7"
 GO = "golang:1.26.6@sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6"
 
@@ -83,10 +83,12 @@ def main():
     args = parser.parse_args()
     args.output.mkdir(mode=0o700, parents=True, exist_ok=False)
     os.umask(0o077)
-    locks = ["api/requirements.lock", "api/requirements-dev.lock", "web/package-lock.json",
+    locks = ["api/requirements.lock", "api/requirements-dev.lock", "api/requirements-build.lock", "web/package-lock.json",
              "benchmarks/organization/package-lock.json", "benchmarks/preview/package-lock.json", "slicer-bridge/go.mod"]
     summary = {"captured_at": datetime.now(timezone.utc).isoformat(),
                "source_revision": run(["git", "-C", REPO, "rev-parse", "HEAD"]).stdout.decode().strip(),
+               "verification_sources_dirty": bool(run(["git", "-C", REPO, "status", "--porcelain", "--",
+                   "makervault/api", "makervault/web", "makervault/scripts", "makervault/benchmarks"]).stdout),
                "lock_sha256": {name: hashlib.sha256((APP / name).read_bytes()).hexdigest() for name in locks},
                "phase": args.phase, "scans": {}, "images": {}}
     jobs = {}
@@ -94,7 +96,8 @@ def main():
                                     ("npm-organization", "benchmarks/organization", []), ("npm-preview", "benchmarks/preview", [])):
         jobs[label] = ["-v", f"{APP / directory}:/source:ro", "-w", "/source", NODE,
                        "npm", "audit", "--json", "--ignore-scripts", *flags]
-    for label, lock in (("python-runtime", "requirements.lock"), ("python-development", "requirements-dev.lock")):
+    for label, lock in (("python-runtime", "requirements.lock"), ("python-development", "requirements-dev.lock"),
+                        ("python-build", "requirements-build.lock")):
         jobs[label] = ["-v", f"{APP / 'api' / lock}:/audit/requirements.lock:ro", PYTHON, "sh", "-c",
                        "pip install --quiet pip-audit==2.9.0 && pip-audit --disable-pip --no-deps -r /audit/requirements.lock --format=json"]
     jobs["go"] = ["-e", "GOTELEMETRY=off", "-v", f"{APP / 'slicer-bridge'}:/src:ro", "-w", "/src", GO,
