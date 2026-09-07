@@ -273,6 +273,9 @@ async function main() {
     afterClickToCardsMs: performance.now() - signInClicked,
     includesLoginAutomation: true,
   };
+  // Preserve startup diagnostics even if a later workflow assertion aborts the report.
+  await writeFile(resolve(dirname(outputPath), `startup-${browserName}.json`),
+    `${JSON.stringify({ firstCardsMs, startupBreakdown }, null, 2)}\n`, "utf8");
   const initialCardCount = await page.locator('[title="Double-click to open large preview"]').count();
 
   await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "selection"; });

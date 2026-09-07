@@ -1,0 +1,168 @@
+{
+  "schema": 1,
+  "generator": "generate_corpus.py",
+  "fixture_count": 20,
+  "total_bytes": 66037534,
+  "fixtures": [
+    {
+      "filename": "01-small-ascii.stl",
+      "category": "small",
+      "bytes": 417,
+      "complexity": 4,
+      "sha256": "955f9da977cd4f52345d0da166eda3b90773d51fce1ebe7972b2de9999e7e905",
+      "embedded_thumbnail": false
+    },
+    {
+      "filename": "02-small-binary.stl",
+      "category": "small",
+      "bytes": 684,
+      "complexity": 12,
+      "sha256": "6dbb9536d658712d6f7b5db960c9df2aa495ec02ac6de609fd1fcb6203824f7b",
+      "embedded_thumbnail": false
+    },
+    {
+      "filename": "03-small-grid.stl",
+      "category": "small",
+      "bytes": 50084,
+      "complexity": 1000,
+      "sha256": "cbe1c584a5981248694a2af506a67ce857fb61a92248f5e980281b765565bc7b",
+      "embedded_thumbnail": false
+    },
+    {
+      "filename": "04-small-detailed.stl",
+      "category": "small",
+      "bytes": 250084,
+      "complexity": 5000,
+      "sha256": "f5227bad68abc79b9de7785f204fcdb1960ba429456b5d96a1fcc5d770b8e97d",
+      "embedded_thumbnail": false
+    },
+    {
+      "filename": "05-medium-25k.stl",
+      "category": "medium",
+      "bytes": 1250084,
+      "complexity": 25000,
+      "sha256": "e32c8d45e3a41674d237f69224eb584287b1f734aeb530e6b7357fd800d3c0ef",
+      "embedded_thumbnail": false
+    },
+    {
+      "filename": "06-medium-50k.stl",
+      "category": "medium",
+      "bytes": 2500084,
+      "complexity": 50000,
+      "sha256": "3880d23902a204a8f579ba9fb8cb49b14bf64d0482d9cd8925f87dc471787c34",
+      "embedded_thumbnail": false
+    },
+    {
+      "filename": "07-medium-100k.stl",
+      "category": "medium",
+      "bytes": 5000084,
+      "complexity": 100000,
+      "sha256": "805eea1c0a3595607bfc3e19229072ae764f8a606f34f581ca7d2ee9895b26d4",
+      "embedded_thumbnail": false
+    },
+    {
+      "filename": "08-large-250k.stl",
+      "category": "large",
+      "bytes": 12500084,
+      "complexity": 250000,
+      "sha256": "1f0d3cc3dad7ad9132ca7d51fb922c2fd39e76ec1108b8ad06f8e95ea97f9fde",
+      "embedded_thumbnail": false
+    },
+    {
+      "filename": "09-large-500k.stl",
+      "category": "large",
+      "bytes": 25000084,
+      "complexity": 500000,
+      "sha256": "364851295cbf48cb81ef45c2b6ed2285f70088ebdb43e7c66c03d846b001c102",
+      "embedded_thumbnail": false
+    },
+    {
+      "filename": "10-multipart-10k.obj",
+      "category": "multi-part",
+      "bytes": 245481,
+      "complexity": 10000,
+      "sha256": "9c03ffb1fa7db9e87c87b81c19790ec85304a27b295210d9f0a0624c826921ac",
+      "embedded_thumbnail": false
+    },
+    {
+      "filename": "11-multipart-50k.obj",
+      "category": "multi-part",
+      "bytes": 1360783,
+      "complexity": 50000,
+      "sha256": "07bb94efbb9cbde1771b24194181d8db80e7d58ec915a1622ab88d861320d7a6",
+      "embedded_thumbnail": false
+    },
+    {
+      "filename": "12-multipart-100k.obj",
+      "category": "multi-part",
+      "bytes": 2797283,
+      "complexity": 100000,
+      "sha256": "52b1859548391e0eeffecdb547989c30895644db7b875fd0d369c347679f2656",
+      "embedded_thumbnail": false
+    },
+    {
+      "filename": "13-multibody-10k.3mf",
+      "category": "multi-part",
+      "bytes": 70029,
+      "complexity": 10000,
+      "sha256": "8f2da3b38c882a7443f5380dc356a04ee48091259e44bca21e335118eb4b83ab",
+      "embedded_thumbnail": false
+    },
+    {
+      "filename": "14-multiplate-50k.3mf",
+      "category": "multi-plate",
+      "bytes": 348878,
+      "complexity": 50000,
+      "sha256": "0012243cbe9a5989a82a5988274683e180f93147b6e382430061696466d00dd3",
+      "embedded_thumbnail": false
+    },
+    {
+      "filename": "15-image-heavy-25k.3mf",
+      "category": "image-heavy",
+      "bytes": 7263164,
+      "complexity": 25000,
+      "sha256": "4b288cb4429588a771982a41904339db3cc1e002c3e4eb8ec8346c5b5d07c507",
+      "embedded_thumbnail": true
+    },
+    {
+      "filename": "16-multiplate-image-heavy.3mf",
+      "category": "multi-plate-image-heavy",
+      "bytes": 7400076,
+      "complexity": 45000,
+      "sha256": "cab2de6bfe609e2eb4a7daabc28765c71010d86c7982548d620d95784a629523",
+      "embedded_thumbnail": true
+    },
+    {
+      "filename": "17-malformed-truncated.stl",
+      "category": "malformed",
+      "bytes": 20,
+      "complexity": null,
+      "sha256": "cd31012478251127d626f6be46a1182a925176b2158d31b4b7a5eb020dd397d0",
+      "embedded_thumbnail": false
+    },
+    {
+      "filename": "18-malformed-archive.3mf",
+      "category": "malformed",
+      "bytes": 31,
+      "complexity": null,
+      "sha256": "0383c35833e7ac7e34b8ac3ba623b73785e4700063ba6639d0b3798470d7cbfe",
+      "embedded_thumbnail": false
+    },
+    {
+      "filename": "19-malformed-mesh.obj",
+      "category": "malformed",
+      "bytes": 34,
+      "complexity": null,
+      "sha256": "c89b98fcd2bb331621f493e57a6bdb58651dd2558a50426eb06df04d8d7c80be",
+      "embedded_thumbnail": false
+    },
+    {
+      "filename": "20-malformed-shape.step",
+      "category": "malformed",
+      "bytes": 66,
+      "complexity": null,
+      "sha256": "0aa811ab25e601ee9135589f6d6c8013d7f19dd4d6c2df386083cf7fa7f4a394",
+      "embedded_thumbnail": false
+    }
+  ]
+}

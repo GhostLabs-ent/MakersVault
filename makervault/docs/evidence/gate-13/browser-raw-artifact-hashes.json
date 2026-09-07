@@ -1,0 +1,117 @@
+{
+  "notice": "Private generated-fixture raw outputs for attempts A-D, including failed runs. Summary/baseline/corpus JSON is also preserved in this evidence directory. No credentials or private keys included.",
+  "artifacts": [
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907a/summary.json",
+      "sha256": "a4bb74203c5ee4cf091db32580998aa22fdcbdb0ea45385458664608e2f77e68"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907b/summary.json",
+      "sha256": "0e6726bf20914d84600e7b59fdfb198d82cbc08155b9d46fd8eb6a4e1178c823"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907c/summary.json",
+      "sha256": "f1cc7037c4382da5c1c75b3ec395fc1492d978b5aba52e64ec71c9e8efbc9308"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907d/summary.json",
+      "sha256": "363d6c4e05442f2c36b0b2b5dc4ea644dd7c36cf1af91aa7f9cf127066daead4"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907a/organization-chromium/baseline.json",
+      "sha256": "86a4a06236da9c38f0280766252a1b4a5e4b8db39f7511986fcbf6683175bab2"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907a/organization-chromium/selection-toolbar-chromium.png",
+      "sha256": "bfab8d1bf5f12e81ef45c6ad11604ce45370dd5c7f310ed000291bd412660311"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907a/organization-chromium/stderr.txt",
+      "sha256": "97ca1fb11bac5d6a2675210e470cdbe74acc420b747a07d8758b5ad9219e6d51"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907a/organization-chromium/stdout.txt",
+      "sha256": "9062171fd9448cac290b5aea992250327fe48936076a4ed668a673639a029ba0"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907b/mount-chromium/baseline.json",
+      "sha256": "621773de6d983c102cb25686b150775f022d3f4492e1275ed05778b403090cc0"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907b/mount-chromium/stderr.txt",
+      "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907b/mount-chromium/stdout.txt",
+      "sha256": "199680623aeb385bb1b0c17c6d37289e3f8aa4ff888ccf61b897a7805c3aab32"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907b/organization-firefox/stderr.txt",
+      "sha256": "f8a08519985e07e684d12e6c163104df34888bbe6991cd14dd5cd11c0d52dd39"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907b/organization-firefox/stdout.txt",
+      "sha256": "84b3615a2b55669c4069410770606e7290261ae70a9db72789bff656c372ce48"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907b/organization-webkit/baseline.json",
+      "sha256": "d8ff91677d8737bdd46ed08256fa1f7453f709e6f5e04f947b400019d9d757e4"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907b/organization-webkit/selection-toolbar-webkit.png",
+      "sha256": "d748378938e7bcce34fb0433275d642a9b29de03b878336fd2f4a0d0dc6e064c"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907b/organization-webkit/stderr.txt",
+      "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907b/organization-webkit/stdout.txt",
+      "sha256": "0e148b679e807034791694df45394c811581a99764ba06034af659d445adbcbb"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907b/preview-chromium/baseline.json",
+      "sha256": "d380ae17bca2aa258b4d63660119a3ca404be3b6992faa305c7c2b2ac095cad2"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907b/preview-chromium/corpus-manifest.json",
+      "sha256": "96f8f9ebbd3c1a024e6bfef1b1f875b5eaa29065039341035b0315127c45478c"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907b/preview-chromium/stderr.txt",
+      "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907b/preview-chromium/stdout.txt",
+      "sha256": "35552cc98f6acd6cc41431a88544fd4f8f31a8ab3e59c0420678917029aac892"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907c/organization-firefox/stderr.txt",
+      "sha256": "2f3a791f634a5572bfd486f54aab6d53144ca2f3d216cfc2e5a052f4b8d9b95b"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907c/organization-firefox/stdout.txt",
+      "sha256": "84b3615a2b55669c4069410770606e7290261ae70a9db72789bff656c372ce48"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907d/organization-chromium/selection-toolbar-chromium.png",
+      "sha256": "bfab8d1bf5f12e81ef45c6ad11604ce45370dd5c7f310ed000291bd412660311"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907d/organization-chromium/stderr.txt",
+      "sha256": "d83f313cf99f083bdcfeaf787d6e1665d04e66bd4e74943ef71b47f729b528ec"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907d/organization-chromium/stdout.txt",
+      "sha256": "bb784945db42d9bedf864a48d80bb7f5d68946034484ffe1e6c1abef090a8a91"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907d/organization-firefox/stderr.txt",
+      "sha256": "0b99ab495e454b7048451febfa19227e44442a549e399f669111f64c280cb019"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browser-0907d/organization-firefox/stdout.txt",
+      "sha256": "84b3615a2b55669c4069410770606e7290261ae70a9db72789bff656c372ce48"
+    }
+  ]
+}

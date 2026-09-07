@@ -1,0 +1,100 @@
+{
+  "schema": 2,
+  "capturedAt": "2026-09-07T01:32:20.513Z",
+  "corpus": {
+    "assets": 600,
+    "folders": 104,
+    "roots": 8,
+    "branches": 32,
+    "leaves": 64,
+    "depth": 3,
+    "seedMs": 24073.693404
+  },
+  "api": {
+    "firstPage": {
+      "path": "/assets?limit=25&offset=0",
+      "itemCount": 25,
+      "latencyMs": {
+        "samples": 20,
+        "p50": 22.184988000000885,
+        "p95": 26.230797000000166,
+        "max": 26.230797000000166
+      }
+    },
+    "exactSearch": {
+      "path": "/assets?limit=25&offset=0&q=Fixture%200595",
+      "itemCount": 1,
+      "latencyMs": {
+        "samples": 20,
+        "p50": 8.205267999997886,
+        "p95": 17.926625000000058,
+        "max": 17.926625000000058
+      }
+    },
+    "folderPage": {
+      "path": "/assets?limit=25&offset=0&folder_id=b9ed3fe2-ecae-4f9a-88db-2263f60cf674",
+      "itemCount": 9,
+      "latencyMs": {
+        "samples": 20,
+        "p50": 8.410149999999703,
+        "p95": 12.058518999998341,
+        "max": 12.058518999998341
+      }
+    },
+    "folders": {
+      "path": "/folders",
+      "itemCount": 104,
+      "latencyMs": {
+        "samples": 20,
+        "p50": 8.373303999997006,
+        "p95": 13.54061400000137,
+        "max": 13.54061400000137
+      }
+    }
+  },
+  "browser": {
+    "engine": "chromium",
+    "performanceBudgetEnforced": true,
+    "firstCardsMs": 1620.3136879999984,
+    "initialCardCount": 20,
+    "loadMoreMs": 179.2570799999994,
+    "loadedCardCount": 40,
+    "selectedAfterLoadMore": 2,
+    "exactSearchMs": 95.51816099999996,
+    "exactSearchResultCount": 1,
+    "selectedBeforeFilter": 2,
+    "selectedAfterFilter": 0,
+    "visibleBulkToolbarBeforeFilter": 1,
+    "preparedSummaryVisible": true,
+    "supportingDocumentVisible": true,
+    "preparedPayloadLinkCount": 0,
+    "mixedMoveSelectedAfter": 1,
+    "mixedMoveFailureVisible": true,
+    "tagPreservationVerified": true,
+    "selectedDownloadSuggestedFilename": "makersvault.zip",
+    "bulkTrashRecoverableVisible": true,
+    "bulkTrashSelectionAfterPanelCancel": 2,
+    "bulkTrashSelectionAfterDialogCancel": 2,
+    "singleTrashRestoreVerified": true,
+    "bulkTrashRestoreVerified": true,
+    "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+    "singleDeleteSelectionAfterCancel": 1,
+    "folderSearchMs": 73.76388899999802,
+    "visibleFolderRows": 3,
+    "folderOpenMs": 94.24171000000206,
+    "folderCardCount": 9,
+    "childFolderEmptyStateVisible": true,
+    "breadcrumbAncestorNavigationVisible": true,
+    "longTasksAvailable": true,
+    "longTasks": {
+      "count": 0,
+      "totalMs": 0,
+      "maxMs": 0,
+      "byPhase": {}
+    },
+    "maxInteractionLongTaskMs": 0,
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+    "heapBytes": 15720050,
+    "breadcrumbCount": 1
+  }
+}

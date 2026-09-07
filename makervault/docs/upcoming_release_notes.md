@@ -18,12 +18,16 @@ printer controller, or multi-user cloud service.
 - Patched the reviewed ZIP64 dependency issue with bounded regression coverage;
   refreshed compatible build dependencies, hash-locked Python installers and
   digest-pinned Python/Nginx runtime bases. Python remains on the 3.11 line.
-- The complete gate passes at clean `84b020d`: 313 API / 37 web tests and current
+- The complete gate passes at clean `ddf8cf4`: 351 API / 45 web tests and current
   production-HTTPS lifecycle verification. Refreshed application/tool locks report
   no advisories for the recorded scan date; whole-image findings remain open.
-- A separate Python archive-allocation finding needs an approved compatibility
-  guard before implementation. No claim of release security clearance or newly
-  qualified browser performance is made; see [13C evidence](evidence/gate-13/REMEDIATION_RESULTS.md).
+- Added the approved Stored/Deflate-only archive parsing guard with actionable
+  recompression guidance. ZIP64, existing upload budgets and original prepared
+  3MF bytes remain supported; unavailable settings do not require manual thumbnails.
+  This mitigates the reviewed application read paths, not the interpreter advisory
+  inventory. Current browser testing found an initial-load budget failure. No claim
+  of release clearance or qualified performance is made; see
+  [archive guard evidence](evidence/gate-13/ARCHIVE_GUARD_RESULTS.md).
 
 ### Current lifecycle verification (Gate 13B)
 

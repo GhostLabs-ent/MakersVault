@@ -1,0 +1,47 @@
+{
+  "captured_at": "2026-09-07T01:33:17.294529+00:00",
+  "harness_revision": "4fbdcdf623a519629aa7b4513291d0ce2135eb30",
+  "application_revision": "ddf8cf4b41cf261e6129fcdace0f789feb573cce",
+  "application_version": "development-gate13b",
+  "images": {
+    "api": "sha256:2becf609d3033b9656b38e5eb074ce9deb98dde9f9a964716daad6a16039d2c5",
+    "web": "sha256:281509774b12153d02afca540256a0d1d705c9173bbac85d8fd611660ee2dc7b"
+  },
+  "browser_image": "sha256:72b5b2b184b15e2cdf0135ca0108e1907a3fa2644e6f151fe9df06da18b97105",
+  "status": "failed",
+  "cases": [
+    {
+      "case": "organization-firefox",
+      "status": "failed",
+      "exit_code": 1,
+      "scope": "workflow assertions (including existing budgets for organization)",
+      "mounted_source_preserved": null,
+      "fixture_certificate_sha256": "65dcc79699b8d55415f8e4573e8f7c7a4d2cb89b8210c405856ddf28771569af"
+    },
+    {
+      "case": "organization-webkit",
+      "status": "passed",
+      "exit_code": 0,
+      "scope": "workflow assertions (including existing budgets for organization)",
+      "mounted_source_preserved": null,
+      "fixture_certificate_sha256": "f449164616fb891d8a1c1cdc9d4f003ef49568660f97162d5349a7244a4749c1"
+    },
+    {
+      "case": "preview-chromium",
+      "status": "passed",
+      "exit_code": 0,
+      "scope": "functional probes and metrics collection; preview budgets require review",
+      "mounted_source_preserved": null,
+      "fixture_certificate_sha256": "66bb26769e7ac698fdfe102164dedc084235049b5d3415eef7caae2e69ece6cb"
+    },
+    {
+      "case": "mount-chromium",
+      "status": "passed",
+      "exit_code": 0,
+      "scope": "workflow assertions (including existing budgets for organization)",
+      "mounted_source_preserved": true,
+      "fixture_certificate_sha256": "041bee6a41407bd9866ecd8bfee789019ff9726a366b8a97f31188b572049598"
+    }
+  ],
+  "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+}

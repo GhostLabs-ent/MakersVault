@@ -1,0 +1,46 @@
+{
+  "capturedAt": "2026-09-07T01:35:11.295Z",
+  "first": {
+    "id": "adf1a0e3-c831-45ae-8d02-d2e5b008b06a",
+    "trigger": "manual",
+    "status": "completed_with_failures",
+    "mode": "copy",
+    "root_path": "/imports",
+    "started_at": "2026-09-07T01:35:08.306184Z",
+    "finished_at": "2026-09-07T01:35:08.396587Z",
+    "imported": 2,
+    "skipped": 0,
+    "failed": 1,
+    "failure_details": [
+      {
+        "path": "rejected.stl",
+        "reason": "Mounted source contains a symbolic link"
+      }
+    ],
+    "failure_details_omitted": 0
+  },
+  "repeat": {
+    "id": "afcc5905-68f6-4863-b321-0c16192bb84f",
+    "trigger": "manual",
+    "status": "completed_with_failures",
+    "mode": "copy",
+    "root_path": "/imports",
+    "started_at": "2026-09-07T01:35:09.796605Z",
+    "finished_at": "2026-09-07T01:35:09.824264Z",
+    "imported": 0,
+    "skipped": 2,
+    "failed": 1,
+    "failure_details": [
+      {
+        "path": "rejected.stl",
+        "reason": "Mounted source contains a symbolic link"
+      }
+    ],
+    "failure_details_omitted": 0
+  },
+  "browser": {
+    "copyOwnershipVisible": true,
+    "indexOwnershipVisible": true,
+    "failureDetailsVisible": true
+  }
+}

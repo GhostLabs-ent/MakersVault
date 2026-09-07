@@ -3,10 +3,10 @@
 **Date:** 2026-09-06
 
 **Baseline:** audit entry `236c0fd` / application `1a209aa`; current verification
-`84b020d` after approved dependency/runtime maintenance, schema 17 unchanged
+`ddf8cf4` after approved maintenance/archive guard, schema 17 unchanged
 
-**Status:** 13A–13B accepted; 13C maintenance verified, residual archive scope
-checkpoint; final Gate 13 acceptance pending
+**Status:** 13A–13B accepted; 13C maintenance/archive guard verified, browser
+qualification has an initial-load budget failure; final Gate 13 acceptance pending
 
 ## Reading this ledger
 
@@ -16,7 +16,9 @@ Historical Gate 5 benchmarks remain evidence for `f6ff55b`, not current schema-1
 performance. The [13A results](SUBGATE_13A_RESULTS.md) and
 [13B lifecycle results](SUBGATE_13B_RESULTS.md) name their executions; subsequent
 [13C maintenance results](REMEDIATION_RESULTS.md) name the updated clean build,
-full-gate repeat and separate audited-image smoke.
+full-gate repeat and separate audited-image smoke. The approved
+[archive guard](ARCHIVE_GUARD_RESULTS.md) has a subsequent full-gate pass and
+exact-image rescan at `ddf8cf4`; no image finding was waived.
 Carry-forward IDs have reasons, dependencies, and a review checkpoint below.
 
 Source commitments are from [Product Strategy](../../PRODUCT_STRATEGY.md),
@@ -61,7 +63,7 @@ Test paths in this table are relative to `api/tests/` unless qualified otherwise
 | I07 — original files/metadata portable without subscription | Independent verifier, current scale export/import/re-export, corruption/nonempty-target tests; external bytes explicitly outside vault ownership |
 | I08 — local integrations confer no hidden control | API/bridge grant separation, role/extension/catalog/origin restrictions and constrained local arguments; no remote executable or shell authority |
 | I09 — no temporary AssetGroup | Actual Project membership and ArtifactRevision migration tests; accepted ADRs 0009–0011 specialize the original conceptual hierarchy |
-| I10 — hostile file cannot monopolize library | Server/preview controls have tests and 13C patches the specific fflate ZIP64 issue. Interpreter BZIP2/LZMA allocation remains open under G13-04; general browser ZIP upload isolation and G13-01 current timing are not established by the dependency patch |
+| I10 — hostile file cannot monopolize library | Server/preview controls have tests; 13C patches the specific fflate ZIP64 issue and guards unsupported member methods before BZIP2/LZMA reads. Interpreter inventory remains open under G13-04; general browser ZIP upload isolation is not implemented and current first-card timing fails its budget |
 
 ## Open audit findings — repair inside Gate 13
 
@@ -72,10 +74,10 @@ the next accepted slice. Re-review at that slice and again at 13D.
 
 | ID | Source evidence / effect | Required next proof |
 |---|---|---|
-| G13-01 | 13A found legacy JWT auth in preview/organization/mounted-scan harnesses. **13B harness portion VERIFIED:** shared cookie/CSRF helper, five safety tests, three consumer syntax checks and real production-HTTPS upload/read/Trash/logout | 13C remains OPEN: current browser/corpus/mount matrix and current Trash UI expectations, exact baseline and fixture; helper qualification is not a complete browser pass |
+| G13-01 | 13B repairs legacy authentication; 13C adds unique trusted-HTTPS fixtures/current Trash assertions and records [fresh browser results](BROWSER_WORKFLOW_RESULTS.md). Chromium preview/cache/mounted import and WebKit organization functional checks complete on exact `ddf8cf4` images | OPEN: Chromium first-card budget failure, a later restore/search visibility timeout, and Firefox valid-fixture TLS failure. Earlier completed workflows do not erase failed attempts. Unavailable metrics are null; no threshold or security relaxation |
 | G13-02 | 13A found stale schema-5 recovery assertions and no joined current lifecycle. **13B VERIFIED:** `gate13-lifecycle-drill.py` passes schema 4→17, contract-6 restore, pre-start revocation/audit, schema 12→17 portable bootstrap and exact stopped rollback on `2c68d70` | Owner accepted 13B at `2f61b37`; injected interruption tests and three no-mutation operator refusals pass. Named local development evidence, not release or physical-power-loss qualification |
 | G13-03 | 13A found stale JWT/schema-5 exact-image smoke. **13B harness portion VERIFIED:** current production-HTTPS identity/security/persistence/schema-17 smoke against immutable local image IDs | 13C remains OPEN: owner-selected immutable scope/revision and matched-image/bridge/reproducibility evidence before any release claim; static `verify-release` remains only a contract check |
-| G13-04 | [Approved maintenance](REMEDIATION_RESULTS.md) patches targeted web/installer dependencies and runtime bases; complete gate and exact audited-image HTTPS smoke pass at `84b020d`. Refreshed language scans report no advisories; images retain 181 API / 3 web matches. Historical entry scans remain intact | OPEN [archive compatibility proposal](REMEDIATION_RESIDUALS.md) for source-reachable CVE-2026-15310. Seven interpreter matches have explicit vendor exclusions; remaining OS/interpreter findings are not waived and need reviewed dispositions before candidate qualification |
+| G13-04 | [Approved maintenance](REMEDIATION_RESULTS.md) and [archive guard](ARCHIVE_GUARD_RESULTS.md) pass the full gate at `ddf8cf4`. Refreshed language scans report no advisories for their recorded date; the new exact-image rescan retains 181 API / 3 web matches. Historical scans remain intact | Reviewed CVE-2026-15310 application read paths are mitigated, not removed from the runtime inventory. Seven interpreter matches have explicit vendor exclusions; remaining OS/interpreter findings are unwaived and need reviewed dispositions before candidate qualification |
 
 P07/P11/P12 now also have G13-02's joined current lifecycle proof, supplementing
 their focused API tests. Raw restore preserves the complete content/security graph

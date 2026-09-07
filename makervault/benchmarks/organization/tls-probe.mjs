@@ -25,14 +25,19 @@ try {
   await assert.rejects(fetch(wrongHost));
   console.log(JSON.stringify({ engine, version: browser.version(), trustedFixture: true, hostnameMismatchRejected: true }));
 } catch (error) {
+  console.error("TLS preflight failed:", error.message);
   if (engine === "firefox") {
     // Read-only fixture diagnostics; no auth or certificate overrides.
     for (const page of browser.contexts().flatMap(context => context.pages())) {
       console.error("Firefox TLS error page:", await page.locator("body").innerText({ timeout: 2000 }).catch(() => "unavailable"));
     }
-    const policyPage = await browser.newPage();
-    await policyPage.goto("about:policies");
-    console.error("Firefox fixture policies:", (await policyPage.locator("body").innerText()).slice(0, 4000));
+    try {
+      const policyPage = await browser.newPage();
+      await policyPage.goto("about:policies", { waitUntil: "domcontentloaded", timeout: 3000 });
+      console.error("Firefox fixture policies:", (await policyPage.locator("body").innerText({ timeout: 2000 })).slice(0, 4000));
+    } catch {
+      console.error("Firefox policy diagnostics unavailable; retaining the original TLS failure.");
+    }
   }
   throw error;
 } finally {

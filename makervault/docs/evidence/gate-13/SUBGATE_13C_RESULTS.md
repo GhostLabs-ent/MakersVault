@@ -2,8 +2,9 @@
 
 **Opened:** 2026-09-06, following owner acceptance of 13B at `2f61b37`.
 
-**Status:** IN PROGRESS — MAINTENANCE VERIFIED; ARCHIVE GUARD APPROVED and under
-verification in [its working record](ARCHIVE_GUARD_RESULTS.md). No release scope
+**Status:** IN PROGRESS — MAINTENANCE AND ARCHIVE GUARD VERIFIED;
+current browser qualification has an initial-load budget failure. See
+[archive guard evidence](ARCHIVE_GUARD_RESULTS.md). No release scope
 or replacement candidate selected. This is not a request to accept or close 13C.
 
 **Entry verification:** `2c68d70`; accepted 13B evidence `2f61b37`. Application
@@ -112,19 +113,40 @@ is now implemented locally at `39307f5` / `84b020d`; release pins remain unchang
   OS/interpreter findings stay open. Source inspection confirms an affected
   BZIP2/LZMA ZIP read path for CVE-2026-15310; existing outer byte/ratio limits do
   not bound its internal allocation. No production memory-exhaustion test is claimed.
-- Request approval for the residual review's Stored/Deflate-only parsing guard
+- At that checkpoint, requested approval for the residual review's Stored/Deflate-only parsing guard
   and bounded regressions before changing archive compatibility. Conforming 3MF,
   ZIP64, original bytes and no-manual-thumbnail behavior must remain intact. Then
   resume the current browser/workflow matrix. No Python release-line migration,
   broader upload-worker redesign or residual-risk acceptance is implied.
 
+### Approved archive guard and resumed workflows
+
+The owner approved the bounded compatibility proposal after `78f6aa3`. Implementation
+and the complete gate pass at `ddf8cf4`: **351 API / 45 web tests**, current passkeys,
+HTTPS lifecycle/recovery and exact image identities. The images-only rescan retains
+181 API / 3 web matches; remaining findings are unwaived. See
+[guard results](ARCHIVE_GUARD_RESULTS.md), [verification](archive-guard-verification.json)
+and [scan identities/hashes](archive-guard-audit.json).
+
+The committed browser harness at `4fbdcdf` uses disposable production-HTTPS stacks,
+container-local certificate trust plus wrong-hostname rejection, and current
+Trash/restore workflows. Initial Chromium testing completed the functional
+assertions but failed first cards at **1620.3 ms against <1000 ms**. The other
+engine/corpus/mount evidence and next scoped decisions are in the
+[browser record](BROWSER_WORKFLOW_RESULTS.md): WebKit functional, Chromium
+preview/cache and mounted-import probes completed; Firefox remains stopped at TLS
+preflight. A diagnostic Chromium repeat also timed out finding a restored item in
+the searched library, so that visibility/synchronization issue remains open.
+No budget, authentication policy, release pin or user library was changed.
+
 All work stays local; no push/tag/publication/deployment.
 
 ### Still outstanding
 
-Browser assertion refresh and current cold/warm/detail/LightBurn, organization/
-Trash, supporting/prepared and mounted-import runs have **not** been completed in
-13C. Historical timing is not reused. Physical-device and native-workstation
+The current browser matrix is **not qualified**: initial-load budget failure,
+restore/search visibility timeout and Firefox TLS fixture failure remain open.
+Successful preview/cache/mount probes are bounded evidence, not a blanket browser
+pass. Historical timing is not reused. Physical-device and native-workstation
 availability has been requested; no answer or platform limitation is assumed.
 Release scope/revision, matched distribution qualification, final 13C acceptance
 and 13D end-state review remain owner checkpoints. Gate 12 remains desktop-deferred

@@ -1,0 +1,95 @@
+{
+  "schema": 2,
+  "capturedAt": "2026-09-07T01:34:20.941Z",
+  "corpus": {
+    "assets": 600,
+    "folders": 104,
+    "roots": 8,
+    "branches": 32,
+    "leaves": 64,
+    "depth": 3,
+    "seedMs": 23844.474331999998
+  },
+  "api": {
+    "firstPage": {
+      "path": "/assets?limit=25&offset=0",
+      "itemCount": 25,
+      "latencyMs": {
+        "samples": 20,
+        "p50": 21.567301999999472,
+        "p95": 28.348462999998446,
+        "max": 28.348462999998446
+      }
+    },
+    "exactSearch": {
+      "path": "/assets?limit=25&offset=0&q=Fixture%200595",
+      "itemCount": 1,
+      "latencyMs": {
+        "samples": 20,
+        "p50": 7.5718420000011974,
+        "p95": 15.219759999999951,
+        "max": 15.219759999999951
+      }
+    },
+    "folderPage": {
+      "path": "/assets?limit=25&offset=0&folder_id=b4aec7c7-c182-4351-9842-73683fd87af9",
+      "itemCount": 9,
+      "latencyMs": {
+        "samples": 20,
+        "p50": 8.712432000000263,
+        "p95": 10.034875999997894,
+        "max": 10.034875999997894
+      }
+    },
+    "folders": {
+      "path": "/folders",
+      "itemCount": 104,
+      "latencyMs": {
+        "samples": 20,
+        "p50": 13.649521000003006,
+        "p95": 15.528881999998703,
+        "max": 15.528881999998703
+      }
+    }
+  },
+  "browser": {
+    "engine": "webkit",
+    "performanceBudgetEnforced": false,
+    "firstCardsMs": 2700.3912689999997,
+    "initialCardCount": 20,
+    "loadMoreMs": 197.60452499999883,
+    "loadedCardCount": 40,
+    "selectedAfterLoadMore": 2,
+    "exactSearchMs": 74.35151699999915,
+    "exactSearchResultCount": 1,
+    "selectedBeforeFilter": 2,
+    "selectedAfterFilter": 0,
+    "visibleBulkToolbarBeforeFilter": 1,
+    "preparedSummaryVisible": true,
+    "supportingDocumentVisible": true,
+    "preparedPayloadLinkCount": 0,
+    "mixedMoveSelectedAfter": 1,
+    "mixedMoveFailureVisible": true,
+    "tagPreservationVerified": true,
+    "selectedDownloadSuggestedFilename": "makersvault.zip",
+    "bulkTrashRecoverableVisible": true,
+    "bulkTrashSelectionAfterPanelCancel": 2,
+    "bulkTrashSelectionAfterDialogCancel": 2,
+    "singleTrashRestoreVerified": true,
+    "bulkTrashRestoreVerified": true,
+    "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+    "singleDeleteSelectionAfterCancel": 1,
+    "folderSearchMs": 74.82165700000041,
+    "visibleFolderRows": 3,
+    "folderOpenMs": 125.96336400000291,
+    "folderCardCount": 9,
+    "childFolderEmptyStateVisible": true,
+    "breadcrumbAncestorNavigationVisible": true,
+    "longTasksAvailable": false,
+    "longTasks": null,
+    "maxInteractionLongTaskMs": null,
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+    "heapBytes": null,
+    "breadcrumbCount": 1
+  }
+}

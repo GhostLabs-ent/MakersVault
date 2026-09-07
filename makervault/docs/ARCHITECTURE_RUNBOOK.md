@@ -4,7 +4,7 @@
 
 **Baseline date:** 2026-09-06
 
-**Committed baseline:** `main` maintenance/verification at `84b020d` (schema 17; Gate 13B accepted at `2f61b37`, 13C open and not accepted)
+**Committed baseline:** `main` archive guard/full verification at `ddf8cf4`; browser harness `4fbdcdf` / `7088162` (schema 17; Gate 13B accepted at `2f61b37`, 13C open and not accepted)
 
 **Immutable v5.1 source baseline:** `f6ff55b33fd64c7a5037e8eb642bed048c3e0e4f`
 
@@ -259,7 +259,8 @@ row's future-tense wording.
 | T-055 | `VERIFIED` | At 13A entry, preview/organization/mounted-import and exact-image release harnesses used legacy JWT authentication; recovery/release drills asserted schema 5 and could not qualify current behavior unchanged. | `docs/evidence/gate-13/TRACEABILITY.md`, findings G13-01–03 and named source scripts | Harness assumptions replaced by T-056; current browser/release matrix remains 13C. Historical Gate 5 evidence is preserved and production authentication unchanged. |
 | T-056 | `VERIFIED` | Gate 13B replaces the stale authentication/schema assumptions identified by T-055. Full verification at `2c68d70` passes 313 API / 32 web / 7 Python harness / 5 Node client tests plus production-HTTPS schema 4→17 upgrade, contract-6 restore with pre-start invalidation, exact stopped rollback, and portable 17→12→17 fresh-identity startup. | `docs/evidence/gate-13/SUBGATE_13B_RESULTS.md`; immutable local development image IDs, 18 portable members, refusal/interruption evidence | Owner accepted 13B at `2f61b37` on 2026-09-06. Current browser/platform/advisory and selected-release qualification remain 13C; Gate 12 remains desktop-deferred and publication prohibited. |
 | T-057 | `VERIFIED` | Dated 13C scans on unchanged entry locks/images report three affected web packages and 283 API / 158 web image package matches. Python application locks, Go source and browser-harness locks report no findings for their stated scope. Production HTTPS/operator prose is reconciled; audit helpers and the static release contract pass. | `docs/evidence/gate-13/SUBGATE_13C_RESULTS.md`, advisory review, machine-readable identities/hashes and all reduced image matches | These are observed results, not security clearance. Remediation and runtime-image triage require an owner scope decision; browser/platform/release qualification remain unfinished. No application pins changed or publication authorized. |
-| T-058 | `VERIFIED` | Owner-approved targeted dependency/runtime maintenance and complete verification pass at clean `84b020d`: 313 API / 37 web tests, current production-HTTPS lifecycle and exact audited-image smoke. Fresh language locks report no advisories; images report 181 API / 3 web package matches. | `docs/evidence/gate-13/REMEDIATION_RESULTS.md`, new audit/match/vendor/verification records | T-057 remains historical entry evidence. Seven interpreter matches have explicit vendor exclusions; other findings are not waived. CVE-2026-15310 reaches current archive parsing by source review; its proposed compatibility guard requires owner scope approval. Browser/platform/release qualification and 13C acceptance remain open. |
+| T-058 | `VERIFIED` | Owner-approved targeted dependency/runtime maintenance and complete verification pass at clean `84b020d`: 313 API / 37 web tests, current production-HTTPS lifecycle and exact audited-image smoke. Fresh language locks report no advisories; images report 181 API / 3 web package matches. | `docs/evidence/gate-13/REMEDIATION_RESULTS.md`, new audit/match/vendor/verification records | T-057 remains historical entry evidence. Seven interpreter matches have explicit vendor exclusions; other findings are not waived. The subsequent approved archive guard is T-059. Browser/platform/release qualification and 13C acceptance remain open. |
+| T-059 | `VERIFIED` | Owner approved Stored/Deflate-only member parsing after `78f6aa3`. The bounded guard preserves conforming 3MF/ZIP64, original prepared handoff and library-size policy. Full gate at clean `ddf8cf4` passes 351 API / 45 web tests and the HTTPS recovery lifecycle. Exact-image rescan retains 181 API / 3 web matches; reviewed unsupported-member read paths are mitigated, not a patched interpreter inventory. | `docs/evidence/gate-13/ARCHIVE_GUARD_RESULTS.md`, compression regressions, new verification/audit records | Current browser evidence is separate: Chromium first cards miss <1000 ms despite completed functional workflows. No budget or security-policy relaxation, residual-risk waiver, 13C acceptance or publication follows from the full-gate pass. |
 
 ### 5.4 Current storage invariants
 
@@ -1062,7 +1063,7 @@ entitlement must not disable local access or export.
 
 ### Gate 13 — End-state audit and re-cock
 
-**Current execution:** `IN PROGRESS — 13C RESIDUAL ARCHIVE CHECKPOINT`; the owner accepted 13B at
+**Current execution:** `IN PROGRESS — 13C BROWSER QUALIFICATION`; the owner accepted 13B at
 `2f61b37` on 2026-09-06 and authorized the [13C working record](evidence/gate-13/SUBGATE_13C_RESULTS.md).
 The owner accepted 13A at
 `c2e9f94` on 2026-09-05. Gate 13 was opened by owner direction
@@ -1073,11 +1074,12 @@ and release-readiness evidence, and 13D owner acceptance/re-baselining. The
 [traceability ledger](evidence/gate-13/TRACEABILITY.md), and
 [security revalidation](security/GATE_13_REVALIDATION.md) retain their named evidence.
 The expanded full verification passed on `2c68d70` and passes again after approved
-maintenance at clean `84b020d`: current cookie/CSRF/schema-17 harnesses and the
-joined production-HTTPS lifecycle supplement the accepted 13A inventory. Fresh
-language scans report no advisories, but runtime-image findings remain open. The
-[residual archive proposal](evidence/gate-13/REMEDIATION_RESIDUALS.md) requires a
-compatibility decision before implementation; no risk was waived. The browser/platform and
+maintenance/archive guard at clean `ddf8cf4`: 351 API / 45 web tests and the
+joined production-HTTPS lifecycle supplement the accepted 13A inventory. The
+[archive guard](evidence/gate-13/ARCHIVE_GUARD_RESULTS.md) is implemented, not
+awaiting approval. Prior fresh language scans report no advisories; the exact-image
+rescan retains 181 API / 3 web matches, without risk waivers. Current Chromium
+organization first-card timing fails its unchanged budget. The browser/platform and
 selected-release matrix remains 13C;
 13B does not reuse old timing as current evidence. Gate 12 remains desktop follow-up
 with outstanding evidence, not delivered work. No new release candidate or
@@ -1297,14 +1299,14 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Gate 13B was accepted at `2f61b37` on 2026-09-06. Approved 13C dependency/runtime
-maintenance and the complete gate pass at clean `84b020d`. Review the
-[residual archive proposal](evidence/gate-13/REMEDIATION_RESIDUALS.md) and decide
-whether to authorize Stored/Deflate-only member parsing with bounded regressions;
-this changes less-common ZIP compression compatibility, not library size or
-conforming 3MF/ZIP64 support. Then resume current browser/workflow, remaining
-advisory, platform and operator release-readiness evidence. Residual-risk and
-release decisions remain explicit owner checkpoints.
+Gate 13B was accepted at `2f61b37` on 2026-09-06. The approved 13C archive guard
+and complete gate pass at clean `ddf8cf4`. Review current browser evidence and
+profile the initial-load budget miss and investigate the restore/search visibility
+timeout before proposing an application change; see [browser results](evidence/gate-13/BROWSER_WORKFLOW_RESULTS.md).
+do not relax timing or authentication controls to obtain a pass. Complete remaining
+advisory dispositions, physical/native-platform evidence and operator/release
+readiness. Residual-risk, supported-platform and release decisions remain explicit
+owner checkpoints; 13C is not ready for closeout.
 Gate 12 remains deferred to desktop. End-state acceptance and the next roadmap remain 13D owner
 decisions; the frozen Gate 5 release baseline is unchanged. Push, tag, image
 publication, deployment, and release remain separately gated. Keep the

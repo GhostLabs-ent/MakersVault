@@ -16,9 +16,10 @@ upgrade/restore/rollback/portable-startup checks pass. This is local development
 evidence, not final end-state acceptance or a newly qualified release.
 
 [13C](evidence/gate-13/SUBGATE_13C_RESULTS.md) is in progress. Approved dependency/
-runtime maintenance and the complete gate pass at `84b020d`; the
-[residual archive proposal](evidence/gate-13/REMEDIATION_RESIDUALS.md) needs a
-compatibility decision before implementation. Remaining image findings are not
+runtime maintenance and the approved
+[archive guard](evidence/gate-13/ARCHIVE_GUARD_RESULTS.md) pass the complete gate
+at `ddf8cf4` (351 API / 45 web tests). Current Chromium organization testing has
+an initial-load budget failure, not a qualified performance pass. Remaining image findings are not
 waived. Deployment guidance explicitly requires production HTTPS even on LAN/VPN.
 Browser/platform and release-readiness
 evidence remain unfinished, followed by 13D owner acceptance of the end state and next
