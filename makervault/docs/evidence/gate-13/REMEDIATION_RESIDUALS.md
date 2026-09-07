@@ -86,7 +86,11 @@ allowlist change, large memory-exhaustion fixture or user-vault upload was used.
 The separate bounded **fflate ZIP64** regression did run and pass; that patch
 does not fix this Python ZIP issue.
 
-### Recommended next authorized slice — not implemented
+### Approved next slice — implementation/evidence recorded separately
+
+The owner approved this proposal on 2026-09-06 (America/New_York), after local
+checkpoint `78f6aa3`. Follow [archive guard results](ARCHIVE_GUARD_RESULTS.md) for
+actual implementation and verification. Approval is not residual-risk acceptance.
 
 1. Allow **Stored (0) and Deflate (8)** only in server-side member parsing, through
    a shared guard before a member is opened/decompressed. Reject unsupported ZIP

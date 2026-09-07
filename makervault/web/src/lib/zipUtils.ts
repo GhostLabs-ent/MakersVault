@@ -48,7 +48,17 @@ export function isZipFile(name: string) {
 export async function readZipEntries(file: File): Promise<{ entries: ZipEntry[]; data: Record<string, Uint8Array> }> {
   const { unzipSync } = await import("fflate");
   const raw = new Uint8Array(await file.arrayBuffer());
-  const zipEntries = unzipSync(raw);
+  const zipEntries = unzipSync(raw, {
+    filter: entry => {
+      if (entry.compression !== 0 && entry.compression !== 8) {
+        throw new Error(
+          `Unsupported ZIP compression method ${entry.compression}: ${entry.name}. ` +
+          "Recompress the archive using Stored (no compression) or Deflate."
+        );
+      }
+      return true;
+    },
+  });
   const data: Record<string, Uint8Array> = {};
   for (const [rawPath, content] of Object.entries(zipEntries)) {
     const normalized = normalizeZipPath(rawPath);

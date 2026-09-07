@@ -2,9 +2,9 @@
 
 **Opened:** 2026-09-06, following owner acceptance of 13B at `2f61b37`.
 
-**Status:** IN PROGRESS — APPROVED MAINTENANCE VERIFIED; residual archive scope
-decision required. No release scope or replacement candidate selected. This is
-not a request to accept or close 13C.
+**Status:** IN PROGRESS — MAINTENANCE VERIFIED; ARCHIVE GUARD APPROVED and under
+verification in [its working record](ARCHIVE_GUARD_RESULTS.md). No release scope
+or replacement candidate selected. This is not a request to accept or close 13C.
 
 **Entry verification:** `2c68d70`; accepted 13B evidence `2f61b37`. Application
 behavior remains the local schema-17 implementation, not the frozen Gate 5 release.

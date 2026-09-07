@@ -2187,6 +2187,9 @@ function PreparedPrintSummary({
           {prepared.printer ? `Prepared for ${prepared.printer}` : "Prepared print available"}
         </span>
         {details.length > 0 && <span> · {details.join(" · ")}</span>}
+        {!prepared.printer && !prepared.layer_height_mm && details.length === 0 && (
+          <span className="block text-[11px] opacity-80">Print settings unavailable; original file preserved.</span>
+        )}
       </span>
       {onClear && (
         <button type="button" className="shrink-0 underline-offset-2 hover:underline disabled:opacity-60" onClick={onClear} disabled={clearing}>

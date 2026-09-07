@@ -4,7 +4,13 @@ from pathlib import Path
 from typing import Optional
 from zipfile import BadZipFile, ZipFile
 
-from archive_limits import ArchiveLimitError, bounded_archive_infos, validate_archive_member
+from archive_limits import (
+    ArchiveLimitError,
+    UnsupportedArchiveCompression,
+    bounded_archive_infos,
+    validate_archive_compression,
+    validate_archive_member,
+)
 from config import ARCHIVE_METADATA_MAX_BYTES
 
 
@@ -207,6 +213,10 @@ def inspect_prepared_print(path: Path, filename: Optional[str] = None) -> Option
                 return None
 
             metadata["format"] = "gcode_3mf"
+            # Identify the supplied payload from names, but do not decompress any
+            # member of an unsupported package to infer print settings.
+            for info in infos:
+                validate_archive_compression(info)
             metadata_bytes = 0
             for info in infos:
                 name = info.filename
@@ -230,6 +240,10 @@ def inspect_prepared_print(path: Path, filename: Optional[str] = None) -> Option
                 if remaining:
                     with archive.open(info) as stream:
                         _merge_text_metadata(metadata, stream.read(min(_TEXT_LIMIT, remaining)).decode("utf-8", errors="replace"))
+    except UnsupportedArchiveCompression:
+        # Keep the prepared role/3MF handoff and original bytes, without asserting
+        # printer/material settings we could not safely inspect.
+        return {key: "gcode_3mf" if key == "format" else None for key in metadata}
     except (ArchiveLimitError, BadZipFile, KeyError, OSError):
         return None
     return metadata

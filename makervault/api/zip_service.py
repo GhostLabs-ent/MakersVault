@@ -10,6 +10,7 @@ from sqlmodel import Session, select
 from asset_service import cleanup_asset, create_asset_record, ensure_model_thumbnail, finalize_asset_record, managed_asset_path, save_thumb
 from archive_limits import (
     ArchiveLimitError,
+    UnsupportedArchiveCompression,
     bounded_archive_infos,
     validate_archive_member,
     validate_selected_members,
@@ -55,6 +56,8 @@ def list_zip_entries(zip_path: Path) -> List[dict]:
                 continue
             try:
                 validate_archive_member(info, enforce_file_size=False)
+            except UnsupportedArchiveCompression as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
             except ArchiveLimitError as exc:
                 raise HTTPException(status_code=413, detail=str(exc)) from exc
             if name in seen:
@@ -136,6 +139,8 @@ def extract_zip_entries_to_assets(zip_path: Path, selections: List[str], body: I
         selected_infos = [entries[name] for name in ordered if name in entries and not entries[name].is_dir()]
         try:
             validate_selected_members(selected_infos)
+        except UnsupportedArchiveCompression as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         except ArchiveLimitError as exc:
             raise HTTPException(status_code=413, detail=str(exc)) from exc
         for entry_name in ordered:
