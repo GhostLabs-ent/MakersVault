@@ -23,7 +23,13 @@ and Node client. No certificate-error bypass or host trust-store change is used.
 The pinned Playwright image supplies Linux headless Chromium, Firefox and WebKit.
 Its small NSS tools addition uses the signed Ubuntu repository. Chromium's NSS
 peer trust and Firefox's certificate-install policy follow their documented Linux
-trust mechanisms; WebKit uses the container trust store. This is not native Safari,
+trust mechanisms; WebKit uses the container trust store. Playwright's patched
+Firefox requires `browser.policies.alternatePath` to select the fixture policy;
+it does not automatically load distribution policies (the first run failed TLS
+preflight for this reason). The runner's Firefox launches explicitly select the
+container-local policy; no certificate validation setting is disabled. See the
+[upstream Playwright policy-provider patch](https://github.com/microsoft/playwright/blob/main/browser_patches/firefox/patches/bootstrap.diff).
+This is not native Safari,
 Windows/macOS, mobile or hardware-passkey coverage.
 
 Browser limits are 4 GiB memory and 1 GiB shared memory, with no CPU cap. Benchmark

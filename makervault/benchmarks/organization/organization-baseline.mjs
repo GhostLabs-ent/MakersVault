@@ -218,6 +218,11 @@ async function main() {
   const launchOptions = browserName === "chromium"
     ? { headless: true, args: ["--enable-precise-memory-info"] }
     : { headless: true };
+  if (browserName === "firefox" && webUrl.startsWith("https://vault.example.test:")) {
+    launchOptions.firefoxUserPrefs = {
+      "browser.policies.alternatePath": "/opt/makersvault-fixture-policies.json",
+    };
+  }
   const browser = await browserType.launch(launchOptions);
   activeBrowser = browser;
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });

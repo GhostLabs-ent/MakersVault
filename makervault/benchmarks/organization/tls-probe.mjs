@@ -6,7 +6,12 @@ const engine = process.env.MAKERSVAULT_BENCHMARK_BROWSER;
 const url = new URL(origin);
 assert.equal(url.protocol, "https:");
 assert.equal(url.hostname, "vault.example.test");
-const browser = await { chromium, firefox, webkit }[engine].launch({ headless: true });
+const launchOptions = { headless: true };
+// Playwright's patched Firefox ignores distribution policies unless explicitly selected.
+if (engine === "firefox") launchOptions.firefoxUserPrefs = {
+  "browser.policies.alternatePath": "/opt/makersvault-fixture-policies.json",
+};
+const browser = await { chromium, firefox, webkit }[engine].launch(launchOptions);
 try {
   const page = await browser.newPage();
   const response = await page.goto(`${origin}/api/health`);
