@@ -224,13 +224,18 @@ async function main() {
   const page = await context.newPage();
   await mkdir(dirname(outputPath), { recursive: true });
   const dialogMessages = [];
+  let acceptDialog = null;
   page.on("dialog", async dialog => {
     dialogMessages.push(dialog.message());
-    await dialog.dismiss();
+    const accept = dialog.message() === acceptDialog;
+    acceptDialog = null;
+    if (accept) await dialog.accept();
+    else await dialog.dismiss();
   });
   await page.addInitScript(() => {
-    window.__mvOrganizationBenchmark = { longTasks: [], phase: "navigation" };
+    window.__mvOrganizationBenchmark = { longTasks: [], longTasksAvailable: false, phase: "navigation" };
     try {
+      if (!PerformanceObserver.supportedEntryTypes.includes("longtask")) return;
       new PerformanceObserver(list => {
         for (const entry of list.getEntries()) {
           window.__mvOrganizationBenchmark.longTasks.push({
@@ -239,6 +244,7 @@ async function main() {
           });
         }
       }).observe({ type: "longtask", buffered: true });
+      window.__mvOrganizationBenchmark.longTasksAvailable = true;
     } catch {}
   });
 
@@ -319,12 +325,43 @@ async function main() {
   const selectedDownload = await downloadPromise;
   const selectedDownloadSuggestedFilename = selectedDownload.suggestedFilename();
 
-  await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "delete"; });
-  const dialogsBeforeMultiDelete = dialogMessages.length;
+  await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "trash"; });
+  async function waitForTrash(ids) {
+    const deadline = Date.now() + 10_000;
+    while (Date.now() < deadline) {
+      const items = await apiJson(token, "/trash");
+      if (items.length === ids.length && ids.every(id => items.some(item => item.id === id))) return;
+      await new Promise(resolveWait => setTimeout(resolveWait, 100));
+    }
+    throw new Error("Trash IDs did not match the confirmed selection");
+  }
+  async function restoreInUi(assets) {
+    await page.getByRole("button", { name: "Trash", exact: true }).click();
+    await page.getByRole("heading", { name: "Trash", exact: true }).waitFor();
+    for (const asset of assets) {
+      const row = page.getByTitle(asset.name, { exact: true }).locator("..").locator("..");
+      const [response] = await Promise.all([
+        page.waitForResponse(response => response.url().endsWith(`/trash/${asset.id}/restore`) && response.request().method() === "POST"),
+        row.getByRole("button", { name: "Restore", exact: true }).click(),
+      ]);
+      if (response.status() !== 200) throw new Error("UI restore failed");
+      const restored = await response.json();
+      if (restored.id !== asset.id || restored.folder_id !== asset.folder_id || restored.name !== asset.name) {
+        throw new Error("Restore changed model identity or folder");
+      }
+      const bytes = await token.fetch(restored.url);
+      if (!bytes.ok || await bytes.text() !== "cube([1, 2, 3]);\n") throw new Error("Restore changed primary bytes");
+    }
+    await waitForTrash([]);
+    await page.getByRole("button", { name: /All files/ }).click();
+    await searchLibrary(page, librarySearch, "Gate 3 bulk source");
+  }
+
   await page.getByRole("toolbar", { name: "Selected models" }).getByRole("button", { name: "Delete…" }).click();
-  const bulkDeleteBlockedVisible = await page.getByText("Permanent bulk delete is unavailable.").isVisible();
-  await page.waitForTimeout(100);
-  const unexpectedMultiDeleteDialog = dialogMessages.length > dialogsBeforeMultiDelete;
+  const bulkTrashRecoverableVisible = await page.getByText("Every version and supporting file remains recoverable.").isVisible();
+  await bulkToolbar.getByRole("button", { name: "Cancel", exact: true }).click();
+  const bulkTrashSelectionAfterPanelCancel = await page.locator('input[type="checkbox"]:checked').count();
+  await waitForTrash([]);
 
   await page.getByRole("toolbar", { name: "Selected models" }).getByRole("button", { name: "Clear" }).click();
   await page.getByRole("checkbox", { name: "Select Workflow Bulk Success" }).check();
@@ -333,6 +370,24 @@ async function main() {
   await page.waitForTimeout(100);
   const singleDeleteConfirmation = dialogMessages.length > dialogsBeforeSingleDelete ? dialogMessages.at(-1) : "";
   const singleDeleteSelectionAfterCancel = await page.locator('input[type="checkbox"]:checked').count();
+  await waitForTrash([]);
+  acceptDialog = 'Move "Workflow Bulk Success" to Trash? You can restore it later.';
+  await bulkToolbar.getByRole("button", { name: "Delete…" }).click();
+  await waitForTrash([folders.special.bulkSuccess.id]);
+  await restoreInUi(taggedAssets.filter(asset => asset.id === folders.special.bulkSuccess.id));
+  const singleTrashRestoreVerified = true;
+
+  await page.getByRole("checkbox", { name: "Select Workflow Bulk Success" }).check();
+  await page.getByRole("checkbox", { name: "Select Workflow Bulk Conflict" }).check();
+  await bulkToolbar.getByRole("button", { name: "Delete…" }).click();
+  await bulkToolbar.getByRole("button", { name: "Move to Trash", exact: true }).click();
+  await waitForTrash([]); // Confirmation is dismissed unless explicitly armed.
+  const bulkTrashSelectionAfterDialogCancel = await page.locator('input[type="checkbox"]:checked').count();
+  acceptDialog = "Move 2 selected models to Trash? You can restore them later.";
+  await bulkToolbar.getByRole("button", { name: "Move to Trash", exact: true }).click();
+  await waitForTrash(taggedAssets.map(asset => asset.id));
+  await restoreInUi(taggedAssets);
+  const bulkTrashRestoreVerified = true;
 
   await searchLibrary(page, librarySearch, "");
 
@@ -366,6 +421,7 @@ async function main() {
 
   const browserMetrics = await page.evaluate(() => {
     const longTasks = window.__mvOrganizationBenchmark?.longTasks || [];
+    const longTasksAvailable = window.__mvOrganizationBenchmark?.longTasksAvailable === true;
     const byPhase = {};
     for (const task of longTasks) {
       if (!byPhase[task.phase]) byPhase[task.phase] = { count: 0, totalMs: 0, maxMs: 0 };
@@ -375,13 +431,15 @@ async function main() {
     }
     const interactionTasks = longTasks.filter(task => !["navigation", "evidence-screenshot"].includes(task.phase));
     return {
-      longTasks: {
+      longTasksAvailable,
+      longTasks: longTasksAvailable ? {
         count: longTasks.length,
         totalMs: longTasks.reduce((sum, task) => sum + task.duration, 0),
         maxMs: Math.max(0, ...longTasks.map(task => task.duration)),
         byPhase,
-      },
-      maxInteractionLongTaskMs: Math.max(0, ...interactionTasks.map(task => task.duration)),
+      } : null,
+      maxInteractionLongTaskMs: longTasksAvailable ? Math.max(0, ...interactionTasks.map(task => task.duration)) : null,
+      userAgent: navigator.userAgent,
       heapBytes: performance.memory?.usedJSHeapSize ?? null,
       breadcrumbCount: document.querySelectorAll('nav[aria-label*="breadcrumb" i], [aria-label*="breadcrumb" i]').length,
     };
@@ -390,7 +448,7 @@ async function main() {
   await browser.close();
   activeBrowser = null;
   const result = {
-    schema: 1,
+    schema: 2,
     capturedAt: new Date().toISOString(),
     corpus: {
       assets: assetCount,
@@ -422,8 +480,11 @@ async function main() {
       mixedMoveFailureVisible,
       tagPreservationVerified,
       selectedDownloadSuggestedFilename,
-      bulkDeleteBlockedVisible,
-      unexpectedMultiDeleteDialog,
+      bulkTrashRecoverableVisible,
+      bulkTrashSelectionAfterPanelCancel,
+      bulkTrashSelectionAfterDialogCancel,
+      singleTrashRestoreVerified,
+      bulkTrashRestoreVerified,
       singleDeleteConfirmation,
       singleDeleteSelectionAfterCancel,
       folderSearchMs,
@@ -449,7 +510,8 @@ async function main() {
     if (result.browser.exactSearchMs >= 300) failures.push(`exact search took ${result.browser.exactSearchMs.toFixed(1)} ms`);
     if (result.browser.folderSearchMs >= 300) failures.push(`folder search took ${result.browser.folderSearchMs.toFixed(1)} ms`);
     if (result.browser.folderOpenMs >= 300) failures.push(`folder open took ${result.browser.folderOpenMs.toFixed(1)} ms`);
-    if (result.browser.maxInteractionLongTaskMs > 50) failures.push(`organization interaction long task reached ${result.browser.maxInteractionLongTaskMs.toFixed(1)} ms`);
+    if (!result.browser.longTasksAvailable) failures.push("Long Tasks API unavailable; Chromium timing cannot be qualified");
+    else if (result.browser.maxInteractionLongTaskMs > 50) failures.push(`organization interaction long task reached ${result.browser.maxInteractionLongTaskMs.toFixed(1)} ms`);
   }
   if (result.browser.selectedAfterLoadMore !== 2 || result.browser.selectedBeforeFilter !== 2 || result.browser.selectedAfterFilter !== 0) {
     failures.push("selection was not preserved by load-more and cleared by filter scope");
@@ -463,10 +525,11 @@ async function main() {
   if (result.browser.mixedMoveSelectedAfter !== 1 || !result.browser.mixedMoveFailureVisible) failures.push("mixed move did not retain and explain the failed ID");
   if (!result.browser.tagPreservationVerified) failures.push("bulk tag mutation replaced unrelated tags");
   if (!result.browser.selectedDownloadSuggestedFilename.endsWith(".zip")) failures.push("selected download did not produce a ZIP");
-  if (!result.browser.bulkDeleteBlockedVisible || result.browser.unexpectedMultiDeleteDialog) failures.push("permanent multi-delete was not blocked");
-  if (!result.browser.singleDeleteConfirmation.includes("primary and supporting files") || result.browser.singleDeleteSelectionAfterCancel !== 1) {
-    failures.push("single-delete confirmation/cancel contract failed");
+  if (!result.browser.bulkTrashRecoverableVisible || result.browser.bulkTrashSelectionAfterPanelCancel !== 2 || result.browser.bulkTrashSelectionAfterDialogCancel !== 2) failures.push("bulk Trash cancellation/recoverability contract failed");
+  if (!result.browser.singleDeleteConfirmation.includes("You can restore it later") || result.browser.singleDeleteSelectionAfterCancel !== 1) {
+    failures.push("single-Trash confirmation/cancel contract failed");
   }
+  if (!result.browser.singleTrashRestoreVerified || !result.browser.bulkTrashRestoreVerified) failures.push("Trash/restore identity and byte contract failed");
   if (failures.length) throw new Error(`Organization benchmark failed:\n- ${failures.join("\n- ")}`);
 }
 

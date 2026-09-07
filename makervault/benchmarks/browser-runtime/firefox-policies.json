@@ -1,0 +1,7 @@
+{
+  "policies": {
+    "Certificates": {
+      "Install": ["/fixture/server.crt"]
+    }
+  }
+}

@@ -79,7 +79,7 @@ function createNetworkTracker(page) {
 
 async function installBrowserMetrics(page) {
   await page.addInitScript(() => {
-    window.__mvBenchmark = { longTasks: [], drifts: [], lastTick: performance.now() };
+    window.__mvBenchmark = { longTasks: [], longTasksAvailable: false, drifts: [], lastTick: performance.now() };
     const interval = 50;
     setInterval(() => {
       const now = performance.now();
@@ -87,11 +87,13 @@ async function installBrowserMetrics(page) {
       window.__mvBenchmark.lastTick = now;
     }, interval);
     try {
+      if (!PerformanceObserver.supportedEntryTypes.includes("longtask")) return;
       new PerformanceObserver(list => {
         for (const entry of list.getEntries()) {
           window.__mvBenchmark.longTasks.push({ startTime: entry.startTime, duration: entry.duration });
         }
       }).observe({ type: "longtask", buffered: true });
+      window.__mvBenchmark.longTasksAvailable = true;
     } catch {}
   });
 }
@@ -157,7 +159,7 @@ async function collectPhase(page, tracker, phase, timing, samples, timedOut) {
       deviceMemoryGiB: navigator.deviceMemory ?? null,
       webglVendor: debug && gl ? gl.getParameter(debug.UNMASKED_VENDOR_WEBGL) : null,
       webglRenderer: debug && gl ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : null,
-      longTasks: metrics.longTasks,
+      longTasks: metrics.longTasksAvailable ? metrics.longTasks : null,
       drifts: metrics.drifts,
       images: document.querySelectorAll('[title="Double-click to open large preview"] img').length,
       previewStates,
@@ -165,7 +167,7 @@ async function collectPhase(page, tracker, phase, timing, samples, timedOut) {
   });
   const network = tracker.data(phase);
   const kinds = kind => network.requests.filter(request => request.kind === kind).length;
-  const longDurations = browser.longTasks.map(task => task.duration);
+  const longDurations = browser.longTasks?.map(task => task.duration);
   return {
     ...timing,
     timedOut,
@@ -188,11 +190,11 @@ async function collectPhase(page, tracker, phase, timing, samples, timedOut) {
       p95: percentile(browser.drifts, 0.95),
       max: Math.max(0, ...browser.drifts),
     },
-    longTasks: {
+    longTasks: longDurations ? {
       count: longDurations.length,
       totalMs: longDurations.reduce((sum, value) => sum + value, 0),
       maxMs: Math.max(0, ...longDurations),
-    },
+    } : null,
     heap: {
       samples: samples.heap.length,
       startBytes: samples.heap[0] ?? null,
@@ -250,7 +252,7 @@ async function runDetailProbe(page, tracker, asset) {
   }, undefined, { timeout: 30_000 });
   const state = await viewer.getAttribute("data-detail-preview-state");
   const loadMs = performance.now() - started;
-  const longTasks = await page.evaluate(() => window.__mvBenchmark?.longTasks || []);
+  const longTasks = await page.evaluate(() => window.__mvBenchmark?.longTasksAvailable ? window.__mvBenchmark.longTasks : null);
   const network = tracker.data("detail");
   await page.getByRole("button", { name: "Close" }).first().click();
   return {
@@ -259,10 +261,10 @@ async function runDetailProbe(page, tracker, asset) {
     loadMs,
     originalFileRequests: network.requests.filter(request => request.kind === "file").length,
     maxActiveFileRequests: network.maxActiveFileRequests,
-    longTasks: {
+    longTasks: longTasks ? {
       count: longTasks.length,
       maxMs: Math.max(0, ...longTasks.map(task => task.duration)),
-    },
+    } : null,
   };
 }
 
@@ -312,7 +314,7 @@ async function runLightBurnProbe(page, tracker, token) {
   }
   if (!persisted?.thumb_url) throw new Error("LightBurn probe thumbnail did not persist");
   const coldNetwork = tracker.data("lightburn");
-  const longTasks = await page.evaluate(() => window.__mvBenchmark?.longTasks || []);
+  const longTasks = await page.evaluate(() => window.__mvBenchmark?.longTasksAvailable ? window.__mvBenchmark.longTasks : null);
 
   tracker.setPhase("lightburnWarm");
   await page.reload({ waitUntil: "domcontentloaded" });
@@ -326,10 +328,10 @@ async function runLightBurnProbe(page, tracker, token) {
     coldOriginalFileRequests: coldNetwork.requests.filter(request => request.kind === "file").length,
     generatedThumbnailUploads: coldNetwork.requests.filter(request => request.kind === "thumbnail-upload").length,
     warmOriginalFileRequests: warmNetwork.requests.filter(request => request.kind === "file").length,
-    longTasks: {
+    longTasks: longTasks ? {
       count: longTasks.length,
       maxMs: Math.max(0, ...longTasks.map(task => task.duration)),
-    },
+    } : null,
   };
 }
 
