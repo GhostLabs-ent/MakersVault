@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-09-08T22:47:53.583Z",
+  "checks": [
+    "restore: late assets cannot replace the new search",
+    "restore: late tags cannot replace the new search",
+    "restore: late assets 401 cannot replace the new search",
+    "old pagination cannot append into a newer search",
+    "pagination uses the applied query, not unsubmitted text",
+    "unmounted grid ignores its stale authorization failure",
+    "current authorization failure still requires sign-in"
+  ],
+  "status": "passed"
+}

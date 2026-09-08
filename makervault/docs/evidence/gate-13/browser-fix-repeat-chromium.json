@@ -1,0 +1,126 @@
+{
+  "schema": 3,
+  "capturedAt": "2026-09-08T22:52:30.235Z",
+  "corpus": {
+    "assets": 600,
+    "folders": 104,
+    "roots": 8,
+    "branches": 32,
+    "leaves": 64,
+    "depth": 3,
+    "seedMs": 23506.033606
+  },
+  "api": {
+    "firstPage": {
+      "path": "/assets?limit=25&offset=0",
+      "itemCount": 25,
+      "latencyMs": {
+        "samples": 20,
+        "p50": 11.806821000001946,
+        "p95": 15.711931000001641,
+        "max": 15.711931000001641
+      }
+    },
+    "exactSearch": {
+      "path": "/assets?limit=25&offset=0&q=Fixture%200595",
+      "itemCount": 1,
+      "latencyMs": {
+        "samples": 20,
+        "p50": 6.700733000001492,
+        "p95": 9.190582000002905,
+        "max": 9.190582000002905
+      }
+    },
+    "folderPage": {
+      "path": "/assets?limit=25&offset=0&folder_id=2c4a0d7e-510a-4abd-9cfa-bcd3fd77579e",
+      "itemCount": 9,
+      "latencyMs": {
+        "samples": 20,
+        "p50": 6.7569580000017595,
+        "p95": 9.865235000001121,
+        "max": 9.865235000001121
+      }
+    },
+    "folders": {
+      "path": "/folders",
+      "itemCount": 104,
+      "latencyMs": {
+        "samples": 20,
+        "p50": 14.999544999998761,
+        "p95": 16.06730299999981,
+        "max": 16.06730299999981
+      }
+    }
+  },
+  "browser": {
+    "engine": "chromium",
+    "performanceBudgetEnforced": true,
+    "firstCardsMs": 1433.1999999999534,
+    "firstCardsWaitReturnMs": 1445.725215999999,
+    "firstVisibleCard": {
+      "schema": 1,
+      "clock": "navigation",
+      "atMs": 1433.1999999999534,
+      "submittedAtMs": 184.5999999998603
+    },
+    "startupBreakdown": {
+      "documentMs": 64.1989059999978,
+      "formWaitMs": 50.02354700000069,
+      "formFillMs": 24.713721000000078,
+      "signInClickMs": 52.833591999999044,
+      "afterClickToCardsMs": 1329.922977000002,
+      "includesLoginAutomation": true
+    },
+    "initialCardCount": 20,
+    "loadMoreMs": 238.68965599999865,
+    "loadedCardCount": 40,
+    "selectedAfterLoadMore": 2,
+    "exactSearchMs": 90.50846000000092,
+    "exactSearchResultCount": 1,
+    "selectedBeforeFilter": 2,
+    "selectedAfterFilter": 0,
+    "visibleBulkToolbarBeforeFilter": 1,
+    "preparedSummaryVisible": true,
+    "supportingDocumentVisible": true,
+    "preparedPayloadLinkCount": 0,
+    "mixedMoveSelectedAfter": 1,
+    "mixedMoveFailureVisible": true,
+    "tagPreservationVerified": true,
+    "selectedDownloadSuggestedFilename": "makersvault.zip",
+    "bulkTrashRecoverableVisible": true,
+    "bulkTrashSelectionAfterPanelCancel": 2,
+    "bulkTrashSelectionAfterDialogCancel": 2,
+    "singleTrashRestoreVerified": true,
+    "bulkTrashRestoreVerified": true,
+    "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+    "singleDeleteSelectionAfterCancel": 1,
+    "folderSearchMs": 108.346118999998,
+    "visibleFolderRows": 3,
+    "folderOpenMs": 125.5687539999999,
+    "folderCardCount": 9,
+    "childFolderEmptyStateVisible": true,
+    "breadcrumbAncestorNavigationVisible": true,
+    "longTasksAvailable": true,
+    "longTasks": {
+      "count": 2,
+      "totalMs": 768,
+      "maxMs": 713,
+      "byPhase": {
+        "navigation": {
+          "count": 1,
+          "totalMs": 713,
+          "maxMs": 713
+        },
+        "folder-navigation": {
+          "count": 1,
+          "totalMs": 55,
+          "maxMs": 55
+        }
+      }
+    },
+    "maxInteractionLongTaskMs": 55,
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+    "heapBytes": 23253425,
+    "breadcrumbCount": 1
+  }
+}

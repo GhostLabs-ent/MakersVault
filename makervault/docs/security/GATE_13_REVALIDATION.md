@@ -1,12 +1,12 @@
 # Gate 13 security finding revalidation
 
-**Date:** 2026-09-06
+**Date:** 2026-09-08
 
-**Status:** 13A–13B accepted; approved 13C maintenance/archive guard verified;
+**Status:** 13A–13B accepted; approved 13C maintenance/archive/browser corrections verified;
 browser qualification and advisory dispositions open, not release clearance
 
 **Baseline:** audit entry `236c0fd` / application `1a209aa`; current verification
-`ddf8cf4` after approved maintenance/archive guard, schema 17 unchanged
+`1255933` after approved browser corrections, schema 17 unchanged
 
 This is the current-development disposition of all sixteen findings from the
 [original security review](../MakersVault_v5.1_Security_Analysis.md). The
@@ -29,6 +29,17 @@ smoke pass at `84b020d`. The subsequently approved
 at `ddf8cf4` (351 API / 45 web tests) and preserves original prepared bytes.
 Remaining findings in the [residual review](../evidence/gate-13/REMEDIATION_RESIDUALS.md)
 are not waived; the interpreter inventory still includes the mitigated read-path issue.
+
+The [browser correction record](../evidence/gate-13/BROWSER_FIX_RESULTS.md) adds a
+full-gate/HTTPS lifecycle repeat at `1255933` (351 API / 51 web tests), old-image
+negative control and seven passing request-order cases. Stale grid errors are
+ignored only when superseded/departed; current 401 still requires sign-in. All
+three engines pass fixture HTTPS and hostname-negative checks; Firefox now
+completes organization workflows. Trust changes are disposable tooling, not a
+production authentication or certificate-validation relaxation. Corrected timing
+still records Chromium startup/interaction budget failures. The
+[exact-image rescan](../evidence/gate-13/browser-fix-audit.json)
+retains 181 API / 3 web matches, with no waiver or release clearance.
 
 ## Finding-by-finding disposition
 
@@ -72,8 +83,10 @@ tests. Review them at 13C and explicitly disposition them at 13D. Existing accep
 restrictions continue; this audit does not silently accept a new risk.
 
 - **G13-01–03:** 13B repairs stale authentication/schema contracts and proves the
-  current lifecycle; 13C still owns the complete browser/mount/corpus and selected-
-  release matrix. No auth or production policy was weakened to repair a harness.
+  current lifecycle; approved 13C corrections prove request ordering, Firefox trust
+  and current functional browser/mount/corpus workflows. Chromium performance and
+  the selected-release/platform matrix remain open. No auth or production policy
+  was weakened to repair a harness.
 - **G13-04:** approved targeted web/installer/runtime refresh passes the complete
   gate. Refreshed language locks report no advisories; image scans retain 181 API /
   3 web package matches. Explicit PSF branch ranges exclude seven interpreter

@@ -1,0 +1,18 @@
+{
+  "firstCardsMs": 1335,
+  "firstCardsWaitReturnMs": 1792.208418000002,
+  "firstVisibleCard": {
+    "schema": 1,
+    "clock": "navigation",
+    "atMs": 1335,
+    "submittedAtMs": 898
+  },
+  "startupBreakdown": {
+    "documentMs": 364.9703929999996,
+    "formWaitMs": 89.56604800000059,
+    "formFillMs": 225.9737430000023,
+    "signInClickMs": 253.686440999998,
+    "afterClickToCardsMs": 913.820509000001,
+    "includesLoginAutomation": true
+  }
+}

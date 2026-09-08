@@ -4,6 +4,10 @@
 Runs were captured 2026-09-07 UTC (2026-09-06 America/New_York).
 Only verification tooling changed after the approved archive guard.
 
+This record is historical. The subsequently owner-approved grid/trust/measurement
+corrections and new failed/passing observations are in
+[browser correction results](BROWSER_FIX_RESULTS.md); attempts A–D below remain intact.
+
 ## Identity and method
 
 Application source is clean `ddf8cf4b41cf261e6129fcdace0f789feb573cce`, schema 17.

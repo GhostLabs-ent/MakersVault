@@ -2,9 +2,9 @@
 
 **Opened:** 2026-09-06, following owner acceptance of 13B at `2f61b37`.
 
-**Status:** IN PROGRESS — MAINTENANCE AND ARCHIVE GUARD VERIFIED;
-current browser qualification has an initial-load budget failure. See
-[archive guard evidence](ARCHIVE_GUARD_RESULTS.md). No release scope
+**Status:** IN PROGRESS — MAINTENANCE, ARCHIVE GUARD AND APPROVED BROWSER CORRECTIONS VERIFIED;
+current browser qualification retains startup/interaction budget failures. See
+[browser correction evidence](BROWSER_FIX_RESULTS.md). No release scope
 or replacement candidate selected. This is not a request to accept or close 13C.
 
 **Entry verification:** `2c68d70`; accepted 13B evidence `2f61b37`. Application
@@ -143,10 +143,24 @@ All work stays local; no push/tag/publication/deployment.
 
 ### Still outstanding
 
-The current browser matrix is **not qualified**: initial-load budget failure,
-restore/search visibility timeout and Firefox TLS fixture failure remain open.
-Successful preview/cache/mount probes are bounded evidence, not a blanket browser
-pass. Historical timing is not reused. Physical-device and native-workstation
+The owner subsequently approved the diagnosed grid, fixture trust and timing
+corrections. Full verification at clean `1255933` passes **351 API / 51 web tests**,
+19 Python / 10 Node harness tests and the joined HTTPS lifecycle. The old build
+fails the new race negative control; the fixed build passes all seven cases.
+Firefox now passes TLS and organization workflows. See the
+[new record](BROWSER_FIX_RESULTS.md) and its immutable image identities.
+The same images' [fresh rescan](browser-fix-audit.json) retains 181 API / 3 web
+matches; all reduced records equal the prior inventory and remain unwaived.
+
+The current browser matrix is still **not performance-qualified**: Chromium A
+records first cards at 584.4 ms but a 56 ms load-more long task; repeat B records
+1433.2 ms first cards, a 713 ms navigation long task and a 55 ms folder-navigation
+long task. The <1000 ms / ≤50 ms limits are unchanged. Request visibility and
+Firefox trust corrections are verified, not still awaiting repair. Profiling and
+an evidence-backed optimization proposal are next; no root-cause function is yet
+established for the remaining stalls. Successful three-engine functional and
+preview/cache/mount probes are bounded evidence, not a blanket performance pass.
+Historical timing is not reused. Physical-device and native-workstation
 availability has been requested; no answer or platform limitation is assumed.
 Release scope/revision, matched distribution qualification, final 13C acceptance
 and 13D end-state review remain owner checkpoints. Gate 12 remains desktop-deferred

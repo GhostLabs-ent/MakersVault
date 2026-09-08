@@ -13,6 +13,21 @@ printer controller, or multi-user cloud service.
 
 ## Highlights
 
+### Library request ordering and browser verification (Gate 13C)
+
+- Fixed older asset/tag responses replacing newer search results, including after
+  Trash restore. Stale pagination or departed-view errors cannot overwrite the
+  current view; paging retains the applied query until new text is submitted.
+- Added deterministic browser regressions, including a failing old-build control
+  and preserved current sign-in enforcement. Firefox now completes the trusted
+  disposable-HTTPS workflow without certificate bypasses or host trust changes.
+- First-card visibility is measured in the browser, with the old wait duration
+  retained separately. This is a measurement correction, not a claimed speedup.
+- Full verification passes at `1255933`: 351 API / 51 web tests and current HTTPS
+  recovery lifecycle. Chromium startup/interaction budget misses remain open;
+  no release/performance clearance is claimed. See
+  [browser correction evidence](evidence/gate-13/BROWSER_FIX_RESULTS.md).
+
 ### Local dependency/runtime maintenance (Gate 13C)
 
 - Patched the reviewed ZIP64 dependency issue with bounded regression coverage;

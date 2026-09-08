@@ -1,0 +1,155 @@
+{
+  "schema": 2,
+  "capturedAt": "2026-09-08T22:51:00.837Z",
+  "corpus": {
+    "fixtureCount": 20,
+    "totalBytes": 66037534,
+    "expectedColdFileParses": 16,
+    "persistedThumbnailsAfterColdRun": 14,
+    "expectedWarmFileParses": 0
+  },
+  "cold": {
+    "cardsReadyMs": 1050.9382649999998,
+    "settledMs": 6070.96586,
+    "timedOut": false,
+    "requestCounts": {
+      "files": 16,
+      "thumbnails": 0,
+      "generatedThumbnailUploads": 12
+    },
+    "originalFileRequests": [
+      "/api/file/0ce9d95e-c983-44ce-99d5-6c5dcfe14a2e/02-small-binary.stl",
+      "/api/file/a9ec605e-75af-40a4-ace5-72face872f38/03-small-grid.stl",
+      "/api/file/f071a8a8-fc8c-42dd-96ec-49f7fdcc14fc/01-small-ascii.stl",
+      "/api/file/9e2e5592-ad65-4442-8fca-e2e4a91a24d6/04-small-detailed.stl",
+      "/api/file/c260eb4b-8438-4532-9af2-722e333a12b3/08-large-250k.stl",
+      "/api/file/6ef06d60-b6e7-4788-88a9-32c3a4105433/05-medium-25k.stl",
+      "/api/file/3140cd33-2d04-4eed-b5d8-6a00a134bd20/07-medium-100k.stl",
+      "/api/file/ebe84103-9b89-415f-9efb-f727e8e4b05b/06-medium-50k.stl",
+      "/api/file/194f322e-206d-46a7-9e0c-d92559f2896a/10-multipart-10k.obj",
+      "/api/file/31e28bc6-057e-4b9e-94de-b701c7a3c109/11-multipart-50k.obj",
+      "/api/file/790cb4f2-65c3-49dc-9ab4-59bdb12e1c13/12-multipart-100k.obj",
+      "/api/file/a2a3599f-1ba4-4118-9843-36edea97d438/13-multibody-10k.3mf",
+      "/api/file/f4011713-21f6-4826-9c53-866ee23ee44c/14-multiplate-50k.3mf",
+      "/api/file/23d06ac5-9d0b-410d-89f4-755b9990f290/19-malformed-mesh.obj",
+      "/api/file/38cd4554-b9a5-417c-9f58-4552f856bf67/17-malformed-truncated.stl",
+      "/api/file/c25cc760-bff9-4745-a8c2-e4d05666b243/18-malformed-archive.3mf"
+    ],
+    "maxActiveFileRequests": 1,
+    "responseRoundTripMs": {
+      "samples": 59,
+      "p95": 6.949966000000131,
+      "max": 40.54971700000033
+    },
+    "eventLoopDriftMs": {
+      "samples": 122,
+      "p95": 1,
+      "max": 9.400000000139698
+    },
+    "longTasks": {
+      "count": 0,
+      "totalMs": 0,
+      "maxMs": 0
+    },
+    "heap": {
+      "samples": 59,
+      "startBytes": 578986,
+      "endBytes": 7328836,
+      "peakBytes": 10240552
+    },
+    "visiblePreviewState": {
+      "images": 14,
+      "skipped": 3,
+      "failed": 3
+    },
+    "browser": {
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "hardwareConcurrency": 16,
+      "deviceMemoryGiB": 32,
+      "webglVendor": "Google Inc. (Google)",
+      "webglRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    }
+  },
+  "warm": {
+    "cardsReadyMs": 210.12834199999998,
+    "settledMs": 4760.900455000001,
+    "timedOut": false,
+    "requestCounts": {
+      "files": 0,
+      "thumbnails": 0,
+      "generatedThumbnailUploads": 0
+    },
+    "originalFileRequests": [],
+    "maxActiveFileRequests": 0,
+    "responseRoundTripMs": {
+      "samples": 47,
+      "p95": 7.041903999999704,
+      "max": 21.75756100000035
+    },
+    "eventLoopDriftMs": {
+      "samples": 95,
+      "p95": 0.6999999999534339,
+      "max": 21.5
+    },
+    "longTasks": {
+      "count": 0,
+      "totalMs": 0,
+      "maxMs": 0
+    },
+    "heap": {
+      "samples": 47,
+      "startBytes": 7885591,
+      "endBytes": 12351558,
+      "peakBytes": 12352242
+    },
+    "visiblePreviewState": {
+      "images": 14,
+      "skipped": 3,
+      "failed": 3
+    },
+    "browser": {
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "hardwareConcurrency": 16,
+      "deviceMemoryGiB": 32,
+      "webglVendor": "Google Inc. (Google)",
+      "webglRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    }
+  },
+  "detail": {
+    "modelName": "01-small-ascii",
+    "state": "ready",
+    "loadMs": 391.19732099999965,
+    "originalFileRequests": 1,
+    "maxActiveFileRequests": 1,
+    "longTasks": {
+      "count": 0,
+      "maxMs": 0
+    }
+  },
+  "lightburn": {
+    "state": "ready",
+    "coldOriginalFileRequests": 1,
+    "generatedThumbnailUploads": 1,
+    "warmOriginalFileRequests": 0,
+    "longTasks": {
+      "count": 0,
+      "maxMs": 0
+    }
+  },
+  "consoleErrors": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    }
+  ],
+  "browserDiagnostics": [
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x7c401aa7600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x7c401aa7600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+    }
+  ]
+}

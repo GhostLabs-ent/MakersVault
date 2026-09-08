@@ -1,0 +1,149 @@
+{
+  "notice": "Generated-fixture public artifact hashes for failed corrected-browser attempts A/B and the expected-failing old-build negative control. No private keys, cookies or fixture environment files included.",
+  "artifacts": [
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/mount-chromium/baseline.json",
+      "sha256": "a39c1e93f2a306233167be6ef2b6e5d0d648baf680753c62a9f9ecc83cb86d78"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/mount-chromium/stderr.txt",
+      "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/mount-chromium/stdout.txt",
+      "sha256": "d31883b3894ce1c18aa3f5d6f0af7f2d833a3ab73524010c994112d1385e5fb2"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/ordering-chromium/baseline.json",
+      "sha256": "b4c5c17c1b4c907d6914d611185011fd83eec52b73c4ae1164c3de8408e867e8"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/ordering-chromium/stderr.txt",
+      "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/ordering-chromium/stdout.txt",
+      "sha256": "bb784945db42d9bedf864a48d80bb7f5d68946034484ffe1e6c1abef090a8a91"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/organization-chromium/baseline.json",
+      "sha256": "639898c06b3ab315031a199edaadd4fc26f7e8768fddfc2824074fd9810f5e9b"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/organization-chromium/selection-toolbar-chromium.png",
+      "sha256": "2c9d9722cb08d7e45bebf4b341720a4f7c547e88d3b0d5a63c79c0e5154e6f82"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/organization-chromium/startup-chromium.json",
+      "sha256": "e5b9f96ff388c261de09082f23675105fad35f598cf36ca06e5b3f704b1d7001"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/organization-chromium/stderr.txt",
+      "sha256": "ece745db45daf5bf476d21071b44406bd6c8404b6660c9c965823dc0d10aef15"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/organization-chromium/stdout.txt",
+      "sha256": "283ec34ea3e179cbd256c09d1cf5382d87b1cf0a7d0267783c61f1b109fd7bed"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/organization-firefox/baseline.json",
+      "sha256": "027ff199152aff5355b322cc0e9364dcd41230c6a67e8f26a5fcb5fb39d9a6a7"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/organization-firefox/selection-toolbar-firefox.png",
+      "sha256": "04c8169d850e448f5d74e6aad5ac77613614161530b6c215c16b077749039792"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/organization-firefox/startup-firefox.json",
+      "sha256": "c5a0aca8670ecd0d6ca165034e9efa85cf5bf7a58f998466140a469c04b1af9b"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/organization-firefox/stderr.txt",
+      "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/organization-firefox/stdout.txt",
+      "sha256": "eb6cb0cf71bf13f0bc7aa9cf13f57c657c2db1fa755e3c347e417debe3fc6442"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/organization-webkit/baseline.json",
+      "sha256": "9e0c441c0d47a79ed6c73928a03fc3a0a20e1737f72309f3c2a7af0652e07f35"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/organization-webkit/selection-toolbar-webkit.png",
+      "sha256": "d748378938e7bcce34fb0433275d642a9b29de03b878336fd2f4a0d0dc6e064c"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/organization-webkit/startup-webkit.json",
+      "sha256": "c8bfa971988a666797521913e13861bc50659fe23b4ed03dd47e6a93427caff1"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/organization-webkit/stderr.txt",
+      "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/organization-webkit/stdout.txt",
+      "sha256": "37ec380d43bf17131c60f3033271ff623cbb310d8c6974a9a722c1ef550efecf"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/preview-chromium/baseline.json",
+      "sha256": "3fa8a7abf4325650daded7534c85c024f66ff6664d03fc1aecb9dbe4263e63b8"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/preview-chromium/corpus-manifest.json",
+      "sha256": "5aa09697e8dc1255899c55e6a5fbfbd70546c04a541b1d4bcd3826459a46f3d2"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/preview-chromium/stderr.txt",
+      "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/preview-chromium/stdout.txt",
+      "sha256": "8ba0cb374d46ff7ca618f179a76e8f754d540cd92f3f1140fcde86d1304e412c"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908a/summary.json",
+      "sha256": "b8fe96a7b5ecddd0e217911f0e5a5ac4555c6110998beca82e6e8fb1915b9fd5"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908b/organization-chromium/baseline.json",
+      "sha256": "4803494bb9305921b6c331a4c7ed1d663892e194718731871ba9ac884389a456"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908b/organization-chromium/selection-toolbar-chromium.png",
+      "sha256": "bfab8d1bf5f12e81ef45c6ad11604ce45370dd5c7f310ed000291bd412660311"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908b/organization-chromium/startup-chromium.json",
+      "sha256": "9338178bd7a278b94ae2e7a63096674b2fd39e73a1c948aea473ee10eab0b90a"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908b/organization-chromium/stderr.txt",
+      "sha256": "c06afd3b7aca0886aab90cebc0ec347ddbb83986f8c80dd118b5536c3ac0366f"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908b/organization-chromium/stdout.txt",
+      "sha256": "3a440564c99804254c5d5139a26c0d87101489918d896a10e08aa193eb6b25e0"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-0908b/summary.json",
+      "sha256": "1c4da160ac4a5852b74605adf4dfddc041c6e77b10d2ea481ef70b164244b064"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-negative-0908a/ordering-chromium/baseline.json",
+      "sha256": "13833d9e2797b14c0b79a16cd538336b4b5fd6d84ba01ac3209c8d5f412159e9"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-negative-0908a/ordering-chromium/stderr.txt",
+      "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-negative-0908a/ordering-chromium/stdout.txt",
+      "sha256": "30d1163d5e641d13096fbdcf9392d136524e723ea511e77aa91e1f1f25c80dd3"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-negative-0908a/summary.json",
+      "sha256": "07c74f6308263221b52fb066e200ae9aadc33d26ab8e9e13030aa7e5d12236cd"
+    }
+  ]
+}

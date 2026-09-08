@@ -1,0 +1,328 @@
+{
+  "captured_at": "2026-09-08T22:52:42.521705+00:00",
+  "images": {
+    "api": {
+      "id": "sha256:3a2f27a3a81a0c1ec6b12d89b7b8ed0cef0275c57f603b351e1897c50dbbca23",
+      "labels": {
+        "org.opencontainers.image.created": "unknown",
+        "org.opencontainers.image.revision": "12559336e6dfdc99b1761b2a62d80616d957020c",
+        "org.opencontainers.image.source": "https://github.com/VincentCinque/MakersVault",
+        "org.opencontainers.image.title": "MakersVault API",
+        "org.opencontainers.image.version": "development-gate13b"
+      }
+    },
+    "web": {
+      "id": "sha256:9758c81b7d068e5e1389c4dda6c811e38e4b209ffb226840872181a4833f05e5",
+      "labels": {
+        "maintainer": "NGINX Docker Maintainers <docker-maint@nginx.com>",
+        "org.opencontainers.image.created": "unknown",
+        "org.opencontainers.image.description": "Unprivileged NGINX Dockerfiles",
+        "org.opencontainers.image.licenses": "Apache-2.0",
+        "org.opencontainers.image.revision": "12559336e6dfdc99b1761b2a62d80616d957020c",
+        "org.opencontainers.image.source": "https://github.com/VincentCinque/MakersVault",
+        "org.opencontainers.image.title": "MakersVault Web",
+        "org.opencontainers.image.url": "https://github.com/nginx/docker-nginx-unprivileged",
+        "org.opencontainers.image.version": "development-gate13b"
+      }
+    }
+  },
+  "lock_sha256": {
+    "api/requirements-build.lock": "d72227a29dc62ea3f688c01aa224673844fad5a15651f5f16969d805122332ad",
+    "api/requirements-dev.lock": "c1d57225e64cbfb3706b8e42ccb6b70cce445b448b3d2ab0fc121022ab8bb5a9",
+    "api/requirements.lock": "21a943baca1c298e9da2967bdb25c86854ab8235d98f5944b1e94d655d4bbd7f",
+    "benchmarks/organization/package-lock.json": "90685f4ed1d4fe25eb1ab4b7a4b58c199d3419f1e2bd9daa1c63fdf2c4fa2da2",
+    "benchmarks/preview/package-lock.json": "2bc7841853ef1546e351a9f653d35bec022e6f63bf015150c14fb3861200c799",
+    "slicer-bridge/go.mod": "49d06f23e0ec7f8e48794df1b7fcce355463df06189a378a10482c55abafe253",
+    "web/package-lock.json": "337c909818318f308c16683c63a674c921b79777c5d67e210d813668dd1bddd7"
+  },
+  "phase": "images",
+  "scans": {
+    "image-api": {
+      "database": {
+        "providers": {
+          "alma": {
+            "captured": "2026-09-08T00:33:39Z",
+            "input": "xxh64:f008ae47448f4509"
+          },
+          "alpine": {
+            "captured": "2026-09-08T00:33:20Z",
+            "input": "xxh64:c49db792c7237644"
+          },
+          "amazon": {
+            "captured": "2026-09-08T00:33:16Z",
+            "input": "xxh64:d9319549a8c42cb4"
+          },
+          "arch": {
+            "captured": "2026-09-08T00:33:24Z",
+            "input": "xxh64:c9e10f96adec0c9b"
+          },
+          "bitnami": {
+            "captured": "2026-09-08T00:33:47Z",
+            "input": "xxh64:4d8880fd09f9bdc7"
+          },
+          "chainguard": {
+            "captured": "2026-09-08T00:33:51Z",
+            "input": "xxh64:f1caa90593ca27c9"
+          },
+          "chainguard-libraries": {
+            "captured": "2026-09-08T00:33:19Z",
+            "input": "xxh64:bf9c89c838336380"
+          },
+          "debian": {
+            "captured": "2026-09-08T00:33:37Z",
+            "input": "xxh64:b7a71fc9db018ff3"
+          },
+          "echo": {
+            "captured": "2026-09-08T00:33:18Z",
+            "input": "xxh64:8fcf12930186f890"
+          },
+          "eol": {
+            "captured": "2026-09-08T00:33:41Z",
+            "input": "xxh64:f158526abf02998b"
+          },
+          "epss": {
+            "captured": "2026-09-08T00:33:48Z",
+            "input": "xxh64:0f323c1e3b01300b"
+          },
+          "fedora": {
+            "captured": "2026-09-08T00:33:25Z",
+            "input": "xxh64:d5a0cf7efc06d416"
+          },
+          "github": {
+            "captured": "2026-09-08T00:33:28Z",
+            "input": "xxh64:f35aa139a84ad9b4"
+          },
+          "govulndb": {
+            "captured": "2026-09-08T00:33:35Z",
+            "input": "xxh64:d6402c1d11c7df09"
+          },
+          "hummingbird": {
+            "captured": "2026-09-08T00:35:29Z",
+            "input": "xxh64:8b4e58d81b1205f7"
+          },
+          "kev": {
+            "captured": "2026-09-08T00:33:13Z",
+            "input": "xxh64:f4617dc88453f1d4"
+          },
+          "mariner": {
+            "captured": "2026-09-08T00:33:31Z",
+            "input": "xxh64:f8a99df13049406b"
+          },
+          "minimos": {
+            "captured": "2026-09-08T00:33:16Z",
+            "input": "xxh64:96d4565452acc91c"
+          },
+          "nvd": {
+            "captured": "2026-09-08T00:34:11Z",
+            "input": "xxh64:3b2900bf889db7a2"
+          },
+          "oracle": {
+            "captured": "2026-09-08T00:33:40Z",
+            "input": "xxh64:34006116486ff6ba"
+          },
+          "photon": {
+            "captured": "2026-09-08T00:33:39Z",
+            "input": "xxh64:9dec86d128c07ac7"
+          },
+          "rhel": {
+            "captured": "2026-09-08T00:34:29Z",
+            "input": "xxh64:420d3ae8c091c434"
+          },
+          "secureos": {
+            "captured": "2026-09-08T00:33:24Z",
+            "input": "xxh64:ee46dc39e523e291"
+          },
+          "sles": {
+            "captured": "2026-09-08T00:33:47Z",
+            "input": "xxh64:edf237c97b0cdacc"
+          },
+          "ubuntu": {
+            "captured": "2026-09-08T00:35:22Z",
+            "input": "xxh64:495d6bcd155b9dcc"
+          },
+          "wolfi": {
+            "captured": "2026-09-08T00:33:50Z",
+            "input": "xxh64:e4bc925579c28e8a"
+          }
+        },
+        "status": {
+          "built": "2026-09-08T06:30:10Z",
+          "from": "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.9_2026-09-08T00:33:13Z_1788849010.tar.zst?checksum=sha256%3A3564b57fd65da3cba50174d9fdab8b4e8dab6f7f7b798ebd3cec3085ea10c7e6",
+          "path": "/cache/6/vulnerability.db",
+          "schemaVersion": "v6.1.9",
+          "valid": true
+        }
+      },
+      "exit_code": 0,
+      "matches": 181,
+      "scanner": "0.118.0",
+      "severity": {
+        "Critical": 7,
+        "High": 61,
+        "Low": 9,
+        "Medium": 51,
+        "Negligible": 45,
+        "Unknown": 8
+      }
+    },
+    "image-web": {
+      "database": {
+        "providers": {
+          "alma": {
+            "captured": "2026-09-08T00:33:39Z",
+            "input": "xxh64:f008ae47448f4509"
+          },
+          "alpine": {
+            "captured": "2026-09-08T00:33:20Z",
+            "input": "xxh64:c49db792c7237644"
+          },
+          "amazon": {
+            "captured": "2026-09-08T00:33:16Z",
+            "input": "xxh64:d9319549a8c42cb4"
+          },
+          "arch": {
+            "captured": "2026-09-08T00:33:24Z",
+            "input": "xxh64:c9e10f96adec0c9b"
+          },
+          "bitnami": {
+            "captured": "2026-09-08T00:33:47Z",
+            "input": "xxh64:4d8880fd09f9bdc7"
+          },
+          "chainguard": {
+            "captured": "2026-09-08T00:33:51Z",
+            "input": "xxh64:f1caa90593ca27c9"
+          },
+          "chainguard-libraries": {
+            "captured": "2026-09-08T00:33:19Z",
+            "input": "xxh64:bf9c89c838336380"
+          },
+          "debian": {
+            "captured": "2026-09-08T00:33:37Z",
+            "input": "xxh64:b7a71fc9db018ff3"
+          },
+          "echo": {
+            "captured": "2026-09-08T00:33:18Z",
+            "input": "xxh64:8fcf12930186f890"
+          },
+          "eol": {
+            "captured": "2026-09-08T00:33:41Z",
+            "input": "xxh64:f158526abf02998b"
+          },
+          "epss": {
+            "captured": "2026-09-08T00:33:48Z",
+            "input": "xxh64:0f323c1e3b01300b"
+          },
+          "fedora": {
+            "captured": "2026-09-08T00:33:25Z",
+            "input": "xxh64:d5a0cf7efc06d416"
+          },
+          "github": {
+            "captured": "2026-09-08T00:33:28Z",
+            "input": "xxh64:f35aa139a84ad9b4"
+          },
+          "govulndb": {
+            "captured": "2026-09-08T00:33:35Z",
+            "input": "xxh64:d6402c1d11c7df09"
+          },
+          "hummingbird": {
+            "captured": "2026-09-08T00:35:29Z",
+            "input": "xxh64:8b4e58d81b1205f7"
+          },
+          "kev": {
+            "captured": "2026-09-08T00:33:13Z",
+            "input": "xxh64:f4617dc88453f1d4"
+          },
+          "mariner": {
+            "captured": "2026-09-08T00:33:31Z",
+            "input": "xxh64:f8a99df13049406b"
+          },
+          "minimos": {
+            "captured": "2026-09-08T00:33:16Z",
+            "input": "xxh64:96d4565452acc91c"
+          },
+          "nvd": {
+            "captured": "2026-09-08T00:34:11Z",
+            "input": "xxh64:3b2900bf889db7a2"
+          },
+          "oracle": {
+            "captured": "2026-09-08T00:33:40Z",
+            "input": "xxh64:34006116486ff6ba"
+          },
+          "photon": {
+            "captured": "2026-09-08T00:33:39Z",
+            "input": "xxh64:9dec86d128c07ac7"
+          },
+          "rhel": {
+            "captured": "2026-09-08T00:34:29Z",
+            "input": "xxh64:420d3ae8c091c434"
+          },
+          "secureos": {
+            "captured": "2026-09-08T00:33:24Z",
+            "input": "xxh64:ee46dc39e523e291"
+          },
+          "sles": {
+            "captured": "2026-09-08T00:33:47Z",
+            "input": "xxh64:edf237c97b0cdacc"
+          },
+          "ubuntu": {
+            "captured": "2026-09-08T00:35:22Z",
+            "input": "xxh64:495d6bcd155b9dcc"
+          },
+          "wolfi": {
+            "captured": "2026-09-08T00:33:50Z",
+            "input": "xxh64:e4bc925579c28e8a"
+          }
+        },
+        "status": {
+          "built": "2026-09-08T06:30:10Z",
+          "from": "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.9_2026-09-08T00:33:13Z_1788849010.tar.zst?checksum=sha256%3A3564b57fd65da3cba50174d9fdab8b4e8dab6f7f7b798ebd3cec3085ea10c7e6",
+          "path": "/cache/6/vulnerability.db",
+          "schemaVersion": "v6.1.9",
+          "valid": true
+        }
+      },
+      "exit_code": 0,
+      "matches": 3,
+      "scanner": "0.118.0",
+      "severity": {
+        "Medium": 3
+      }
+    }
+  },
+  "source_revision": "12559336e6dfdc99b1761b2a62d80616d957020c",
+  "status": "audit_completed_not_release_clearance",
+  "verification_sources_dirty": false,
+  "notice": "Images-only rescan of exact browser/lifecycle images. Language lock hashes unchanged; no new language scan is claimed. Counts are package matches, not demonstrated exploits or waived risks.",
+  "reduced_matches": {
+    "reference": "remediation-image-matches.json",
+    "comparison": "All reduced advisory/package/version/severity/source/namespace/location/match/fix records compared as sorted JSON objects",
+    "api_equal": true,
+    "web_equal": true
+  },
+  "raw_artifacts": [
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-audit-0908a/image-api.json",
+      "sha256": "9f2ad11bbc4b4a9deb57791935d2d23a8f1889cae8d7e4ec179e3b8d31fee3bc"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-audit-0908a/image-api.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-audit-0908a/image-web.json",
+      "sha256": "2019829af8e4b7bdb1b135c02711fddf185dd75a620fc50e86f662b8140ec2a1"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-audit-0908a/image-web.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-audit-0908a/partial-summary.json",
+      "sha256": "9262233cf77e4fc2d56ebcb62064c40bf24a5191daf95e45bad915f49c8b1e67"
+    },
+    {
+      "path": "/tmp/makersvault-g13c-browserfix-audit-0908a/summary.json",
+      "sha256": "308e885ed5b23f704e60f1cd44d16b9a139cbca5188a6444333db108f1a14243"
+    }
+  ]
+}

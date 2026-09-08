@@ -1,0 +1,59 @@
+{
+  "source_revision": "12559336e6dfdc99b1761b2a62d80616d957020c",
+  "verification_sources_dirty": false,
+  "make_verify": {
+    "exit_code": 0,
+    "api_tests": 351,
+    "api_seconds": 147.2,
+    "web_tests": 51,
+    "web_test_files": 14,
+    "web_typecheck_build": "passed (build verification cached; 51 tests also executed directly)",
+    "bridge_tests_build": "passed",
+    "compose_security": "passed",
+    "container_smoke": "passed",
+    "virtual_chromium_passkey_smoke": "passed",
+    "python_harness_tests": 19,
+    "node_tests": 10,
+    "node_session_tests": 5,
+    "node_visibility_tests": 5,
+    "browser_syntax_checks": 5,
+    "release_static_contract": "passed"
+  },
+  "lifecycle_stdout": {
+    "benchmark_session_helper": "passed",
+    "dirty": false,
+    "exact_schema4_rollback": true,
+    "external_availability_normalized": true,
+    "fresh_identity_only": true,
+    "fresh_smoke": {
+      "https_secure_cookie_csrf": true,
+      "logout_revocation": true,
+      "non_root_api_web": true,
+      "restart_bytes": "1455ce259069704cf240787e3ba134426f9d6b04cdc49b7716a824ee905a65f6",
+      "schema": 17
+    },
+    "images": {
+      "api": "sha256:3a2f27a3a81a0c1ec6b12d89b7b8ed0cef0275c57f603b351e1897c50dbbca23",
+      "web": "sha256:9758c81b7d068e5e1389c4dda6c811e38e4b209ffb226840872181a4833f05e5"
+    },
+    "offline_portable_graph_equal": true,
+    "portable_import_schema": 12,
+    "portable_members_compared": 18,
+    "portable_staged_pair_verified": true,
+    "portable_startup_schema": 17,
+    "pre_start_revocation": true,
+    "raw_restore_contract": 6,
+    "refusals": [
+      "nonempty_raw_target",
+      "corrupt_raw_archive",
+      "nonempty_portable_target"
+    ],
+    "revision": "12559336e6dfdc99b1761b2a62d80616d957020c",
+    "startup_audit": true,
+    "startup_preview_reconciliation": "legacy_3mf_pending",
+    "status": "passed",
+    "upgrade": "4-to-17",
+    "version": "development-gate13b"
+  },
+  "notice": "Local development evidence, not selected-release or physical-device qualification. The historical development-gate13b helper label is not the evidence revision."
+}

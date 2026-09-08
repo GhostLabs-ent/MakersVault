@@ -1,0 +1,23 @@
+{
+  "captured_at": "2026-09-08T22:51:46.884877+00:00",
+  "harness_revision": "12559336e6dfdc99b1761b2a62d80616d957020c",
+  "application_revision": "12559336e6dfdc99b1761b2a62d80616d957020c",
+  "application_version": "development-gate13b",
+  "images": {
+    "api": "sha256:3a2f27a3a81a0c1ec6b12d89b7b8ed0cef0275c57f603b351e1897c50dbbca23",
+    "web": "sha256:9758c81b7d068e5e1389c4dda6c811e38e4b209ffb226840872181a4833f05e5"
+  },
+  "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+  "status": "failed",
+  "cases": [
+    {
+      "case": "organization-chromium",
+      "status": "failed",
+      "exit_code": 1,
+      "scope": "workflow assertions (including existing budgets for organization)",
+      "mounted_source_preserved": null,
+      "fixture_certificate_sha256": "c29a3e406c350fa3b8f071fbe1b737273c032db9e26ff1d5d119aaf49bbc41e0"
+    }
+  ],
+  "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+}

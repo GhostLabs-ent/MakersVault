@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-09-08T22:43:36.178Z",
+  "checks": [],
+  "status": "failed",
+  "error": "Expected values to be strictly equal:\n\n20 !== 2\n"
+}

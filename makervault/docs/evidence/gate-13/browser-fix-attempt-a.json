@@ -1,0 +1,63 @@
+{
+  "captured_at": "2026-09-08T22:47:41.526986+00:00",
+  "harness_revision": "12559336e6dfdc99b1761b2a62d80616d957020c",
+  "application_revision": "12559336e6dfdc99b1761b2a62d80616d957020c",
+  "application_version": "development-gate13b",
+  "images": {
+    "api": "sha256:3a2f27a3a81a0c1ec6b12d89b7b8ed0cef0275c57f603b351e1897c50dbbca23",
+    "web": "sha256:9758c81b7d068e5e1389c4dda6c811e38e4b209ffb226840872181a4833f05e5"
+  },
+  "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+  "status": "failed",
+  "cases": [
+    {
+      "case": "ordering-chromium",
+      "status": "passed",
+      "exit_code": 0,
+      "scope": "workflow assertions (including existing budgets for organization)",
+      "mounted_source_preserved": null,
+      "fixture_certificate_sha256": "c757c4843449451099d7ad507063d41f4d62284f414840aa23e6d9479f2e1fbe"
+    },
+    {
+      "case": "organization-chromium",
+      "status": "failed",
+      "exit_code": 1,
+      "scope": "workflow assertions (including existing budgets for organization)",
+      "mounted_source_preserved": null,
+      "fixture_certificate_sha256": "2b46313ae6d23e654526b3b439bedda0779cd4cfa3981928ae294521bec13400"
+    },
+    {
+      "case": "organization-firefox",
+      "status": "passed",
+      "exit_code": 0,
+      "scope": "workflow assertions (including existing budgets for organization)",
+      "mounted_source_preserved": null,
+      "fixture_certificate_sha256": "75dc91429faa9fe7878fee09123e7ec5401a73497ef51c5b562b5e439fe07e50"
+    },
+    {
+      "case": "organization-webkit",
+      "status": "passed",
+      "exit_code": 0,
+      "scope": "workflow assertions (including existing budgets for organization)",
+      "mounted_source_preserved": null,
+      "fixture_certificate_sha256": "71e11ac02094de9e1cd64bd88cbad0d125eb6a7631ca83b934cf89fb1ea2c5d9"
+    },
+    {
+      "case": "preview-chromium",
+      "status": "passed",
+      "exit_code": 0,
+      "scope": "functional probes and metrics collection; preview budgets require review",
+      "mounted_source_preserved": null,
+      "fixture_certificate_sha256": "7c921d081c0fccf96083235dc894572915b787081d764ffe2fba6ce973f4f9e2"
+    },
+    {
+      "case": "mount-chromium",
+      "status": "passed",
+      "exit_code": 0,
+      "scope": "workflow assertions (including existing budgets for organization)",
+      "mounted_source_preserved": true,
+      "fixture_certificate_sha256": "2347f481d4d0d4fd1ac48a6cb3292f0542c203d850be29a46f391dfe68ac04c9"
+    }
+  ],
+  "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+}
