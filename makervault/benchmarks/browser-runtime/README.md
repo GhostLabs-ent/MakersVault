@@ -63,5 +63,17 @@ Use `--workflows` and `--browsers` for a bounded diagnostic subset.
 Historical shell wrappers are not the production-HTTPS evidence entry point.
 No runner action pushes, publishes, tags or deploys a release.
 
+For opt-in diagnostic profiling, add `--workflows organization --browsers chromium
+--profile-chromium`. This retains all workflow assertions and thresholds, but
+instrumented timings are not qualification timings. It records private Chrome
+timeline/CPU profiles, script execution-context identities, phase marks, resource
+timings and available long-animation-frame attribution. Trace loss/missing data
+fails explicitly. Raw traces can contain sensitive fixture context: do not publish
+them; review reduced summaries and hashes instead. Run unprofiled controls on the
+same images separately. Production source, browser flags and host trust are unchanged.
+
+Protocol references: [Chrome tracing](https://chromedevtools.github.io/devtools-protocol/tot/Tracing/)
+and [CPU profiler](https://chromedevtools.github.io/devtools-protocol/tot/Profiler/).
+
 Trust references: [Chromium NSS documentation](https://github.com/chromium/chromium/blob/main/docs/linux/cert_management.md),
 [Firefox certificate policy](https://firefox-admin-docs.mozilla.org/reference/policies/certificates/).

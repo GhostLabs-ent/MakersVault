@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import { chromium, firefox, webkit } from "playwright-core";
 import { loginSession } from "../session-client.mjs";
 import { installFirstVisibleCardProbe } from "../first-visible-card.mjs";
+import { startChromiumProfile, installProfileObservers } from "./chromium-profile.mjs";
 
 const apiUrl = (process.env.MAKERSVAULT_BENCHMARK_API_URL || "http://localhost:18003").replace(/\/$/, "");
 const webUrl = (process.env.MAKERSVAULT_BENCHMARK_WEB_URL || "http://localhost:15176").replace(/\/$/, "");
@@ -17,6 +18,9 @@ const rootCount = 8;
 const branchesPerRoot = 4;
 const leavesPerBranch = 2;
 let activeBrowser = null;
+let activeProfile = null;
+const profileEnabled = process.env.MAKERSVAULT_CHROMIUM_PROFILE === "1";
+if (profileEnabled && browserName !== "chromium") throw new Error("Profiling requires Chromium");
 
 const percentile = (values, ratio) => {
   if (!values.length) return 0;
@@ -225,6 +229,9 @@ async function main() {
   const page = await context.newPage();
   await page.addInitScript(installFirstVisibleCardProbe);
   await mkdir(dirname(outputPath), { recursive: true });
+  if (profileEnabled) {
+    activeProfile = await startChromiumProfile(page, dirname(outputPath));
+  }
   const dialogMessages = [];
   let acceptDialog = null;
   page.on("dialog", async dialog => {
@@ -249,6 +256,18 @@ async function main() {
       window.__mvOrganizationBenchmark.longTasksAvailable = true;
     } catch {}
   });
+
+  if (profileEnabled) {
+    await page.addInitScript({ content: `(() => {
+      const install = ${installProfileObservers.toString()};
+      let value = window.__mvOrganizationBenchmark;
+      Object.defineProperty(window, "__mvOrganizationBenchmark", {
+        configurable: true, get: () => value,
+        set: next => { value = next; install(next); },
+      });
+      if (value) install(value);
+    })();` });
+  }
 
   const navigationStarted = performance.now();
   await page.goto(webUrl, { waitUntil: "domcontentloaded" });
@@ -466,10 +485,26 @@ async function main() {
     };
   });
 
+  if (activeProfile) {
+    const observations = await page.evaluate(() => ({ ...window.__mvProfile,
+      timeOrigin: performance.timeOrigin,
+      resources: performance.getEntriesByType("resource").map(entry => ({
+        path: new URL(entry.name).pathname, initiatorType: entry.initiatorType,
+        startTime: entry.startTime, duration: entry.duration, responseStart: entry.responseStart,
+        responseEnd: entry.responseEnd, transferSize: entry.transferSize,
+      })),
+      dom: { elements: document.querySelectorAll("*").length,
+        options: document.querySelectorAll("option").length },
+    }));
+    await writeFile(resolve(dirname(outputPath), "profile-observations.json"), JSON.stringify(observations, null, 2) + "\n", { flag: "wx", mode: 0o600 });
+    await activeProfile.finish();
+    activeProfile = null;
+  }
   await browser.close();
   activeBrowser = null;
   const result = {
     schema: 3,
+    diagnosticProfile: profileEnabled,
     capturedAt: new Date().toISOString(),
     corpus: {
       assets: assetCount,
@@ -562,5 +597,6 @@ main().catch(error => {
   console.error(error);
   process.exitCode = 1;
 }).finally(async () => {
+  if (activeProfile) await activeProfile.finish().catch(error => console.error("Profile collection failed:", error.message));
   if (activeBrowser) await activeBrowser.close().catch(() => {});
 });
