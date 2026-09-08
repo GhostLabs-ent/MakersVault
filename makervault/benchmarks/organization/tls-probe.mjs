@@ -7,10 +7,9 @@ const url = new URL(origin);
 assert.equal(url.protocol, "https:");
 assert.equal(url.hostname, "vault.example.test");
 const launchOptions = { headless: true };
-// Playwright's patched Firefox ignores distribution policies unless explicitly selected.
-if (engine === "firefox") launchOptions.firefoxUserPrefs = {
-  "browser.policies.alternatePath": "/opt/makersvault-fixture-policies.json",
-};
+// The disposable runtime selects Firefox's trust policy at process startup.
+if (engine === "firefox") assert.equal(process.env.PLAYWRIGHT_FIREFOX_POLICIES_JSON,
+  "/opt/makersvault-fixture-policies.json");
 const browser = await { chromium, firefox, webkit }[engine].launch(launchOptions);
 try {
   const page = await browser.newPage();
@@ -22,7 +21,7 @@ try {
   await assert.rejects(page.goto(wrongHost), /CERT|SSL|certificate|TLS|Unacceptable/i);
   const nodeResponse = await fetch(`${origin}/api/health`);
   assert.equal(nodeResponse.status, 200);
-  await assert.rejects(fetch(wrongHost));
+  await assert.rejects(fetch(wrongHost), error => error.cause?.code === "ERR_TLS_CERT_ALTNAME_INVALID");
   console.log(JSON.stringify({ engine, version: browser.version(), trustedFixture: true, hostnameMismatchRejected: true }));
 } catch (error) {
   console.error("TLS preflight failed:", error.message);

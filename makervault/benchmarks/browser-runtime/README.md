@@ -14,22 +14,24 @@ python3 makervault/scripts/gate13-browser-workflows.py \
 The runner requires committed verification sources, validates image labels and
 records application and harness revisions separately. Every case gets a uniquely
 named production-HTTPS stack, isolated database/storage, fixture credentials and
-new public certificate. No user library or existing Compose project is used.
-Only the public certificate is mounted into the browser container, never its key.
+new fixture CA and separate CA:FALSE server-authentication leaf certificate. No
+user library or existing Compose project is used. Only the public CA certificate
+is mounted into the browser container, never either private key. The TLS proxy
+receives only its leaf, leaf key and configuration, not the fixture signing key.
 Certificate trust is confined to disposable containers. A preflight verifies both
 successful fixture HTTPS and rejection of a mismatched hostname, in the browser
 and Node client. No certificate-error bypass or host trust-store change is used.
 
 The pinned Playwright image supplies Linux headless Chromium, Firefox and WebKit.
 Its small NSS tools addition uses the signed Ubuntu repository. Chromium's NSS
-peer trust and Firefox's certificate-install policy follow their documented Linux
+CA trust and Firefox's certificate-install policy follow their documented Linux
 trust mechanisms; WebKit uses the container trust store. Playwright's patched
-Firefox requires `browser.policies.alternatePath` to select the fixture policy;
-it does not automatically load distribution policies. The runner's Firefox launches
-explicitly select the container-local policy, but the second run still failed TLS
-preflight; policy selection alone is not a demonstrated fix. No certificate
-validation setting is disabled. See the
-[upstream Playwright policy-provider patch](https://github.com/microsoft/playwright/blob/main/browser_patches/firefox/patches/bootstrap.diff).
+Firefox selects the container-local policy through
+`PLAYWRIGHT_FIREFOX_POLICIES_JSON` before startup. Setting the alternate policy
+path through `firefoxUserPrefs` was too late, and serving the old CA certificate
+as a leaf was independently invalid for Firefox. The old failed attempts remain
+in the evidence history. No certificate validation setting is disabled. See the
+[Playwright launch environment documentation](https://github.com/microsoft/playwright/blob/main/docs/src/api/params.md).
 This is not native Safari,
 Windows/macOS, mobile or hardware-passkey coverage.
 
@@ -40,7 +42,19 @@ only its own containers, including after timeouts. Mounted-import cases also
 check that every fixture source byte and the rejected symlink remain unchanged.
 
 Organization runs all three engines and retains its existing assertions/budgets;
-preview and mounted-import workflows use Chromium. Preview exit success means
+request-order regressions, preview and mounted-import workflows use Chromium.
+The ordering fixture delays assets, tags and pagination across searches and view
+changes, including stale versus current authorization errors. It also checks that
+unsubmitted search text cannot change pagination's applied query.
+
+Organization report schema 3 records first-card visibility inside the browser at
+an animation frame, independently of Playwright locator retry timing. It is a
+visible-layout measurement, not physical display presentation. Navigation and
+automated sign-in remain included; the existing Chromium <1000 ms budget is
+unchanged. `firstCardsWaitReturnMs` retains the old driver-observed duration for
+comparison. Missing visibility is null and fails, never an invented zero.
+
+Preview exit success means
 functional probes and metric collection completed, **not** that every measured
 budget passed. Review the stored metrics separately. Missing measurements are
 null, never zero. Keep failed attempts; do not silently substitute a later pass.

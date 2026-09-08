@@ -115,6 +115,29 @@ class SessionClient:
                             headers={"Content-Type": f"multipart/form-data; boundary={boundary}"})
 
 
+def fixture_certificates(directory: Path):
+    """Separate disposable trust anchor and server leaf; never serve a CA as a leaf."""
+    ca, ca_key = directory / "ca.crt", directory / "ca.key"
+    certificate, key = directory / "server.crt", directory / "server.key"
+    csr, extensions = directory / "server.csr", directory / "server.ext"
+    run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1",
+         "-subj", "/CN=MakersVault disposable fixture CA",
+         "-addext", "basicConstraints=critical,CA:TRUE",
+         "-addext", "keyUsage=critical,keyCertSign,cRLSign", "-keyout", ca_key, "-out", ca])
+    ca_key.chmod(0o600)
+    run(["openssl", "req", "-new", "-newkey", "rsa:2048", "-nodes",
+         "-subj", f"/CN={HOST}", "-keyout", key, "-out", csr])
+    key.chmod(0o600)
+    extensions.write_text("basicConstraints=critical,CA:FALSE\n"
+                          "keyUsage=critical,digitalSignature,keyEncipherment\n"
+                          "extendedKeyUsage=serverAuth\n"
+                          f"subjectAltName=DNS:{HOST}\n")
+    run(["openssl", "x509", "-req", "-in", csr, "-CA", ca, "-CAkey", ca_key,
+         "-set_serial", "0x" + uuid4().hex, "-days", "1", "-extfile", extensions,
+         "-out", certificate])
+    return ca, certificate, key
+
+
 class DisposableStack:
     def __init__(self, directory: Path, api_image: str, web_image: str, *, username="gate13", password="gate13-fixture-password", imports=None):
         self.directory = directory
@@ -122,12 +145,7 @@ class DisposableStack:
         self.project = "mv-g13-" + uuid4().hex
         self.env_file = directory / "fixture.env"
         self.overlay = directory / "https.json"
-        self.certificate = directory / "server.crt"
-        key = directory / "server.key"
-        run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1",
-             "-subj", f"/CN={HOST}", "-addext", f"subjectAltName=DNS:{HOST}",
-             "-keyout", key, "-out", self.certificate])
-        key.chmod(0o600)
+        self.certificate, self.server_certificate, key = fixture_certificates(directory)
         if imports is None:
             imports = directory / "imports"
             imports.mkdir()
@@ -171,7 +189,9 @@ http {
         self.overlay.write_text(json.dumps({"services": {"tls": {
             "image": web_image, "user": f"{os.getuid()}:{os.getgid()}",
             "entrypoint": ["nginx", "-c", "/tls/nginx.conf", "-g", "daemon off;"],
-            "volumes": [f"{directory}:/tls:ro"], "ports": ["127.0.0.1::8443"],
+            "volumes": [f"{directory / 'nginx.conf'}:/tls/nginx.conf:ro",
+                        f"{self.server_certificate}:/tls/server.crt:ro",
+                        f"{key}:/tls/server.key:ro"], "ports": ["127.0.0.1::8443"],
         }}}))
         self.origin = None
 

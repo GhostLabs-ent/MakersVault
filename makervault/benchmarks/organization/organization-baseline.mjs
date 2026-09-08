@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { chromium, firefox, webkit } from "playwright-core";
 import { loginSession } from "../session-client.mjs";
+import { installFirstVisibleCardProbe } from "../first-visible-card.mjs";
 
 const apiUrl = (process.env.MAKERSVAULT_BENCHMARK_API_URL || "http://localhost:18003").replace(/\/$/, "");
 const webUrl = (process.env.MAKERSVAULT_BENCHMARK_WEB_URL || "http://localhost:15176").replace(/\/$/, "");
@@ -218,15 +219,11 @@ async function main() {
   const launchOptions = browserName === "chromium"
     ? { headless: true, args: ["--enable-precise-memory-info"] }
     : { headless: true };
-  if (browserName === "firefox" && webUrl.startsWith("https://vault.example.test:")) {
-    launchOptions.firefoxUserPrefs = {
-      "browser.policies.alternatePath": "/opt/makersvault-fixture-policies.json",
-    };
-  }
   const browser = await browserType.launch(launchOptions);
   activeBrowser = browser;
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
+  await page.addInitScript(installFirstVisibleCardProbe);
   await mkdir(dirname(outputPath), { recursive: true });
   const dialogMessages = [];
   let acceptDialog = null;
@@ -264,7 +261,10 @@ async function main() {
   await page.getByRole("button", { name: "Sign in" }).click();
   const signInClicked = performance.now();
   await page.locator('[title="Double-click to open large preview"]').first().waitFor({ timeout: 30_000 });
-  const firstCardsMs = performance.now() - navigationStarted;
+  const firstCardsWaitReturnMs = performance.now() - navigationStarted;
+  await page.waitForFunction(() => Number.isFinite(window.__mvFirstVisibleCard?.atMs), undefined, { timeout: 30_000 });
+  const firstVisibleCard = await page.evaluate(() => window.__mvFirstVisibleCard);
+  const firstCardsMs = firstVisibleCard.atMs;
   const startupBreakdown = {
     documentMs: documentLoaded - navigationStarted,
     formWaitMs: loginFormVisible - documentLoaded,
@@ -275,7 +275,7 @@ async function main() {
   };
   // Preserve startup diagnostics even if a later workflow assertion aborts the report.
   await writeFile(resolve(dirname(outputPath), `startup-${browserName}.json`),
-    `${JSON.stringify({ firstCardsMs, startupBreakdown }, null, 2)}\n`, "utf8");
+    `${JSON.stringify({ firstCardsMs, firstCardsWaitReturnMs, firstVisibleCard, startupBreakdown }, null, 2)}\n`, "utf8");
   const initialCardCount = await page.locator('[title="Double-click to open large preview"]').count();
 
   await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "selection"; });
@@ -469,7 +469,7 @@ async function main() {
   await browser.close();
   activeBrowser = null;
   const result = {
-    schema: 2,
+    schema: 3,
     capturedAt: new Date().toISOString(),
     corpus: {
       assets: assetCount,
@@ -484,8 +484,10 @@ async function main() {
     browser: {
       engine: browserName,
       performanceBudgetEnforced: browserName === "chromium",
-    firstCardsMs,
-    startupBreakdown,
+      firstCardsMs,
+      firstCardsWaitReturnMs,
+      firstVisibleCard,
+      startupBreakdown,
       initialCardCount,
       loadMoreMs,
       loadedCardCount,
@@ -527,7 +529,8 @@ async function main() {
     if (probe.latencyMs.p95 >= 100) failures.push(`${name} API p95 was ${probe.latencyMs.p95.toFixed(1)} ms`);
   }
   if (browserName === "chromium") {
-    if (result.browser.firstCardsMs >= 1_000) failures.push(`first cards took ${result.browser.firstCardsMs.toFixed(1)} ms`);
+    if (!Number.isFinite(result.browser.firstCardsMs)) failures.push("First-visible card timestamp unavailable");
+    else if (result.browser.firstCardsMs >= 1_000) failures.push(`first cards took ${result.browser.firstCardsMs.toFixed(1)} ms`);
     if (result.browser.loadMoreMs >= 500) failures.push(`load more took ${result.browser.loadMoreMs.toFixed(1)} ms`);
     if (result.browser.exactSearchMs >= 300) failures.push(`exact search took ${result.browser.exactSearchMs.toFixed(1)} ms`);
     if (result.browser.folderSearchMs >= 300) failures.push(`folder search took ${result.browser.folderSearchMs.toFixed(1)} ms`);

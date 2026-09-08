@@ -56,6 +56,7 @@ import { buildFolderTrail, mutateTags, selectionAfterSuccess, type TagMutationMo
 import { machineCategoryLabel, shouldLoadMachineContext } from "../lib/machineContext";
 import MachineContextPanel from "./MachineContextPanel";
 import { useVaultCapabilities } from "../lib/CapabilityContext";
+import { ListRequestScope } from "../lib/listRequestScope";
 
 function extOf(name: string) {
   const m = /\.([^.]+)$/.exec(name);
@@ -188,6 +189,13 @@ export default function AssetGrid({
   const engravingEnabled = Boolean(engravingSettings?.enabled);
   const engraverLabel = engraverLabelFor(engravingSettings?.selected);
   const zipPrompt = useZipImportPrompt();
+  const listRequests = useMemo(() => new ListRequestScope(), [folderId, projectId, projectUnassigned]);
+  const appliedQuery = useRef<Parameters<typeof listAssets>[0] | null>(null);
+  React.useLayoutEffect(() => {
+    listRequests.activate();
+    appliedQuery.current = null;
+    return () => listRequests.deactivate();
+  }, [listRequests]);
 
   const handleApiError = (err: unknown, message?: string) => {
     if (err instanceof UnauthorizedError) {
@@ -221,7 +229,10 @@ export default function AssetGrid({
   }, []);
 
   const refresh = async (opts: RefreshOpts = {}) => {
+    const request = listRequests.refresh();
+    if (!request) return; // A callback from a departed folder/view cannot restart work.
     setLoading(true);
+    setLoadingMore(false);
     setHasMore(false);
     setOffset(0);
     const search = opts.search ?? q;
@@ -229,18 +240,19 @@ export default function AssetGrid({
     const selectedMachineId = opts.machineId ?? machineId;
     const selectedMachineScope = opts.machineScope ?? machineScope;
     const targetFolderId = folderId || undefined;
+    const query = {
+      q: search,
+      tags: [...tags],
+      folder_id: targetFolderId,
+      project_id: projectId || undefined,
+      project_unassigned: projectUnassigned,
+      machine_id: selectedMachineId || undefined,
+      machine_scope: selectedMachineId ? selectedMachineScope : undefined,
+      limit: pageSize,
+    };
+    appliedQuery.current = query;
     const [assetsResult, tagsResult] = await Promise.allSettled([
-      listAssets({
-        q: search,
-        tags,
-        folder_id: targetFolderId,
-        project_id: projectId || undefined,
-        project_unassigned: projectUnassigned,
-        machine_id: selectedMachineId || undefined,
-        machine_scope: selectedMachineId ? selectedMachineScope : undefined,
-        limit: pageSize,
-        offset: 0,
-      }),
+      listAssets({ ...query, offset: 0 }),
       listTags({
         q: search,
         folder_id: targetFolderId,
@@ -251,6 +263,8 @@ export default function AssetGrid({
       }),
     ]);
 
+    // The tags response may be the slow half; guard the joined result, not just assets.
+    if (!request.isCurrent()) return;
     if (assetsResult.status === "fulfilled") {
       setItems(assetsResult.value.items);
       setOffset(assetsResult.value.items.length);
@@ -267,30 +281,28 @@ export default function AssetGrid({
     }
 
     setLoading(false);
+    request.finish();
   };
 
   const loadMore = async () => {
-    if (loadingMore || !hasMore) return;
+    if (loading || loadingMore || !hasMore || !appliedQuery.current) return;
+    const request = listRequests.loadMore();
+    if (!request) return; // Also excludes duplicate clicks before React renders.
     setLoadingMore(true);
     try {
       const data = await listAssets({
-        q,
-        tags: activeTags,
-        folder_id: folderId || undefined,
-        project_id: projectId || undefined,
-        project_unassigned: projectUnassigned,
-        machine_id: machineId || undefined,
-        machine_scope: machineId ? machineScope : undefined,
-        limit: pageSize,
+        ...appliedQuery.current, // Unsubmitted search text must not change this page's scope.
         offset,
       });
+      if (!request.isCurrent()) return;
       setItems(prev => [...prev, ...data.items]);
       setOffset(offset + data.items.length);
       setHasMore(data.hasMore);
     } catch (err) {
-      handleApiError(err, "Failed to load more assets.");
+      if (request.isCurrent()) handleApiError(err, "Failed to load more assets.");
     } finally {
-      setLoadingMore(false);
+      if (request.isCurrent()) setLoadingMore(false);
+      request.finish();
     }
   };
 

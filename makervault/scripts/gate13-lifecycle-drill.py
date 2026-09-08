@@ -177,7 +177,7 @@ def main():
         source.compose("start", "api", "web")
         source.wait()
         member_id = enrich(client, source.config["AUTH_PASSWORD"])
-        node_env = {**os.environ, "NODE_EXTRA_CA_CERTS": "/evidence/source/server.crt",
+        node_env = {**os.environ, "NODE_EXTRA_CA_CERTS": "/fixture/ca.crt",
                     "MAKERSVAULT_HARNESS_ORIGIN": source.origin,
                     "MAKERSVAULT_HARNESS_USERNAME": source.config["AUTH_USERNAME"],
                     "MAKERSVAULT_HARNESS_PASSWORD": source.config["AUTH_PASSWORD"]}
@@ -185,7 +185,7 @@ def main():
         run(["docker", "run", "--rm", "--network", "host", "--add-host", f"{HOST}:127.0.0.1",
              "-e", "NODE_EXTRA_CA_CERTS", "-e", "MAKERSVAULT_HARNESS_ORIGIN",
              "-e", "MAKERSVAULT_HARNESS_USERNAME", "-e", "MAKERSVAULT_HARNESS_PASSWORD",
-             "-v", f"{root}:/evidence:ro", "-v", f"{APP / 'benchmarks'}:/bench:ro",
+             "-v", f"{source.certificate}:/fixture/ca.crt:ro", "-v", f"{APP / 'benchmarks'}:/bench:ro",
              node_image, "node", "/bench/session-client-smoke.mjs"], env=node_env)
         source.stop()
         source.offline("/app/tests/gate13_fixture.py", "seed-public-credential", "--confirm-disposable", "--user-id", member_id)

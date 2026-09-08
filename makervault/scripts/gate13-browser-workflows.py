@@ -53,7 +53,7 @@ def run_case(root, output, images, browser_image, workflow, engine):
         stack.start()
         package = "preview" if workflow == "preview" else "organization"
         script = {"organization": "organization-baseline.mjs", "preview": "preview-baseline.mjs",
-                  "mount": "mount-scan-verification.mjs"}[workflow]
+                  "mount": "mount-scan-verification.mjs", "ordering": "request-order-regression.mjs"}[workflow]
         benchmark_env = {
             "MAKERSVAULT_BENCHMARK_API_URL": stack.origin + "/api",
             "MAKERSVAULT_BENCHMARK_WEB_URL": stack.origin,
@@ -67,7 +67,7 @@ def run_case(root, output, images, browser_image, workflow, engine):
         }
         environment = {**os.environ, **benchmark_env}
         mounts = ["-v", f"{APP / 'benchmarks'}:/bench:ro", "-v", f"/bench/{package}/node_modules",
-                  "-v", f"{stack.certificate}:/fixture/server.crt:ro", "-v", f"{case_output}:/results"]
+                  "-v", f"{stack.certificate}:/fixture/ca.crt:ro", "-v", f"{case_output}:/results"]
         if workflow == "preview":
             corpus = fixture / "corpus"
             run(["python3", APP / "benchmarks/preview/generate_corpus.py", "--output", corpus])
@@ -110,7 +110,7 @@ def main():
     parser.add_argument("--revision", required=True, help="application image revision, separately from harness source")
     parser.add_argument("--browser-image", required=True, help="local browser-runtime build; resolved to an immutable ID")
     parser.add_argument("--output", required=True, type=Path, help="new private directory; never overwritten")
-    parser.add_argument("--workflows", nargs="+", choices=("organization", "preview", "mount"), default=["organization", "preview", "mount"])
+    parser.add_argument("--workflows", nargs="+", choices=("organization", "preview", "mount", "ordering"), default=["ordering", "organization", "preview", "mount"])
     parser.add_argument("--browsers", nargs="+", choices=("chromium", "firefox", "webkit"), default=["chromium", "firefox", "webkit"])
     args = parser.parse_args()
     harness_revision = source_identity()
