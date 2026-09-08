@@ -1,0 +1,5150 @@
+{
+  "schema": 1,
+  "capturedDate": "2026-09-08",
+  "scope": "Read-only reduction of five disposable Chromium organization runs; diagnostics are not performance qualification",
+  "thresholdsUnchanged": {
+    "firstCardsMs": "<1000",
+    "maxInteractionLongTaskMs": "<=50"
+  },
+  "runs": [
+    {
+      "run": "makersvault-g13c-profile-0908a",
+      "summary": {
+        "captured_at": "2026-09-08T23:11:11.446582+00:00",
+        "harness_revision": "7d68d183e5c8ef9bbf5ce5885d3057889d474b85",
+        "application_revision": "12559336e6dfdc99b1761b2a62d80616d957020c",
+        "application_version": "development-gate13b",
+        "diagnostic_profile": true,
+        "images": {
+          "api": "sha256:3a2f27a3a81a0c1ec6b12d89b7b8ed0cef0275c57f603b351e1897c50dbbca23",
+          "web": "sha256:9758c81b7d068e5e1389c4dda6c811e38e4b209ffb226840872181a4833f05e5"
+        },
+        "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+        "status": "failed",
+        "cases": [
+          {
+            "case": "organization-chromium",
+            "status": "failed",
+            "exit_code": 1,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "98dcff610c0dd8679a7372fbc0ee523288b06744995ed6d34089bc109debcbc5"
+          }
+        ],
+        "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+      },
+      "baseline": {
+        "schema": 3,
+        "diagnosticProfile": true,
+        "capturedAt": "2026-09-08T23:11:58.685Z",
+        "corpus": {
+          "assets": 600,
+          "folders": 104,
+          "roots": 8,
+          "branches": 32,
+          "leaves": 64,
+          "depth": 3,
+          "seedMs": 23440.443141000003
+        },
+        "api": {
+          "firstPage": {
+            "path": "/assets",
+            "itemCount": 25,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 12.023032000000967,
+              "p95": 33.26802999999927,
+              "max": 33.26802999999927
+            }
+          },
+          "exactSearch": {
+            "path": "/assets",
+            "itemCount": 1,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 7.3521140000011656,
+              "p95": 9.216098000000784,
+              "max": 9.216098000000784
+            }
+          },
+          "folderPage": {
+            "path": "/assets",
+            "itemCount": 9,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 13.711422999997012,
+              "p95": 17.57351000000199,
+              "max": 17.57351000000199
+            }
+          },
+          "folders": {
+            "path": "/folders",
+            "itemCount": 104,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 14.8149459999986,
+              "p95": 22.890707999998995,
+              "max": 22.890707999998995
+            }
+          }
+        },
+        "browser": {
+          "engine": "chromium",
+          "performanceBudgetEnforced": true,
+          "firstCardsMs": 1072.3000000002794,
+          "firstCardsWaitReturnMs": 1515.3445400000019,
+          "firstVisibleCard": {
+            "schema": 1,
+            "clock": "navigation",
+            "atMs": 1072.3000000002794,
+            "submittedAtMs": 194.5
+          },
+          "startupBreakdown": {
+            "documentMs": 74.09662600000229,
+            "formWaitMs": 56.7995579999988,
+            "formFillMs": 26.88161300000138,
+            "signInClickMs": 43.97125099999903,
+            "afterClickToCardsMs": 1384.822311,
+            "includesLoginAutomation": true
+          },
+          "initialCardCount": 20,
+          "loadMoreMs": 264.9310210000003,
+          "loadedCardCount": 40,
+          "selectedAfterLoadMore": 2,
+          "exactSearchMs": 91.78063399999883,
+          "exactSearchResultCount": 1,
+          "selectedBeforeFilter": 2,
+          "selectedAfterFilter": 0,
+          "visibleBulkToolbarBeforeFilter": 1,
+          "preparedSummaryVisible": true,
+          "supportingDocumentVisible": true,
+          "preparedPayloadLinkCount": 0,
+          "mixedMoveSelectedAfter": 1,
+          "mixedMoveFailureVisible": true,
+          "tagPreservationVerified": true,
+          "selectedDownloadSuggestedFilename": "makersvault.zip",
+          "bulkTrashRecoverableVisible": true,
+          "bulkTrashSelectionAfterPanelCancel": 2,
+          "bulkTrashSelectionAfterDialogCancel": 2,
+          "singleTrashRestoreVerified": true,
+          "bulkTrashRestoreVerified": true,
+          "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+          "singleDeleteSelectionAfterCancel": 1,
+          "folderSearchMs": 124.82526900000084,
+          "visibleFolderRows": 3,
+          "folderOpenMs": 104.80252399999881,
+          "folderCardCount": 9,
+          "childFolderEmptyStateVisible": true,
+          "breadcrumbAncestorNavigationVisible": true,
+          "longTasksAvailable": true,
+          "longTasks": {
+            "count": 1,
+            "totalMs": 58,
+            "maxMs": 58,
+            "byPhase": {
+              "folder-navigation": {
+                "count": 1,
+                "totalMs": 58,
+                "maxMs": 58
+              }
+            }
+          },
+          "maxInteractionLongTaskMs": 58,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+          "heapBytes": 17386152,
+          "breadcrumbCount": 1
+        }
+      },
+      "analysis": {
+        "diagnosticOnly": true,
+        "profileStatus": "complete",
+        "dataLossOccurred": false,
+        "sampling": {
+          "requestedIntervalUs": 1000,
+          "sampleCount": 18537,
+          "negativeDeltas": 396,
+          "minimumDeltaUs": -1639,
+          "interpretation": "Stack witnesses only, not CPU-time weights"
+        },
+        "phaseAlignment": "Approximate navigation clock, performance.now read immediately after matching phase mark",
+        "phases": [
+          {
+            "phase": "navigation",
+            "atMs": 19.90000000037253
+          },
+          {
+            "phase": "selection",
+            "atMs": 1600.7000000001863
+          },
+          {
+            "phase": "load-more",
+            "atMs": 1785.6000000000931
+          },
+          {
+            "phase": "evidence-screenshot",
+            "atMs": 2097.9000000003725
+          },
+          {
+            "phase": "search",
+            "atMs": 2174.8000000002794
+          },
+          {
+            "phase": "bundle",
+            "atMs": 2276
+          },
+          {
+            "phase": "bulk-move",
+            "atMs": 3050.8000000002794
+          },
+          {
+            "phase": "bulk-tags",
+            "atMs": 3106.7000000001863
+          },
+          {
+            "phase": "download",
+            "atMs": 3432.2000000001863
+          },
+          {
+            "phase": "trash",
+            "atMs": 3978.5
+          },
+          {
+            "phase": "folder-navigation",
+            "atMs": 5823.200000000186
+          }
+        ],
+        "pageLongTasks": [
+          {
+            "startTime": 5764,
+            "duration": 58
+          }
+        ],
+        "domSnapshots": null,
+        "countersBefore": null,
+        "countersAfter": null,
+        "initialResources": [
+          {
+            "path": "/assets/index-CIuf3fLs.js",
+            "initiatorType": "script",
+            "startTime": 15.800000000279397,
+            "duration": 18.899999999906868,
+            "responseStart": 24.40000000037253,
+            "responseEnd": 34.700000000186265,
+            "transferSize": 264238
+          },
+          {
+            "path": "/assets/index-DT89XG9h.css",
+            "initiatorType": "link",
+            "startTime": 16,
+            "duration": 18.5,
+            "responseStart": 33.8000000002794,
+            "responseEnd": 34.5,
+            "transferSize": 9380
+          },
+          {
+            "path": "/runtime-config.js",
+            "initiatorType": "script",
+            "startTime": 16.100000000093132,
+            "duration": 7.7000000001862645,
+            "responseStart": 23.300000000279397,
+            "responseEnd": 23.800000000279397,
+            "transferSize": 384
+          },
+          {
+            "path": "/api/health",
+            "initiatorType": "fetch",
+            "startTime": 79.10000000009313,
+            "duration": 3.2000000001862645,
+            "responseStart": 81.60000000009313,
+            "responseEnd": 82.3000000002794,
+            "transferSize": 418
+          },
+          {
+            "path": "/api/session",
+            "initiatorType": "fetch",
+            "startTime": 83.60000000009313,
+            "duration": 3.6000000000931323,
+            "responseStart": 86.70000000018626,
+            "responseEnd": 87.20000000018626,
+            "transferSize": 325
+          },
+          {
+            "path": "/img/blacklogo.png",
+            "initiatorType": "img",
+            "startTime": 112.40000000037253,
+            "duration": 6.7999999998137355,
+            "responseStart": 113.70000000018626,
+            "responseEnd": 119.20000000018626,
+            "transferSize": 1434963
+          },
+          {
+            "path": "/api/login",
+            "initiatorType": "fetch",
+            "startTime": 195.8000000002794,
+            "duration": 197.29999999981374,
+            "responseStart": 392.10000000009313,
+            "responseEnd": 393.10000000009313,
+            "transferSize": 788
+          },
+          {
+            "path": "/api/folders",
+            "initiatorType": "fetch",
+            "startTime": 416.60000000009313,
+            "duration": 571.6000000000931,
+            "responseStart": 984,
+            "responseEnd": 988.2000000001863,
+            "transferSize": 3640
+          },
+          {
+            "path": "/api/assets",
+            "initiatorType": "fetch",
+            "startTime": 417.5,
+            "duration": 571.2000000001863,
+            "responseStart": 984.6000000000931,
+            "responseEnd": 988.7000000001863,
+            "transferSize": 3533
+          },
+          {
+            "path": "/api/tags",
+            "initiatorType": "fetch",
+            "startTime": 417.90000000037253,
+            "duration": 569.7999999998137,
+            "responseStart": 985.2000000001863,
+            "responseEnd": 987.7000000001863,
+            "transferSize": 476
+          },
+          {
+            "path": "/api/machines",
+            "initiatorType": "fetch",
+            "startTime": 418.3000000002794,
+            "duration": 581.3999999999069,
+            "responseStart": 999,
+            "responseEnd": 999.7000000001863,
+            "transferSize": 302
+          },
+          {
+            "path": "/api/folders",
+            "initiatorType": "fetch",
+            "startTime": 418.70000000018626,
+            "duration": 587.3999999999069,
+            "responseStart": 1005.3000000002794,
+            "responseEnd": 1006.1000000000931,
+            "transferSize": 3640
+          },
+          {
+            "path": "/api/projects",
+            "initiatorType": "fetch",
+            "startTime": 985.9000000003725,
+            "duration": 17.5,
+            "responseStart": 1002.4000000003725,
+            "responseEnd": 1003.4000000003725,
+            "transferSize": 302
+          }
+        ],
+        "longAnimationFramesAvailable": true,
+        "longAnimationFrames": [
+          {
+            "startTime": 993.7000000001863,
+            "duration": 78.70000000018626,
+            "blockingDuration": 0,
+            "renderStart": 1067.6000000000931,
+            "styleAndLayoutStart": 1072.4000000003725,
+            "scripts": [
+              {
+                "duration": 33.5,
+                "executionStart": 993.7000000001863,
+                "path": "/assets/index-CIuf3fLs.js",
+                "functionName": "O",
+                "sourceCharPosition": 9508,
+                "invokerType": "event-listener",
+                "forcedStyleAndLayoutDuration": 0,
+                "pauseDuration": 0
+              },
+              {
+                "duration": 14.5,
+                "executionStart": 1028.2000000001863,
+                "path": "/assets/index-CIuf3fLs.js",
+                "functionName": "O",
+                "sourceCharPosition": 9508,
+                "invokerType": "event-listener",
+                "forcedStyleAndLayoutDuration": 0,
+                "pauseDuration": 0
+              }
+            ]
+          },
+          {
+            "startTime": 1083,
+            "duration": 60.3000000002794,
+            "blockingDuration": 0,
+            "renderStart": 1142.4000000003725,
+            "styleAndLayoutStart": 1143.3000000002794,
+            "scripts": [
+              {
+                "duration": 39.89999999990687,
+                "executionStart": 1083.1000000000931,
+                "path": "/assets/index-CIuf3fLs.js",
+                "functionName": "O",
+                "sourceCharPosition": 9508,
+                "invokerType": "event-listener",
+                "forcedStyleAndLayoutDuration": 0,
+                "pauseDuration": 0
+              }
+            ]
+          },
+          {
+            "startTime": 1788.9000000003725,
+            "duration": 145.5,
+            "blockingDuration": 0,
+            "renderStart": 1933.4000000003725,
+            "styleAndLayoutStart": 1934.4000000003725,
+            "scripts": []
+          },
+          {
+            "startTime": 1976.8000000002794,
+            "duration": 73.10000000009313,
+            "blockingDuration": 0,
+            "renderStart": 2045.8000000002794,
+            "styleAndLayoutStart": 2049.9000000003725,
+            "scripts": [
+              {
+                "duration": 40.3000000002794,
+                "executionStart": 1978.1000000000931,
+                "path": "/assets/index-CIuf3fLs.js",
+                "functionName": "O",
+                "sourceCharPosition": 9508,
+                "invokerType": "event-listener",
+                "forcedStyleAndLayoutDuration": 0,
+                "pauseDuration": 0
+              }
+            ]
+          },
+          {
+            "startTime": 5756.9000000003725,
+            "duration": 90.5,
+            "blockingDuration": 11.1,
+            "renderStart": 5845,
+            "styleAndLayoutStart": 5847.300000000279,
+            "scripts": [
+              {
+                "duration": 58.700000000186265,
+                "executionStart": 5764.100000000093,
+                "path": "/assets/index-CIuf3fLs.js",
+                "functionName": "O",
+                "sourceCharPosition": 9508,
+                "invokerType": "event-listener",
+                "forcedStyleAndLayoutDuration": 0,
+                "pauseDuration": 0
+              }
+            ]
+          },
+          {
+            "startTime": 5854.4000000003725,
+            "duration": 55.799999999813735,
+            "blockingDuration": 0,
+            "renderStart": 5910.200000000186,
+            "styleAndLayoutStart": 5910.200000000186,
+            "scripts": []
+          }
+        ],
+        "rendererTasksAtLeast45Ms": [
+          {
+            "phase": "navigation",
+            "approximateNavigationStartMs": 422.38200000047686,
+            "wallMs": 562.701,
+            "threadCpuMs": 8.767,
+            "nestedInclusiveEvents": {
+              "ThreadControllerImpl::RunTask": {
+                "count": 1,
+                "inclusiveMs": 562.655,
+                "maxMs": 562.655
+              },
+              "MinorGC": {
+                "count": 1,
+                "inclusiveMs": 562.623,
+                "maxMs": 562.623
+              },
+              "V8.GCScavenger": {
+                "count": 1,
+                "inclusiveMs": 562.582,
+                "maxMs": 562.582
+              },
+              "V8.GC_SCAVENGER": {
+                "count": 1,
+                "inclusiveMs": 562.571,
+                "maxMs": 562.571
+              },
+              "V8.GC_SCAVENGER_SCAVENGE": {
+                "count": 1,
+                "inclusiveMs": 562.554,
+                "maxMs": 562.554
+              },
+              "V8.GC_SCAVENGER_SCAVENGE_PARALLEL_PHASE": {
+                "count": 1,
+                "inclusiveMs": 562.324,
+                "maxMs": 562.324
+              },
+              "V8.GC_SCAVENGER_SCAVENGE_ROOTS": {
+                "count": 1,
+                "inclusiveMs": 0.063,
+                "maxMs": 0.063
+              },
+              "V8.GC_SCAVENGER_SCAVENGE_WEAK_GLOBAL_HANDLES_PROCESS": {
+                "count": 1,
+                "inclusiveMs": 0.06,
+                "maxMs": 0.06
+              },
+              "V8.GC_SCAVENGER_SCAVENGE_WEAK_GLOBAL_HANDLES_IDENTIFY": {
+                "count": 1,
+                "inclusiveMs": 0.05,
+                "maxMs": 0.05
+              },
+              "V8.GC_SCAVENGER_FREE_REMEMBERED_SET": {
+                "count": 1,
+                "inclusiveMs": 0.039,
+                "maxMs": 0.039
+              }
+            },
+            "calls": [],
+            "sampleWitnesses": [
+              {
+                "sampleCount": 486,
+                "stack": [
+                  {
+                    "functionName": "(garbage collector)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "phase": "load-more",
+            "approximateNavigationStartMs": 1788.8930000004768,
+            "wallMs": 144.526,
+            "threadCpuMs": 144.055,
+            "nestedInclusiveEvents": {
+              "ThreadControllerImpl::RunTask": {
+                "count": 1,
+                "inclusiveMs": 144.465,
+                "maxMs": 144.465
+              },
+              "Receive mojo message": {
+                "count": 1,
+                "inclusiveMs": 144.445,
+                "maxMs": 144.445
+              },
+              "Layout": {
+                "count": 40,
+                "inclusiveMs": 20.213000000000008,
+                "maxMs": 0.772
+              },
+              "UpdateLayoutTree": {
+                "count": 40,
+                "inclusiveMs": 18.963000000000005,
+                "maxMs": 1.18
+              },
+              "V8.StackGuard": {
+                "count": 11,
+                "inclusiveMs": 1.086,
+                "maxMs": 0.212
+              },
+              "V8.HandleInterrupts": {
+                "count": 11,
+                "inclusiveMs": 0.9970000000000001,
+                "maxMs": 0.208
+              },
+              "V8.BytecodeBudgetInterrupt": {
+                "count": 24,
+                "inclusiveMs": 0.31400000000000017,
+                "maxMs": 0.043
+              },
+              "EventDispatch": {
+                "count": 2,
+                "inclusiveMs": 0.089,
+                "maxMs": 0.048
+              },
+              "RunMicrotasks": {
+                "count": 1,
+                "inclusiveMs": 0.054,
+                "maxMs": 0.054
+              },
+              "V8.DeoptimizeCode": {
+                "count": 1,
+                "inclusiveMs": 0.027,
+                "maxMs": 0.027
+              }
+            },
+            "calls": [],
+            "sampleWitnesses": [
+              {
+                "sampleCount": 140,
+                "stack": [
+                  {
+                    "functionName": "isElementHiddenForAria",
+                    "path": "",
+                    "lineNumberZeroBased": 3367,
+                    "columnNumberZeroBased": 31,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "match",
+                    "path": "",
+                    "lineNumberZeroBased": 5260,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5300,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryRole",
+                    "path": "",
+                    "lineNumberZeroBased": 5258,
+                    "columnNumberZeroBased": 18,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryAll",
+                    "path": "",
+                    "lineNumberZeroBased": 5316,
+                    "columnNumberZeroBased": 14,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_queryEngineAll",
+                    "path": "",
+                    "lineNumberZeroBased": 6967,
+                    "columnNumberZeroBased": 17,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 62,
+                "stack": [
+                  {
+                    "functionName": "computeElementStyleVisibilityVisible",
+                    "path": "",
+                    "lineNumberZeroBased": 2970,
+                    "columnNumberZeroBased": 45,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "isElementStyleVisibilityVisible",
+                    "path": "",
+                    "lineNumberZeroBased": 2962,
+                    "columnNumberZeroBased": 40,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "isElementHiddenForAria",
+                    "path": "",
+                    "lineNumberZeroBased": 3367,
+                    "columnNumberZeroBased": 31,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "match",
+                    "path": "",
+                    "lineNumberZeroBased": 5260,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5300,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryRole",
+                    "path": "",
+                    "lineNumberZeroBased": 5258,
+                    "columnNumberZeroBased": 18,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 33,
+                "stack": [
+                  {
+                    "functionName": "getTextAlternativeInternal",
+                    "path": "",
+                    "lineNumberZeroBased": 3622,
+                    "columnNumberZeroBased": 35,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "computeAccessibleNameComposite",
+                    "path": "",
+                    "lineNumberZeroBased": 3504,
+                    "columnNumberZeroBased": 39,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "getElementAccessibleNameText",
+                    "path": "",
+                    "lineNumberZeroBased": 3530,
+                    "columnNumberZeroBased": 37,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "match",
+                    "path": "",
+                    "lineNumberZeroBased": 5260,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5300,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryRole",
+                    "path": "",
+                    "lineNumberZeroBased": 5258,
+                    "columnNumberZeroBased": 18,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 11,
+                "stack": [
+                  {
+                    "functionName": "getCSSContent",
+                    "path": "",
+                    "lineNumberZeroBased": 3439,
+                    "columnNumberZeroBased": 22,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "innerAccumulatedElementText",
+                    "path": "",
+                    "lineNumberZeroBased": 3849,
+                    "columnNumberZeroBased": 36,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "getTextAlternativeInternal",
+                    "path": "",
+                    "lineNumberZeroBased": 3622,
+                    "columnNumberZeroBased": 35,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "computeAccessibleNameComposite",
+                    "path": "",
+                    "lineNumberZeroBased": 3504,
+                    "columnNumberZeroBased": 39,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "getElementAccessibleNameText",
+                    "path": "",
+                    "lineNumberZeroBased": 3530,
+                    "columnNumberZeroBased": 37,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "match",
+                    "path": "",
+                    "lineNumberZeroBased": 5260,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 6,
+                "stack": [
+                  {
+                    "functionName": "getExplicitAriaRole",
+                    "path": "",
+                    "lineNumberZeroBased": 3335,
+                    "columnNumberZeroBased": 28,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "computeAriaRole",
+                    "path": "",
+                    "lineNumberZeroBased": 3350,
+                    "columnNumberZeroBased": 24,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "getAriaRole",
+                    "path": "",
+                    "lineNumberZeroBased": 3342,
+                    "columnNumberZeroBased": 20,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "match",
+                    "path": "",
+                    "lineNumberZeroBased": 5260,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5300,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryRole",
+                    "path": "",
+                    "lineNumberZeroBased": 5258,
+                    "columnNumberZeroBased": 18,
+                    "context": "playwright-utility"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "phase": "bundle",
+            "approximateNavigationStartMs": 2391.8910000004767,
+            "wallMs": 641.986,
+            "threadCpuMs": 18.99,
+            "nestedInclusiveEvents": {
+              "BlinkScheduler_PerformMicrotaskCheckpoint": {
+                "count": 1,
+                "inclusiveMs": 632.543,
+                "maxMs": 632.543
+              },
+              "ThreadControllerImpl::RunTask": {
+                "count": 1,
+                "inclusiveMs": 9.354,
+                "maxMs": 9.354
+              },
+              "Receive mojo message": {
+                "count": 1,
+                "inclusiveMs": 9.336,
+                "maxMs": 9.336
+              },
+              "V8.StackGuard": {
+                "count": 3,
+                "inclusiveMs": 0.14600000000000002,
+                "maxMs": 0.064
+              },
+              "V8.HandleInterrupts": {
+                "count": 3,
+                "inclusiveMs": 0.127,
+                "maxMs": 0.06
+              },
+              "RunMicrotasks": {
+                "count": 1,
+                "inclusiveMs": 0.065,
+                "maxMs": 0.065
+              },
+              "V8.BytecodeBudgetInterrupt": {
+                "count": 5,
+                "inclusiveMs": 0.05900000000000001,
+                "maxMs": 0.034
+              }
+            },
+            "calls": [],
+            "sampleWitnesses": [
+              {
+                "sampleCount": 179,
+                "stack": [
+                  {
+                    "functionName": "(program)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 3,
+                "stack": [
+                  {
+                    "functionName": "getExplicitAriaRole",
+                    "path": "",
+                    "lineNumberZeroBased": 3335,
+                    "columnNumberZeroBased": 28,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "computeAriaRole",
+                    "path": "",
+                    "lineNumberZeroBased": 3350,
+                    "columnNumberZeroBased": 24,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "getAriaRole",
+                    "path": "",
+                    "lineNumberZeroBased": 3342,
+                    "columnNumberZeroBased": 20,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "match",
+                    "path": "",
+                    "lineNumberZeroBased": 5260,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5300,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryRole",
+                    "path": "",
+                    "lineNumberZeroBased": 5258,
+                    "columnNumberZeroBased": 18,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 1,
+                "stack": [
+                  {
+                    "functionName": "evaluate",
+                    "path": "",
+                    "lineNumberZeroBased": 304,
+                    "columnNumberZeroBased": 10,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 0,
+                    "columnNumberZeroBased": 1,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 1,
+                "stack": [
+                  {
+                    "functionName": "elementSafeTagName",
+                    "path": "",
+                    "lineNumberZeroBased": 3014,
+                    "columnNumberZeroBased": 27,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "getImplicitAriaRole",
+                    "path": "",
+                    "lineNumberZeroBased": 3232,
+                    "columnNumberZeroBased": 28,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "computeAriaRole",
+                    "path": "",
+                    "lineNumberZeroBased": 3350,
+                    "columnNumberZeroBased": 24,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "getAriaRole",
+                    "path": "",
+                    "lineNumberZeroBased": 3342,
+                    "columnNumberZeroBased": 20,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "match",
+                    "path": "",
+                    "lineNumberZeroBased": 5260,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5300,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 1,
+                "stack": [
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 3337,
+                    "columnNumberZeroBased": 20,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "getExplicitAriaRole",
+                    "path": "",
+                    "lineNumberZeroBased": 3335,
+                    "columnNumberZeroBased": 28,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "computeAriaRole",
+                    "path": "",
+                    "lineNumberZeroBased": 3350,
+                    "columnNumberZeroBased": 24,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "getAriaRole",
+                    "path": "",
+                    "lineNumberZeroBased": 3342,
+                    "columnNumberZeroBased": 20,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "match",
+                    "path": "",
+                    "lineNumberZeroBased": 5260,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5300,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "phase": "trash",
+            "approximateNavigationStartMs": 5764.067000000477,
+            "wallMs": 58.815,
+            "threadCpuMs": 56.067,
+            "nestedInclusiveEvents": {
+              "ThreadControllerImpl::RunTask": {
+                "count": 1,
+                "inclusiveMs": 58.78,
+                "maxMs": 58.78
+              },
+              "SimpleWatcher::OnHandleReady": {
+                "count": 1,
+                "inclusiveMs": 58.772,
+                "maxMs": 58.772
+              },
+              "v8.callFunction": {
+                "count": 1,
+                "inclusiveMs": 58.713,
+                "maxMs": 58.713
+              },
+              "FunctionCall": {
+                "count": 1,
+                "inclusiveMs": 49.628,
+                "maxMs": 49.628
+              },
+              "RunMicrotasks": {
+                "count": 1,
+                "inclusiveMs": 9.046,
+                "maxMs": 9.046
+              },
+              "EventDispatch": {
+                "count": 2180,
+                "inclusiveMs": 6.751999999999919,
+                "maxMs": 0.038
+              },
+              "V8.StackGuard": {
+                "count": 4,
+                "inclusiveMs": 0.509,
+                "maxMs": 0.208
+              },
+              "V8.HandleInterrupts": {
+                "count": 4,
+                "inclusiveMs": 0.46399999999999997,
+                "maxMs": 0.193
+              },
+              "V8.BytecodeBudgetInterrupt": {
+                "count": 4,
+                "inclusiveMs": 0.069,
+                "maxMs": 0.031
+              },
+              "BlinkScheduler_PerformMicrotaskCheckpoint": {
+                "count": 1,
+                "inclusiveMs": 0.002,
+                "maxMs": 0.002
+              }
+            },
+            "calls": [
+              {
+                "name": "FunctionCall",
+                "wallMs": 49.628,
+                "functionName": "O",
+                "path": "/assets/index-CIuf3fLs.js"
+              }
+            ],
+            "sampleWitnesses": [
+              {
+                "sampleCount": 2190,
+                "stack": [
+                  {
+                    "functionName": "(program)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 13,
+                "stack": [
+                  {
+                    "functionName": "createElement",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "oc",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 14586,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Nl",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39692,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Ml",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39583,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Al",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39502,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "kl",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39300,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 5,
+                "stack": [
+                  {
+                    "functionName": "xe",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 4,
+                    "columnNumberZeroBased": 6381,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "oc",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 14586,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Nl",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39692,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Ml",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39583,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Al",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39502,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "kl",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39300,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 5,
+                "stack": [
+                  {
+                    "functionName": "appendChild",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "tc",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 12152,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "oc",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 14586,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Nl",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39692,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Ml",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39583,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Al",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39502,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 4,
+                "stack": [
+                  {
+                    "functionName": "oc",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 14586,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Nl",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39692,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Ml",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39583,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Al",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39502,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "kl",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39300,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "gl",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 34284,
+                    "context": "main-or-native"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "phase": "folder-navigation",
+            "approximateNavigationStartMs": 5856.567000000477,
+            "wallMs": 53.609,
+            "threadCpuMs": 53.581,
+            "nestedInclusiveEvents": {
+              "ThreadControllerImpl::RunTask": {
+                "count": 1,
+                "inclusiveMs": 53.551,
+                "maxMs": 53.551
+              },
+              "Receive mojo message": {
+                "count": 1,
+                "inclusiveMs": 53.536,
+                "maxMs": 53.536
+              },
+              "V8.StackGuard": {
+                "count": 4,
+                "inclusiveMs": 0.20600000000000002,
+                "maxMs": 0.076
+              },
+              "V8.HandleInterrupts": {
+                "count": 4,
+                "inclusiveMs": 0.182,
+                "maxMs": 0.068
+              },
+              "EventDispatch": {
+                "count": 2,
+                "inclusiveMs": 0.096,
+                "maxMs": 0.081
+              },
+              "RunMicrotasks": {
+                "count": 1,
+                "inclusiveMs": 0.056,
+                "maxMs": 0.056
+              },
+              "V8.BytecodeBudgetInterrupt": {
+                "count": 5,
+                "inclusiveMs": 0.034,
+                "maxMs": 0.009
+              },
+              "V8.DeoptimizeCode": {
+                "count": 1,
+                "inclusiveMs": 0.029,
+                "maxMs": 0.029
+              },
+              "BlinkScheduler_PerformMicrotaskCheckpoint": {
+                "count": 1,
+                "inclusiveMs": 0.002,
+                "maxMs": 0.002
+              }
+            },
+            "calls": [],
+            "sampleWitnesses": [
+              {
+                "sampleCount": 39,
+                "stack": [
+                  {
+                    "functionName": "getElementLabels",
+                    "path": "",
+                    "lineNumberZeroBased": 5147,
+                    "columnNumberZeroBased": 25,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 7045,
+                    "columnNumberZeroBased": 34,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryAll",
+                    "path": "",
+                    "lineNumberZeroBased": 7042,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_queryEngineAll",
+                    "path": "",
+                    "lineNumberZeroBased": 6967,
+                    "columnNumberZeroBased": 17,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "querySelectorAll",
+                    "path": "",
+                    "lineNumberZeroBased": 6919,
+                    "columnNumberZeroBased": 18,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "callMatchedElements",
+                    "path": "",
+                    "lineNumberZeroBased": 0,
+                    "columnNumberZeroBased": 29,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 3,
+                "stack": [
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5606,
+                    "columnNumberZeroBased": 20,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 5604,
+                    "columnNumberZeroBased": 112,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_cached",
+                    "path": "",
+                    "lineNumberZeroBased": 5387,
+                    "columnNumberZeroBased": 9,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_queryCSS",
+                    "path": "",
+                    "lineNumberZeroBased": 5603,
+                    "columnNumberZeroBased": 11,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryAll",
+                    "path": "",
+                    "lineNumberZeroBased": 7042,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_queryEngineAll",
+                    "path": "",
+                    "lineNumberZeroBased": 6967,
+                    "columnNumberZeroBased": 17,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 2,
+                "stack": [
+                  {
+                    "functionName": "getAriaLabelledByElements",
+                    "path": "",
+                    "lineNumberZeroBased": 3492,
+                    "columnNumberZeroBased": 34,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "getElementLabels",
+                    "path": "",
+                    "lineNumberZeroBased": 5147,
+                    "columnNumberZeroBased": 25,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 7045,
+                    "columnNumberZeroBased": 34,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryAll",
+                    "path": "",
+                    "lineNumberZeroBased": 7042,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_queryEngineAll",
+                    "path": "",
+                    "lineNumberZeroBased": 6967,
+                    "columnNumberZeroBased": 17,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "querySelectorAll",
+                    "path": "",
+                    "lineNumberZeroBased": 6919,
+                    "columnNumberZeroBased": 18,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 2,
+                "stack": [
+                  {
+                    "functionName": "dispatchEvent",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "markTargetElements",
+                    "path": "",
+                    "lineNumberZeroBased": 7860,
+                    "columnNumberZeroBased": 20,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "callMatchedElements",
+                    "path": "",
+                    "lineNumberZeroBased": 0,
+                    "columnNumberZeroBased": 29,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "evaluate",
+                    "path": "",
+                    "lineNumberZeroBased": 304,
+                    "columnNumberZeroBased": 10,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 0,
+                    "columnNumberZeroBased": 1,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 1,
+                "stack": [
+                  {
+                    "functionName": "evaluate",
+                    "path": "",
+                    "lineNumberZeroBased": 304,
+                    "columnNumberZeroBased": 10,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 0,
+                    "columnNumberZeroBased": 1,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "rawArtifactHashes": {
+        "baseline.json": "a0569f894cea76d7d34b9922ed0fd7e3631e3bbc188d8f69f311ee905eedb2a5",
+        "startup-chromium.json": "5713d6207b6e90f23937f4c66967c4be2b640722cbf7dac9e51f5ea7da906ce8",
+        "stdout.txt": "79a328c7bca284b737d17f5718a4043fad461db76806817159d2a09a66c5e692",
+        "stderr.txt": "9996deb161c93dcc3080b66f2b73d9f28a5972040ae65cef9941564a22562b5c",
+        "selection-toolbar-chromium.png": "bfab8d1bf5f12e81ef45c6ad11604ce45370dd5c7f310ed000291bd412660311",
+        "timeline.json": "b3a76a07f0a29d603255512420a2e3c9c4ba2d7fc31852b1cb9c97e657b32837",
+        "renderer.cpuprofile": "50fcae88983e9b57f76398c9ed867f41b6b5f03e0223be1460b4b52e0f2a8607",
+        "profile-metadata.json": "16f5887b7479d2a6d79b50391185f36ca7d4e57ebb8f2d09d2266083efe3cc4d",
+        "profile-observations.json": "4cc1242c9e3a4cf035c5f0675861dd964c3715c43486614d9305424854909977",
+        "../summary.json": "c631a70b532f8e0a3d9473bb941fdb9e751648aade54c07902fafb011666b882"
+      },
+      "reducerSha256": "71eb373d78bf07e463ea2fef759118dc724ce80e831116c319ffeaa4434bf606"
+    },
+    {
+      "run": "makersvault-g13c-profile-0908b",
+      "summary": {
+        "captured_at": "2026-09-08T23:13:00.615547+00:00",
+        "harness_revision": "7d68d183e5c8ef9bbf5ce5885d3057889d474b85",
+        "application_revision": "12559336e6dfdc99b1761b2a62d80616d957020c",
+        "application_version": "development-gate13b",
+        "diagnostic_profile": true,
+        "images": {
+          "api": "sha256:3a2f27a3a81a0c1ec6b12d89b7b8ed0cef0275c57f603b351e1897c50dbbca23",
+          "web": "sha256:9758c81b7d068e5e1389c4dda6c811e38e4b209ffb226840872181a4833f05e5"
+        },
+        "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+        "status": "failed",
+        "cases": [
+          {
+            "case": "organization-chromium",
+            "status": "failed",
+            "exit_code": 1,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "20f0defc697e6b104d96eeb1d0eeb64e06276caf8b28671bca62363a834f279a"
+          }
+        ],
+        "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+      },
+      "baseline": {
+        "schema": 3,
+        "diagnosticProfile": true,
+        "capturedAt": "2026-09-08T23:13:49.026Z",
+        "corpus": {
+          "assets": 600,
+          "folders": 104,
+          "roots": 8,
+          "branches": 32,
+          "leaves": 64,
+          "depth": 3,
+          "seedMs": 23723.832075
+        },
+        "api": {
+          "firstPage": {
+            "path": "/assets",
+            "itemCount": 25,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 23.40602199999921,
+              "p95": 28.128892999997333,
+              "max": 28.128892999997333
+            }
+          },
+          "exactSearch": {
+            "path": "/assets",
+            "itemCount": 1,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 7.505209000002651,
+              "p95": 12.738577000000078,
+              "max": 12.738577000000078
+            }
+          },
+          "folderPage": {
+            "path": "/assets",
+            "itemCount": 9,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 8.719041000000288,
+              "p95": 10.533941000001505,
+              "max": 10.533941000001505
+            }
+          },
+          "folders": {
+            "path": "/folders",
+            "itemCount": 104,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 13.48584000000119,
+              "p95": 15.505060999999841,
+              "max": 15.505060999999841
+            }
+          }
+        },
+        "browser": {
+          "engine": "chromium",
+          "performanceBudgetEnforced": true,
+          "firstCardsMs": 908.3000000002794,
+          "firstCardsWaitReturnMs": 982.4378130000005,
+          "firstVisibleCard": {
+            "schema": 1,
+            "clock": "navigation",
+            "atMs": 908.3000000002794,
+            "submittedAtMs": 277.60000000009313
+          },
+          "startupBreakdown": {
+            "documentMs": 149.3979189999991,
+            "formWaitMs": 65.43865000000005,
+            "formFillMs": 23.272843000002467,
+            "signInClickMs": 47.63390999999683,
+            "afterClickToCardsMs": 744.6912380000031,
+            "includesLoginAutomation": true
+          },
+          "initialCardCount": 20,
+          "loadMoreMs": 211.3857289999978,
+          "loadedCardCount": 40,
+          "selectedAfterLoadMore": 2,
+          "exactSearchMs": 1057.0982040000017,
+          "exactSearchResultCount": 1,
+          "selectedBeforeFilter": 2,
+          "selectedAfterFilter": 0,
+          "visibleBulkToolbarBeforeFilter": 1,
+          "preparedSummaryVisible": true,
+          "supportingDocumentVisible": true,
+          "preparedPayloadLinkCount": 0,
+          "mixedMoveSelectedAfter": 1,
+          "mixedMoveFailureVisible": true,
+          "tagPreservationVerified": true,
+          "selectedDownloadSuggestedFilename": "makersvault.zip",
+          "bulkTrashRecoverableVisible": true,
+          "bulkTrashSelectionAfterPanelCancel": 2,
+          "bulkTrashSelectionAfterDialogCancel": 2,
+          "singleTrashRestoreVerified": true,
+          "bulkTrashRestoreVerified": true,
+          "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+          "singleDeleteSelectionAfterCancel": 1,
+          "folderSearchMs": 91.68455499999982,
+          "visibleFolderRows": 3,
+          "folderOpenMs": 154.10900599999877,
+          "folderCardCount": 9,
+          "childFolderEmptyStateVisible": true,
+          "breadcrumbAncestorNavigationVisible": true,
+          "longTasksAvailable": true,
+          "longTasks": {
+            "count": 2,
+            "totalMs": 1294,
+            "maxMs": 982,
+            "byPhase": {
+              "navigation": {
+                "count": 1,
+                "totalMs": 312,
+                "maxMs": 312
+              },
+              "search": {
+                "count": 1,
+                "totalMs": 982,
+                "maxMs": 982
+              }
+            }
+          },
+          "maxInteractionLongTaskMs": 982,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+          "heapBytes": 16384196,
+          "breadcrumbCount": 1
+        }
+      },
+      "analysis": {
+        "diagnosticOnly": true,
+        "profileStatus": "complete",
+        "dataLossOccurred": false,
+        "sampling": {
+          "requestedIntervalUs": 1000,
+          "sampleCount": 22868,
+          "negativeDeltas": 402,
+          "minimumDeltaUs": -2929,
+          "interpretation": "Stack witnesses only, not CPU-time weights"
+        },
+        "phaseAlignment": "Approximate navigation clock, performance.now read immediately after matching phase mark",
+        "phases": [
+          {
+            "phase": "navigation",
+            "atMs": 39.90000000037253
+          },
+          {
+            "phase": "selection",
+            "atMs": 1046.5
+          },
+          {
+            "phase": "load-more",
+            "atMs": 1201
+          },
+          {
+            "phase": "evidence-screenshot",
+            "atMs": 1445.7000000001863
+          },
+          {
+            "phase": "search",
+            "atMs": 1533.1000000000931
+          },
+          {
+            "phase": "bundle",
+            "atMs": 2601.5
+          },
+          {
+            "phase": "bulk-move",
+            "atMs": 2797.5
+          },
+          {
+            "phase": "bulk-tags",
+            "atMs": 2883.4000000003725
+          },
+          {
+            "phase": "download",
+            "atMs": 3279.5
+          },
+          {
+            "phase": "trash",
+            "atMs": 3716.600000000093
+          },
+          {
+            "phase": "folder-navigation",
+            "atMs": 6670.700000000186
+          }
+        ],
+        "pageLongTasks": [
+          {
+            "startTime": 565.4000000003725,
+            "duration": 312
+          },
+          {
+            "startTime": 1598.5,
+            "duration": 982
+          }
+        ],
+        "domSnapshots": null,
+        "countersBefore": null,
+        "countersAfter": null,
+        "initialResources": [
+          {
+            "path": "/assets/index-CIuf3fLs.js",
+            "initiatorType": "script",
+            "startTime": 33.5,
+            "duration": 52.3000000002794,
+            "responseStart": 57.5,
+            "responseEnd": 85.8000000002794,
+            "transferSize": 264238
+          },
+          {
+            "path": "/assets/index-DT89XG9h.css",
+            "initiatorType": "link",
+            "startTime": 34,
+            "duration": 51.40000000037253,
+            "responseStart": 83.70000000018626,
+            "responseEnd": 85.40000000037253,
+            "transferSize": 9380
+          },
+          {
+            "path": "/runtime-config.js",
+            "initiatorType": "script",
+            "startTime": 34.10000000009313,
+            "duration": 19.800000000279397,
+            "responseStart": 53.10000000009313,
+            "responseEnd": 53.90000000037253,
+            "transferSize": 384
+          },
+          {
+            "path": "/api/health",
+            "initiatorType": "fetch",
+            "startTime": 153.20000000018626,
+            "duration": 8.100000000093132,
+            "responseStart": 160.3000000002794,
+            "responseEnd": 161.3000000002794,
+            "transferSize": 418
+          },
+          {
+            "path": "/api/session",
+            "initiatorType": "fetch",
+            "startTime": 173.8000000002794,
+            "duration": 5.2999999998137355,
+            "responseStart": 178.40000000037253,
+            "responseEnd": 179.10000000009313,
+            "transferSize": 325
+          },
+          {
+            "path": "/img/blacklogo.png",
+            "initiatorType": "img",
+            "startTime": 196.8000000002794,
+            "duration": 7.7999999998137355,
+            "responseStart": 198.5,
+            "responseEnd": 204.60000000009313,
+            "transferSize": 1434963
+          },
+          {
+            "path": "/api/login",
+            "initiatorType": "fetch",
+            "startTime": 279.10000000009313,
+            "duration": 203.60000000009313,
+            "responseStart": 481.90000000037253,
+            "responseEnd": 482.70000000018626,
+            "transferSize": 788
+          },
+          {
+            "path": "/api/folders",
+            "initiatorType": "fetch",
+            "startTime": 506.20000000018626,
+            "duration": 32,
+            "responseStart": 537.4000000003725,
+            "responseEnd": 538.2000000001863,
+            "transferSize": 3630
+          },
+          {
+            "path": "/api/assets",
+            "initiatorType": "fetch",
+            "startTime": 507.10000000009313,
+            "duration": 28.399999999906868,
+            "responseStart": 534.8000000002794,
+            "responseEnd": 535.5,
+            "transferSize": 3521
+          },
+          {
+            "path": "/api/tags",
+            "initiatorType": "fetch",
+            "startTime": 507.60000000009313,
+            "duration": 27.800000000279397,
+            "responseStart": 534.1000000000931,
+            "responseEnd": 535.4000000003725,
+            "transferSize": 476
+          },
+          {
+            "path": "/api/machines",
+            "initiatorType": "fetch",
+            "startTime": 508,
+            "duration": 18.90000000037253,
+            "responseStart": 526.1000000000931,
+            "responseEnd": 526.9000000003725,
+            "transferSize": 302
+          },
+          {
+            "path": "/api/folders",
+            "initiatorType": "fetch",
+            "startTime": 508.20000000018626,
+            "duration": 36.200000000186265,
+            "responseStart": 543.8000000002794,
+            "responseEnd": 544.4000000003725,
+            "transferSize": 3630
+          }
+        ],
+        "longAnimationFramesAvailable": true,
+        "longAnimationFrames": [
+          {
+            "startTime": 536.4000000003725,
+            "duration": 372,
+            "blockingDuration": 265.1,
+            "renderStart": 905.4000000003725,
+            "styleAndLayoutStart": 908.3000000002794,
+            "scripts": [
+              {
+                "duration": 26.399999999906868,
+                "executionStart": 536.4000000003725,
+                "path": "/assets/index-CIuf3fLs.js",
+                "functionName": "O",
+                "sourceCharPosition": 9508,
+                "invokerType": "event-listener",
+                "forcedStyleAndLayoutDuration": 0,
+                "pauseDuration": 0
+              },
+              {
+                "duration": 311.89999999990687,
+                "executionStart": 565.4000000003725,
+                "path": "/assets/index-CIuf3fLs.js",
+                "functionName": "O",
+                "sourceCharPosition": 9508,
+                "invokerType": "event-listener",
+                "forcedStyleAndLayoutDuration": 0,
+                "pauseDuration": 0
+              }
+            ]
+          },
+          {
+            "startTime": 1205.9000000003725,
+            "duration": 72.39999999990687,
+            "blockingDuration": 0,
+            "renderStart": 1277.5,
+            "styleAndLayoutStart": 1278.3000000002794,
+            "scripts": []
+          },
+          {
+            "startTime": 1324.9000000003725,
+            "duration": 74.1999999997206,
+            "blockingDuration": 0,
+            "renderStart": 1395.5,
+            "styleAndLayoutStart": 1399.1000000000931,
+            "scripts": [
+              {
+                "duration": 40.200000000186265,
+                "executionStart": 1327.2000000001863,
+                "path": "/assets/index-CIuf3fLs.js",
+                "functionName": "O",
+                "sourceCharPosition": 9508,
+                "invokerType": "event-listener",
+                "forcedStyleAndLayoutDuration": 0,
+                "pauseDuration": 0
+              }
+            ]
+          },
+          {
+            "startTime": 1598.5,
+            "duration": 989.1000000000931,
+            "blockingDuration": 933.4,
+            "renderStart": 2587.100000000093,
+            "styleAndLayoutStart": 2587.600000000093,
+            "scripts": [
+              {
+                "duration": 982.8000000002794,
+                "executionStart": 1598.5,
+                "path": "/assets/index-CIuf3fLs.js",
+                "functionName": "O",
+                "sourceCharPosition": 9508,
+                "invokerType": "event-listener",
+                "forcedStyleAndLayoutDuration": 0,
+                "pauseDuration": 0
+              }
+            ]
+          },
+          {
+            "startTime": 4487.4000000003725,
+            "duration": 64.39999999990687,
+            "blockingDuration": 0,
+            "renderStart": 4550,
+            "styleAndLayoutStart": 4551.700000000186,
+            "scripts": [
+              {
+                "duration": 31.200000000186265,
+                "executionStart": 4491.700000000186,
+                "path": "/assets/index-CIuf3fLs.js",
+                "functionName": "O",
+                "sourceCharPosition": 9508,
+                "invokerType": "event-listener",
+                "forcedStyleAndLayoutDuration": 0,
+                "pauseDuration": 0
+              }
+            ]
+          },
+          {
+            "startTime": 5454.300000000279,
+            "duration": 69.5,
+            "blockingDuration": 0,
+            "renderStart": 5521,
+            "styleAndLayoutStart": 5523.700000000186,
+            "scripts": [
+              {
+                "duration": 32.1999999997206,
+                "executionStart": 5457.4000000003725,
+                "path": "/assets/index-CIuf3fLs.js",
+                "functionName": "O",
+                "sourceCharPosition": 9508,
+                "invokerType": "event-listener",
+                "forcedStyleAndLayoutDuration": 0,
+                "pauseDuration": 0
+              }
+            ]
+          },
+          {
+            "startTime": 5571.700000000186,
+            "duration": 1002,
+            "blockingDuration": 0,
+            "renderStart": 6573.300000000279,
+            "styleAndLayoutStart": 6573.600000000093,
+            "scripts": []
+          }
+        ],
+        "rendererTasksAtLeast45Ms": [
+          {
+            "phase": "navigation",
+            "approximateNavigationStartMs": 565.4900000004768,
+            "wallMs": 312.119,
+            "threadCpuMs": 56.446,
+            "nestedInclusiveEvents": {
+              "ThreadControllerImpl::RunTask": {
+                "count": 1,
+                "inclusiveMs": 312.064,
+                "maxMs": 312.064
+              },
+              "SimpleWatcher::OnHandleReady": {
+                "count": 1,
+                "inclusiveMs": 312.061,
+                "maxMs": 312.061
+              },
+              "v8.callFunction": {
+                "count": 2,
+                "inclusiveMs": 312.055,
+                "maxMs": 312.016
+              },
+              "FunctionCall": {
+                "count": 2,
+                "inclusiveMs": 298.128,
+                "maxMs": 298.103
+              },
+              "RunMicrotasks": {
+                "count": 1,
+                "inclusiveMs": 13.879,
+                "maxMs": 13.879
+              },
+              "EventDispatch": {
+                "count": 2080,
+                "inclusiveMs": 9.350999999999853,
+                "maxMs": 0.082
+              },
+              "MinorGC": {
+                "count": 1,
+                "inclusiveMs": 1.433,
+                "maxMs": 1.433
+              },
+              "V8.GCScavenger": {
+                "count": 1,
+                "inclusiveMs": 1.392,
+                "maxMs": 1.392
+              },
+              "V8.GC_SCAVENGER": {
+                "count": 1,
+                "inclusiveMs": 1.385,
+                "maxMs": 1.385
+              },
+              "V8.GC_SCAVENGER_SCAVENGE": {
+                "count": 1,
+                "inclusiveMs": 1.367,
+                "maxMs": 1.367
+              }
+            },
+            "calls": [
+              {
+                "name": "FunctionCall",
+                "wallMs": 298.103,
+                "functionName": "O",
+                "path": "/assets/index-CIuf3fLs.js"
+              }
+            ],
+            "sampleWitnesses": [
+              {
+                "sampleCount": 2096,
+                "stack": [
+                  {
+                    "functionName": "(program)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 106,
+                "stack": [
+                  {
+                    "functionName": "appendChild",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Sc",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 25403,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Ac",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 30470,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "kc",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 27431,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Oc",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 26943,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "kc",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 27431,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 6,
+                "stack": [
+                  {
+                    "functionName": "createElement",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "oc",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 14586,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Nl",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39692,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Ml",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39583,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Al",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39502,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "kl",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39300,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 4,
+                "stack": [
+                  {
+                    "functionName": "oc",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 14586,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Nl",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39692,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Ml",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39583,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Al",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39502,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "kl",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39300,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "gl",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 34284,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 2,
+                "stack": [
+                  {
+                    "functionName": "xe",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 4,
+                    "columnNumberZeroBased": 6381,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "oc",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 14586,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Nl",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39692,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Ml",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39583,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Al",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39502,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "kl",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39300,
+                    "context": "main-or-native"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "phase": "load-more",
+            "approximateNavigationStartMs": 1206.0790000004768,
+            "wallMs": 71.446,
+            "threadCpuMs": 71.245,
+            "nestedInclusiveEvents": {
+              "ThreadControllerImpl::RunTask": {
+                "count": 1,
+                "inclusiveMs": 71.384,
+                "maxMs": 71.384
+              },
+              "Receive mojo message": {
+                "count": 1,
+                "inclusiveMs": 71.371,
+                "maxMs": 71.371
+              },
+              "Layout": {
+                "count": 40,
+                "inclusiveMs": 8.443,
+                "maxMs": 0.324
+              },
+              "UpdateLayoutTree": {
+                "count": 40,
+                "inclusiveMs": 7.824999999999998,
+                "maxMs": 0.647
+              },
+              "V8.StackGuard": {
+                "count": 11,
+                "inclusiveMs": 0.575,
+                "maxMs": 0.118
+              },
+              "V8.HandleInterrupts": {
+                "count": 11,
+                "inclusiveMs": 0.529,
+                "maxMs": 0.111
+              },
+              "V8.BytecodeBudgetInterrupt": {
+                "count": 24,
+                "inclusiveMs": 0.15500000000000005,
+                "maxMs": 0.017
+              },
+              "RunMicrotasks": {
+                "count": 1,
+                "inclusiveMs": 0.061,
+                "maxMs": 0.061
+              },
+              "EventDispatch": {
+                "count": 2,
+                "inclusiveMs": 0.045,
+                "maxMs": 0.034
+              },
+              "V8.DeoptimizeCode": {
+                "count": 1,
+                "inclusiveMs": 0.024,
+                "maxMs": 0.024
+              }
+            },
+            "calls": [],
+            "sampleWitnesses": [
+              {
+                "sampleCount": 128,
+                "stack": [
+                  {
+                    "functionName": "isElementHiddenForAria",
+                    "path": "",
+                    "lineNumberZeroBased": 3367,
+                    "columnNumberZeroBased": 31,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "match",
+                    "path": "",
+                    "lineNumberZeroBased": 5260,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5300,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryRole",
+                    "path": "",
+                    "lineNumberZeroBased": 5258,
+                    "columnNumberZeroBased": 18,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryAll",
+                    "path": "",
+                    "lineNumberZeroBased": 5316,
+                    "columnNumberZeroBased": 14,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_queryEngineAll",
+                    "path": "",
+                    "lineNumberZeroBased": 6967,
+                    "columnNumberZeroBased": 17,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 52,
+                "stack": [
+                  {
+                    "functionName": "computeElementStyleVisibilityVisible",
+                    "path": "",
+                    "lineNumberZeroBased": 2970,
+                    "columnNumberZeroBased": 45,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "isElementStyleVisibilityVisible",
+                    "path": "",
+                    "lineNumberZeroBased": 2962,
+                    "columnNumberZeroBased": 40,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "isElementHiddenForAria",
+                    "path": "",
+                    "lineNumberZeroBased": 3367,
+                    "columnNumberZeroBased": 31,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "match",
+                    "path": "",
+                    "lineNumberZeroBased": 5260,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5300,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryRole",
+                    "path": "",
+                    "lineNumberZeroBased": 5258,
+                    "columnNumberZeroBased": 18,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 22,
+                "stack": [
+                  {
+                    "functionName": "getTextAlternativeInternal",
+                    "path": "",
+                    "lineNumberZeroBased": 3622,
+                    "columnNumberZeroBased": 35,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "computeAccessibleNameComposite",
+                    "path": "",
+                    "lineNumberZeroBased": 3504,
+                    "columnNumberZeroBased": 39,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "getElementAccessibleNameText",
+                    "path": "",
+                    "lineNumberZeroBased": 3530,
+                    "columnNumberZeroBased": 37,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "match",
+                    "path": "",
+                    "lineNumberZeroBased": 5260,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5300,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryRole",
+                    "path": "",
+                    "lineNumberZeroBased": 5258,
+                    "columnNumberZeroBased": 18,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 4,
+                "stack": [
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5300,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryRole",
+                    "path": "",
+                    "lineNumberZeroBased": 5258,
+                    "columnNumberZeroBased": 18,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryAll",
+                    "path": "",
+                    "lineNumberZeroBased": 5316,
+                    "columnNumberZeroBased": 14,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_queryEngineAll",
+                    "path": "",
+                    "lineNumberZeroBased": 6967,
+                    "columnNumberZeroBased": 17,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "querySelectorAll",
+                    "path": "",
+                    "lineNumberZeroBased": 6919,
+                    "columnNumberZeroBased": 18,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "callMatchedElements",
+                    "path": "",
+                    "lineNumberZeroBased": 0,
+                    "columnNumberZeroBased": 29,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 3,
+                "stack": [
+                  {
+                    "functionName": "getCSSContent",
+                    "path": "",
+                    "lineNumberZeroBased": 3439,
+                    "columnNumberZeroBased": 22,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "innerAccumulatedElementText",
+                    "path": "",
+                    "lineNumberZeroBased": 3849,
+                    "columnNumberZeroBased": 36,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "getTextAlternativeInternal",
+                    "path": "",
+                    "lineNumberZeroBased": 3622,
+                    "columnNumberZeroBased": 35,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "computeAccessibleNameComposite",
+                    "path": "",
+                    "lineNumberZeroBased": 3504,
+                    "columnNumberZeroBased": 39,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "getElementAccessibleNameText",
+                    "path": "",
+                    "lineNumberZeroBased": 3530,
+                    "columnNumberZeroBased": 37,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "match",
+                    "path": "",
+                    "lineNumberZeroBased": 5260,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "phase": "search",
+            "approximateNavigationStartMs": 1598.592000000477,
+            "wallMs": 982.913,
+            "threadCpuMs": 22.943,
+            "nestedInclusiveEvents": {
+              "ThreadControllerImpl::RunTask": {
+                "count": 1,
+                "inclusiveMs": 982.879,
+                "maxMs": 982.879
+              },
+              "SimpleWatcher::OnHandleReady": {
+                "count": 1,
+                "inclusiveMs": 982.873,
+                "maxMs": 982.873
+              },
+              "v8.callFunction": {
+                "count": 1,
+                "inclusiveMs": 982.815,
+                "maxMs": 982.815
+              },
+              "FunctionCall": {
+                "count": 1,
+                "inclusiveMs": 982.43,
+                "maxMs": 982.43
+              },
+              "V8.BytecodeBudgetInterrupt": {
+                "count": 4,
+                "inclusiveMs": 973.304,
+                "maxMs": 973.294
+              },
+              "RunMicrotasks": {
+                "count": 1,
+                "inclusiveMs": 0.368,
+                "maxMs": 0.368
+              },
+              "EventDispatch": {
+                "count": 109,
+                "inclusiveMs": 0.2620000000000001,
+                "maxMs": 0.021
+              },
+              "V8.StackGuard": {
+                "count": 2,
+                "inclusiveMs": 0.073,
+                "maxMs": 0.043
+              },
+              "V8.HandleInterrupts": {
+                "count": 2,
+                "inclusiveMs": 0.067,
+                "maxMs": 0.041
+              },
+              "BlinkScheduler_PerformMicrotaskCheckpoint": {
+                "count": 1,
+                "inclusiveMs": 0.003,
+                "maxMs": 0.003
+              }
+            },
+            "calls": [
+              {
+                "name": "FunctionCall",
+                "wallMs": 982.43,
+                "functionName": "O",
+                "path": "/assets/index-CIuf3fLs.js"
+              }
+            ],
+            "sampleWitnesses": [
+              {
+                "sampleCount": 328,
+                "stack": [
+                  {
+                    "functionName": "",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 5,
+                    "columnNumberZeroBased": 9462,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "h",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 5,
+                    "columnNumberZeroBased": 8876,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "_",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 5,
+                    "columnNumberZeroBased": 10268,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Ms",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 1444,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Ul",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 43518,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Ml",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 39583,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 110,
+                "stack": [
+                  {
+                    "functionName": "(program)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 5,
+                "stack": [
+                  {
+                    "functionName": "removeChild",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Ec",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 25680,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Tc",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 25615,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Ec",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 25680,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Tc",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 25615,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Ec",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 25680,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 2,
+                "stack": [
+                  {
+                    "functionName": "removeChild",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Ec",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 25680,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Oc",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 26943,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "kc",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 27431,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Oc",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 26943,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "kc",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 27431,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 1,
+                "stack": [
+                  {
+                    "functionName": "F",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 59676,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "ie",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 62217,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "W",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 62389,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "G",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 62919,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Fe",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 71092,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Zd",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 3688,
+                    "columnNumberZeroBased": 186505,
+                    "context": "main-or-native"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "phase": "trash",
+            "approximateNavigationStartMs": 5571.994000000477,
+            "wallMs": 1001.088,
+            "threadCpuMs": 15.931,
+            "nestedInclusiveEvents": {
+              "ThreadControllerImpl::RunTask": {
+                "count": 1,
+                "inclusiveMs": 1001.009,
+                "maxMs": 1001.009
+              },
+              "Receive mojo message": {
+                "count": 1,
+                "inclusiveMs": 1000.991,
+                "maxMs": 1000.991
+              },
+              "EventDispatch": {
+                "count": 2,
+                "inclusiveMs": 998.653,
+                "maxMs": 998.631
+              },
+              "RunMicrotasks": {
+                "count": 1,
+                "inclusiveMs": 0.07,
+                "maxMs": 0.07
+              },
+              "BlinkScheduler_PerformMicrotaskCheckpoint": {
+                "count": 1,
+                "inclusiveMs": 0.003,
+                "maxMs": 0.003
+              }
+            },
+            "calls": [],
+            "sampleWitnesses": [
+              {
+                "sampleCount": 297,
+                "stack": [
+                  {
+                    "functionName": "dispatchEvent",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "markTargetElements",
+                    "path": "",
+                    "lineNumberZeroBased": 7860,
+                    "columnNumberZeroBased": 20,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "callMatchedElements",
+                    "path": "",
+                    "lineNumberZeroBased": 0,
+                    "columnNumberZeroBased": 29,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "evaluate",
+                    "path": "",
+                    "lineNumberZeroBased": 304,
+                    "columnNumberZeroBased": 10,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 0,
+                    "columnNumberZeroBased": 1,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 1,
+                "stack": [
+                  {
+                    "functionName": "(program)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 1,
+                "stack": [
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5606,
+                    "columnNumberZeroBased": 20,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 5604,
+                    "columnNumberZeroBased": 112,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_cached",
+                    "path": "",
+                    "lineNumberZeroBased": 5387,
+                    "columnNumberZeroBased": 9,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_queryCSS",
+                    "path": "",
+                    "lineNumberZeroBased": 5603,
+                    "columnNumberZeroBased": 11,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryAll",
+                    "path": "",
+                    "lineNumberZeroBased": 7052,
+                    "columnNumberZeroBased": 21,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_queryEngineAll",
+                    "path": "",
+                    "lineNumberZeroBased": 6967,
+                    "columnNumberZeroBased": 17,
+                    "context": "playwright-utility"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "phase": "folder-navigation",
+            "approximateNavigationStartMs": 6672.970000000477,
+            "wallMs": 56.255,
+            "threadCpuMs": 56.219,
+            "nestedInclusiveEvents": {
+              "ThreadControllerImpl::RunTask": {
+                "count": 1,
+                "inclusiveMs": 56.21,
+                "maxMs": 56.21
+              },
+              "Receive mojo message": {
+                "count": 1,
+                "inclusiveMs": 56.194,
+                "maxMs": 56.194
+              },
+              "V8.StackGuard": {
+                "count": 4,
+                "inclusiveMs": 0.22999999999999998,
+                "maxMs": 0.091
+              },
+              "V8.HandleInterrupts": {
+                "count": 4,
+                "inclusiveMs": 0.20799999999999996,
+                "maxMs": 0.087
+              },
+              "EventDispatch": {
+                "count": 2,
+                "inclusiveMs": 0.066,
+                "maxMs": 0.056
+              },
+              "RunMicrotasks": {
+                "count": 1,
+                "inclusiveMs": 0.041,
+                "maxMs": 0.041
+              },
+              "V8.BytecodeBudgetInterrupt": {
+                "count": 5,
+                "inclusiveMs": 0.035,
+                "maxMs": 0.012
+              },
+              "V8.DeoptimizeCode": {
+                "count": 1,
+                "inclusiveMs": 0.023,
+                "maxMs": 0.023
+              },
+              "BlinkScheduler_PerformMicrotaskCheckpoint": {
+                "count": 1,
+                "inclusiveMs": 0.002,
+                "maxMs": 0.002
+              }
+            },
+            "calls": [],
+            "sampleWitnesses": [
+              {
+                "sampleCount": 41,
+                "stack": [
+                  {
+                    "functionName": "getElementLabels",
+                    "path": "",
+                    "lineNumberZeroBased": 5147,
+                    "columnNumberZeroBased": 25,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 7045,
+                    "columnNumberZeroBased": 34,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryAll",
+                    "path": "",
+                    "lineNumberZeroBased": 7042,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_queryEngineAll",
+                    "path": "",
+                    "lineNumberZeroBased": 6967,
+                    "columnNumberZeroBased": 17,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "querySelectorAll",
+                    "path": "",
+                    "lineNumberZeroBased": 6919,
+                    "columnNumberZeroBased": 18,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "callMatchedElements",
+                    "path": "",
+                    "lineNumberZeroBased": 0,
+                    "columnNumberZeroBased": 29,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 9,
+                "stack": [
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5606,
+                    "columnNumberZeroBased": 20,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 5604,
+                    "columnNumberZeroBased": 112,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_cached",
+                    "path": "",
+                    "lineNumberZeroBased": 5387,
+                    "columnNumberZeroBased": 9,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_queryCSS",
+                    "path": "",
+                    "lineNumberZeroBased": 5603,
+                    "columnNumberZeroBased": 11,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryAll",
+                    "path": "",
+                    "lineNumberZeroBased": 7042,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_queryEngineAll",
+                    "path": "",
+                    "lineNumberZeroBased": 6967,
+                    "columnNumberZeroBased": 17,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 2,
+                "stack": [
+                  {
+                    "functionName": "dispatchEvent",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "markTargetElements",
+                    "path": "",
+                    "lineNumberZeroBased": 7860,
+                    "columnNumberZeroBased": 20,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "callMatchedElements",
+                    "path": "",
+                    "lineNumberZeroBased": 0,
+                    "columnNumberZeroBased": 29,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "evaluate",
+                    "path": "",
+                    "lineNumberZeroBased": 304,
+                    "columnNumberZeroBased": 10,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 0,
+                    "columnNumberZeroBased": 1,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 1,
+                "stack": [
+                  {
+                    "functionName": "(program)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 1,
+                "stack": [
+                  {
+                    "functionName": "querySelectorAll",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5606,
+                    "columnNumberZeroBased": 20,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 5604,
+                    "columnNumberZeroBased": 112,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_cached",
+                    "path": "",
+                    "lineNumberZeroBased": 5387,
+                    "columnNumberZeroBased": 9,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_queryCSS",
+                    "path": "",
+                    "lineNumberZeroBased": 5603,
+                    "columnNumberZeroBased": 11,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryAll",
+                    "path": "",
+                    "lineNumberZeroBased": 7042,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "rawArtifactHashes": {
+        "baseline.json": "57df32e8e4375614360faa680ba9e4a4a8d7e8df45a3d0d4a22b0a707b4a2010",
+        "startup-chromium.json": "65b7571d7baa80e01c2661404fb3c7c01eab2c03f707c0b6707cd731b749f7a9",
+        "stdout.txt": "a27d60156ba7b54b50852f0dedd031441ef027c2ce5bbeda458eee953840989f",
+        "stderr.txt": "2a4264d04f38b0d346da6bf0e663f4ad737c0991463f46c19f35f84c08985025",
+        "selection-toolbar-chromium.png": "bfab8d1bf5f12e81ef45c6ad11604ce45370dd5c7f310ed000291bd412660311",
+        "timeline.json": "8206f0dde845640d37ebaab71d7384a628c9ad0ba02b2e9a0a8274c2dce8bb0b",
+        "renderer.cpuprofile": "4675c219365acd3eb16c48c49e7a78d0149efe72d0e3d4e524e0da2de0533607",
+        "profile-metadata.json": "d38eff62396286b60b1bbaaf2d8ec50465c53be2f547b19f4bfda880ed84964f",
+        "profile-observations.json": "03561e16932b5b1b638eb1279bcb13d7f165edcd57dad57605a5db30d025b12f",
+        "../summary.json": "8d6dea06f65956912927493b6bc9f2fad16695efc1493a8e29e3a8fc3ec5b977"
+      },
+      "reducerSha256": "71eb373d78bf07e463ea2fef759118dc724ce80e831116c319ffeaa4434bf606"
+    },
+    {
+      "run": "makersvault-g13c-profile-0908c",
+      "summary": {
+        "captured_at": "2026-09-08T23:14:46.045051+00:00",
+        "harness_revision": "7d68d183e5c8ef9bbf5ce5885d3057889d474b85",
+        "application_revision": "12559336e6dfdc99b1761b2a62d80616d957020c",
+        "application_version": "development-gate13b",
+        "diagnostic_profile": false,
+        "images": {
+          "api": "sha256:3a2f27a3a81a0c1ec6b12d89b7b8ed0cef0275c57f603b351e1897c50dbbca23",
+          "web": "sha256:9758c81b7d068e5e1389c4dda6c811e38e4b209ffb226840872181a4833f05e5"
+        },
+        "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+        "status": "passed",
+        "cases": [
+          {
+            "case": "organization-chromium",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "b7810b2a8a06f15fbde0c7a059f53d0e76702b20ce9cbe0341af067c47f22533"
+          }
+        ],
+        "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+      },
+      "baseline": {
+        "schema": 3,
+        "diagnosticProfile": false,
+        "capturedAt": "2026-09-08T23:15:27.812Z",
+        "corpus": {
+          "assets": 600,
+          "folders": 104,
+          "roots": 8,
+          "branches": 32,
+          "leaves": 64,
+          "depth": 3,
+          "seedMs": 23642.64825
+        },
+        "api": {
+          "firstPage": {
+            "path": "/assets",
+            "itemCount": 25,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 14.140161999999691,
+              "p95": 32.67923300000257,
+              "max": 32.67923300000257
+            }
+          },
+          "exactSearch": {
+            "path": "/assets",
+            "itemCount": 1,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 7.678586999998515,
+              "p95": 9.983820999997988,
+              "max": 9.983820999997988
+            }
+          },
+          "folderPage": {
+            "path": "/assets",
+            "itemCount": 9,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 8.404921000001195,
+              "p95": 14.078742000001512,
+              "max": 14.078742000001512
+            }
+          },
+          "folders": {
+            "path": "/folders",
+            "itemCount": 104,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 15.979143000000477,
+              "p95": 17.989505999998073,
+              "max": 17.989505999998073
+            }
+          }
+        },
+        "browser": {
+          "engine": "chromium",
+          "performanceBudgetEnforced": true,
+          "firstCardsMs": 495.20000000018626,
+          "firstCardsWaitReturnMs": 521.7230469999995,
+          "firstVisibleCard": {
+            "schema": 1,
+            "clock": "navigation",
+            "atMs": 495.20000000018626,
+            "submittedAtMs": 167
+          },
+          "startupBreakdown": {
+            "documentMs": 59.23294800000076,
+            "formWaitMs": 47.74276599999939,
+            "formFillMs": 24.883755999999266,
+            "signInClickMs": 287.76128600000084,
+            "afterClickToCardsMs": 133.66663799999878,
+            "includesLoginAutomation": true
+          },
+          "initialCardCount": 20,
+          "loadMoreMs": 165.1381070000025,
+          "loadedCardCount": 40,
+          "selectedAfterLoadMore": 2,
+          "exactSearchMs": 94.15756700000202,
+          "exactSearchResultCount": 1,
+          "selectedBeforeFilter": 2,
+          "selectedAfterFilter": 0,
+          "visibleBulkToolbarBeforeFilter": 1,
+          "preparedSummaryVisible": true,
+          "supportingDocumentVisible": true,
+          "preparedPayloadLinkCount": 0,
+          "mixedMoveSelectedAfter": 1,
+          "mixedMoveFailureVisible": true,
+          "tagPreservationVerified": true,
+          "selectedDownloadSuggestedFilename": "makersvault.zip",
+          "bulkTrashRecoverableVisible": true,
+          "bulkTrashSelectionAfterPanelCancel": 2,
+          "bulkTrashSelectionAfterDialogCancel": 2,
+          "singleTrashRestoreVerified": true,
+          "bulkTrashRestoreVerified": true,
+          "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+          "singleDeleteSelectionAfterCancel": 1,
+          "folderSearchMs": 222.2620629999983,
+          "visibleFolderRows": 3,
+          "folderOpenMs": 144.14695399999982,
+          "folderCardCount": 9,
+          "childFolderEmptyStateVisible": true,
+          "breadcrumbAncestorNavigationVisible": true,
+          "longTasksAvailable": true,
+          "longTasks": {
+            "count": 0,
+            "totalMs": 0,
+            "maxMs": 0,
+            "byPhase": {}
+          },
+          "maxInteractionLongTaskMs": 0,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+          "heapBytes": 16894097,
+          "breadcrumbCount": 1
+        }
+      },
+      "analysis": null,
+      "rawArtifactHashes": {
+        "baseline.json": "63049be868df6314dbb0181c791fc1627b3f739e4e8641b016ad288d371907f7",
+        "startup-chromium.json": "ac6a49b4e2223a901e9af36f247bd4039a467f9e922ba281d836d1b41aba483f",
+        "stdout.txt": "097d2a2ba67c4e7f686f65d6e6636a45b32a9dfa7a294cda1c5519ec6fece72e",
+        "stderr.txt": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3",
+        "selection-toolbar-chromium.png": "bfab8d1bf5f12e81ef45c6ad11604ce45370dd5c7f310ed000291bd412660311",
+        "../summary.json": "20b7c2f1acd476556e1b944de1548898084efeef48c028e72d0b80429792caee"
+      },
+      "reducerSha256": "71eb373d78bf07e463ea2fef759118dc724ce80e831116c319ffeaa4434bf606"
+    },
+    {
+      "run": "makersvault-g13c-profile-0908d",
+      "summary": {
+        "captured_at": "2026-09-08T23:17:28.465916+00:00",
+        "harness_revision": "8e116107fd3575f65fe4b3c0943dd66c83f375f0",
+        "application_revision": "12559336e6dfdc99b1761b2a62d80616d957020c",
+        "application_version": "development-gate13b",
+        "diagnostic_profile": true,
+        "images": {
+          "api": "sha256:3a2f27a3a81a0c1ec6b12d89b7b8ed0cef0275c57f603b351e1897c50dbbca23",
+          "web": "sha256:9758c81b7d068e5e1389c4dda6c811e38e4b209ffb226840872181a4833f05e5"
+        },
+        "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+        "status": "failed",
+        "cases": [
+          {
+            "case": "organization-chromium",
+            "status": "failed",
+            "exit_code": 1,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "835ad53aa3a790031f1127f8e1cb9ac506167321f83c5a31be75a42afb85c9fd"
+          }
+        ],
+        "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+      },
+      "baseline": {
+        "schema": 3,
+        "diagnosticProfile": true,
+        "capturedAt": "2026-09-08T23:18:15.452Z",
+        "corpus": {
+          "assets": 600,
+          "folders": 104,
+          "roots": 8,
+          "branches": 32,
+          "leaves": 64,
+          "depth": 3,
+          "seedMs": 23358.45127
+        },
+        "api": {
+          "firstPage": {
+            "path": "/assets",
+            "itemCount": 25,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 23.242033999998966,
+              "p95": 28.09733899999992,
+              "max": 28.09733899999992
+            }
+          },
+          "exactSearch": {
+            "path": "/assets",
+            "itemCount": 1,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 8.24926300000152,
+              "p95": 15.448537000000215,
+              "max": 15.448537000000215
+            }
+          },
+          "folderPage": {
+            "path": "/assets",
+            "itemCount": 9,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 8.873782999999094,
+              "p95": 10.075619999999617,
+              "max": 10.075619999999617
+            }
+          },
+          "folders": {
+            "path": "/folders",
+            "itemCount": 104,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 7.945754000000306,
+              "p95": 13.035470000002533,
+              "max": 13.035470000002533
+            }
+          }
+        },
+        "browser": {
+          "engine": "chromium",
+          "performanceBudgetEnforced": true,
+          "firstCardsMs": 678.6000000000931,
+          "firstCardsWaitReturnMs": 1498.9743789999993,
+          "firstVisibleCard": {
+            "schema": 1,
+            "clock": "navigation",
+            "atMs": 678.6000000000931,
+            "submittedAtMs": 295.60000000009313
+          },
+          "startupBreakdown": {
+            "documentMs": 114.64661999999953,
+            "formWaitMs": 64.27585499999986,
+            "formFillMs": 56.49027600000045,
+            "signInClickMs": 72.6890800000001,
+            "afterClickToCardsMs": 1223.134318999997,
+            "includesLoginAutomation": true
+          },
+          "initialCardCount": 20,
+          "loadMoreMs": 173.90148000000045,
+          "loadedCardCount": 40,
+          "selectedAfterLoadMore": 2,
+          "exactSearchMs": 97.71245400000043,
+          "exactSearchResultCount": 1,
+          "selectedBeforeFilter": 2,
+          "selectedAfterFilter": 0,
+          "visibleBulkToolbarBeforeFilter": 1,
+          "preparedSummaryVisible": true,
+          "supportingDocumentVisible": true,
+          "preparedPayloadLinkCount": 0,
+          "mixedMoveSelectedAfter": 1,
+          "mixedMoveFailureVisible": true,
+          "tagPreservationVerified": true,
+          "selectedDownloadSuggestedFilename": "makersvault.zip",
+          "bulkTrashRecoverableVisible": true,
+          "bulkTrashSelectionAfterPanelCancel": 2,
+          "bulkTrashSelectionAfterDialogCancel": 2,
+          "singleTrashRestoreVerified": true,
+          "bulkTrashRestoreVerified": true,
+          "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+          "singleDeleteSelectionAfterCancel": 1,
+          "folderSearchMs": 106.4414910000014,
+          "visibleFolderRows": 3,
+          "folderOpenMs": 135.0468630000032,
+          "folderCardCount": 9,
+          "childFolderEmptyStateVisible": true,
+          "breadcrumbAncestorNavigationVisible": true,
+          "longTasksAvailable": true,
+          "longTasks": {
+            "count": 2,
+            "totalMs": 1425,
+            "maxMs": 722,
+            "byPhase": {
+              "navigation": {
+                "count": 1,
+                "totalMs": 703,
+                "maxMs": 703
+              },
+              "download": {
+                "count": 1,
+                "totalMs": 722,
+                "maxMs": 722
+              }
+            }
+          },
+          "maxInteractionLongTaskMs": 722,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+          "heapBytes": 14332725,
+          "breadcrumbCount": 1
+        }
+      },
+      "analysis": {
+        "diagnosticOnly": true,
+        "profileStatus": "complete",
+        "dataLossOccurred": false,
+        "sampling": {
+          "requestedIntervalUs": 1000,
+          "sampleCount": 22608,
+          "negativeDeltas": 406,
+          "minimumDeltaUs": -2744,
+          "interpretation": "Stack witnesses only, not CPU-time weights"
+        },
+        "phaseAlignment": "Approximate navigation clock, performance.now read immediately after matching phase mark",
+        "phases": [
+          {
+            "phase": "navigation",
+            "atMs": 22.700000000186265
+          },
+          {
+            "phase": "selection",
+            "atMs": 1539.3000000002794
+          },
+          {
+            "phase": "load-more",
+            "atMs": 1641.4000000003725
+          },
+          {
+            "phase": "evidence-screenshot",
+            "atMs": 1848.6000000000931
+          },
+          {
+            "phase": "search",
+            "atMs": 1965.5
+          },
+          {
+            "phase": "bundle",
+            "atMs": 2075.8000000002794
+          },
+          {
+            "phase": "bulk-move",
+            "atMs": 2305.8000000002794
+          },
+          {
+            "phase": "bulk-tags",
+            "atMs": 2371
+          },
+          {
+            "phase": "download",
+            "atMs": 2693.2000000001863
+          },
+          {
+            "phase": "trash",
+            "atMs": 3871.3000000002794
+          },
+          {
+            "phase": "folder-navigation",
+            "atMs": 5845.300000000279
+          }
+        ],
+        "pageLongTasks": [
+          {
+            "startTime": 779.2000000001863,
+            "duration": 703
+          },
+          {
+            "startTime": 2807.100000000093,
+            "duration": 722
+          }
+        ],
+        "domSnapshots": [
+          {
+            "phase": "initial-cards",
+            "atMs": 1537.3000000002794,
+            "cards": 20,
+            "elements": 4647,
+            "options": 2188,
+            "selectOptionHistogram": {
+              "1": 1,
+              "3": 1,
+              "4": 21,
+              "105": 20
+            }
+          },
+          {
+            "phase": "after-load-more",
+            "atMs": 1830.5,
+            "cards": 40,
+            "elements": 7659,
+            "options": 4368,
+            "selectOptionHistogram": {
+              "1": 1,
+              "3": 1,
+              "4": 41,
+              "105": 40
+            }
+          },
+          {
+            "phase": "folder-open",
+            "atMs": 6108.4000000003725,
+            "cards": 9,
+            "elements": 1594,
+            "options": 989,
+            "selectOptionHistogram": {
+              "1": 1,
+              "3": 1,
+              "4": 10,
+              "105": 9
+            }
+          }
+        ],
+        "countersBefore": {
+          "cpu.stat": "usage_usec 6402777\nuser_usec 4692088\nsystem_usec 1710688\nnice_usec 4671000\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+          "cpu.max": "max 100000\n",
+          "cpu.pressure": "some avg10=0.00 avg60=0.00 avg300=0.00 total=26013\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=18827\n",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n"
+        },
+        "countersAfter": {
+          "cpu.stat": "usage_usec 17471453\nuser_usec 14168990\nsystem_usec 3302463\nnice_usec 14034000\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+          "cpu.max": "max 100000\n",
+          "cpu.pressure": "some avg10=0.00 avg60=0.00 avg300=0.00 total=72319\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=45236\n",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n"
+        },
+        "initialResources": [
+          {
+            "path": "/assets/index-CIuf3fLs.js",
+            "initiatorType": "script",
+            "startTime": 19.600000000093132,
+            "duration": 27,
+            "responseStart": 37.200000000186265,
+            "responseEnd": 46.60000000009313,
+            "transferSize": 264238
+          },
+          {
+            "path": "/assets/index-DT89XG9h.css",
+            "initiatorType": "link",
+            "startTime": 19.700000000186265,
+            "duration": 26.700000000186265,
+            "responseStart": 45.90000000037253,
+            "responseEnd": 46.40000000037253,
+            "transferSize": 9380
+          },
+          {
+            "path": "/runtime-config.js",
+            "initiatorType": "script",
+            "startTime": 19.800000000279397,
+            "duration": 18.299999999813735,
+            "responseStart": 36.3000000002794,
+            "responseEnd": 38.10000000009313,
+            "transferSize": 384
+          },
+          {
+            "path": "/api/health",
+            "initiatorType": "fetch",
+            "startTime": 116.90000000037253,
+            "duration": 5.199999999720603,
+            "responseStart": 121,
+            "responseEnd": 122.10000000009313,
+            "transferSize": 418
+          },
+          {
+            "path": "/api/session",
+            "initiatorType": "fetch",
+            "startTime": 133.90000000037253,
+            "duration": 6.399999999906868,
+            "responseStart": 139.40000000037253,
+            "responseEnd": 140.3000000002794,
+            "transferSize": 325
+          },
+          {
+            "path": "/img/blacklogo.png",
+            "initiatorType": "img",
+            "startTime": 144.40000000037253,
+            "duration": 13.299999999813735,
+            "responseStart": 146.20000000018626,
+            "responseEnd": 157.70000000018626,
+            "transferSize": 1434963
+          },
+          {
+            "path": "/api/login",
+            "initiatorType": "fetch",
+            "startTime": 297.5,
+            "duration": 208.20000000018626,
+            "responseStart": 504.8000000002794,
+            "responseEnd": 505.70000000018626,
+            "transferSize": 788
+          },
+          {
+            "path": "/api/folders",
+            "initiatorType": "fetch",
+            "startTime": 528.7000000001863,
+            "duration": 23.899999999906868,
+            "responseStart": 551.7000000001863,
+            "responseEnd": 552.6000000000931,
+            "transferSize": 3645
+          },
+          {
+            "path": "/api/assets",
+            "initiatorType": "fetch",
+            "startTime": 529.7000000001863,
+            "duration": 31.600000000093132,
+            "responseStart": 560.5,
+            "responseEnd": 561.3000000002794,
+            "transferSize": 3544
+          },
+          {
+            "path": "/api/tags",
+            "initiatorType": "fetch",
+            "startTime": 530,
+            "duration": 29.600000000093132,
+            "responseStart": 559,
+            "responseEnd": 559.6000000000931,
+            "transferSize": 476
+          },
+          {
+            "path": "/api/machines",
+            "initiatorType": "fetch",
+            "startTime": 530.4000000003725,
+            "duration": 16.5,
+            "responseStart": 546.1000000000931,
+            "responseEnd": 546.9000000003725,
+            "transferSize": 302
+          },
+          {
+            "path": "/api/folders",
+            "initiatorType": "fetch",
+            "startTime": 530.7000000001863,
+            "duration": 33.700000000186265,
+            "responseStart": 563.7000000001863,
+            "responseEnd": 564.4000000003725,
+            "transferSize": 3645
+          }
+        ],
+        "longAnimationFramesAvailable": true,
+        "longAnimationFrames": [
+          {
+            "startTime": 604.4000000003725,
+            "duration": 74.1999999997206,
+            "blockingDuration": 0,
+            "renderStart": 674.7000000001863,
+            "styleAndLayoutStart": 678.6000000000931,
+            "scripts": [
+              {
+                "duration": 39,
+                "executionStart": 604.4000000003725,
+                "path": "/assets/index-CIuf3fLs.js",
+                "functionName": "O",
+                "sourceCharPosition": 9508,
+                "invokerType": "event-listener",
+                "forcedStyleAndLayoutDuration": 0,
+                "pauseDuration": 0
+              }
+            ]
+          },
+          {
+            "startTime": 779.2000000001863,
+            "duration": 703.36,
+            "blockingDuration": 653.3,
+            "renderStart": 0,
+            "styleAndLayoutStart": 0,
+            "scripts": [
+              {
+                "duration": 703.2999999998137,
+                "executionStart": 779.2000000001863,
+                "path": "/assets/index-CIuf3fLs.js",
+                "functionName": "",
+                "sourceCharPosition": 729623,
+                "invokerType": "user-callback",
+                "forcedStyleAndLayoutDuration": 0,
+                "pauseDuration": 0
+              }
+            ]
+          },
+          {
+            "startTime": 1632.4000000003725,
+            "duration": 78.79999999981374,
+            "blockingDuration": 0,
+            "renderStart": 1710.3000000002794,
+            "styleAndLayoutStart": 1711.2000000001863,
+            "scripts": []
+          },
+          {
+            "startTime": 2807.100000000093,
+            "duration": 722.7000000001863,
+            "blockingDuration": 672.6,
+            "renderStart": 3529.600000000093,
+            "styleAndLayoutStart": 3529.600000000093,
+            "scripts": []
+          },
+          {
+            "startTime": 4681.300000000279,
+            "duration": 74.79999999981374,
+            "blockingDuration": 0,
+            "renderStart": 4753.9000000003725,
+            "styleAndLayoutStart": 4756,
+            "scripts": [
+              {
+                "duration": 37.10000000009313,
+                "executionStart": 4687,
+                "path": "/assets/index-CIuf3fLs.js",
+                "functionName": "O",
+                "sourceCharPosition": 9508,
+                "invokerType": "event-listener",
+                "forcedStyleAndLayoutDuration": 0,
+                "pauseDuration": 0
+              }
+            ]
+          },
+          {
+            "startTime": 5616.600000000093,
+            "duration": 65.89999999990687,
+            "blockingDuration": 0,
+            "renderStart": 5680.4000000003725,
+            "styleAndLayoutStart": 5682.5,
+            "scripts": [
+              {
+                "duration": 33.89999999990687,
+                "executionStart": 5618.700000000186,
+                "path": "/assets/index-CIuf3fLs.js",
+                "functionName": "O",
+                "sourceCharPosition": 9508,
+                "invokerType": "event-listener",
+                "forcedStyleAndLayoutDuration": 0,
+                "pauseDuration": 0
+              }
+            ]
+          },
+          {
+            "startTime": 5772.300000000279,
+            "duration": 50.5,
+            "blockingDuration": 0,
+            "renderStart": 5819.5,
+            "styleAndLayoutStart": 5822.800000000279,
+            "scripts": [
+              {
+                "duration": 22.399999999906868,
+                "executionStart": 5772.300000000279,
+                "path": "/assets/index-CIuf3fLs.js",
+                "functionName": "O",
+                "sourceCharPosition": 9508,
+                "invokerType": "event-listener",
+                "forcedStyleAndLayoutDuration": 0,
+                "pauseDuration": 0
+              }
+            ]
+          },
+          {
+            "startTime": 5854.9000000003725,
+            "duration": 62.6999999997206,
+            "blockingDuration": 0,
+            "renderStart": 5914.9000000003725,
+            "styleAndLayoutStart": 5917.4000000003725,
+            "scripts": [
+              {
+                "duration": 7.399999999906868,
+                "executionStart": 5905.9000000003725,
+                "path": "/assets/index-CIuf3fLs.js",
+                "functionName": "O",
+                "sourceCharPosition": 9508,
+                "invokerType": "event-listener",
+                "forcedStyleAndLayoutDuration": 0,
+                "pauseDuration": 0
+              }
+            ]
+          }
+        ],
+        "rendererTasksAtLeast45Ms": [
+          {
+            "phase": "navigation",
+            "approximateNavigationStartMs": 643.56,
+            "wallMs": 45.627,
+            "threadCpuMs": 44.894,
+            "nestedInclusiveEvents": {
+              "ThreadControllerImpl::RunTask": {
+                "count": 1,
+                "inclusiveMs": 45.609,
+                "maxMs": 45.609
+              },
+              "UpdateLayoutTree": {
+                "count": 2,
+                "inclusiveMs": 21.267,
+                "maxMs": 21.083
+              },
+              "Paint": {
+                "count": 2,
+                "inclusiveMs": 12.082,
+                "maxMs": 6.053
+              },
+              "Layout": {
+                "count": 1,
+                "inclusiveMs": 6.984,
+                "maxMs": 6.984
+              },
+              "Layerize": {
+                "count": 1,
+                "inclusiveMs": 3.582,
+                "maxMs": 3.582
+              },
+              "PrePaint": {
+                "count": 2,
+                "inclusiveMs": 2.237,
+                "maxMs": 2.2
+              },
+              "v8.callFunction": {
+                "count": 9,
+                "inclusiveMs": 1.1280000000000001,
+                "maxMs": 0.541
+              },
+              "FunctionCall": {
+                "count": 9,
+                "inclusiveMs": 1.072,
+                "maxMs": 0.534
+              },
+              "EventDispatch": {
+                "count": 4,
+                "inclusiveMs": 0.846,
+                "maxMs": 0.375
+              },
+              "FireAnimationFrame": {
+                "count": 1,
+                "inclusiveMs": 0.552,
+                "maxMs": 0.552
+              }
+            },
+            "calls": [
+              {
+                "name": "UpdateLayoutTree",
+                "wallMs": 21.083,
+                "functionName": "",
+                "path": ""
+              },
+              {
+                "name": "Layout",
+                "wallMs": 6.984,
+                "functionName": "",
+                "path": ""
+              }
+            ],
+            "sampleWitnesses": [
+              {
+                "sampleCount": 61,
+                "stack": [
+                  {
+                    "functionName": "(program)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 1,
+                "stack": [
+                  {
+                    "functionName": "zn",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 4,
+                    "columnNumberZeroBased": 22065,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "t",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 4,
+                    "columnNumberZeroBased": 19549,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 4,
+                    "columnNumberZeroBased": 32935,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Sl",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 36745,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Be",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 4,
+                    "columnNumberZeroBased": 8869,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "ai",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 4,
+                    "columnNumberZeroBased": 32471,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 1,
+                "stack": [
+                  {
+                    "functionName": "check",
+                    "path": "",
+                    "lineNumberZeroBased": 13,
+                    "columnNumberZeroBased": 16,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "phase": "navigation",
+            "approximateNavigationStartMs": 779.269,
+            "wallMs": 703.491,
+            "threadCpuMs": 13.241,
+            "nestedInclusiveEvents": {
+              "ThreadControllerImpl::RunTask": {
+                "count": 1,
+                "inclusiveMs": 703.346,
+                "maxMs": 703.346
+              },
+              "TimerFire": {
+                "count": 1,
+                "inclusiveMs": 703.337,
+                "maxMs": 703.337
+              },
+              "v8.callFunction": {
+                "count": 4,
+                "inclusiveMs": 703.3159999999999,
+                "maxMs": 703.308
+              },
+              "FunctionCall": {
+                "count": 1,
+                "inclusiveMs": 703.288,
+                "maxMs": 703.288
+              },
+              "V8.StackGuard": {
+                "count": 1,
+                "inclusiveMs": 0.113,
+                "maxMs": 0.113
+              },
+              "V8.HandleInterrupts": {
+                "count": 1,
+                "inclusiveMs": 0.076,
+                "maxMs": 0.076
+              },
+              "V8.BytecodeBudgetInterrupt": {
+                "count": 1,
+                "inclusiveMs": 0.008,
+                "maxMs": 0.008
+              },
+              "RunMicrotasks": {
+                "count": 1,
+                "inclusiveMs": 0.005,
+                "maxMs": 0.005
+              },
+              "BlinkScheduler_PerformMicrotaskCheckpoint": {
+                "count": 1,
+                "inclusiveMs": 0.003,
+                "maxMs": 0.003
+              }
+            },
+            "calls": [
+              {
+                "name": "FunctionCall",
+                "wallMs": 703.288,
+                "functionName": "",
+                "path": "/assets/index-CIuf3fLs.js"
+              }
+            ],
+            "sampleWitnesses": [
+              {
+                "sampleCount": 228,
+                "stack": [
+                  {
+                    "functionName": "(program)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 1,
+                "stack": [
+                  {
+                    "functionName": "fetch",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "D",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 58121,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "qe",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 7,
+                    "columnNumberZeroBased": 73745,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "Se",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 3688,
+                    "columnNumberZeroBased": 193012,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "/assets/index-CIuf3fLs.js",
+                    "lineNumberZeroBased": 3688,
+                    "columnNumberZeroBased": 193305,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "phase": "load-more",
+            "approximateNavigationStartMs": 1642.681,
+            "wallMs": 67.612,
+            "threadCpuMs": 66.836,
+            "nestedInclusiveEvents": {
+              "ThreadControllerImpl::RunTask": {
+                "count": 1,
+                "inclusiveMs": 67.55,
+                "maxMs": 67.55
+              },
+              "Receive mojo message": {
+                "count": 1,
+                "inclusiveMs": 67.54,
+                "maxMs": 67.54
+              },
+              "Layout": {
+                "count": 40,
+                "inclusiveMs": 8.155,
+                "maxMs": 0.315
+              },
+              "UpdateLayoutTree": {
+                "count": 40,
+                "inclusiveMs": 8.149,
+                "maxMs": 0.825
+              },
+              "V8.StackGuard": {
+                "count": 11,
+                "inclusiveMs": 0.522,
+                "maxMs": 0.1
+              },
+              "V8.HandleInterrupts": {
+                "count": 11,
+                "inclusiveMs": 0.48500000000000004,
+                "maxMs": 0.095
+              },
+              "V8.BytecodeBudgetInterrupt": {
+                "count": 24,
+                "inclusiveMs": 0.14200000000000004,
+                "maxMs": 0.022
+              },
+              "EventDispatch": {
+                "count": 2,
+                "inclusiveMs": 0.076,
+                "maxMs": 0.043
+              },
+              "RunMicrotasks": {
+                "count": 1,
+                "inclusiveMs": 0.056,
+                "maxMs": 0.056
+              },
+              "V8.DeoptimizeCode": {
+                "count": 1,
+                "inclusiveMs": 0.024,
+                "maxMs": 0.024
+              }
+            },
+            "calls": [],
+            "sampleWitnesses": [
+              {
+                "sampleCount": 132,
+                "stack": [
+                  {
+                    "functionName": "isElementHiddenForAria",
+                    "path": "",
+                    "lineNumberZeroBased": 3367,
+                    "columnNumberZeroBased": 31,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "match",
+                    "path": "",
+                    "lineNumberZeroBased": 5260,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5300,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryRole",
+                    "path": "",
+                    "lineNumberZeroBased": 5258,
+                    "columnNumberZeroBased": 18,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryAll",
+                    "path": "",
+                    "lineNumberZeroBased": 5316,
+                    "columnNumberZeroBased": 14,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_queryEngineAll",
+                    "path": "",
+                    "lineNumberZeroBased": 6967,
+                    "columnNumberZeroBased": 17,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 47,
+                "stack": [
+                  {
+                    "functionName": "computeElementStyleVisibilityVisible",
+                    "path": "",
+                    "lineNumberZeroBased": 2970,
+                    "columnNumberZeroBased": 45,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "isElementStyleVisibilityVisible",
+                    "path": "",
+                    "lineNumberZeroBased": 2962,
+                    "columnNumberZeroBased": 40,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "isElementHiddenForAria",
+                    "path": "",
+                    "lineNumberZeroBased": 3367,
+                    "columnNumberZeroBased": 31,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "match",
+                    "path": "",
+                    "lineNumberZeroBased": 5260,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5300,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryRole",
+                    "path": "",
+                    "lineNumberZeroBased": 5258,
+                    "columnNumberZeroBased": 18,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 23,
+                "stack": [
+                  {
+                    "functionName": "getTextAlternativeInternal",
+                    "path": "",
+                    "lineNumberZeroBased": 3622,
+                    "columnNumberZeroBased": 35,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "computeAccessibleNameComposite",
+                    "path": "",
+                    "lineNumberZeroBased": 3504,
+                    "columnNumberZeroBased": 39,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "getElementAccessibleNameText",
+                    "path": "",
+                    "lineNumberZeroBased": 3530,
+                    "columnNumberZeroBased": 37,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "match",
+                    "path": "",
+                    "lineNumberZeroBased": 5260,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5300,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryRole",
+                    "path": "",
+                    "lineNumberZeroBased": 5258,
+                    "columnNumberZeroBased": 18,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 3,
+                "stack": [
+                  {
+                    "functionName": "getExplicitAriaRole",
+                    "path": "",
+                    "lineNumberZeroBased": 3335,
+                    "columnNumberZeroBased": 28,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "computeAriaRole",
+                    "path": "",
+                    "lineNumberZeroBased": 3350,
+                    "columnNumberZeroBased": 24,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "getAriaRole",
+                    "path": "",
+                    "lineNumberZeroBased": 3342,
+                    "columnNumberZeroBased": 20,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "match",
+                    "path": "",
+                    "lineNumberZeroBased": 5260,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5300,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryRole",
+                    "path": "",
+                    "lineNumberZeroBased": 5258,
+                    "columnNumberZeroBased": 18,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 3,
+                "stack": [
+                  {
+                    "functionName": "elementSafeTagName",
+                    "path": "",
+                    "lineNumberZeroBased": 3014,
+                    "columnNumberZeroBased": 27,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "getImplicitAriaRole",
+                    "path": "",
+                    "lineNumberZeroBased": 3232,
+                    "columnNumberZeroBased": 28,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "computeAriaRole",
+                    "path": "",
+                    "lineNumberZeroBased": 3350,
+                    "columnNumberZeroBased": 24,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "getAriaRole",
+                    "path": "",
+                    "lineNumberZeroBased": 3342,
+                    "columnNumberZeroBased": 20,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "match",
+                    "path": "",
+                    "lineNumberZeroBased": 5260,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5300,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "phase": "download",
+            "approximateNavigationStartMs": 2807.134,
+            "wallMs": 722.448,
+            "threadCpuMs": 12.7,
+            "nestedInclusiveEvents": {
+              "ThreadControllerImpl::RunTask": {
+                "count": 1,
+                "inclusiveMs": 722.387,
+                "maxMs": 722.387
+              },
+              "Receive mojo message": {
+                "count": 1,
+                "inclusiveMs": 722.368,
+                "maxMs": 722.368
+              },
+              "RunMicrotasks": {
+                "count": 2,
+                "inclusiveMs": 721.502,
+                "maxMs": 721.463
+              },
+              "EventDispatch": {
+                "count": 6,
+                "inclusiveMs": 720.826,
+                "maxMs": 720.601
+              },
+              "UpdateLayoutTree": {
+                "count": 2,
+                "inclusiveMs": 0.254,
+                "maxMs": 0.161
+              },
+              "v8.callFunction": {
+                "count": 4,
+                "inclusiveMs": 0.108,
+                "maxMs": 0.041
+              },
+              "FunctionCall": {
+                "count": 4,
+                "inclusiveMs": 0.08,
+                "maxMs": 0.028
+              },
+              "BlinkScheduler_PerformMicrotaskCheckpoint": {
+                "count": 1,
+                "inclusiveMs": 0.004,
+                "maxMs": 0.004
+              }
+            },
+            "calls": [],
+            "sampleWitnesses": [
+              {
+                "sampleCount": 221,
+                "stack": [
+                  {
+                    "functionName": "selectText",
+                    "path": "",
+                    "lineNumberZeroBased": 7405,
+                    "columnNumberZeroBased": 12,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "fill",
+                    "path": "",
+                    "lineNumberZeroBased": 7370,
+                    "columnNumberZeroBased": 6,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 0,
+                    "columnNumberZeroBased": 0,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 1,
+                "stack": [
+                  {
+                    "functionName": "evaluate",
+                    "path": "",
+                    "lineNumberZeroBased": 304,
+                    "columnNumberZeroBased": 10,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 0,
+                    "columnNumberZeroBased": 1,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "phase": "folder-navigation",
+            "approximateNavigationStartMs": 5855.135,
+            "wallMs": 50.827,
+            "threadCpuMs": 50.733,
+            "nestedInclusiveEvents": {
+              "ThreadControllerImpl::RunTask": {
+                "count": 1,
+                "inclusiveMs": 50.784,
+                "maxMs": 50.784
+              },
+              "Receive mojo message": {
+                "count": 1,
+                "inclusiveMs": 50.76,
+                "maxMs": 50.76
+              },
+              "V8.StackGuard": {
+                "count": 4,
+                "inclusiveMs": 0.212,
+                "maxMs": 0.087
+              },
+              "V8.HandleInterrupts": {
+                "count": 4,
+                "inclusiveMs": 0.192,
+                "maxMs": 0.081
+              },
+              "V8.BytecodeBudgetInterrupt": {
+                "count": 5,
+                "inclusiveMs": 0.05299999999999999,
+                "maxMs": 0.029
+              },
+              "RunMicrotasks": {
+                "count": 1,
+                "inclusiveMs": 0.047,
+                "maxMs": 0.047
+              },
+              "EventDispatch": {
+                "count": 2,
+                "inclusiveMs": 0.046,
+                "maxMs": 0.037
+              },
+              "V8.DeoptimizeCode": {
+                "count": 1,
+                "inclusiveMs": 0.019,
+                "maxMs": 0.019
+              },
+              "BlinkScheduler_PerformMicrotaskCheckpoint": {
+                "count": 1,
+                "inclusiveMs": 0.002,
+                "maxMs": 0.002
+              }
+            },
+            "calls": [],
+            "sampleWitnesses": [
+              {
+                "sampleCount": 36,
+                "stack": [
+                  {
+                    "functionName": "getElementLabels",
+                    "path": "",
+                    "lineNumberZeroBased": 5147,
+                    "columnNumberZeroBased": 25,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 7045,
+                    "columnNumberZeroBased": 34,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryAll",
+                    "path": "",
+                    "lineNumberZeroBased": 7042,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_queryEngineAll",
+                    "path": "",
+                    "lineNumberZeroBased": 6967,
+                    "columnNumberZeroBased": 17,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "querySelectorAll",
+                    "path": "",
+                    "lineNumberZeroBased": 6919,
+                    "columnNumberZeroBased": 18,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "callMatchedElements",
+                    "path": "",
+                    "lineNumberZeroBased": 0,
+                    "columnNumberZeroBased": 29,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 8,
+                "stack": [
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5606,
+                    "columnNumberZeroBased": 20,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 5604,
+                    "columnNumberZeroBased": 112,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_cached",
+                    "path": "",
+                    "lineNumberZeroBased": 5387,
+                    "columnNumberZeroBased": 9,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_queryCSS",
+                    "path": "",
+                    "lineNumberZeroBased": 5603,
+                    "columnNumberZeroBased": 11,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryAll",
+                    "path": "",
+                    "lineNumberZeroBased": 7042,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_queryEngineAll",
+                    "path": "",
+                    "lineNumberZeroBased": 6967,
+                    "columnNumberZeroBased": 17,
+                    "context": "playwright-utility"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 2,
+                "stack": [
+                  {
+                    "functionName": "dispatchEvent",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "markTargetElements",
+                    "path": "",
+                    "lineNumberZeroBased": 7860,
+                    "columnNumberZeroBased": 20,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "callMatchedElements",
+                    "path": "",
+                    "lineNumberZeroBased": 0,
+                    "columnNumberZeroBased": 29,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "evaluate",
+                    "path": "",
+                    "lineNumberZeroBased": 304,
+                    "columnNumberZeroBased": 10,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 0,
+                    "columnNumberZeroBased": 1,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 1,
+                "stack": [
+                  {
+                    "functionName": "(program)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "(root)",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  }
+                ]
+              },
+              {
+                "sampleCount": 1,
+                "stack": [
+                  {
+                    "functionName": "querySelectorAll",
+                    "path": "",
+                    "lineNumberZeroBased": -1,
+                    "columnNumberZeroBased": -1,
+                    "context": "main-or-native"
+                  },
+                  {
+                    "functionName": "query",
+                    "path": "",
+                    "lineNumberZeroBased": 5606,
+                    "columnNumberZeroBased": 20,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "",
+                    "path": "",
+                    "lineNumberZeroBased": 5604,
+                    "columnNumberZeroBased": 112,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_cached",
+                    "path": "",
+                    "lineNumberZeroBased": 5387,
+                    "columnNumberZeroBased": 9,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "_queryCSS",
+                    "path": "",
+                    "lineNumberZeroBased": 5603,
+                    "columnNumberZeroBased": 11,
+                    "context": "playwright-utility"
+                  },
+                  {
+                    "functionName": "queryAll",
+                    "path": "",
+                    "lineNumberZeroBased": 7042,
+                    "columnNumberZeroBased": 16,
+                    "context": "playwright-utility"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "rawArtifactHashes": {
+        "baseline.json": "51703326651555e4e854b7bf0090b715b210cbb73f68769ddcdf66a11c2ff65a",
+        "startup-chromium.json": "c7ca69cfa7e0640dfa2a0549130229c6992a7c86c0fbf382cfd2b14f6f45a18d",
+        "stdout.txt": "203ffecdd9f1555104f109e80bce84841abade1ff8a8bada5958b16d18909665",
+        "stderr.txt": "3327f9f5bee745d65f4c5cd3c37b84551eeab4f81404682acea903d0f9eaac3e",
+        "selection-toolbar-chromium.png": "bfab8d1bf5f12e81ef45c6ad11604ce45370dd5c7f310ed000291bd412660311",
+        "timeline.json": "9459eba545d7f480bc5b5c8a792665799d9995883d99a3e265fc47fba2df143c",
+        "renderer.cpuprofile": "1eac717eefc2d58b9aa40884f764143ae68feba512f775e3a0b60cd7cafec68f",
+        "profile-metadata.json": "05c02eb1723acd06c14cd6922b9fcf6193f53f28891cbfd21b1e15ad2941f2ec",
+        "profile-observations.json": "47ea6750a5d07dc11144e24a5ef6d5971b4fcc5b42b1f09db30d29f4cf3769fa",
+        "../summary.json": "be25a3db14e6b0f0496b5bab082e6ebe1a02d13bdbc4d928bde04917fb19b274"
+      },
+      "reducerSha256": "71eb373d78bf07e463ea2fef759118dc724ce80e831116c319ffeaa4434bf606"
+    },
+    {
+      "run": "makersvault-g13c-profile-0908e",
+      "summary": {
+        "captured_at": "2026-09-08T23:22:18.633980+00:00",
+        "harness_revision": "8e116107fd3575f65fe4b3c0943dd66c83f375f0",
+        "application_revision": "12559336e6dfdc99b1761b2a62d80616d957020c",
+        "application_version": "development-gate13b",
+        "diagnostic_profile": false,
+        "images": {
+          "api": "sha256:3a2f27a3a81a0c1ec6b12d89b7b8ed0cef0275c57f603b351e1897c50dbbca23",
+          "web": "sha256:9758c81b7d068e5e1389c4dda6c811e38e4b209ffb226840872181a4833f05e5"
+        },
+        "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+        "status": "passed",
+        "cases": [
+          {
+            "case": "organization-chromium",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "e0eb0fe8b1e30f18ea20cf0ac82845578437b215a897b91b13916ff5f59abdb9"
+          }
+        ],
+        "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+      },
+      "baseline": {
+        "schema": 3,
+        "diagnosticProfile": false,
+        "capturedAt": "2026-09-08T23:23:00.518Z",
+        "corpus": {
+          "assets": 600,
+          "folders": 104,
+          "roots": 8,
+          "branches": 32,
+          "leaves": 64,
+          "depth": 3,
+          "seedMs": 23848.549057
+        },
+        "api": {
+          "firstPage": {
+            "path": "/assets",
+            "itemCount": 25,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 11.778432999999495,
+              "p95": 15.232159999999567,
+              "max": 15.232159999999567
+            }
+          },
+          "exactSearch": {
+            "path": "/assets",
+            "itemCount": 1,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 12.30716499999835,
+              "p95": 14.588647000000492,
+              "max": 14.588647000000492
+            }
+          },
+          "folderPage": {
+            "path": "/assets",
+            "itemCount": 9,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 16.512220999997226,
+              "p95": 22.51116799999727,
+              "max": 22.51116799999727
+            }
+          },
+          "folders": {
+            "path": "/folders",
+            "itemCount": 104,
+            "latencyMs": {
+              "samples": 20,
+              "p50": 8.149650999999722,
+              "p95": 13.772291000001132,
+              "max": 13.772291000001132
+            }
+          }
+        },
+        "browser": {
+          "engine": "chromium",
+          "performanceBudgetEnforced": true,
+          "firstCardsMs": 528,
+          "firstCardsWaitReturnMs": 535.9903410000006,
+          "firstVisibleCard": {
+            "schema": 1,
+            "clock": "navigation",
+            "atMs": 528,
+            "submittedAtMs": 183.60000000009313
+          },
+          "startupBreakdown": {
+            "documentMs": 67.55220499999996,
+            "formWaitMs": 65.46681399999943,
+            "formFillMs": 22.620065999999497,
+            "signInClickMs": 36.27237900000182,
+            "afterClickToCardsMs": 382.53684799999974,
+            "includesLoginAutomation": true
+          },
+          "initialCardCount": 20,
+          "loadMoreMs": 176.09060500000123,
+          "loadedCardCount": 40,
+          "selectedAfterLoadMore": 2,
+          "exactSearchMs": 88.27144699999917,
+          "exactSearchResultCount": 1,
+          "selectedBeforeFilter": 2,
+          "selectedAfterFilter": 0,
+          "visibleBulkToolbarBeforeFilter": 1,
+          "preparedSummaryVisible": true,
+          "supportingDocumentVisible": true,
+          "preparedPayloadLinkCount": 0,
+          "mixedMoveSelectedAfter": 1,
+          "mixedMoveFailureVisible": true,
+          "tagPreservationVerified": true,
+          "selectedDownloadSuggestedFilename": "makersvault.zip",
+          "bulkTrashRecoverableVisible": true,
+          "bulkTrashSelectionAfterPanelCancel": 2,
+          "bulkTrashSelectionAfterDialogCancel": 2,
+          "singleTrashRestoreVerified": true,
+          "bulkTrashRestoreVerified": true,
+          "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+          "singleDeleteSelectionAfterCancel": 1,
+          "folderSearchMs": 80.537092999999,
+          "visibleFolderRows": 3,
+          "folderOpenMs": 108.26064699999915,
+          "folderCardCount": 9,
+          "childFolderEmptyStateVisible": true,
+          "breadcrumbAncestorNavigationVisible": true,
+          "longTasksAvailable": true,
+          "longTasks": {
+            "count": 0,
+            "totalMs": 0,
+            "maxMs": 0,
+            "byPhase": {}
+          },
+          "maxInteractionLongTaskMs": 0,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+          "heapBytes": 30229636,
+          "breadcrumbCount": 1
+        }
+      },
+      "analysis": null,
+      "rawArtifactHashes": {
+        "baseline.json": "eee83f679eb78bae2fa5615488c8f360990d51612986d1a3ab8eb208ab16363a",
+        "startup-chromium.json": "3e24603f9cc10f15188c0f9d10a0566c1d681d1b6f6d8ce7e5c71c71b6ede3a3",
+        "stdout.txt": "079a638743864a3c8ddae1484f484462ef613b48a33e6f5a3bf3a3cf122a626e",
+        "stderr.txt": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3",
+        "selection-toolbar-chromium.png": "bfab8d1bf5f12e81ef45c6ad11604ce45370dd5c7f310ed000291bd412660311",
+        "../summary.json": "a66f77c0479f43602a2230fc59158152330d55b977855446ff108d18a3f6d751"
+      },
+      "reducerSha256": "71eb373d78bf07e463ea2fef759118dc724ce80e831116c319ffeaa4434bf606"
+    }
+  ]
+}

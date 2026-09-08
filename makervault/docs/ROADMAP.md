@@ -20,7 +20,10 @@ runtime maintenance, the [archive guard](evidence/gate-13/ARCHIVE_GUARD_RESULTS.
 and [browser corrections](evidence/gate-13/BROWSER_FIX_RESULTS.md) pass the complete
 gate at `1255933` (351 API / 51 web tests). The restored-search race and Firefox
 fixture trust are verified fixed; Chromium startup/interaction budget failures
-remain, with profiling and a bounded optimization proposal next. Remaining image findings are not
+remain part of the unqualified history. [Profiling is complete](evidence/gate-13/CHROMIUM_PROFILE_RESULTS.md):
+repeated folder controls and driver queries are confirmed targets; two passing
+unprofiled controls do not erase earlier failures. The bounded optimization
+proposal awaits owner approval before product changes. Remaining image findings are not
 waived. Deployment guidance explicitly requires production HTTPS even on LAN/VPN.
 Browser/platform and release-readiness
 evidence remain unfinished, followed by 13D owner acceptance of the end state and next

@@ -27,6 +27,9 @@ printer controller, or multi-user cloud service.
   recovery lifecycle. Chromium startup/interaction budget misses remain open;
   no release/performance clearance is claimed. See
   [browser correction evidence](evidence/gate-13/BROWSER_FIX_RESULTS.md).
+- Follow-up [profiling](evidence/gate-13/CHROMIUM_PROFILE_RESULTS.md) identifies
+  repeated folder-option DOM and test-driver query costs. Proposed on-demand folder
+  controls await approval; no additional product speedup or gate acceptance is claimed.
 
 ### Local dependency/runtime maintenance (Gate 13C)
 

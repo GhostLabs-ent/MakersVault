@@ -147,6 +147,12 @@ layout/render, GC and scheduling costs, and propose the smallest evidence-backed
 optimization. The 713 ms observation is not yet a function-level root cause.
 Do not raise budgets, discard failed samples or presume GPU/API/host blame.
 
+**Subsequent owner-authorized follow-up:** [profiling results and proposal](CHROMIUM_PROFILE_RESULTS.md)
+complete that diagnostic slice on these same images. Repeated folder controls and
+driver queries are concrete targets; two unprofiled controls pass without erasing
+the failures above. Application optimization now awaits owner review of the bounded
+proposal; the original 713 ms observation is not assigned a speculative root cause.
+
 G13-04 image residuals, physical passkeys/native Windows/macOS/mobile/local-app
 evidence, supported-platform decisions, release scope/revision and matched
 bridge/distribution qualification remain explicit checkpoints. No residual-risk

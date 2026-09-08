@@ -3,8 +3,9 @@
 **Opened:** 2026-09-06, following owner acceptance of 13B at `2f61b37`.
 
 **Status:** IN PROGRESS — MAINTENANCE, ARCHIVE GUARD AND APPROVED BROWSER CORRECTIONS VERIFIED;
-current browser qualification retains startup/interaction budget failures. See
-[browser correction evidence](BROWSER_FIX_RESULTS.md). No release scope
+current browser qualification retains startup/interaction budget failures.
+[Profiling is complete; the bounded optimization proposal awaits approval](CHROMIUM_PROFILE_RESULTS.md).
+See also [browser correction evidence](BROWSER_FIX_RESULTS.md). No release scope
 or replacement candidate selected. This is not a request to accept or close 13C.
 
 **Entry verification:** `2c68d70`; accepted 13B evidence `2f61b37`. Application
@@ -156,9 +157,17 @@ The current browser matrix is still **not performance-qualified**: Chromium A
 records first cards at 584.4 ms but a 56 ms load-more long task; repeat B records
 1433.2 ms first cards, a 713 ms navigation long task and a 55 ms folder-navigation
 long task. The <1000 ms / ≤50 ms limits are unchanged. Request visibility and
-Firefox trust corrections are verified, not still awaiting repair. Profiling and
-an evidence-backed optimization proposal are next; no root-cause function is yet
-established for the remaining stalls. Successful three-engine functional and
+Firefox trust corrections are verified, not still awaiting repair. The subsequent
+owner-authorized [profiling slice](CHROMIUM_PROFILE_RESULTS.md) completes three
+instrumented runs and two unprofiled controls on those unchanged images. It confirms
+4,200 closed folder options at 40 cards, real DOM construction and costly driver
+queries; large elapsed/CPU gaps remain only partially explained. Controls pass at
+495.2/528.0 ms without replacing historical failures. The proposed on-demand folder
+picker and separately reviewed benchmark improvements await approval. No application
+optimization, budget change or general root-cause claim follows from these traces.
+Focused checks pass 19 Python / 14 Node tests and static release verification at
+the profiling harness checkpoint; the full application pass remains `1255933`.
+Successful three-engine functional and
 preview/cache/mount probes are bounded evidence, not a blanket performance pass.
 Historical timing is not reused. Physical-device and native-workstation
 availability has been requested; no answer or platform limitation is assumed.

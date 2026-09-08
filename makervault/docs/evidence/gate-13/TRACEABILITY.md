@@ -6,7 +6,8 @@
 `1255933` after approved browser corrections, schema 17 unchanged
 
 **Status:** 13A–13B accepted; 13C maintenance/archive/browser corrections verified,
-Chromium startup/interaction budgets still fail; final Gate 13 acceptance pending
+Chromium performance remains unqualified; profiling complete, optimization proposal
+awaits approval; final Gate 13 acceptance pending
 
 ## Reading this ledger
 
@@ -22,6 +23,9 @@ exact-image rescan at `ddf8cf4`; no image finding was waived.
 The [browser correction record](BROWSER_FIX_RESULTS.md) adds the full gate and
 same-image HTTPS lifecycle/browser/audit evidence at `1255933`: race regression
 and Firefox trust pass, while Chromium performance remains unqualified.
+The subsequent [profile record](CHROMIUM_PROFILE_RESULTS.md) uses the same images,
+separates product/driver costs and retains two passing unprofiled controls alongside
+all historical failures. Proposed changes are not yet implemented or approved.
 Carry-forward IDs have reasons, dependencies, and a review checkpoint below.
 
 Source commitments are from [Product Strategy](../../PRODUCT_STRATEGY.md),
@@ -35,7 +39,7 @@ Test paths in this table are relative to `api/tests/` unless qualified otherwise
 
 | ID / commitment | Current behavior and direct proof | Remaining evidence or disposition |
 |---|---|---|
-| P01 — find a large mixed library without stalls | Bounded worker previews, static thumbnail reuse, pagination; `test_preview_policy.py`, `test_api_smoke.py`; current cold/warm/detail/LightBurn observations at `1255933` | G13-01: current organization startup/interaction stalls need profiling; no blanket performance qualification |
+| P01 — find a large mixed library without stalls | Bounded worker previews, static thumbnail reuse, pagination; `test_preview_policy.py`, `test_api_smoke.py`; current cold/warm/detail/LightBurn observations at `1255933` | G13-01: profiling confirms repeated folder-option DOM and driver costs; proposed optimization awaits approval; no blanket performance qualification |
 | P02 — modern folder navigation and bulk organization | Folder-scoped naming, nested lookup, conflicts, breadcrumbs, explicit selected IDs; organization tests plus seven request-order browser regressions and three-engine functional runs at `1255933` | G13-01 performance remains open; C04 for server-wide selection, narrow/touch/accessibility and density polish |
 | P03 — editable identity, metadata, configurable paths | Names, creator/collection/tags/notes/provenance and managed-storage templates; `test_organization.py`, `test_revisions.py`, `test_content_identity.py` | Renaming never moves immutable historical or external no-copy bytes; C05 for custom fields and automatic source artwork |
 | P04 — supporting documents and prepared context | Visible supporting files, internal prepared role and supplied summary, scoped slicer handoff; API/revision/export tests and current three-engine visibility/no-prepared-link assertions at `1255933` | No thumbnail-upload chore or machine operation; real local-tool launch remains C03 |
@@ -77,7 +81,7 @@ the next accepted slice. Re-review at that slice and again at 13D.
 
 | ID | Source evidence / effect | Required next proof |
 |---|---|---|
-| G13-01 | [Approved browser corrections](BROWSER_FIX_RESULTS.md) at `1255933` pass request-order regressions and trusted-HTTPS functional workflows in three engines; current preview/cache/mounted import also complete on the lifecycle images. Historical failures remain recorded | OPEN performance: Chromium A misses the 50 ms interaction limit; repeat B additionally records 1433.2 ms first cards and a 713 ms navigation long task. Profile startup/interaction costs before proposing optimization. Restore/search and Firefox trust fixes are verified; no threshold/security relaxation or function-level performance root cause is implied |
+| G13-01 | [Approved browser corrections](BROWSER_FIX_RESULTS.md) at `1255933` pass request-order regressions and trusted-HTTPS functional workflows in three engines; current preview/cache/mounted import also complete on the lifecycle images. [Subsequent profiling](CHROMIUM_PROFILE_RESULTS.md) confirms 4,200 folder options at 40 cards, app DOM-building and driver-query costs; two unprofiled controls pass but all failures remain | OPEN performance: prior 1433.2 ms first cards / 713 ms navigation / >50 ms interaction observations are not erased. Approve or revise the proposed shared on-demand folder picker and benchmark hygiene, then repeat unchanged-budget verification. Large wall/thread-CPU gaps remain unresolved; no application optimization, risk waiver or 13C acceptance yet |
 | G13-02 | 13A found stale schema-5 recovery assertions and no joined current lifecycle. **13B VERIFIED:** `gate13-lifecycle-drill.py` passes schema 4→17, contract-6 restore, pre-start revocation/audit, schema 12→17 portable bootstrap and exact stopped rollback on `2c68d70` | Owner accepted 13B at `2f61b37`; injected interruption tests and three no-mutation operator refusals pass. Named local development evidence, not release or physical-power-loss qualification |
 | G13-03 | 13A found stale JWT/schema-5 exact-image smoke. **13B harness portion VERIFIED:** current production-HTTPS identity/security/persistence/schema-17 smoke against immutable local image IDs | 13C remains OPEN: owner-selected immutable scope/revision and matched-image/bridge/reproducibility evidence before any release claim; static `verify-release` remains only a contract check |
 | G13-04 | [Approved maintenance](REMEDIATION_RESULTS.md), [archive guard](ARCHIVE_GUARD_RESULTS.md) and browser corrections pass the full gate, latest at `1255933`. Refreshed language scans report no advisories for their recorded date; the latest exact-image rescan retains 181 API / 3 web matches. Historical scans remain intact | Reviewed CVE-2026-15310 application read paths are mitigated, not removed from the runtime inventory. Seven interpreter matches have explicit vendor exclusions; remaining OS/interpreter findings are unwaived and need reviewed dispositions before candidate qualification |
