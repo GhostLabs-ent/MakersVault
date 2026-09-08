@@ -1,8 +1,12 @@
-import { open, writeFile } from "node:fs/promises";
+import { open, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 // Opt-in, private disposable-fixture diagnostics. Never a production/browser bypass.
 export async function startChromiumProfile(page, directory) {
+  const counters = async () => Object.fromEntries(await Promise.all(
+    ["cpu.stat", "cpu.max", "cpu.pressure", "memory.events"].map(async name =>
+      [name, await readFile("/sys/fs/cgroup/" + name, "utf8").catch(() => null)])));
+  const countersBefore = await counters();
   const session = await page.context().newCDPSession(page);
   const scripts = [];
   const contexts = [];
@@ -30,7 +34,7 @@ export async function startChromiumProfile(page, directory) {
     if (completion) return completion;
     completion = (async () => {
       const metadata = { schema: 1, diagnosticOnly: true, samplingIntervalUs: 1000,
-        status: "in_progress", contexts, scripts };
+        status: "in_progress", contexts, scripts, countersBefore };
       try {
         const { profile } = await session.send("Profiler.stop");
         await writeFile(resolve(directory, "renderer.cpuprofile"), JSON.stringify(profile), { flag: "wx", mode: 0o600 });
@@ -63,6 +67,7 @@ export async function startChromiumProfile(page, directory) {
         metadata.status = "failed"; metadata.error = error.message;
         throw error;
       } finally {
+        metadata.countersAfter = await counters();
         await writeFile(resolve(directory, "profile-metadata.json"), JSON.stringify(metadata, null, 2) + "\n", { flag: "wx", mode: 0o600 });
         await session.detach().catch(() => {});
       }
@@ -71,9 +76,23 @@ export async function startChromiumProfile(page, directory) {
   } };
 }
 
+export async function recordProfileDom(page, phase) {
+  await page.evaluate(label => {
+    const histogram = {};
+    for (const select of document.querySelectorAll("select")) {
+      const count = select.options.length;
+      histogram[count] = (histogram[count] || 0) + 1;
+    }
+    window.__mvProfile.domSnapshots.push({ phase: label, atMs: performance.now(),
+      cards: document.querySelectorAll('[title="Double-click to open large preview"]').length,
+      elements: document.querySelectorAll("*").length,
+      options: document.querySelectorAll("option").length, selectOptionHistogram: histogram });
+  }, phase);
+}
+
 // Called in the benchmark's existing init script, never injected into app sources.
 export function installProfileObservers(state) {
-  const output = window.__mvProfile = { phases: [], longTasks: [], frames: [], loafAvailable: false };
+  const output = window.__mvProfile = { phases: [], longTasks: [], frames: [], domSnapshots: [], loafAvailable: false };
   let phase = state.phase;
   const mark = value => {
     const name = "mv.phase:" + value;

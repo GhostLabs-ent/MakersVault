@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { chromium, firefox, webkit } from "playwright-core";
 import { loginSession } from "../session-client.mjs";
 import { installFirstVisibleCardProbe } from "../first-visible-card.mjs";
-import { startChromiumProfile, installProfileObservers } from "./chromium-profile.mjs";
+import { startChromiumProfile, installProfileObservers, recordProfileDom } from "./chromium-profile.mjs";
 
 const apiUrl = (process.env.MAKERSVAULT_BENCHMARK_API_URL || "http://localhost:18003").replace(/\/$/, "");
 const webUrl = (process.env.MAKERSVAULT_BENCHMARK_WEB_URL || "http://localhost:15176").replace(/\/$/, "");
@@ -296,6 +296,7 @@ async function main() {
   await writeFile(resolve(dirname(outputPath), `startup-${browserName}.json`),
     `${JSON.stringify({ firstCardsMs, firstCardsWaitReturnMs, firstVisibleCard, startupBreakdown }, null, 2)}\n`, "utf8");
   const initialCardCount = await page.locator('[title="Double-click to open large preview"]').count();
+  if (profileEnabled) await recordProfileDom(page, "initial-cards");
 
   await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "selection"; });
   const checkboxes = page.getByRole("checkbox");
@@ -308,6 +309,7 @@ async function main() {
   await page.waitForFunction(count => document.querySelectorAll('[title="Double-click to open large preview"]').length > count, initialCardCount);
   const loadMoreMs = performance.now() - loadMoreStarted;
   const loadedCardCount = await page.locator('[title="Double-click to open large preview"]').count();
+  if (profileEnabled) await recordProfileDom(page, "after-load-more");
   const selectedAfterLoadMore = await page.locator('input[type="checkbox"]:checked').count();
   const selectedBeforeFilter = await page.locator('input[type="checkbox"]:checked').count();
   const visibleBulkToolbarBeforeFilter = await page.locator('[role="toolbar"]').count();
@@ -447,6 +449,7 @@ async function main() {
   }, targetLeaf.id);
   const folderOpenMs = performance.now() - folderOpenStarted;
   const folderCardCount = await page.locator('[title="Double-click to open large preview"]').count();
+  if (profileEnabled) await recordProfileDom(page, "folder-open");
   const parentBranch = folders.branches.find(branch => branch.id === targetLeaf.parent_id);
   if (!parentBranch) throw new Error("Target leaf parent is missing");
   await page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("button", { name: parentBranch.name, exact: true }).click();
