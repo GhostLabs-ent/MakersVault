@@ -62,9 +62,9 @@ export default function FolderMoveDialog({ name, currentFolderId, currentFolderN
       className="m-auto w-[calc(100%_-_2rem)] max-w-xl max-h-[90vh] overflow-y-auto rounded-xl border border-panel-strong bg-panel-strong p-5 text-foreground shadow-xl backdrop:bg-black/60"
       onKeyDown={event => {
         if (event.key !== "Tab" || event.altKey || event.ctrlKey || event.metaKey) return;
-        const controls = [...event.currentTarget.querySelectorAll<HTMLElement>("input:not(:disabled), select:not(:disabled), button:not(:disabled)")]
+        const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>("input:not(:disabled), select:not(:disabled), button:not(:disabled)"))
           .filter(element => element.getClientRects().length > 0);
-        const first = controls[0], last = controls.at(-1);
+        const first = controls[0], last = controls[controls.length - 1];
         if (!first) { event.preventDefault(); event.currentTarget.focus(); }
         else if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
