@@ -1,12 +1,15 @@
 // Functions are self-contained for serialization into the measured page.
 export function installOrganizationTiming() {
-  const state = window.__mvOrganizationBenchmark = {
+  const state = {
     longTasks: [], longTasksAvailable: false, phases: [{ phase: "navigation", atMs: 0 }],
   };
   let phase = "navigation";
   Object.defineProperty(state, "phase", { configurable: true,
     get: () => phase, set: next => { phase = next; state.phases.push({ phase: next, atMs: performance.now() }); },
   });
+  // Publish only after the accessor exists: an earlier profile init script may
+  // wrap this assignment and must compose with, not be replaced by, that accessor.
+  window.__mvOrganizationBenchmark = state;
   try {
     if (!PerformanceObserver.supportedEntryTypes.includes("longtask")) return;
     const consume = entries => {

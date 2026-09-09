@@ -56,3 +56,19 @@ test("opt-in profile observer composes with the benchmark phase history", () => 
   assert.equal(f.context.window.__mvOrganizationBenchmark.phases.at(-1).phase, "load-more");
   assert.equal(f.context.window.__mvProfile.phases.at(-1).phase, "load-more");
 });
+test("profile installed before the timing init script also retains both phase histories", () => {
+  const f = fixture();
+  let state;
+  Object.defineProperty(f.context.window, "__mvOrganizationBenchmark", { configurable: true,
+    get: () => state, set: next => {
+      state = next;
+      runInNewContext(`(${installProfileObservers.toString()})(state)`, { ...f.context, state });
+    },
+  });
+  runInNewContext(`(${installOrganizationTiming.toString()})()`, f.context);
+  f.phase("load-more", 100);
+  assert.equal(state.phases.length, 2);
+  assert.equal(f.context.window.__mvProfile.phases.length, 2);
+  assert.equal(f.context.window.__mvProfile.phases[0].phase, "navigation");
+  assert.equal(f.context.window.__mvProfile.phases[1].phase, "load-more");
+});
