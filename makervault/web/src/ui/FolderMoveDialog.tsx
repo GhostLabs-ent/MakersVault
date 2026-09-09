@@ -58,7 +58,7 @@ export default function FolderMoveDialog({ name, currentFolderId, currentFolderN
 
   return createPortal(
     <dialog ref={dialog} aria-labelledby={titleId} aria-describedby={descriptionId}
-      className="m-auto w-[calc(100%_-_2rem)] max-w-xl max-h-[90vh] overflow-y-auto rounded-xl border border-panel-strong bg-panel p-5 text-foreground shadow-xl backdrop:bg-black/60"
+      className="m-auto w-[calc(100%_-_2rem)] max-w-xl max-h-[90vh] overflow-y-auto rounded-xl border border-panel-strong bg-panel-strong p-5 text-foreground shadow-xl backdrop:bg-black/60"
       onCancel={event => { event.preventDefault(); if (!inFlight.current) onClose(); }}
       onClick={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()}>
       <form onSubmit={submit} className="flex flex-col gap-4" aria-busy={busy}>

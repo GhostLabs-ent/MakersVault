@@ -95,6 +95,10 @@ async function main() {
   await destinations.press("End"); assert.equal(await destinations.inputValue(), free.id);
   await destinations.press("Enter");
   assert.equal(await confirm.evaluate(element => document.activeElement === element), true);
+  await confirm.press("Tab");
+  assert.equal(await search.evaluate(element => document.activeElement === element), true);
+  await search.press("Shift+Tab");
+  assert.equal(await confirm.evaluate(element => document.activeElement === element), true);
   assert.equal(mutations.length, 0);
   await confirm.press("Escape"); await closed();
   assert.equal(await move.evaluate(element => document.activeElement === element), true);
@@ -111,6 +115,8 @@ async function main() {
   await destinations.selectOption(collision.id); assert.equal(await confirm.isEnabled(), true);
   await page.setViewportSize({ width: 390, height: 844 });
   const box = await dialog.boundingBox(); assert(box.x >= 0 && box.x + box.width <= 390);
+  const background = await dialog.evaluate(element => getComputedStyle(element).backgroundColor);
+  assert.match(background, /^rgb\(/, "Dialog surface must be opaque");
   await page.screenshot({ path: resolve(dirname(output), `folder-picker-${engine}.png`) });
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click(); await closed();
   assert.equal(mutations.length, 0); await folderIs(source.id);
