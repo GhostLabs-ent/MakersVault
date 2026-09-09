@@ -27,7 +27,7 @@ def new_output(path):
     return path
 
 
-def run_case(root, output, images, browser_image, workflow, engine, profile=False):
+def run_case(root, output, images, browser_image, workflow, engine, profile=False, folder_stress=False):
     case = f"{workflow}-{engine}"
     case_output = output / case
     case_output.mkdir(mode=0o700)
@@ -53,7 +53,8 @@ def run_case(root, output, images, browser_image, workflow, engine, profile=Fals
         stack.start()
         package = "preview" if workflow == "preview" else "organization"
         script = {"organization": "organization-baseline.mjs", "preview": "preview-baseline.mjs",
-                  "mount": "mount-scan-verification.mjs", "ordering": "request-order-regression.mjs"}[workflow]
+                  "mount": "mount-scan-verification.mjs", "ordering": "request-order-regression.mjs",
+                  "folder-picker": "folder-picker-regression.mjs"}[workflow]
         benchmark_env = {
             "MAKERSVAULT_BENCHMARK_API_URL": stack.origin + "/api",
             "MAKERSVAULT_BENCHMARK_WEB_URL": stack.origin,
@@ -64,6 +65,7 @@ def run_case(root, output, images, browser_image, workflow, engine, profile=Fals
             "MAKERSVAULT_MOUNT_SCAN_OUTPUT": "/results/baseline.json",
             "MAKERSVAULT_BENCHMARK_CORPUS": "/corpus",
             "MAKERSVAULT_ORGANIZATION_ASSETS": "600",
+            "MAKERSVAULT_ORGANIZATION_ROOTS": "80" if folder_stress else "8",
         }
         if profile:
             benchmark_env["MAKERSVAULT_CHROMIUM_PROFILE"] = "1"
@@ -112,12 +114,15 @@ def main():
     parser.add_argument("--revision", required=True, help="application image revision, separately from harness source")
     parser.add_argument("--browser-image", required=True, help="local browser-runtime build; resolved to an immutable ID")
     parser.add_argument("--output", required=True, type=Path, help="new private directory; never overwritten")
-    parser.add_argument("--workflows", nargs="+", choices=("organization", "preview", "mount", "ordering"), default=["ordering", "organization", "preview", "mount"])
+    parser.add_argument("--workflows", nargs="+", choices=("organization", "preview", "mount", "ordering", "folder-picker"), default=["ordering", "folder-picker", "organization", "preview", "mount"])
     parser.add_argument("--browsers", nargs="+", choices=("chromium", "firefox", "webkit"), default=["chromium", "firefox", "webkit"])
     parser.add_argument("--profile-chromium", action="store_true", help="private diagnostic traces; organization/Chromium only, not qualification timing")
+    parser.add_argument("--folder-stress", action="store_true", help="separate 600-Artifact/1040-folder organization case; unchanged thresholds")
     args = parser.parse_args()
     if args.profile_chromium and (args.workflows != ["organization"] or args.browsers != ["chromium"]):
         parser.error("--profile-chromium requires --workflows organization --browsers chromium")
+    if args.folder_stress and args.workflows != ["organization"]:
+        parser.error("--folder-stress requires --workflows organization")
     harness_revision = source_identity()
     images = {name: image_identity(image, args.version, args.revision)
               for name, image in (("api", args.api_image), ("web", args.web_image))}
@@ -126,6 +131,7 @@ def main():
     summary = {"captured_at": datetime.now(timezone.utc).isoformat(), "harness_revision": harness_revision,
                "application_revision": args.revision, "application_version": args.version,
                "diagnostic_profile": args.profile_chromium,
+               "organization_fixture": "folder-stress-1040" if args.folder_stress else "baseline-104",
                "images": images, "browser_image": browser_image, "status": "in_progress", "cases": [],
                "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"}
     def save():
@@ -134,10 +140,10 @@ def main():
     try:
         with tempfile.TemporaryDirectory(prefix="makersvault-g13-browser-") as temporary:
             for workflow in dict.fromkeys(args.workflows):
-                engines = list(dict.fromkeys(args.browsers)) if workflow == "organization" else ["chromium"]
+                engines = list(dict.fromkeys(args.browsers)) if workflow in {"organization", "folder-picker"} else ["chromium"]
                 for engine in engines:
                     print(f"Running {workflow}/{engine} on disposable production HTTPS", flush=True)
-                    summary["cases"].append(run_case(Path(temporary), output, images, browser_image, workflow, engine, args.profile_chromium))
+                    summary["cases"].append(run_case(Path(temporary), output, images, browser_image, workflow, engine, args.profile_chromium, args.folder_stress))
                     save()
         assert source_identity() == harness_revision, "Verification sources changed during the run"
         summary["status"] = "passed" if all(case["status"] == "passed" for case in summary["cases"]) else "failed"

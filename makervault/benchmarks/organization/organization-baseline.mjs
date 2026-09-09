@@ -4,6 +4,7 @@ import { chromium, firefox, webkit } from "playwright-core";
 import { loginSession } from "../session-client.mjs";
 import { installFirstVisibleCardProbe } from "../first-visible-card.mjs";
 import { startChromiumProfile, installProfileObservers, recordProfileDom } from "./chromium-profile.mjs";
+import { installOrganizationTiming, readOrganizationTiming, readFolderControlDom } from "./organization-timing.mjs";
 
 const apiUrl = (process.env.MAKERSVAULT_BENCHMARK_API_URL || "http://localhost:18003").replace(/\/$/, "");
 const webUrl = (process.env.MAKERSVAULT_BENCHMARK_WEB_URL || "http://localhost:15176").replace(/\/$/, "");
@@ -14,7 +15,8 @@ if (!browserType) throw new Error(`Unsupported benchmark browser: ${browserName}
 const username = process.env.MAKERSVAULT_BENCHMARK_USERNAME || "admin";
 const password = process.env.MAKERSVAULT_BENCHMARK_PASSWORD || "local-development-only";
 const assetCount = Number(process.env.MAKERSVAULT_ORGANIZATION_ASSETS || 600);
-const rootCount = 8;
+const rootCount = Number(process.env.MAKERSVAULT_ORGANIZATION_ROOTS || 8);
+if (![8, 80].includes(rootCount)) throw new Error("Organization roots must be 8 (baseline) or 80 (folder stress)");
 const branchesPerRoot = 4;
 const leavesPerBranch = 2;
 let activeBrowser = null;
@@ -199,11 +201,16 @@ async function measureApi(token, path, repetitions = 20) {
 
 async function searchLibrary(page, input, query) {
   await input.fill(query);
-  await Promise.all([
+  const [response] = await Promise.all([
     page.waitForResponse(response => response.url().includes("/assets?") && (new URL(response.url()).searchParams.get("q") || "") === query),
     input.press("Enter"),
   ]);
-  await page.locator('[title="Double-click to open large preview"]').first().waitFor();
+  if (!response.ok()) throw new Error(`Library search failed: ${response.status()}`);
+  const expected = (await response.json()).map(asset => asset.id).sort();
+  await page.waitForFunction(ids => {
+    const visibleIds = [...document.querySelectorAll('[title="Double-click to open large preview"]')].map(card => card.dataset.assetId).sort();
+    return visibleIds.length === ids.length && visibleIds.every((id, index) => id === ids[index]);
+  }, expected);
 }
 
 async function main() {
@@ -211,7 +218,7 @@ async function main() {
   const seededAt = performance.now();
   const folders = await seedLibrary(token);
   const seedMs = performance.now() - seededAt;
-  const targetLeaf = folders.leaves.at(-1);
+  const targetLeaf = folders.leaves[Math.min(folders.standardAssetCount, folders.leaves.length) - 1];
   const exactSearch = `Fixture ${String(folders.standardAssetCount - 1).padStart(4, "0")}`;
   const api = {
     firstPage: await measureApi(token, "/assets?limit=25&offset=0"),
@@ -227,6 +234,10 @@ async function main() {
   activeBrowser = browser;
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
+  const mainRegion = page.locator("main");
+  const sidebar = page.locator("aside");
+  const cards = mainRegion.locator('[title="Double-click to open large preview"]');
+  const folderIds = [...folders.roots, ...folders.branches, ...folders.leaves].map(folder => folder.id);
   await page.addInitScript(installFirstVisibleCardProbe);
   await mkdir(dirname(outputPath), { recursive: true });
   if (profileEnabled) {
@@ -241,21 +252,7 @@ async function main() {
     if (accept) await dialog.accept();
     else await dialog.dismiss();
   });
-  await page.addInitScript(() => {
-    window.__mvOrganizationBenchmark = { longTasks: [], longTasksAvailable: false, phase: "navigation" };
-    try {
-      if (!PerformanceObserver.supportedEntryTypes.includes("longtask")) return;
-      new PerformanceObserver(list => {
-        for (const entry of list.getEntries()) {
-          window.__mvOrganizationBenchmark.longTasks.push({
-            duration: entry.duration,
-            phase: window.__mvOrganizationBenchmark.phase,
-          });
-        }
-      }).observe({ type: "longtask", buffered: true });
-      window.__mvOrganizationBenchmark.longTasksAvailable = true;
-    } catch {}
-  });
+  await page.addInitScript(installOrganizationTiming);
 
   if (profileEnabled) {
     await page.addInitScript({ content: `(() => {
@@ -277,9 +274,9 @@ async function main() {
   await page.locator('input[autocomplete="username"]').fill(username);
   await page.locator('input[autocomplete="current-password"]').fill(password);
   const formFilled = performance.now();
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.locator("form").getByRole("button", { name: "Sign in" }).click();
   const signInClicked = performance.now();
-  await page.locator('[title="Double-click to open large preview"]').first().waitFor({ timeout: 30_000 });
+  await cards.first().waitFor({ timeout: 30_000 });
   const firstCardsWaitReturnMs = performance.now() - navigationStarted;
   await page.waitForFunction(() => Number.isFinite(window.__mvFirstVisibleCard?.atMs), undefined, { timeout: 30_000 });
   const firstVisibleCard = await page.evaluate(() => window.__mvFirstVisibleCard);
@@ -295,20 +292,21 @@ async function main() {
   // Preserve startup diagnostics even if a later workflow assertion aborts the report.
   await writeFile(resolve(dirname(outputPath), `startup-${browserName}.json`),
     `${JSON.stringify({ firstCardsMs, firstCardsWaitReturnMs, firstVisibleCard, startupBreakdown }, null, 2)}\n`, "utf8");
-  const initialCardCount = await page.locator('[title="Double-click to open large preview"]').count();
+  const initialCardCount = await cards.count();
+  const initialFolderControls = await page.evaluate(readFolderControlDom, folderIds);
   if (profileEnabled) await recordProfileDom(page, "initial-cards");
 
   await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "selection"; });
-  const checkboxes = page.getByRole("checkbox");
-  await checkboxes.nth(0).check();
-  await checkboxes.nth(1).check();
+  await cards.nth(0).locator("..").getByRole("checkbox").check();
+  await cards.nth(1).locator("..").getByRole("checkbox").check();
 
   await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "load-more"; });
   const loadMoreStarted = performance.now();
-  await page.getByRole("button", { name: "Load more" }).click();
+  await mainRegion.getByRole("button", { name: "Load more" }).click();
   await page.waitForFunction(count => document.querySelectorAll('[title="Double-click to open large preview"]').length > count, initialCardCount);
   const loadMoreMs = performance.now() - loadMoreStarted;
-  const loadedCardCount = await page.locator('[title="Double-click to open large preview"]').count();
+  const loadedCardCount = await cards.count();
+  const loadedFolderControls = await page.evaluate(readFolderControlDom, folderIds);
   if (profileEnabled) await recordProfileDom(page, "after-load-more");
   const selectedAfterLoadMore = await page.locator('input[type="checkbox"]:checked').count();
   const selectedBeforeFilter = await page.locator('input[type="checkbox"]:checked').count();
@@ -316,28 +314,30 @@ async function main() {
   await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "evidence-screenshot"; });
   await page.screenshot({ path: resolve(dirname(outputPath), `selection-toolbar-${browserName}.png`) });
 
-  const librarySearch = page.getByPlaceholder("Search title, filename, notes...");
+  const librarySearch = mainRegion.getByPlaceholder("Search title, filename, notes...");
   await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "search"; });
   const searchStarted = performance.now();
   await searchLibrary(page, librarySearch, exactSearch);
   const browserSearchMs = performance.now() - searchStarted;
-  const browserSearchResultCount = await page.locator('[title="Double-click to open large preview"]').count();
+  const browserSearchResultCount = await cards.count();
   const selectedAfterFilter = await page.locator('input[type="checkbox"]:checked').count();
 
   await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "bundle"; });
   await searchLibrary(page, librarySearch, "Workflow Bundle Proof");
-  const preparedSummaryVisible = await page.getByText("Bambu Lab P1S", { exact: false }).isVisible();
-  await page.getByRole("button", { name: /Supporting files/ }).click();
-  await page.getByRole("link", { name: "assembly.pdf" }).waitFor();
-  const supportingDocumentVisible = await page.getByRole("link", { name: "assembly.pdf" }).isVisible();
-  const preparedPayloadLinkCount = await page.getByRole("link", { name: "prepared.gcode" }).count();
+  const bundleCard = cards.first().locator("..");
+  const preparedSummaryVisible = await bundleCard.getByText("Bambu Lab P1S", { exact: false }).isVisible();
+  await bundleCard.getByRole("button", { name: /Supporting files/ }).click();
+  await bundleCard.getByRole("link", { name: "assembly.pdf" }).waitFor();
+  const supportingDocumentVisible = await bundleCard.getByRole("link", { name: "assembly.pdf" }).isVisible();
+  const preparedPayloadLinkCount = await mainRegion.getByRole("link", { name: "prepared.gcode" }).count();
 
   await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "bulk-move"; });
   await searchLibrary(page, librarySearch, "Gate 3 bulk source");
-  await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "bulk-tags"; });
-  await page.getByRole("checkbox", { name: "Select Workflow Bulk Success" }).check();
-  await page.getByRole("checkbox", { name: "Select Workflow Bulk Conflict" }).check();
-  const bulkToolbar = page.getByRole("toolbar", { name: "Selected models" });
+  const successCard = mainRegion.locator(`[data-asset-id="${folders.special.bulkSuccess.id}"]`).locator("..");
+  const conflictCard = mainRegion.locator(`[data-asset-id="${folders.special.bulkConflict.id}"]`).locator("..");
+  await successCard.getByRole("checkbox", { name: "Select Workflow Bulk Success" }).check();
+  await conflictCard.getByRole("checkbox", { name: "Select Workflow Bulk Conflict" }).check();
+  const bulkToolbar = mainRegion.getByRole("toolbar", { name: "Selected models" });
   await bulkToolbar.getByRole("button", { name: "Move" }).click();
   await bulkToolbar.getByLabel(/Destination for/).selectOption(folders.special.bulkDestinationFolder.id);
   await bulkToolbar.getByRole("button", { name: "Move selected" }).click();
@@ -345,8 +345,8 @@ async function main() {
   const mixedMoveSelectedAfter = await page.locator('input[type="checkbox"]:checked').count();
   const mixedMoveFailureVisible = await page.getByText("Workflow Bulk Conflict:", { exact: false }).isVisible();
 
-  await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "download"; });
-  await page.getByRole("checkbox", { name: "Select Workflow Bulk Success" }).check();
+  await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "bulk-tags"; });
+  await successCard.getByRole("checkbox", { name: "Select Workflow Bulk Success" }).check();
   await bulkToolbar.getByRole("button", { name: "Tags" }).click();
   const bulkTagInput = bulkToolbar.getByPlaceholder("Type tags and press comma/Enter");
   await bulkTagInput.fill("gate-3-added");
@@ -360,10 +360,11 @@ async function main() {
     && taggedAssets.some(asset => asset.tags.includes("keep-this-tag"))
     && taggedAssets.some(asset => asset.tags.includes("keep-that-tag"));
 
-  await page.getByRole("checkbox", { name: "Select Workflow Bulk Success" }).check();
-  await page.getByRole("checkbox", { name: "Select Workflow Bulk Conflict" }).check();
+  await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "download"; });
+  await successCard.getByRole("checkbox", { name: "Select Workflow Bulk Success" }).check();
+  await conflictCard.getByRole("checkbox", { name: "Select Workflow Bulk Conflict" }).check();
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("toolbar", { name: "Selected models" }).getByRole("button", { name: "Download" }).click();
+  await bulkToolbar.getByRole("button", { name: "Download" }).click();
   const selectedDownload = await downloadPromise;
   const selectedDownloadSuggestedFilename = selectedDownload.suggestedFilename();
 
@@ -378,10 +379,10 @@ async function main() {
     throw new Error("Trash IDs did not match the confirmed selection");
   }
   async function restoreInUi(assets) {
-    await page.getByRole("button", { name: "Trash", exact: true }).click();
-    await page.getByRole("heading", { name: "Trash", exact: true }).waitFor();
+    await sidebar.getByRole("button", { name: "Trash", exact: true }).click();
+    await mainRegion.getByRole("heading", { name: "Trash", exact: true }).waitFor();
     for (const asset of assets) {
-      const row = page.getByTitle(asset.name, { exact: true }).locator("..").locator("..");
+      const row = mainRegion.getByTitle(asset.name, { exact: true }).locator("..").locator("..");
       const [response] = await Promise.all([
         page.waitForResponse(response => response.url().endsWith(`/trash/${asset.id}/restore`) && response.request().method() === "POST"),
         row.getByRole("button", { name: "Restore", exact: true }).click(),
@@ -395,20 +396,20 @@ async function main() {
       if (!bytes.ok || await bytes.text() !== "cube([1, 2, 3]);\n") throw new Error("Restore changed primary bytes");
     }
     await waitForTrash([]);
-    await page.getByRole("button", { name: /All files/ }).click();
+    await sidebar.getByRole("button", { name: /All files/ }).click();
     await searchLibrary(page, librarySearch, "Gate 3 bulk source");
   }
 
-  await page.getByRole("toolbar", { name: "Selected models" }).getByRole("button", { name: "Delete…" }).click();
+  await bulkToolbar.getByRole("button", { name: "Delete…" }).click();
   const bulkTrashRecoverableVisible = await page.getByText("Every version and supporting file remains recoverable.").isVisible();
   await bulkToolbar.getByRole("button", { name: "Cancel", exact: true }).click();
   const bulkTrashSelectionAfterPanelCancel = await page.locator('input[type="checkbox"]:checked').count();
   await waitForTrash([]);
 
-  await page.getByRole("toolbar", { name: "Selected models" }).getByRole("button", { name: "Clear" }).click();
-  await page.getByRole("checkbox", { name: "Select Workflow Bulk Success" }).check();
+  await bulkToolbar.getByRole("button", { name: "Clear" }).click();
+  await successCard.getByRole("checkbox", { name: "Select Workflow Bulk Success" }).check();
   const dialogsBeforeSingleDelete = dialogMessages.length;
-  await page.getByRole("toolbar", { name: "Selected models" }).getByRole("button", { name: "Delete…" }).click();
+  await bulkToolbar.getByRole("button", { name: "Delete…" }).click();
   await page.waitForTimeout(100);
   const singleDeleteConfirmation = dialogMessages.length > dialogsBeforeSingleDelete ? dialogMessages.at(-1) : "";
   const singleDeleteSelectionAfterCancel = await page.locator('input[type="checkbox"]:checked').count();
@@ -419,8 +420,8 @@ async function main() {
   await restoreInUi(taggedAssets.filter(asset => asset.id === folders.special.bulkSuccess.id));
   const singleTrashRestoreVerified = true;
 
-  await page.getByRole("checkbox", { name: "Select Workflow Bulk Success" }).check();
-  await page.getByRole("checkbox", { name: "Select Workflow Bulk Conflict" }).check();
+  await successCard.getByRole("checkbox", { name: "Select Workflow Bulk Success" }).check();
+  await conflictCard.getByRole("checkbox", { name: "Select Workflow Bulk Conflict" }).check();
   await bulkToolbar.getByRole("button", { name: "Delete…" }).click();
   await bulkToolbar.getByRole("button", { name: "Move to Trash", exact: true }).click();
   await waitForTrash([]); // Confirmation is dismissed unless explicitly armed.
@@ -434,54 +435,38 @@ async function main() {
   await searchLibrary(page, librarySearch, "");
 
   await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "folder-navigation"; });
-  const folderSearch = page.getByLabel("Search folders");
+  const folderSearch = sidebar.getByLabel("Search folders");
   const folderSearchStarted = performance.now();
   await folderSearch.fill(targetLeaf.path);
-  await page.getByTitle(targetLeaf.path).waitFor();
+  await sidebar.getByTitle(targetLeaf.path).waitFor();
   const folderSearchMs = performance.now() - folderSearchStarted;
   const visibleFolderRows = await page.locator(".sidebar-tree-row:visible").count();
 
   const folderOpenStarted = performance.now();
-  await page.getByTitle(targetLeaf.path).click();
-  await page.waitForFunction(folderId => {
-    const selects = [...document.querySelectorAll("select")];
-    return selects.some(select => select.value === folderId);
-  }, targetLeaf.id);
+  await sidebar.getByTitle(targetLeaf.path).click();
+  await page.waitForFunction(({ folderId, count }) => {
+    const cards = [...document.querySelectorAll('[title="Double-click to open large preview"]')];
+    return cards.length === count && cards.every(card => card.parentElement.querySelector("[data-folder-id]")?.getAttribute("data-folder-id") === folderId);
+  }, { folderId: targetLeaf.id, count: api.folderPage.itemCount });
   const folderOpenMs = performance.now() - folderOpenStarted;
-  const folderCardCount = await page.locator('[title="Double-click to open large preview"]').count();
+  const folderCardCount = await cards.count();
+  const folderViewControls = await page.evaluate(readFolderControlDom, folderIds);
   if (profileEnabled) await recordProfileDom(page, "folder-open");
   const parentBranch = folders.branches.find(branch => branch.id === targetLeaf.parent_id);
   if (!parentBranch) throw new Error("Target leaf parent is missing");
-  await page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("button", { name: parentBranch.name, exact: true }).click();
+  await mainRegion.getByRole("navigation", { name: "Breadcrumb" }).getByRole("button", { name: parentBranch.name, exact: true }).click();
   await page.getByText("No models directly in this folder").waitFor();
   const childFolderButton = page.locator("main").getByRole("button", { name: targetLeaf.name, exact: true });
-  const parentBreadcrumbButton = page.getByRole("navigation", { name: "Breadcrumb" })
+  const parentBreadcrumbButton = mainRegion.getByRole("navigation", { name: "Breadcrumb" })
     .getByRole("button", { name: parentBranch.name, exact: true });
   await childFolderButton.waitFor();
   await parentBreadcrumbButton.waitFor();
   const childFolderEmptyStateVisible = await childFolderButton.isVisible();
   const breadcrumbAncestorNavigationVisible = await parentBreadcrumbButton.isVisible();
 
+  const timingMetrics = await page.evaluate(readOrganizationTiming);
   const browserMetrics = await page.evaluate(() => {
-    const longTasks = window.__mvOrganizationBenchmark?.longTasks || [];
-    const longTasksAvailable = window.__mvOrganizationBenchmark?.longTasksAvailable === true;
-    const byPhase = {};
-    for (const task of longTasks) {
-      if (!byPhase[task.phase]) byPhase[task.phase] = { count: 0, totalMs: 0, maxMs: 0 };
-      byPhase[task.phase].count += 1;
-      byPhase[task.phase].totalMs += task.duration;
-      byPhase[task.phase].maxMs = Math.max(byPhase[task.phase].maxMs, task.duration);
-    }
-    const interactionTasks = longTasks.filter(task => !["navigation", "evidence-screenshot"].includes(task.phase));
     return {
-      longTasksAvailable,
-      longTasks: longTasksAvailable ? {
-        count: longTasks.length,
-        totalMs: longTasks.reduce((sum, task) => sum + task.duration, 0),
-        maxMs: Math.max(0, ...longTasks.map(task => task.duration)),
-        byPhase,
-      } : null,
-      maxInteractionLongTaskMs: longTasksAvailable ? Math.max(0, ...interactionTasks.map(task => task.duration)) : null,
       userAgent: navigator.userAgent,
       heapBytes: performance.memory?.usedJSHeapSize ?? null,
       breadcrumbCount: document.querySelectorAll('nav[aria-label*="breadcrumb" i], [aria-label*="breadcrumb" i]').length,
@@ -506,7 +491,7 @@ async function main() {
   await browser.close();
   activeBrowser = null;
   const result = {
-    schema: 3,
+    schema: 4,
     diagnosticProfile: profileEnabled,
     capturedAt: new Date().toISOString(),
     corpus: {
@@ -529,6 +514,7 @@ async function main() {
       initialCardCount,
       loadMoreMs,
       loadedCardCount,
+      folderControls: { initial: initialFolderControls, loaded: loadedFolderControls, folder: folderViewControls },
       selectedAfterLoadMore,
       exactSearchMs: browserSearchMs,
       exactSearchResultCount: browserSearchResultCount,
@@ -556,6 +542,7 @@ async function main() {
       childFolderEmptyStateVisible,
       breadcrumbAncestorNavigationVisible,
       ...browserMetrics,
+      ...timingMetrics,
     },
   };
   await writeFile(outputPath, `${JSON.stringify(result, null, 2)}\n`, "utf8");
@@ -563,6 +550,9 @@ async function main() {
   console.log(JSON.stringify(result, null, 2));
 
   const failures = [];
+  for (const snapshot of Object.values(result.browser.folderControls)) {
+    if (snapshot.cardFolderOptions !== 0 || snapshot.openDialogs !== 0) failures.push("Closed cards eagerly mounted folder destinations");
+  }
   for (const [name, probe] of Object.entries(api)) {
     if (probe.latencyMs.p95 >= 100) failures.push(`${name} API p95 was ${probe.latencyMs.p95.toFixed(1)} ms`);
   }

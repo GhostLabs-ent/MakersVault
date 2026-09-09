@@ -94,12 +94,15 @@ export async function recordProfileDom(page, phase) {
 export function installProfileObservers(state) {
   const output = window.__mvProfile = { phases: [], longTasks: [], frames: [], domSnapshots: [], loafAvailable: false };
   let phase = state.phase;
+  const previousPhase = Object.getOwnPropertyDescriptor(state, "phase");
   const mark = value => {
     const name = "mv.phase:" + value;
     performance.mark(name);
     output.phases.push({ phase: value, atMs: performance.now() });
   };
-  Object.defineProperty(state, "phase", { get: () => phase, set: value => { phase = value; mark(value); } });
+  Object.defineProperty(state, "phase", { configurable: true, get: () => phase, set: value => {
+    phase = value; previousPhase?.set?.call(state, value); mark(value);
+  } });
   mark(phase);
   new PerformanceObserver(list => {
     for (const task of list.getEntries()) output.longTasks.push({ startTime: task.startTime, duration: task.duration });

@@ -43,16 +43,32 @@ check that every fixture source byte and the rejected symlink remain unchanged.
 
 Organization runs all three engines and retains its existing assertions/budgets;
 request-order regressions, preview and mounted-import workflows use Chromium.
+The `folder-picker` workflow runs all selected engines with real keyboard/dialog,
+cancel, move/conflict, missing-target and Viewer checks. Its explicitly injected
+background refresh/navigation races check request ownership, not timing or normal
+modal interaction. Fixture-only accounts and files are discarded with the stack.
 The ordering fixture delays assets, tags and pagination across searches and view
 changes, including stale versus current authorization errors. It also checks that
 unsubmitted search text cannot change pagination's applied query.
 
-Organization report schema 3 records first-card visibility inside the browser at
+Organization report schema 4 retains schema 3's first-card visibility inside the browser at
 an animation frame, independently of Playwright locator retry timing. It is a
 visible-layout measurement, not physical display presentation. Navigation and
 automated sign-in remain included; the existing Chromium <1000 ms budget is
 unchanged. `firstCardsWaitReturnMs` retains the old driver-observed duration for
 comparison. Missing visibility is null and fails, never an invented zero.
+Long tasks now use their start timestamps, with legacy observer-delivery attribution
+retained separately. The interaction guard takes the maximum across the legacy,
+start-time and cross-phase classifications; this cannot weaken an earlier failure.
+Locators are scoped to the intended card/toolbar/sidebar, and search/folder-open
+completion checks the actual returned IDs/current folder instead of an old card or
+an eagerly mounted select. Navigation and automated login remain inside startup.
+Post-action DOM snapshots require zero per-card folder destination options when
+the shared dialog is closed. No performance limit changed.
+
+Use `--folder-stress --workflows organization --browsers chromium` for a separately
+labelled 600-Artifact/1,040-folder probe. The default fixture remains 600/104 and
+both retain the same thresholds; stress results do not substitute for baseline runs.
 
 Preview exit success means
 functional probes and metric collection completed, **not** that every measured

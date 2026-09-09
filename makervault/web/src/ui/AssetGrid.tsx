@@ -57,6 +57,9 @@ import { machineCategoryLabel, shouldLoadMachineContext } from "../lib/machineCo
 import MachineContextPanel from "./MachineContextPanel";
 import { useVaultCapabilities } from "../lib/CapabilityContext";
 import { ListRequestScope } from "../lib/listRequestScope";
+import type { ListRequest } from "../lib/listRequestScope";
+import { canMoveToFolder, sameFolderMoveSource } from "../lib/folderMove";
+import FolderMoveDialog from "./FolderMoveDialog";
 
 function extOf(name: string) {
   const m = /\.([^.]+)$/.exec(name);
@@ -167,7 +170,7 @@ export default function AssetGrid({
   const [previewItem, setPreviewItem] = useState<Asset | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [movingId, setMovingId] = useState<string | null>(null);
+  const [folderMove, setFolderMove] = useState<{ asset: Asset; request: ListRequest; scope: ListRequestScope } | null>(null);
   const [sortKey, setSortKey] = useState<"name" | "size" | "type" | "folder">("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -190,12 +193,27 @@ export default function AssetGrid({
   const engraverLabel = engraverLabelFor(engravingSettings?.selected);
   const zipPrompt = useZipImportPrompt();
   const listRequests = useMemo(() => new ListRequestScope(), [folderId, projectId, projectUnassigned]);
+  const folderMoves = useMemo(() => new ListRequestScope(), [listRequests]);
+  const closeFolderMove = React.useCallback(() => {
+    folderMoves.refresh()?.finish(); // Invalidate even a confirmed, still-in-flight callback.
+    setFolderMove(null);
+  }, [folderMoves]);
+  const requestFolderMove = React.useCallback((asset: Asset) => {
+    if (!capabilities.manageContent || loading || loadingMore) return;
+    const request = folderMoves.refresh();
+    if (request) setFolderMove({ asset, request, scope: folderMoves });
+  }, [folderMoves, capabilities.manageContent, loading, loadingMore]);
   const appliedQuery = useRef<Parameters<typeof listAssets>[0] | null>(null);
   React.useLayoutEffect(() => {
     listRequests.activate();
+    folderMoves.activate();
+    setFolderMove(null);
     appliedQuery.current = null;
-    return () => listRequests.deactivate();
-  }, [listRequests]);
+    return () => { listRequests.deactivate(); folderMoves.deactivate(); };
+  }, [listRequests, folderMoves]);
+  React.useLayoutEffect(() => {
+    closeFolderMove();
+  }, [capabilities.manageContent, foldersVersion, closeFolderMove]);
 
   const handleApiError = (err: unknown, message?: string) => {
     if (err instanceof UnauthorizedError) {
@@ -231,6 +249,7 @@ export default function AssetGrid({
   const refresh = async (opts: RefreshOpts = {}) => {
     const request = listRequests.refresh();
     if (!request) return; // A callback from a departed folder/view cannot restart work.
+    closeFolderMove();
     setLoading(true);
     setLoadingMore(false);
     setHasMore(false);
@@ -288,6 +307,7 @@ export default function AssetGrid({
     if (loading || loadingMore || !hasMore || !appliedQuery.current) return;
     const request = listRequests.loadMore();
     if (!request) return; // Also excludes duplicate clicks before React renders.
+    closeFolderMove();
     setLoadingMore(true);
     try {
       const data = await listAssets({
@@ -411,13 +431,16 @@ export default function AssetGrid({
     return () => { cancelled = true; };
   }, []);
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
-        setFolders(await listFolders());
+        const result = await listFolders();
+        if (!cancelled) setFolders(result);
       } catch (err) {
-        handleApiError(err, "Failed to load folders. Please refresh.");
+        if (!cancelled) handleApiError(err, "Failed to load folders. Please refresh.");
       }
     })();
+    return () => { cancelled = true; };
   }, [foldersVersion]);
 
   useEffect(() => {
@@ -695,17 +718,27 @@ export default function AssetGrid({
     }
   };
 
-  const onMoveFolder = async (id: string, folder_id: string | null) => {
+  const confirmFolderMove = async (folder_id: string | null) => {
+    const move = folderMove;
+    if (!move || !move.request.isCurrent() || move.scope !== folderMoves) return;
+    if (!capabilities.manageContent || loading || loadingMore || !sameFolderMoveSource(itemById[move.asset.id], move.asset)) {
+      closeFolderMove();
+      return;
+    }
+    if (!canMoveToFolder(folder_id || "", move.asset.folder_id, folderOptions)) {
+      throw new Error("That destination is no longer available or is already the current folder.");
+    }
     try {
-      setMovingId(id);
-      await updateAssetFolder(id, folder_id);
-      await refresh();
+      await updateAssetFolder(move.asset.id, folder_id);
+      if (move.request.isCurrent()) await refresh();
     } catch (err) {
-      if (!handleApiError(err)) {
-        alert(err instanceof Error ? err.message : "Folder update failed. Please try again.");
+      if (!move.request.isCurrent()) return;
+      if (err instanceof UnauthorizedError) {
+        closeFolderMove();
+        onUnauthorized?.();
+        return;
       }
-    } finally {
-      setMovingId(null);
+      throw err; // Keep the dialog and destination available for a deliberate retry.
     }
   };
 
@@ -1267,9 +1300,8 @@ export default function AssetGrid({
                             downloading={downloadingId === it.id}
                             onDelete={removeAsset}
                             deleting={deletingId === it.id}
-                            onMoveFolder={onMoveFolder}
-                            folderOptions={folderOptions}
-                            moving={movingId === it.id}
+                            onRequestFolderMove={requestFolderMove}
+                            folderName={it.folder_id ? folderNames[it.folder_id] || "Unknown folder" : "Unassigned"}
                             onDownloadByTag={downloadByTag}
                             selected={selectedIds.has(it.id)}
                             onToggleSelected={() => toggleSelected(it.id)}
@@ -1311,9 +1343,8 @@ export default function AssetGrid({
               downloading={downloadingId === it.id}
               onDelete={removeAsset}
               deleting={deletingId === it.id}
-              onMoveFolder={onMoveFolder}
-              folderOptions={folderOptions}
-              moving={movingId === it.id}
+              onRequestFolderMove={requestFolderMove}
+              folderName={it.folder_id ? folderNames[it.folder_id] || "Unknown folder" : "Unassigned"}
               onDownloadByTag={downloadByTag}
               selected={selectedIds.has(it.id)}
               onToggleSelected={() => toggleSelected(it.id)}
@@ -1342,6 +1373,16 @@ export default function AssetGrid({
             {loadingMore ? "Loading..." : "Load more"}
           </button>
         </div>
+      )}
+      {folderMove && folderMove.scope === folderMoves && folderMove.request.isCurrent() && capabilities.manageContent && (
+        <FolderMoveDialog
+          name={folderMove.asset.name || folderMove.asset.filename}
+          currentFolderId={folderMove.asset.folder_id}
+          currentFolderName={folderMove.asset.folder_id ? folderNames[folderMove.asset.folder_id] || "Unknown folder" : "Unassigned"}
+          options={folderOptions}
+          onConfirm={confirmFolderMove}
+          onClose={closeFolderMove}
+        />
       )}
       {previewItem && (
         <AssetPreviewModal
@@ -1395,9 +1436,8 @@ const AssetCard = React.memo(function AssetCard({
   downloading,
   onDelete,
   deleting,
-  onMoveFolder,
-  folderOptions,
-  moving,
+  onRequestFolderMove,
+  folderName,
   selected,
   onToggleSelected,
   bulkDownloading,
@@ -1422,9 +1462,8 @@ const AssetCard = React.memo(function AssetCard({
   downloading: boolean;
   onDelete: (asset: Asset) => void;
   deleting: boolean;
-  onMoveFolder: (id: string, folder_id: string | null) => void;
-  folderOptions: { id: string | null; name: string }[];
-  moving: boolean;
+  onRequestFolderMove: (asset: Asset) => void;
+  folderName: string;
   selected: boolean;
   onToggleSelected: () => void;
   bulkDownloading: boolean;
@@ -1685,13 +1724,6 @@ const AssetCard = React.memo(function AssetCard({
     }
   };
 
-  const handleFolderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const next = e.target.value || null;
-    const current = item.folder_id || null;
-    if (next === current) return;
-    onMoveFolder(item.id, next);
-  };
-
   const handleDownloadChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     if (!val) return;
@@ -1793,21 +1825,13 @@ const AssetCard = React.memo(function AssetCard({
           </div>
         )}
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold uppercase text-muted">
-            {moving ? "Updating..." : "Folder"}
-          </label>
-          <select
-            value={item.folder_id || ""}
-            onChange={handleFolderChange}
-            disabled={moving || !capabilities.manageContent}
-            className="px-2 py-1 rounded-md border border-panel-strong bg-panel-strong text-sm"
-          >
-            {folderOptions.map(opt => (
-              <option key={opt.id || "none"} value={opt.id || ""}>
-                {opt.name}
-              </option>
-            ))}
-          </select>
+          <span className="text-xs font-semibold uppercase text-muted">Folder</span>
+          <span className="truncate text-sm" title={folderName} data-folder-id={item.folder_id || ""}>{folderName}</span>
+          {capabilities.manageContent && <button type="button"
+            className="inline-flex items-center gap-1.5 self-start rounded-md px-2 py-1 text-xs hover:bg-panel-strong"
+            onClick={() => onRequestFolderMove(item)} aria-haspopup="dialog">
+            <FolderInput className="h-3.5 w-3.5" aria-hidden="true" /> Move to folder…
+          </button>}
         </div>
         <div
           className="text-sm font-medium truncate cursor-text"
@@ -2153,8 +2177,8 @@ const AssetCard = React.memo(function AssetCard({
   previous.item === next.item
   && previous.downloading === next.downloading
   && previous.deleting === next.deleting
-  && previous.folderOptions === next.folderOptions
-  && previous.moving === next.moving
+  && previous.folderName === next.folderName
+  && previous.onRequestFolderMove === next.onRequestFolderMove
   && previous.selected === next.selected
   && previous.bulkDownloading === next.bulkDownloading
   && previous.slicerEnabled === next.slicerEnabled
