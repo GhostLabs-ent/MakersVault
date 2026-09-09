@@ -46,6 +46,7 @@ export default function FolderMoveDialog({ name, currentFolderId, currentFolderN
     if (inFlight.current || !canConfirm) return;
     inFlight.current = true;
     setBusy(true);
+    dialog.current?.focus(); // Do not leave focus on a control about to become disabled.
     setError("");
     try {
       await onConfirm(destination || null);
@@ -57,9 +58,21 @@ export default function FolderMoveDialog({ name, currentFolderId, currentFolderN
   };
 
   return createPortal(
-    <dialog ref={dialog} aria-labelledby={titleId} aria-describedby={descriptionId}
+    <dialog ref={dialog} tabIndex={-1} aria-labelledby={titleId} aria-describedby={descriptionId}
       className="m-auto w-[calc(100%_-_2rem)] max-w-xl max-h-[90vh] overflow-y-auto rounded-xl border border-panel-strong bg-panel-strong p-5 text-foreground shadow-xl backdrop:bg-black/60"
+      onKeyDown={event => {
+        if (event.key !== "Tab" || event.altKey || event.ctrlKey || event.metaKey) return;
+        const controls = [...event.currentTarget.querySelectorAll<HTMLElement>("input:not(:disabled), select:not(:disabled), button:not(:disabled)")]
+          .filter(element => element.getClientRects().length > 0);
+        const first = controls[0], last = controls.at(-1);
+        if (!first) { event.preventDefault(); event.currentTarget.focus(); }
+        else if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }}
       onCancel={event => { event.preventDefault(); if (!inFlight.current) onClose(); }}
+      onDragEnter={event => { event.preventDefault(); event.stopPropagation(); }}
+      onDragOver={event => { event.preventDefault(); event.stopPropagation(); }}
+      onDrop={event => { event.preventDefault(); event.stopPropagation(); }}
       onClick={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()}>
       <form onSubmit={submit} className="flex flex-col gap-4" aria-busy={busy}>
         <div>
