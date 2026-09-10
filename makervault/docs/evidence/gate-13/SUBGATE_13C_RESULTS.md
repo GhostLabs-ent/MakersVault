@@ -2,9 +2,11 @@
 
 **Opened:** 2026-09-06, following owner acceptance of 13B at `2f61b37`.
 
-**Status:** IN PROGRESS — MAINTENANCE, ARCHIVE GUARD AND APPROVED BROWSER CORRECTIONS VERIFIED;
-current browser qualification retains startup/interaction budget failures.
-[Profiling is complete; the bounded optimization proposal awaits approval](CHROMIUM_PROFILE_RESULTS.md).
+**Status:** IN PROGRESS — APPROVED FOLDER-PICKER OPTIMIZATION VERIFIED;
+three baseline Chromium organization runs pass unchanged enforced budgets, while
+larger-folder stress and detail-preview timing remain unqualified.
+[Implementation, full-gate source note and current evidence](FOLDER_PICKER_RESULTS.md)
+follow the owner-approved [profiling proposal](CHROMIUM_PROFILE_RESULTS.md).
 See also [browser correction evidence](BROWSER_FIX_RESULTS.md). No release scope
 or replacement candidate selected. This is not a request to accept or close 13C.
 
@@ -142,7 +144,7 @@ No budget, authentication policy, release pin or user library was changed.
 
 All work stays local; no push/tag/publication/deployment.
 
-### Still outstanding
+### Browser correction and profiling history
 
 The owner subsequently approved the diagnosed grid, fixture trust and timing
 corrections. Full verification at clean `1255933` passes **351 API / 51 web tests**,
@@ -163,10 +165,11 @@ instrumented runs and two unprofiled controls on those unchanged images. It conf
 4,200 closed folder options at 40 cards, real DOM construction and costly driver
 queries; large elapsed/CPU gaps remain only partially explained. Controls pass at
 495.2/528.0 ms without replacing historical failures. The proposed on-demand folder
-picker and separately reviewed benchmark improvements await approval. No application
-optimization, budget change or general root-cause claim follows from these traces.
+picker and separately reviewed benchmark improvements awaited approval at that
+checkpoint. No application optimization, budget change or general root-cause claim
+followed from those traces alone.
 Focused checks pass 19 Python / 14 Node tests and static release verification at
-the profiling harness checkpoint; the full application pass remains `1255933`.
+the profiling harness checkpoint; its named full application pass remains `1255933`.
 Successful three-engine functional and
 preview/cache/mount probes are bounded evidence, not a blanket performance pass.
 Historical timing is not reused. Physical-device and native-workstation
@@ -174,3 +177,48 @@ availability has been requested; no answer or platform limitation is assumed.
 Release scope/revision, matched distribution qualification, final 13C acceptance
 and 13D end-state review remain owner checkpoints. Gate 12 remains desktop-deferred
 and the unrelated desktop draft remains untouched.
+
+### Approved picker implementation and remaining checkpoint
+
+The owner approved the bounded picker/benchmark slice on 2026-09-09. It is
+implemented at `76b526d`; [results](FOLDER_PICKER_RESULTS.md) name all exact images,
+attempts and failed development checks. Current paths remain visible; one searchable
+dialog mounts on demand and moves only after explicit confirmation. Keyboard/focus,
+conflict/deletion/permission, stale-view/error and Viewer checks pass in Chromium,
+Firefox and WebKit, alongside all seven Chromium request-order cases. At 40 loaded
+cards/104 folders, closed-card folder options drop from 4,200 to zero.
+
+The full verification's executed inputs match `76b526d`: **351 API / 56 web tests**,
+current passkey/security checks and joined HTTPS upgrade/restore/rollback/portable
+lifecycle pass. The [verification record](folder-picker-verification.json) explains
+that the unchanged API phase began before the two-line TypeScript correction; it
+does not claim the invocation began at the final revision. Later harness-only
+`53142f9` passes 19 Python / 21 Node tests and static release verification.
+
+All three unprofiled 600-Artifact/104-folder Chromium repeats pass the unchanged
+enforced budgets (first visible cards 546.9–865.2 ms). Firefox/WebKit organization
+functional checks pass, with timing support/limits explicitly bounded. The separate
+600/1,040 stress retains failed first cards (1,612.4 ms) and folder search (494.9 ms).
+The mixed preview/cache functional probe completes but detail preview records a
+1,074 ms long task: it is **not** a preview performance pass. Mounted-import
+source-preservation checks pass. Every failure and historical observation remains.
+
+Stress G also counted two selected cards before bulk completion. Source review
+shows the failure message can precede refresh/final deselection. Harness-only
+`10c7481` waits for completion and checks both exact IDs; fresh stress H verifies
+only the failed ID remains selected. H still fails folder search (454.7 ms) and a
+51 ms Trash task; G is not retroactively passed. Focused harness/static checks
+again pass 19 Python / 21 Node tests. No application or budget changed.
+An additional fresh 600/104 baseline on `10c7481` passes the strengthened exact-ID
+assertions and unchanged budgets at 585.6 ms first cards. It supplements D–F;
+neither stress failure nor the detail-preview pause is erased.
+
+The [fresh exact-image audit](folder-picker-audit.json) retains 181 API / 3 web
+matches; all reduced records equal the previous inventory, with nothing waived.
+Next proposed bounded work is profiling the larger-folder startup/search path and
+detail-preview pause before another code proposal. Sidebar eager menu/row rendering
+is a source-review candidate, not a demonstrated explanation for all elapsed time.
+Physical/native-platform evidence or explicit support limits, remaining advisory
+dispositions, release scope/revision and matched distribution qualification remain
+owner checkpoints. Gate 13C is not accepted or ready for closeout. No push, tag,
+publication, deployment, frozen-pin change or Gate 12 expansion is authorized.

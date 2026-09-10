@@ -9,7 +9,7 @@ architecture is re-baselined.
 
 ## Active gate — end-state audit
 
-**2026-09-08:** Gates 13A–13B are owner-accepted. The accepted
+**2026-09-09:** Gates 13A–13B are owner-accepted. The accepted
 [13B lifecycle results](evidence/gate-13/SUBGATE_13B_RESULTS.md) were captured
 at verification implementation `2c68d70`: the complete gate and production-HTTPS
 upgrade/restore/rollback/portable-startup checks pass. This is local development
@@ -17,13 +17,15 @@ evidence, not final end-state acceptance or a newly qualified release.
 
 [13C](evidence/gate-13/SUBGATE_13C_RESULTS.md) is in progress. Approved dependency/
 runtime maintenance, the [archive guard](evidence/gate-13/ARCHIVE_GUARD_RESULTS.md)
-and [browser corrections](evidence/gate-13/BROWSER_FIX_RESULTS.md) pass the complete
-gate at `1255933` (351 API / 51 web tests). The restored-search race and Firefox
-fixture trust are verified fixed; Chromium startup/interaction budget failures
-remain part of the unqualified history. [Profiling is complete](evidence/gate-13/CHROMIUM_PROFILE_RESULTS.md):
-repeated folder controls and driver queries are confirmed targets; two passing
-unprofiled controls do not erase earlier failures. The bounded optimization
-proposal awaits owner approval before product changes. Remaining image findings are not
+and [browser corrections](evidence/gate-13/BROWSER_FIX_RESULTS.md) are verified.
+The owner-approved [folder-picker slice](evidence/gate-13/FOLDER_PICKER_RESULTS.md)
+is implemented at `76b526d`: one searchable, explicit-confirmation dialog replaces
+per-card destination lists. Full-gate executed inputs match that revision under the
+recorded source note (351 API / 56 web tests and HTTPS lifecycle). Three baseline
+Chromium organization runs and three-engine functional checks pass. Historical
+failures, the 1,040-folder stress failures and a separate detail-preview long task
+remain open; next proposed work is scoped diagnosis before another code change.
+Remaining image findings are not
 waived. Deployment guidance explicitly requires production HTTPS even on LAN/VPN.
 Browser/platform and release-readiness
 evidence remain unfinished, followed by 13D owner acceptance of the end state and next

@@ -1,0 +1,3003 @@
+{
+  "schema": 1,
+  "notice": "Synthetic local development evidence. All supplied attempts retained; see per-run disposition. Private fixture keys, credentials and log bodies are not included. No release acceptance or risk waiver.",
+  "runs": [
+    {
+      "id": "a",
+      "disposition": "Development Chromium picker pass on 744886b; translucent surface corrected later. Not final-image qualification.",
+      "output_root": "/tmp/makersvault-g13c-picker-0909a",
+      "summary": {
+        "captured_at": "2026-09-09T23:36:13.299313+00:00",
+        "harness_revision": "744886b8b1abf0e5abc55d3a48a441e8fdad9302",
+        "application_revision": "744886b8b1abf0e5abc55d3a48a441e8fdad9302",
+        "application_version": "development-gate13b",
+        "diagnostic_profile": false,
+        "organization_fixture": "baseline-104",
+        "images": {
+          "api": "sha256:0c3adb1a2587a495ea9e547e0a2706121816b7d81ec913ee1255f16466b50e84",
+          "web": "sha256:6c7d4f434748873b94c2306d45f8c4defb5cd750f8a17d5092355c54f3042be4"
+        },
+        "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+        "status": "passed",
+        "cases": [
+          {
+            "case": "folder-picker-chromium",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "0293cd4d8b3a6d3d4611187a6b57f5d0a7e1334777386cce688a8e45d21dddbb"
+          }
+        ],
+        "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+      },
+      "reports": {
+        "folder-picker-chromium": {
+          "baseline.json": {
+            "schema": 1,
+            "capturedAt": "2026-09-09T23:36:25.425Z",
+            "engine": "chromium",
+            "status": "passed",
+            "checks": [
+              "keyboard opens/searches/selects; Enter selects without moving; Escape cancels and returns focus",
+              "full paths disambiguate duplicate leaves; empty/current destination blocked; narrow dialog and Cancel preserve bytes/location",
+              "explicit confirmation moves exactly the intended ID, updates its path, supports Unassigned, preserves the other ID and primary bytes",
+              "real folder/name conflict stays visible and permits a deliberate destination retry",
+              "deleted destination and deleted Artifact are refused by the API without moving a different model",
+              "permission refusal remains actionable in the dialog without a false success or sign-out",
+              "injected refresh/folder-view changes invalidate an unconfirmed picker without any POST",
+              "double-submit/cancel blocked during confirmed work; late 401 after injected view departure cannot affect the new view",
+              "current 401 still closes the picker and requires sign-in",
+              "real Viewer account sees current paths but no move controls; API independently denies mutation"
+            ],
+            "scope": "Functional real-browser checks; explicitly injected refresh/navigation races are not performance or physical-device qualification"
+          }
+        }
+      },
+      "raw_artifacts": [
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909a/folder-picker-chromium/baseline.json",
+          "sha256": "9773fe764319770430f5821c32fa0a197636280a4ca748f6f9f58b5b719788a1"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909a/folder-picker-chromium/folder-picker-chromium.png",
+          "sha256": "7130b048c90cd950a70cbc64c0244c933ab54614173b94fd84541c9c78f63286"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909a/folder-picker-chromium/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909a/folder-picker-chromium/stdout.txt",
+          "sha256": "30d1163d5e641d13096fbdcf9392d136524e723ea511e77aa91e1f1f25c80dd3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909a/summary.json",
+          "sha256": "01760a909e74a8310d453c820ce93058d454324a1905d63a46588fc6e8cae457"
+        }
+      ]
+    },
+    {
+      "id": "b",
+      "disposition": "Unqualified mixed-source attempt: lean-ctx wrapper hit its 120-second limit, parent ended and raw summary remains in_progress. Source changed during execution; no result counts toward qualification. Exact abandoned fixture was subsequently cleaned.",
+      "output_root": "/tmp/makersvault-g13c-picker-0909b",
+      "summary": {
+        "captured_at": "2026-09-09T23:37:13.588132+00:00",
+        "harness_revision": "744886b8b1abf0e5abc55d3a48a441e8fdad9302",
+        "application_revision": "744886b8b1abf0e5abc55d3a48a441e8fdad9302",
+        "application_version": "development-gate13b",
+        "diagnostic_profile": false,
+        "organization_fixture": "baseline-104",
+        "images": {
+          "api": "sha256:0c3adb1a2587a495ea9e547e0a2706121816b7d81ec913ee1255f16466b50e84",
+          "web": "sha256:6c7d4f434748873b94c2306d45f8c4defb5cd750f8a17d5092355c54f3042be4"
+        },
+        "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+        "status": "in_progress",
+        "cases": [
+          {
+            "case": "ordering-chromium",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "e81a82139da82cdf1d0ec32d50f40d0fc71b454a9ce583f3f4181dcc3c49174d"
+          },
+          {
+            "case": "folder-picker-chromium",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "5b5de38d060b62badef03279e5eecd2aa6d1850723febc02605405d567f14a5b"
+          },
+          {
+            "case": "folder-picker-firefox",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "92e31b741834338c52eaa5ae0348d354c8258c8fdcae905780be75e4ccf3b598"
+          },
+          {
+            "case": "folder-picker-webkit",
+            "status": "failed",
+            "exit_code": 1,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "6aebab44c4c10a361e36916e9ca3ccdac451be79a5b2fdbeb641143b2d8b64fb"
+          }
+        ],
+        "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+      },
+      "reports": {
+        "folder-picker-chromium": {
+          "baseline.json": {
+            "schema": 1,
+            "capturedAt": "2026-09-09T23:37:45.772Z",
+            "engine": "chromium",
+            "status": "passed",
+            "checks": [
+              "keyboard opens/searches/selects; Enter selects without moving; Escape cancels and returns focus",
+              "full paths disambiguate duplicate leaves; empty/current destination blocked; narrow dialog and Cancel preserve bytes/location",
+              "explicit confirmation moves exactly the intended ID, updates its path, supports Unassigned, preserves the other ID and primary bytes",
+              "real folder/name conflict stays visible and permits a deliberate destination retry",
+              "deleted destination and deleted Artifact are refused by the API without moving a different model",
+              "permission refusal remains actionable in the dialog without a false success or sign-out",
+              "injected refresh/folder-view changes invalidate an unconfirmed picker without any POST",
+              "double-submit/cancel blocked during confirmed work; late 401 after injected view departure cannot affect the new view",
+              "current 401 still closes the picker and requires sign-in",
+              "real Viewer account sees current paths but no move controls; API independently denies mutation"
+            ],
+            "scope": "Functional real-browser checks; explicitly injected refresh/navigation races are not performance or physical-device qualification"
+          }
+        },
+        "folder-picker-firefox": {
+          "baseline.json": {
+            "schema": 1,
+            "capturedAt": "2026-09-09T23:38:09.261Z",
+            "engine": "firefox",
+            "status": "passed",
+            "checks": [
+              "keyboard opens/searches/selects; Enter selects without moving; Escape cancels and returns focus",
+              "full paths disambiguate duplicate leaves; empty/current destination blocked; narrow dialog and Cancel preserve bytes/location",
+              "explicit confirmation moves exactly the intended ID, updates its path, supports Unassigned, preserves the other ID and primary bytes",
+              "real folder/name conflict stays visible and permits a deliberate destination retry",
+              "deleted destination and deleted Artifact are refused by the API without moving a different model",
+              "permission refusal remains actionable in the dialog without a false success or sign-out",
+              "injected refresh/folder-view changes invalidate an unconfirmed picker without any POST",
+              "double-submit/cancel blocked during confirmed work; late 401 after injected view departure cannot affect the new view",
+              "current 401 still closes the picker and requires sign-in",
+              "real Viewer account sees current paths but no move controls; API independently denies mutation"
+            ],
+            "scope": "Functional real-browser checks; explicitly injected refresh/navigation races are not performance or physical-device qualification"
+          }
+        },
+        "folder-picker-webkit": {
+          "baseline.json": {
+            "schema": 1,
+            "capturedAt": "2026-09-09T23:38:35.766Z",
+            "engine": "webkit",
+            "status": "failed",
+            "checks": [],
+            "scope": "Functional real-browser checks; explicitly injected refresh/navigation races are not performance or physical-device qualification",
+            "error": "Expected values to be strictly equal:\n\nfalse !== true\n"
+          }
+        },
+        "ordering-chromium": {
+          "baseline.json": {
+            "schema": 1,
+            "capturedAt": "2026-09-09T23:37:25.634Z",
+            "checks": [
+              "restore: late assets cannot replace the new search",
+              "restore: late tags cannot replace the new search",
+              "restore: late assets 401 cannot replace the new search",
+              "old pagination cannot append into a newer search",
+              "pagination uses the applied query, not unsubmitted text",
+              "unmounted grid ignores its stale authorization failure",
+              "current authorization failure still requires sign-in"
+            ],
+            "status": "passed"
+          }
+        },
+        "organization-chromium": {
+          "baseline.json": {
+            "schema": 4,
+            "diagnosticProfile": false,
+            "capturedAt": "2026-09-09T23:39:41.638Z",
+            "corpus": {
+              "assets": 600,
+              "folders": 104,
+              "roots": 8,
+              "branches": 32,
+              "leaves": 64,
+              "depth": 3,
+              "seedMs": 40141.723921
+            },
+            "api": {
+              "firstPage": {
+                "path": "/assets?limit=25&offset=0",
+                "itemCount": 25,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 11.555739000003086,
+                  "p95": 15.571195000004082,
+                  "max": 15.571195000004082
+                }
+              },
+              "exactSearch": {
+                "path": "/assets?limit=25&offset=0&q=Fixture%200595",
+                "itemCount": 1,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 6.105109000003722,
+                  "p95": 11.599431999995431,
+                  "max": 11.599431999995431
+                }
+              },
+              "folderPage": {
+                "path": "/assets?limit=25&offset=0&folder_id=ebd8dfa3-2c8c-474e-b028-64a205658730",
+                "itemCount": 9,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 12.089255999999295,
+                  "p95": 15.105264999998326,
+                  "max": 15.105264999998326
+                }
+              },
+              "folders": {
+                "path": "/folders",
+                "itemCount": 104,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 11.714797000000544,
+                  "p95": 15.824932999996236,
+                  "max": 15.824932999996236
+                }
+              }
+            },
+            "browser": {
+              "engine": "chromium",
+              "performanceBudgetEnforced": true,
+              "firstCardsMs": 522.8999999999069,
+              "firstCardsWaitReturnMs": 963.1988090000013,
+              "firstVisibleCard": {
+                "schema": 1,
+                "clock": "navigation",
+                "atMs": 522.8999999999069,
+                "submittedAtMs": 169.39999999990687
+              },
+              "startupBreakdown": {
+                "documentMs": 55.09582299999602,
+                "formWaitMs": 61.23642500000278,
+                "formFillMs": 19.77676000000065,
+                "signInClickMs": 39.91123399999924,
+                "afterClickToCardsMs": 810.2305990000023,
+                "includesLoginAutomation": true
+              },
+              "initialCardCount": 20,
+              "loadMoreMs": 843.8974940000044,
+              "loadedCardCount": 40,
+              "folderControls": {
+                "initial": {
+                  "cards": 20,
+                  "elements": 2647,
+                  "options": 88,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                },
+                "loaded": {
+                  "cards": 40,
+                  "elements": 3659,
+                  "options": 168,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                },
+                "folder": {
+                  "cards": 9,
+                  "elements": 694,
+                  "options": 44,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                }
+              },
+              "selectedAfterLoadMore": 2,
+              "exactSearchMs": 52.05914099999791,
+              "exactSearchResultCount": 1,
+              "selectedBeforeFilter": 2,
+              "selectedAfterFilter": 0,
+              "visibleBulkToolbarBeforeFilter": 1,
+              "preparedSummaryVisible": true,
+              "supportingDocumentVisible": true,
+              "preparedPayloadLinkCount": 0,
+              "mixedMoveSelectedAfter": 1,
+              "mixedMoveFailureVisible": true,
+              "tagPreservationVerified": true,
+              "selectedDownloadSuggestedFilename": "makersvault.zip",
+              "bulkTrashRecoverableVisible": true,
+              "bulkTrashSelectionAfterPanelCancel": 2,
+              "bulkTrashSelectionAfterDialogCancel": 2,
+              "singleTrashRestoreVerified": true,
+              "bulkTrashRestoreVerified": true,
+              "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+              "singleDeleteSelectionAfterCancel": 1,
+              "folderSearchMs": 23.70234899999923,
+              "visibleFolderRows": 3,
+              "folderOpenMs": 95.58495699999912,
+              "folderCardCount": 9,
+              "childFolderEmptyStateVisible": true,
+              "breadcrumbAncestorNavigationVisible": true,
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+              "heapBytes": 15008584,
+              "breadcrumbCount": 1,
+              "longTaskAttributionSchema": 2,
+              "longTasksAvailable": true,
+              "longTasks": {
+                "count": 0,
+                "totalMs": 0,
+                "maxMs": 0,
+                "byPhase": {}
+              },
+              "legacyLongTasks": {
+                "count": 0,
+                "totalMs": 0,
+                "maxMs": 0,
+                "byPhase": {}
+              },
+              "legacyMaxInteractionLongTaskMs": 0,
+              "maxInteractionLongTaskMs": 0,
+              "longTaskEntries": []
+            }
+          },
+          "startup-chromium.json": {
+            "firstCardsMs": 522.8999999999069,
+            "firstCardsWaitReturnMs": 963.1988090000013,
+            "firstVisibleCard": {
+              "schema": 1,
+              "clock": "navigation",
+              "atMs": 522.8999999999069,
+              "submittedAtMs": 169.39999999990687
+            },
+            "startupBreakdown": {
+              "documentMs": 55.09582299999602,
+              "formWaitMs": 61.23642500000278,
+              "formFillMs": 19.77676000000065,
+              "signInClickMs": 39.91123399999924,
+              "afterClickToCardsMs": 810.2305990000023,
+              "includesLoginAutomation": true
+            }
+          }
+        }
+      },
+      "raw_artifacts": [
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909b/folder-picker-chromium/baseline.json",
+          "sha256": "04e89001ffc1d943a19deeafa188f8c731bb575076a364f7de0734cc9756e77e"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909b/folder-picker-chromium/folder-picker-chromium.png",
+          "sha256": "7130b048c90cd950a70cbc64c0244c933ab54614173b94fd84541c9c78f63286"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909b/folder-picker-chromium/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909b/folder-picker-chromium/stdout.txt",
+          "sha256": "bb784945db42d9bedf864a48d80bb7f5d68946034484ffe1e6c1abef090a8a91"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909b/folder-picker-firefox/baseline.json",
+          "sha256": "d441bf4961d03f01bede89e39643db697a9751343cae6eaab97766d5745e6454"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909b/folder-picker-firefox/folder-picker-firefox.png",
+          "sha256": "01ddbe588b888dbd5862a6ac0a8081ce4778954fed5c54f863bc32a405eba2cb"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909b/folder-picker-firefox/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909b/folder-picker-firefox/stdout.txt",
+          "sha256": "0ea2ee1d7f640f40696ce69789d64bda1f905797bbeadcd2e0608909de8d82d0"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909b/folder-picker-webkit/baseline.json",
+          "sha256": "3d7f1efa6b3d31581c3f2b86244a2a3750a2596c36383b92a1344c735072e6ab"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909b/folder-picker-webkit/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909b/folder-picker-webkit/stdout.txt",
+          "sha256": "30b5530f644a59e531a4fdd0367b5b17f8276e9ce25e64b0fad607165e1d37e4"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909b/ordering-chromium/baseline.json",
+          "sha256": "85671854641b585bae2b8dafe354de3c0569deed9e42274e972fb3a19af7e419"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909b/ordering-chromium/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909b/ordering-chromium/stdout.txt",
+          "sha256": "bb784945db42d9bedf864a48d80bb7f5d68946034484ffe1e6c1abef090a8a91"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909b/organization-chromium/baseline.json",
+          "sha256": "6f27eac6237d56e7b673a47e427e363911eeab28e04e73055feb6f15ebe4053f"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909b/organization-chromium/selection-toolbar-chromium.png",
+          "sha256": "3c22e1d6045e5512fba15bdb89bfc14a511340e334cff23901ed2a2967f1f66f"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909b/organization-chromium/startup-chromium.json",
+          "sha256": "576d35a178f4d7ca23db707ac55bfc33a8edd25a504c02761e14539cb7ecdd84"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909b/summary.json",
+          "sha256": "cbc6112c939ba4059d7b54205920e56b720aa05bdc3ed933fda7d04ba827b0c9"
+        }
+      ]
+    },
+    {
+      "id": "debug-a",
+      "disposition": "Diagnostic WebKit assertion-location probe on 744886b images with later harness; Tab focus-wrap assertion failed. Not final-image qualification.",
+      "output_root": "/tmp/makersvault-g13c-picker-debug-0909a",
+      "summary": {
+        "captured_at": "2026-09-09T23:40:25.460397+00:00",
+        "harness_revision": "bb0aefe7d21fefd4e19a84214e2c0f4031a14cf3",
+        "application_revision": "744886b8b1abf0e5abc55d3a48a441e8fdad9302",
+        "application_version": "development-gate13b",
+        "diagnostic_profile": false,
+        "organization_fixture": "baseline-104",
+        "images": {
+          "api": "sha256:0c3adb1a2587a495ea9e547e0a2706121816b7d81ec913ee1255f16466b50e84",
+          "web": "sha256:6c7d4f434748873b94c2306d45f8c4defb5cd750f8a17d5092355c54f3042be4"
+        },
+        "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+        "status": "failed",
+        "cases": [
+          {
+            "case": "folder-picker-webkit",
+            "status": "failed",
+            "exit_code": 1,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "34d1802e24e8a99e8c1b71f0c1653942a848af8ce30229158163355eaa443b6a"
+          }
+        ],
+        "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+      },
+      "reports": {
+        "folder-picker-webkit": {
+          "baseline.json": {
+            "schema": 1,
+            "capturedAt": "2026-09-09T23:40:42.341Z",
+            "engine": "webkit",
+            "status": "failed",
+            "checks": [],
+            "scope": "Functional real-browser checks; explicitly injected refresh/navigation races are not performance or physical-device qualification",
+            "error": "Expected values to be strictly equal:\n\nfalse !== true\n\nDiagnostic assertion location:     at main (file:///bench/organization/folder-picker-regression.mjs:99:10)"
+          }
+        }
+      },
+      "raw_artifacts": [
+        {
+          "path": "/tmp/makersvault-g13c-picker-debug-0909a/folder-picker-webkit/baseline.json",
+          "sha256": "39ad1c5e9f36a4293ba94a9550409402a7ac044ef8c15f15c1dc7801881e5d45"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-debug-0909a/folder-picker-webkit/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-debug-0909a/folder-picker-webkit/stdout.txt",
+          "sha256": "ed0535922fc5751a498593d7aa7a96d5aa61573f42320162512071d286d5c63d"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-debug-0909a/summary.json",
+          "sha256": "c81dccf75b97b3d281e41da6b0cabc6933035a18f6ff4ac61096f4c943500eeb"
+        }
+      ]
+    },
+    {
+      "id": "c",
+      "disposition": "Final 76b526d application and harness: Chromium ordering plus Chromium/Firefox/WebKit folder-picker regression matrix.",
+      "output_root": "/tmp/makersvault-g13c-picker-0909c",
+      "summary": {
+        "captured_at": "2026-09-09T23:48:09.358513+00:00",
+        "harness_revision": "76b526d2a740bd33d04c92b06073b30063b0b9f8",
+        "application_revision": "76b526d2a740bd33d04c92b06073b30063b0b9f8",
+        "application_version": "development-gate13b",
+        "diagnostic_profile": false,
+        "organization_fixture": "baseline-104",
+        "images": {
+          "api": "sha256:323acc46322c65dd6f64b11efdd3bb2361da9acc1a42265843d93e58d0c92a50",
+          "web": "sha256:c223700def24cb46555446238c86c28208ca9b722b9e65709c9bdabe0ef0a4cb"
+        },
+        "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+        "status": "passed",
+        "cases": [
+          {
+            "case": "ordering-chromium",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "7f60cf0f0467877e5311781afa9acd879f6e5fac3803a29b4907a4b41d84f295"
+          },
+          {
+            "case": "folder-picker-chromium",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "70fb5381603d83273b83d14af223cfcaf561bb5832670a9bb19eec7c4c6888f6"
+          },
+          {
+            "case": "folder-picker-firefox",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "87a32fe80842d6d1484de4707535046a8dc0ca55e80eebbb2b7a0ffd9daa4b16"
+          },
+          {
+            "case": "folder-picker-webkit",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "9ec5c54bfdea8371cba98b42ffee3f1aebe487758c6bb6c253d10b0f704fac6c"
+          }
+        ],
+        "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+      },
+      "reports": {
+        "folder-picker-chromium": {
+          "baseline.json": {
+            "schema": 1,
+            "capturedAt": "2026-09-09T23:48:40.822Z",
+            "engine": "chromium",
+            "status": "passed",
+            "checks": [
+              "keyboard opens/searches/selects; Enter selects without moving; Escape cancels and returns focus",
+              "full paths disambiguate duplicate leaves; empty/current destination blocked; narrow dialog and Cancel preserve bytes/location",
+              "explicit confirmation moves exactly the intended ID, updates its path, supports Unassigned, preserves the other ID and primary bytes",
+              "real folder/name conflict stays visible and permits a deliberate destination retry",
+              "deleted destination and deleted Artifact are refused by the API without moving a different model",
+              "permission refusal remains actionable in the dialog without a false success or sign-out",
+              "injected refresh/folder-view changes invalidate an unconfirmed picker without any POST",
+              "double-submit/cancel blocked during confirmed work; late 401 after injected view departure cannot affect the new view",
+              "current 401 still closes the picker and requires sign-in",
+              "real Viewer account sees current paths but no move controls; API independently denies mutation"
+            ],
+            "scope": "Functional real-browser checks; explicitly injected refresh/navigation races are not performance or physical-device qualification"
+          }
+        },
+        "folder-picker-firefox": {
+          "baseline.json": {
+            "schema": 1,
+            "capturedAt": "2026-09-09T23:49:10.871Z",
+            "engine": "firefox",
+            "status": "passed",
+            "checks": [
+              "keyboard opens/searches/selects; Enter selects without moving; Escape cancels and returns focus",
+              "full paths disambiguate duplicate leaves; empty/current destination blocked; narrow dialog and Cancel preserve bytes/location",
+              "explicit confirmation moves exactly the intended ID, updates its path, supports Unassigned, preserves the other ID and primary bytes",
+              "real folder/name conflict stays visible and permits a deliberate destination retry",
+              "deleted destination and deleted Artifact are refused by the API without moving a different model",
+              "permission refusal remains actionable in the dialog without a false success or sign-out",
+              "injected refresh/folder-view changes invalidate an unconfirmed picker without any POST",
+              "double-submit/cancel blocked during confirmed work; late 401 after injected view departure cannot affect the new view",
+              "current 401 still closes the picker and requires sign-in",
+              "real Viewer account sees current paths but no move controls; API independently denies mutation"
+            ],
+            "scope": "Functional real-browser checks; explicitly injected refresh/navigation races are not performance or physical-device qualification"
+          }
+        },
+        "folder-picker-webkit": {
+          "baseline.json": {
+            "schema": 1,
+            "capturedAt": "2026-09-09T23:49:41.518Z",
+            "engine": "webkit",
+            "status": "passed",
+            "checks": [
+              "keyboard opens/searches/selects; Enter selects without moving; Escape cancels and returns focus",
+              "full paths disambiguate duplicate leaves; empty/current destination blocked; narrow dialog and Cancel preserve bytes/location",
+              "explicit confirmation moves exactly the intended ID, updates its path, supports Unassigned, preserves the other ID and primary bytes",
+              "real folder/name conflict stays visible and permits a deliberate destination retry",
+              "deleted destination and deleted Artifact are refused by the API without moving a different model",
+              "permission refusal remains actionable in the dialog without a false success or sign-out",
+              "injected refresh/folder-view changes invalidate an unconfirmed picker without any POST",
+              "double-submit/cancel blocked during confirmed work; late 401 after injected view departure cannot affect the new view",
+              "current 401 still closes the picker and requires sign-in",
+              "real Viewer account sees current paths but no move controls; API independently denies mutation"
+            ],
+            "scope": "Functional real-browser checks; explicitly injected refresh/navigation races are not performance or physical-device qualification"
+          }
+        },
+        "ordering-chromium": {
+          "baseline.json": {
+            "schema": 1,
+            "capturedAt": "2026-09-09T23:48:21.437Z",
+            "checks": [
+              "restore: late assets cannot replace the new search",
+              "restore: late tags cannot replace the new search",
+              "restore: late assets 401 cannot replace the new search",
+              "old pagination cannot append into a newer search",
+              "pagination uses the applied query, not unsubmitted text",
+              "unmounted grid ignores its stale authorization failure",
+              "current authorization failure still requires sign-in"
+            ],
+            "status": "passed"
+          }
+        }
+      },
+      "raw_artifacts": [
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909c/folder-picker-chromium/baseline.json",
+          "sha256": "ea70013cf3a3e0da0758a0f25964d811e6c2a7b3ad30b77e2e7436867c5bdcef"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909c/folder-picker-chromium/folder-picker-chromium.png",
+          "sha256": "843b2f47368cf2002d683b013aed6c27e340f3bfee08d52ef47a08c20bf061d8"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909c/folder-picker-chromium/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909c/folder-picker-chromium/stdout.txt",
+          "sha256": "30d1163d5e641d13096fbdcf9392d136524e723ea511e77aa91e1f1f25c80dd3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909c/folder-picker-firefox/baseline.json",
+          "sha256": "7c99e3e86753be6941de40c7b60e4bc9435a7a0e30abc829fafc22d2f255ba8c"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909c/folder-picker-firefox/folder-picker-firefox.png",
+          "sha256": "b0c1a5e68fbb735c100742a9b4fd03d86696e872f773765b545d2be2a8b256c9"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909c/folder-picker-firefox/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909c/folder-picker-firefox/stdout.txt",
+          "sha256": "dcd053123715df9fddadfbbee913e31b9a6e738fd70f76a931b5dfd37a19b0e6"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909c/folder-picker-webkit/baseline.json",
+          "sha256": "d069dc4833f61d2e6157c76360dcece8b9ddc82407f202113ebab489f56e7136"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909c/folder-picker-webkit/folder-picker-webkit.png",
+          "sha256": "ea549d1266442c5bd12a583680b450a0bec0314a4a6822491423467f6533e519"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909c/folder-picker-webkit/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909c/folder-picker-webkit/stdout.txt",
+          "sha256": "7036115de2086f1846213900fe78a70ac27e192cdb2de08081bec2d89a3f9563"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909c/ordering-chromium/baseline.json",
+          "sha256": "5abc383728c0bbda23e8b933e9184b7c7ff84b4da5cdd1079ccf7480f302ad5c"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909c/ordering-chromium/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909c/ordering-chromium/stdout.txt",
+          "sha256": "30d1163d5e641d13096fbdcf9392d136524e723ea511e77aa91e1f1f25c80dd3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909c/summary.json",
+          "sha256": "356ce3ff47c3c548d5a69b907c4e069695e2abe8948e26901f2f827599a6788b"
+        }
+      ]
+    },
+    {
+      "id": "d",
+      "disposition": "Final 76b526d application / 53142f9 harness: unprofiled 600-Artifact/104-folder organization matrix, Chromium preview and mounted import.",
+      "output_root": "/tmp/makersvault-g13c-picker-0909d",
+      "summary": {
+        "captured_at": "2026-09-09T23:54:30.755626+00:00",
+        "harness_revision": "53142f9561edc7a5c417da9bcd61fc2c7b6a27ce",
+        "application_revision": "76b526d2a740bd33d04c92b06073b30063b0b9f8",
+        "application_version": "development-gate13b",
+        "diagnostic_profile": false,
+        "organization_fixture": "baseline-104",
+        "images": {
+          "api": "sha256:323acc46322c65dd6f64b11efdd3bb2361da9acc1a42265843d93e58d0c92a50",
+          "web": "sha256:c223700def24cb46555446238c86c28208ca9b722b9e65709c9bdabe0ef0a4cb"
+        },
+        "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+        "status": "passed",
+        "cases": [
+          {
+            "case": "organization-chromium",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "24e7c5f431bc6e2c8bb6a1c885dacc5d046844f8108bc423e98b6042770cb544"
+          },
+          {
+            "case": "organization-firefox",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "e9cec4e3823b7b9a3626bca5b4a4fbd73a1d7e755c25091f1d7d710fd6d7e9f4"
+          },
+          {
+            "case": "organization-webkit",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "f57792aa04d25bdee55612064e00eefa9e06686619b7241074004bbc92c6a59f"
+          },
+          {
+            "case": "preview-chromium",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "functional probes and metrics collection; preview budgets require review",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "7a11e7f762e0481500cf0cf0ab08fef257c0c865ae6435bb03629b90c864fc28"
+          },
+          {
+            "case": "mount-chromium",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": true,
+            "fixture_certificate_sha256": "d24f0654f12745261a9f0d3a5352da26b5254c7a73ed202be5464b5375a7886e"
+          }
+        ],
+        "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+      },
+      "reports": {
+        "mount-chromium": {
+          "baseline.json": {
+            "capturedAt": "2026-09-09T23:57:43.324Z",
+            "first": {
+              "id": "cb223ba1-89c9-44ae-b04b-c14942c9e3f7",
+              "trigger": "manual",
+              "status": "completed_with_failures",
+              "mode": "copy",
+              "root_path": "/imports",
+              "started_at": "2026-09-09T23:57:40.369649Z",
+              "finished_at": "2026-09-09T23:57:40.474082Z",
+              "imported": 2,
+              "skipped": 0,
+              "failed": 1,
+              "failure_details": [
+                {
+                  "path": "rejected.stl",
+                  "reason": "Mounted source contains a symbolic link"
+                }
+              ],
+              "failure_details_omitted": 0
+            },
+            "repeat": {
+              "id": "297d524a-276f-4679-9a69-7619bea7a731",
+              "trigger": "manual",
+              "status": "completed_with_failures",
+              "mode": "copy",
+              "root_path": "/imports",
+              "started_at": "2026-09-09T23:57:41.840294Z",
+              "finished_at": "2026-09-09T23:57:41.866296Z",
+              "imported": 0,
+              "skipped": 2,
+              "failed": 1,
+              "failure_details": [
+                {
+                  "path": "rejected.stl",
+                  "reason": "Mounted source contains a symbolic link"
+                }
+              ],
+              "failure_details_omitted": 0
+            },
+            "browser": {
+              "copyOwnershipVisible": true,
+              "indexOwnershipVisible": true,
+              "failureDetailsVisible": true
+            }
+          }
+        },
+        "organization-chromium": {
+          "baseline.json": {
+            "schema": 4,
+            "diagnosticProfile": false,
+            "capturedAt": "2026-09-09T23:55:13.381Z",
+            "corpus": {
+              "assets": 600,
+              "folders": 104,
+              "roots": 8,
+              "branches": 32,
+              "leaves": 64,
+              "depth": 3,
+              "seedMs": 23733.949562
+            },
+            "api": {
+              "firstPage": {
+                "path": "/assets?limit=25&offset=0",
+                "itemCount": 25,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 21.80617600000187,
+                  "p95": 24.641308999998728,
+                  "max": 24.641308999998728
+                }
+              },
+              "exactSearch": {
+                "path": "/assets?limit=25&offset=0&q=Fixture%200595",
+                "itemCount": 1,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 7.143287999999302,
+                  "p95": 14.723769000000175,
+                  "max": 14.723769000000175
+                }
+              },
+              "folderPage": {
+                "path": "/assets?limit=25&offset=0&folder_id=a471b5d3-5b1b-4644-af12-e0374eb2b543",
+                "itemCount": 9,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 8.558043999997608,
+                  "p95": 9.456644000001688,
+                  "max": 9.456644000001688
+                }
+              },
+              "folders": {
+                "path": "/folders",
+                "itemCount": 104,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 8.535639000001538,
+                  "p95": 11.168687000001228,
+                  "max": 11.168687000001228
+                }
+              }
+            },
+            "browser": {
+              "engine": "chromium",
+              "performanceBudgetEnforced": true,
+              "firstCardsMs": 603.2999999998137,
+              "firstCardsWaitReturnMs": 1088.1950580000012,
+              "firstVisibleCard": {
+                "schema": 1,
+                "clock": "navigation",
+                "atMs": 603.2999999998137,
+                "submittedAtMs": 268.29999999981374
+              },
+              "startupBreakdown": {
+                "documentMs": 99.58774500000072,
+                "formWaitMs": 84.78034300000218,
+                "formFillMs": 40.75876099999732,
+                "signInClickMs": 55.91945500000293,
+                "afterClickToCardsMs": 859.4483259999979,
+                "includesLoginAutomation": true
+              },
+              "initialCardCount": 20,
+              "loadMoreMs": 368.9849810000014,
+              "loadedCardCount": 40,
+              "folderControls": {
+                "initial": {
+                  "cards": 20,
+                  "elements": 2647,
+                  "options": 88,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                },
+                "loaded": {
+                  "cards": 40,
+                  "elements": 3659,
+                  "options": 168,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                },
+                "folder": {
+                  "cards": 9,
+                  "elements": 694,
+                  "options": 44,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                }
+              },
+              "selectedAfterLoadMore": 2,
+              "exactSearchMs": 62.23578500000076,
+              "exactSearchResultCount": 1,
+              "selectedBeforeFilter": 2,
+              "selectedAfterFilter": 0,
+              "visibleBulkToolbarBeforeFilter": 1,
+              "preparedSummaryVisible": true,
+              "supportingDocumentVisible": true,
+              "preparedPayloadLinkCount": 0,
+              "mixedMoveSelectedAfter": 1,
+              "mixedMoveFailureVisible": true,
+              "tagPreservationVerified": true,
+              "selectedDownloadSuggestedFilename": "makersvault.zip",
+              "bulkTrashRecoverableVisible": true,
+              "bulkTrashSelectionAfterPanelCancel": 2,
+              "bulkTrashSelectionAfterDialogCancel": 2,
+              "singleTrashRestoreVerified": true,
+              "bulkTrashRestoreVerified": true,
+              "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+              "singleDeleteSelectionAfterCancel": 1,
+              "folderSearchMs": 44.92992400000003,
+              "visibleFolderRows": 3,
+              "folderOpenMs": 68.71735799999806,
+              "folderCardCount": 9,
+              "childFolderEmptyStateVisible": true,
+              "breadcrumbAncestorNavigationVisible": true,
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+              "heapBytes": 14935034,
+              "breadcrumbCount": 1,
+              "longTaskAttributionSchema": 2,
+              "longTasksAvailable": true,
+              "longTasks": {
+                "count": 0,
+                "totalMs": 0,
+                "maxMs": 0,
+                "byPhase": {}
+              },
+              "legacyLongTasks": {
+                "count": 0,
+                "totalMs": 0,
+                "maxMs": 0,
+                "byPhase": {}
+              },
+              "legacyMaxInteractionLongTaskMs": 0,
+              "maxInteractionLongTaskMs": 0,
+              "longTaskEntries": []
+            }
+          },
+          "startup-chromium.json": {
+            "firstCardsMs": 603.2999999998137,
+            "firstCardsWaitReturnMs": 1088.1950580000012,
+            "firstVisibleCard": {
+              "schema": 1,
+              "clock": "navigation",
+              "atMs": 603.2999999998137,
+              "submittedAtMs": 268.29999999981374
+            },
+            "startupBreakdown": {
+              "documentMs": 99.58774500000072,
+              "formWaitMs": 84.78034300000218,
+              "formFillMs": 40.75876099999732,
+              "signInClickMs": 55.91945500000293,
+              "afterClickToCardsMs": 859.4483259999979,
+              "includesLoginAutomation": true
+            }
+          }
+        },
+        "organization-firefox": {
+          "baseline.json": {
+            "schema": 4,
+            "diagnosticProfile": false,
+            "capturedAt": "2026-09-09T23:56:02.759Z",
+            "corpus": {
+              "assets": 600,
+              "folders": 104,
+              "roots": 8,
+              "branches": 32,
+              "leaves": 64,
+              "depth": 3,
+              "seedMs": 24080.403932
+            },
+            "api": {
+              "firstPage": {
+                "path": "/assets?limit=25&offset=0",
+                "itemCount": 25,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 12.35336400000233,
+                  "p95": 26.75221899999815,
+                  "max": 26.75221899999815
+                }
+              },
+              "exactSearch": {
+                "path": "/assets?limit=25&offset=0&q=Fixture%200595",
+                "itemCount": 1,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 7.074043000000529,
+                  "p95": 9.387408000002324,
+                  "max": 9.387408000002324
+                }
+              },
+              "folderPage": {
+                "path": "/assets?limit=25&offset=0&folder_id=83bfdaeb-9510-4484-8ffc-125d1c446a16",
+                "itemCount": 9,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 8.874331999999413,
+                  "p95": 14.337572000000364,
+                  "max": 14.337572000000364
+                }
+              },
+              "folders": {
+                "path": "/folders",
+                "itemCount": 104,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 12.591819999997824,
+                  "p95": 14.921947000002547,
+                  "max": 14.921947000002547
+                }
+              }
+            },
+            "browser": {
+              "engine": "firefox",
+              "performanceBudgetEnforced": false,
+              "firstCardsMs": 1228,
+              "firstCardsWaitReturnMs": 1758.8547089999993,
+              "firstVisibleCard": {
+                "schema": 1,
+                "clock": "navigation",
+                "atMs": 1228,
+                "submittedAtMs": 832
+              },
+              "startupBreakdown": {
+                "documentMs": 351.5188279999966,
+                "formWaitMs": 213.86348200000066,
+                "formFillMs": 90.93002900000283,
+                "signInClickMs": 223.2478489999994,
+                "afterClickToCardsMs": 942.6786649999995,
+                "includesLoginAutomation": true
+              },
+              "initialCardCount": 20,
+              "loadMoreMs": 185.4653040000012,
+              "loadedCardCount": 40,
+              "folderControls": {
+                "initial": {
+                  "cards": 20,
+                  "elements": 2647,
+                  "options": 88,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                },
+                "loaded": {
+                  "cards": 40,
+                  "elements": 3659,
+                  "options": 168,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                },
+                "folder": {
+                  "cards": 9,
+                  "elements": 694,
+                  "options": 44,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                }
+              },
+              "selectedAfterLoadMore": 2,
+              "exactSearchMs": 99.56248700000287,
+              "exactSearchResultCount": 1,
+              "selectedBeforeFilter": 2,
+              "selectedAfterFilter": 0,
+              "visibleBulkToolbarBeforeFilter": 1,
+              "preparedSummaryVisible": true,
+              "supportingDocumentVisible": true,
+              "preparedPayloadLinkCount": 0,
+              "mixedMoveSelectedAfter": 1,
+              "mixedMoveFailureVisible": true,
+              "tagPreservationVerified": true,
+              "selectedDownloadSuggestedFilename": "makersvault.zip",
+              "bulkTrashRecoverableVisible": true,
+              "bulkTrashSelectionAfterPanelCancel": 2,
+              "bulkTrashSelectionAfterDialogCancel": 2,
+              "singleTrashRestoreVerified": true,
+              "bulkTrashRestoreVerified": true,
+              "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+              "singleDeleteSelectionAfterCancel": 1,
+              "folderSearchMs": 52.39522500000021,
+              "visibleFolderRows": 3,
+              "folderOpenMs": 136.41825799999788,
+              "folderCardCount": 9,
+              "childFolderEmptyStateVisible": true,
+              "breadcrumbAncestorNavigationVisible": true,
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:153.0) Gecko/20100101 Firefox/153.0",
+              "heapBytes": null,
+              "breadcrumbCount": 1,
+              "longTaskAttributionSchema": 2,
+              "longTasksAvailable": false,
+              "longTasks": null,
+              "legacyLongTasks": null,
+              "legacyMaxInteractionLongTaskMs": null,
+              "maxInteractionLongTaskMs": null,
+              "longTaskEntries": null
+            }
+          },
+          "startup-firefox.json": {
+            "firstCardsMs": 1228,
+            "firstCardsWaitReturnMs": 1758.8547089999993,
+            "firstVisibleCard": {
+              "schema": 1,
+              "clock": "navigation",
+              "atMs": 1228,
+              "submittedAtMs": 832
+            },
+            "startupBreakdown": {
+              "documentMs": 351.5188279999966,
+              "formWaitMs": 213.86348200000066,
+              "formFillMs": 90.93002900000283,
+              "signInClickMs": 223.2478489999994,
+              "afterClickToCardsMs": 942.6786649999995,
+              "includesLoginAutomation": true
+            }
+          }
+        },
+        "organization-webkit": {
+          "baseline.json": {
+            "schema": 4,
+            "diagnosticProfile": false,
+            "capturedAt": "2026-09-09T23:56:51.177Z",
+            "corpus": {
+              "assets": 600,
+              "folders": 104,
+              "roots": 8,
+              "branches": 32,
+              "leaves": 64,
+              "depth": 3,
+              "seedMs": 23542.238887
+            },
+            "api": {
+              "firstPage": {
+                "path": "/assets?limit=25&offset=0",
+                "itemCount": 25,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 13.600276000001031,
+                  "p95": 20.77747299999828,
+                  "max": 20.77747299999828
+                }
+              },
+              "exactSearch": {
+                "path": "/assets?limit=25&offset=0&q=Fixture%200595",
+                "itemCount": 1,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 12.88628400000016,
+                  "p95": 15.87727200000154,
+                  "max": 15.87727200000154
+                }
+              },
+              "folderPage": {
+                "path": "/assets?limit=25&offset=0&folder_id=baa450ca-2968-4a8a-99aa-9ab86ff87e53",
+                "itemCount": 9,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 15.05303400000048,
+                  "p95": 20.835069000000658,
+                  "max": 20.835069000000658
+                }
+              },
+              "folders": {
+                "path": "/folders",
+                "itemCount": 104,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 7.947362999999314,
+                  "p95": 10.072329999999056,
+                  "max": 10.072329999999056
+                }
+              }
+            },
+            "browser": {
+              "engine": "webkit",
+              "performanceBudgetEnforced": false,
+              "firstCardsMs": 2903,
+              "firstCardsWaitReturnMs": 2616.3503170000004,
+              "firstVisibleCard": {
+                "schema": 1,
+                "clock": "navigation",
+                "atMs": 2903,
+                "submittedAtMs": 1731
+              },
+              "startupBreakdown": {
+                "documentMs": 218.5338440000014,
+                "formWaitMs": 62.08195100000012,
+                "formFillMs": 38.00705799999923,
+                "signInClickMs": 1421.3456689999985,
+                "afterClickToCardsMs": 1172.7071890000007,
+                "includesLoginAutomation": true
+              },
+              "initialCardCount": 20,
+              "loadMoreMs": 215.7414200000021,
+              "loadedCardCount": 40,
+              "folderControls": {
+                "initial": {
+                  "cards": 20,
+                  "elements": 2647,
+                  "options": 88,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                },
+                "loaded": {
+                  "cards": 40,
+                  "elements": 3659,
+                  "options": 168,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                },
+                "folder": {
+                  "cards": 9,
+                  "elements": 694,
+                  "options": 44,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                }
+              },
+              "selectedAfterLoadMore": 2,
+              "exactSearchMs": 48.265449999998964,
+              "exactSearchResultCount": 1,
+              "selectedBeforeFilter": 2,
+              "selectedAfterFilter": 0,
+              "visibleBulkToolbarBeforeFilter": 1,
+              "preparedSummaryVisible": true,
+              "supportingDocumentVisible": true,
+              "preparedPayloadLinkCount": 0,
+              "mixedMoveSelectedAfter": 1,
+              "mixedMoveFailureVisible": true,
+              "tagPreservationVerified": true,
+              "selectedDownloadSuggestedFilename": "makersvault.zip",
+              "bulkTrashRecoverableVisible": true,
+              "bulkTrashSelectionAfterPanelCancel": 2,
+              "bulkTrashSelectionAfterDialogCancel": 2,
+              "singleTrashRestoreVerified": true,
+              "bulkTrashRestoreVerified": true,
+              "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+              "singleDeleteSelectionAfterCancel": 1,
+              "folderSearchMs": 48.29837100000441,
+              "visibleFolderRows": 3,
+              "folderOpenMs": 176.33326900000247,
+              "folderCardCount": 9,
+              "childFolderEmptyStateVisible": true,
+              "breadcrumbAncestorNavigationVisible": true,
+              "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+              "heapBytes": null,
+              "breadcrumbCount": 1,
+              "longTaskAttributionSchema": 2,
+              "longTasksAvailable": false,
+              "longTasks": null,
+              "legacyLongTasks": null,
+              "legacyMaxInteractionLongTaskMs": null,
+              "maxInteractionLongTaskMs": null,
+              "longTaskEntries": null
+            }
+          },
+          "startup-webkit.json": {
+            "firstCardsMs": 2903,
+            "firstCardsWaitReturnMs": 2616.3503170000004,
+            "firstVisibleCard": {
+              "schema": 1,
+              "clock": "navigation",
+              "atMs": 2903,
+              "submittedAtMs": 1731
+            },
+            "startupBreakdown": {
+              "documentMs": 218.5338440000014,
+              "formWaitMs": 62.08195100000012,
+              "formFillMs": 38.00705799999923,
+              "signInClickMs": 1421.3456689999985,
+              "afterClickToCardsMs": 1172.7071890000007,
+              "includesLoginAutomation": true
+            }
+          }
+        },
+        "preview-chromium": {
+          "baseline.json": {
+            "schema": 2,
+            "capturedAt": "2026-09-09T23:57:24.980Z",
+            "corpus": {
+              "fixtureCount": 20,
+              "totalBytes": 66037534,
+              "expectedColdFileParses": 16,
+              "persistedThumbnailsAfterColdRun": 14,
+              "expectedWarmFileParses": 0
+            },
+            "cold": {
+              "cardsReadyMs": 1957.0602709999998,
+              "settledMs": 6793.718923999999,
+              "timedOut": false,
+              "requestCounts": {
+                "files": 16,
+                "thumbnails": 0,
+                "generatedThumbnailUploads": 12
+              },
+              "originalFileRequests": [
+                "/api/file/28fb1647-bddb-4a6f-a2a6-24a80652b044/04-small-detailed.stl",
+                "/api/file/9a370e92-7f52-471d-a712-0f4539c89b51/03-small-grid.stl",
+                "/api/file/7d762a1d-dfac-4d1d-8023-45d77063f80c/01-small-ascii.stl",
+                "/api/file/bb126038-ca0a-482c-92f0-00c2ddbc5767/02-small-binary.stl",
+                "/api/file/9b639fcb-d04f-41b5-a0bd-24deb9d6fba8/06-medium-50k.stl",
+                "/api/file/388d97ee-f8e1-47fc-9fdd-b683783cf047/07-medium-100k.stl",
+                "/api/file/f15ec0ba-1283-4e63-bae6-e6ea073efb54/05-medium-25k.stl",
+                "/api/file/25b942f0-a3b8-4f65-b2d5-f7fe2f55179c/08-large-250k.stl",
+                "/api/file/8cfbe1ed-1193-4d8e-981f-ca6e69c118ac/11-multipart-50k.obj",
+                "/api/file/ec8aa8d7-add2-47d6-8fa7-e72d7b350fb8/10-multipart-10k.obj",
+                "/api/file/e7602143-7673-4334-99e2-bf26f356f165/12-multipart-100k.obj",
+                "/api/file/27cf8ca5-168f-4fc4-81bc-68aae14f0d79/13-multibody-10k.3mf",
+                "/api/file/45ee598a-0c0c-4afc-8827-d004af4de246/14-multiplate-50k.3mf",
+                "/api/file/d5fc91bf-a05e-4758-813f-f16044252138/19-malformed-mesh.obj",
+                "/api/file/8c9fbc1b-e426-4c6e-a7be-ae9cd6da7b08/17-malformed-truncated.stl",
+                "/api/file/23eda6fd-3a3a-478e-98ed-0f8b8eebb55d/18-malformed-archive.3mf"
+              ],
+              "maxActiveFileRequests": 1,
+              "responseRoundTripMs": {
+                "samples": 59,
+                "p95": 38.77898700000014,
+                "max": 589.1172959999999
+              },
+              "eventLoopDriftMs": {
+                "samples": 119,
+                "p95": 2.2999999998137355,
+                "max": 641.5
+              },
+              "longTasks": {
+                "count": 0,
+                "totalMs": 0,
+                "maxMs": 0
+              },
+              "heap": {
+                "samples": 59,
+                "startBytes": 578986,
+                "endBytes": 9137718,
+                "peakBytes": 10081396
+              },
+              "visiblePreviewState": {
+                "images": 14,
+                "skipped": 3,
+                "failed": 3
+              },
+              "browser": {
+                "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+                "hardwareConcurrency": 16,
+                "deviceMemoryGiB": 32,
+                "webglVendor": "Google Inc. (Google)",
+                "webglRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+              }
+            },
+            "warm": {
+              "cardsReadyMs": 183.89242899999954,
+              "settledMs": 5118.476044999999,
+              "timedOut": false,
+              "requestCounts": {
+                "files": 0,
+                "thumbnails": 0,
+                "generatedThumbnailUploads": 0
+              },
+              "originalFileRequests": [],
+              "maxActiveFileRequests": 0,
+              "responseRoundTripMs": {
+                "samples": 47,
+                "p95": 4.568089999998847,
+                "max": 380.68759800000043
+              },
+              "eventLoopDriftMs": {
+                "samples": 101,
+                "p95": 0.40000000037252903,
+                "max": 144.29999999981374
+              },
+              "longTasks": {
+                "count": 0,
+                "totalMs": 0,
+                "maxMs": 0
+              },
+              "heap": {
+                "samples": 47,
+                "startBytes": 9622421,
+                "endBytes": 11906688,
+                "peakBytes": 12755928
+              },
+              "visiblePreviewState": {
+                "images": 14,
+                "skipped": 3,
+                "failed": 3
+              },
+              "browser": {
+                "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+                "hardwareConcurrency": 16,
+                "deviceMemoryGiB": 32,
+                "webglVendor": "Google Inc. (Google)",
+                "webglRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+              }
+            },
+            "detail": {
+              "modelName": "01-small-ascii",
+              "state": "ready",
+              "loadMs": 1345.7736459999996,
+              "originalFileRequests": 1,
+              "maxActiveFileRequests": 1,
+              "longTasks": {
+                "count": 1,
+                "maxMs": 1074
+              }
+            },
+            "lightburn": {
+              "state": "ready",
+              "coldOriginalFileRequests": 1,
+              "generatedThumbnailUploads": 1,
+              "warmOriginalFileRequests": 0,
+              "longTasks": {
+                "count": 0,
+                "maxMs": 0
+              }
+            },
+            "consoleErrors": [
+              {
+                "type": "error",
+                "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+              }
+            ],
+            "browserDiagnostics": [
+              {
+                "type": "warning",
+                "text": "[.WebGL-0x2c3401c33c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+              },
+              {
+                "type": "warning",
+                "text": "[.WebGL-0x2c3401c33c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+              }
+            ]
+          },
+          "corpus-manifest.json": {
+            "schema": 1,
+            "generator": "generate_corpus.py",
+            "fixture_count": 20,
+            "total_bytes": 66037534,
+            "fixtures": [
+              {
+                "filename": "01-small-ascii.stl",
+                "category": "small",
+                "bytes": 417,
+                "complexity": 4,
+                "sha256": "955f9da977cd4f52345d0da166eda3b90773d51fce1ebe7972b2de9999e7e905",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "02-small-binary.stl",
+                "category": "small",
+                "bytes": 684,
+                "complexity": 12,
+                "sha256": "6dbb9536d658712d6f7b5db960c9df2aa495ec02ac6de609fd1fcb6203824f7b",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "03-small-grid.stl",
+                "category": "small",
+                "bytes": 50084,
+                "complexity": 1000,
+                "sha256": "cbe1c584a5981248694a2af506a67ce857fb61a92248f5e980281b765565bc7b",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "04-small-detailed.stl",
+                "category": "small",
+                "bytes": 250084,
+                "complexity": 5000,
+                "sha256": "f5227bad68abc79b9de7785f204fcdb1960ba429456b5d96a1fcc5d770b8e97d",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "05-medium-25k.stl",
+                "category": "medium",
+                "bytes": 1250084,
+                "complexity": 25000,
+                "sha256": "e32c8d45e3a41674d237f69224eb584287b1f734aeb530e6b7357fd800d3c0ef",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "06-medium-50k.stl",
+                "category": "medium",
+                "bytes": 2500084,
+                "complexity": 50000,
+                "sha256": "3880d23902a204a8f579ba9fb8cb49b14bf64d0482d9cd8925f87dc471787c34",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "07-medium-100k.stl",
+                "category": "medium",
+                "bytes": 5000084,
+                "complexity": 100000,
+                "sha256": "805eea1c0a3595607bfc3e19229072ae764f8a606f34f581ca7d2ee9895b26d4",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "08-large-250k.stl",
+                "category": "large",
+                "bytes": 12500084,
+                "complexity": 250000,
+                "sha256": "1f0d3cc3dad7ad9132ca7d51fb922c2fd39e76ec1108b8ad06f8e95ea97f9fde",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "09-large-500k.stl",
+                "category": "large",
+                "bytes": 25000084,
+                "complexity": 500000,
+                "sha256": "364851295cbf48cb81ef45c2b6ed2285f70088ebdb43e7c66c03d846b001c102",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "10-multipart-10k.obj",
+                "category": "multi-part",
+                "bytes": 245481,
+                "complexity": 10000,
+                "sha256": "9c03ffb1fa7db9e87c87b81c19790ec85304a27b295210d9f0a0624c826921ac",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "11-multipart-50k.obj",
+                "category": "multi-part",
+                "bytes": 1360783,
+                "complexity": 50000,
+                "sha256": "07bb94efbb9cbde1771b24194181d8db80e7d58ec915a1622ab88d861320d7a6",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "12-multipart-100k.obj",
+                "category": "multi-part",
+                "bytes": 2797283,
+                "complexity": 100000,
+                "sha256": "52b1859548391e0eeffecdb547989c30895644db7b875fd0d369c347679f2656",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "13-multibody-10k.3mf",
+                "category": "multi-part",
+                "bytes": 70029,
+                "complexity": 10000,
+                "sha256": "263ae219379ad0678e3bae04d0c062b0621836a19cd12365e5126c14e9011b3e",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "14-multiplate-50k.3mf",
+                "category": "multi-plate",
+                "bytes": 348878,
+                "complexity": 50000,
+                "sha256": "eb72e8d5a680c047c034894499ad40f80d6a444dc94ba1344ad573f813349fc2",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "15-image-heavy-25k.3mf",
+                "category": "image-heavy",
+                "bytes": 7263164,
+                "complexity": 25000,
+                "sha256": "64df8aff622fa5257d2d95eba7f5c8cbe6556fe5ad696e3498be73a2b961048f",
+                "embedded_thumbnail": true
+              },
+              {
+                "filename": "16-multiplate-image-heavy.3mf",
+                "category": "multi-plate-image-heavy",
+                "bytes": 7400076,
+                "complexity": 45000,
+                "sha256": "46139c783d9a1b959886d2786f0bad576b7a5ae3736ef569519d897fc67852ee",
+                "embedded_thumbnail": true
+              },
+              {
+                "filename": "17-malformed-truncated.stl",
+                "category": "malformed",
+                "bytes": 20,
+                "complexity": null,
+                "sha256": "cd31012478251127d626f6be46a1182a925176b2158d31b4b7a5eb020dd397d0",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "18-malformed-archive.3mf",
+                "category": "malformed",
+                "bytes": 31,
+                "complexity": null,
+                "sha256": "0383c35833e7ac7e34b8ac3ba623b73785e4700063ba6639d0b3798470d7cbfe",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "19-malformed-mesh.obj",
+                "category": "malformed",
+                "bytes": 34,
+                "complexity": null,
+                "sha256": "c89b98fcd2bb331621f493e57a6bdb58651dd2558a50426eb06df04d8d7c80be",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "20-malformed-shape.step",
+                "category": "malformed",
+                "bytes": 66,
+                "complexity": null,
+                "sha256": "0aa811ab25e601ee9135589f6d6c8013d7f19dd4d6c2df386083cf7fa7f4a394",
+                "embedded_thumbnail": false
+              }
+            ]
+          }
+        }
+      },
+      "raw_artifacts": [
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/mount-chromium/baseline.json",
+          "sha256": "4740766be0d6bd46134f18836a46d5a5a9474b3be0aa15e109f63d22868e8e27"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/mount-chromium/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/mount-chromium/stdout.txt",
+          "sha256": "2e98d640f165a77d2d74fabf378307a059b96d7bcd01ed4b9a5377bd22dc2c74"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/organization-chromium/baseline.json",
+          "sha256": "7967110c9dd7fdc2421571ff97d9cda18a2cd563128d00a81196dc125710023d"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/organization-chromium/selection-toolbar-chromium.png",
+          "sha256": "3c22e1d6045e5512fba15bdb89bfc14a511340e334cff23901ed2a2967f1f66f"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/organization-chromium/startup-chromium.json",
+          "sha256": "2dc99d04946ae5549a7ed126fd1a6b286d5c07b7e2d64f1a10159b9ecddbc3ef"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/organization-chromium/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/organization-chromium/stdout.txt",
+          "sha256": "04e2ccfd7e4c4ac47502c704293b69995707de8c0b2fb0255777f30a1e7f8887"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/organization-firefox/baseline.json",
+          "sha256": "c6a70db66428b5237642dc8dd3090de8cbe63fe31406bb2fe017ec3cbd6dd569"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/organization-firefox/selection-toolbar-firefox.png",
+          "sha256": "817ebe9256e893d65dab80c4b270837af9352775ad56cf2502627d29880a91ae"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/organization-firefox/startup-firefox.json",
+          "sha256": "6af4fbda0d17b3ae9de98fa6f8f1139f549b0ffa9ee8da862290abd17239757e"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/organization-firefox/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/organization-firefox/stdout.txt",
+          "sha256": "f63cee91fb3819eee1c4f054d991a3152120dc98c0dae12483894b879b03e9fa"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/organization-webkit/baseline.json",
+          "sha256": "78b20c706c401fec7309fb15935a24df788824361cf3e0a5fda546ce3445347f"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/organization-webkit/selection-toolbar-webkit.png",
+          "sha256": "bb2f17ba58c6940fb4ee4e4aa0f5989739d66dc3ae10bbdc0dfce4cdfca92f51"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/organization-webkit/startup-webkit.json",
+          "sha256": "a5fe73c1df8f99ccc6a391ffce1124dcc6196ac327094ded17a5f5a28af5f431"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/organization-webkit/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/organization-webkit/stdout.txt",
+          "sha256": "d87592850b753aa5e7a1d2638d5e8759413ce48912cf446c0d4c6a076923bfca"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/preview-chromium/baseline.json",
+          "sha256": "c192dcdddad0cd280694236807f3bcf6b401a36e5c9d8804d8fb891b71cfc2a6"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/preview-chromium/corpus-manifest.json",
+          "sha256": "56fd0e9df70e8a320a655add92fdf56d1a0fa1e186bdaa6a64217275df4a4392"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/preview-chromium/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/preview-chromium/stdout.txt",
+          "sha256": "ec0b55a02cc0fe6defbde5add9806dce2692e1bb131412530ccf9a08b8502192"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909d/summary.json",
+          "sha256": "3668833866116a9cb664e459c9f511ee18f75112c988c9ebfc9835b562fa1a4f"
+        }
+      ]
+    },
+    {
+      "id": "e",
+      "disposition": "Final 76b526d application / 53142f9 harness: second fresh unprofiled Chromium 600-Artifact/104-folder repeat.",
+      "output_root": "/tmp/makersvault-g13c-picker-0909e",
+      "summary": {
+        "captured_at": "2026-09-09T23:58:01.595249+00:00",
+        "harness_revision": "53142f9561edc7a5c417da9bcd61fc2c7b6a27ce",
+        "application_revision": "76b526d2a740bd33d04c92b06073b30063b0b9f8",
+        "application_version": "development-gate13b",
+        "diagnostic_profile": false,
+        "organization_fixture": "baseline-104",
+        "images": {
+          "api": "sha256:323acc46322c65dd6f64b11efdd3bb2361da9acc1a42265843d93e58d0c92a50",
+          "web": "sha256:c223700def24cb46555446238c86c28208ca9b722b9e65709c9bdabe0ef0a4cb"
+        },
+        "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+        "status": "passed",
+        "cases": [
+          {
+            "case": "organization-chromium",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "ce1ed7f38f451b9c33c2b008f6c07340863088b02da6d9f93f7c25d80dc49e0a"
+          }
+        ],
+        "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+      },
+      "reports": {
+        "organization-chromium": {
+          "baseline.json": {
+            "schema": 4,
+            "diagnosticProfile": false,
+            "capturedAt": "2026-09-09T23:58:44.164Z",
+            "corpus": {
+              "assets": 600,
+              "folders": 104,
+              "roots": 8,
+              "branches": 32,
+              "leaves": 64,
+              "depth": 3,
+              "seedMs": 23950.987728
+            },
+            "api": {
+              "firstPage": {
+                "path": "/assets?limit=25&offset=0",
+                "itemCount": 25,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 13.006031999997504,
+                  "p95": 22.852451999999175,
+                  "max": 22.852451999999175
+                }
+              },
+              "exactSearch": {
+                "path": "/assets?limit=25&offset=0&q=Fixture%200595",
+                "itemCount": 1,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 13.99224999999933,
+                  "p95": 16.457181000001583,
+                  "max": 16.457181000001583
+                }
+              },
+              "folderPage": {
+                "path": "/assets?limit=25&offset=0&folder_id=0829071a-db3b-4264-ba5e-0fcc1021e4bb",
+                "itemCount": 9,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 10.590001000000484,
+                  "p95": 22.851263999997173,
+                  "max": 22.851263999997173
+                }
+              },
+              "folders": {
+                "path": "/folders",
+                "itemCount": 104,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 7.589369999997871,
+                  "p95": 8.313111000003119,
+                  "max": 8.313111000003119
+                }
+              }
+            },
+            "browser": {
+              "engine": "chromium",
+              "performanceBudgetEnforced": true,
+              "firstCardsMs": 865.2000000001863,
+              "firstCardsWaitReturnMs": 978.2486119999994,
+              "firstVisibleCard": {
+                "schema": 1,
+                "clock": "navigation",
+                "atMs": 865.2000000001863,
+                "submittedAtMs": 174.90000000037253
+              },
+              "startupBreakdown": {
+                "documentMs": 66.84943599999679,
+                "formWaitMs": 37.89393800000107,
+                "formFillMs": 27.411785000000236,
+                "signInClickMs": 51.71586899999966,
+                "afterClickToCardsMs": 812.5859440000022,
+                "includesLoginAutomation": true
+              },
+              "initialCardCount": 20,
+              "loadMoreMs": 135.26696399999855,
+              "loadedCardCount": 40,
+              "folderControls": {
+                "initial": {
+                  "cards": 20,
+                  "elements": 2647,
+                  "options": 88,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                },
+                "loaded": {
+                  "cards": 40,
+                  "elements": 3659,
+                  "options": 168,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                },
+                "folder": {
+                  "cards": 9,
+                  "elements": 694,
+                  "options": 44,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                }
+              },
+              "selectedAfterLoadMore": 2,
+              "exactSearchMs": 60.06560000000172,
+              "exactSearchResultCount": 1,
+              "selectedBeforeFilter": 2,
+              "selectedAfterFilter": 0,
+              "visibleBulkToolbarBeforeFilter": 1,
+              "preparedSummaryVisible": true,
+              "supportingDocumentVisible": true,
+              "preparedPayloadLinkCount": 0,
+              "mixedMoveSelectedAfter": 1,
+              "mixedMoveFailureVisible": true,
+              "tagPreservationVerified": true,
+              "selectedDownloadSuggestedFilename": "makersvault.zip",
+              "bulkTrashRecoverableVisible": true,
+              "bulkTrashSelectionAfterPanelCancel": 2,
+              "bulkTrashSelectionAfterDialogCancel": 2,
+              "singleTrashRestoreVerified": true,
+              "bulkTrashRestoreVerified": true,
+              "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+              "singleDeleteSelectionAfterCancel": 1,
+              "folderSearchMs": 36.64625500000329,
+              "visibleFolderRows": 3,
+              "folderOpenMs": 115.63746100000208,
+              "folderCardCount": 9,
+              "childFolderEmptyStateVisible": true,
+              "breadcrumbAncestorNavigationVisible": true,
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+              "heapBytes": 14506176,
+              "breadcrumbCount": 1,
+              "longTaskAttributionSchema": 2,
+              "longTasksAvailable": true,
+              "longTasks": {
+                "count": 1,
+                "totalMs": 142,
+                "maxMs": 142,
+                "byPhase": {
+                  "navigation": {
+                    "count": 1,
+                    "totalMs": 142,
+                    "maxMs": 142
+                  }
+                }
+              },
+              "legacyLongTasks": {
+                "count": 1,
+                "totalMs": 142,
+                "maxMs": 142,
+                "byPhase": {
+                  "navigation": {
+                    "count": 1,
+                    "totalMs": 142,
+                    "maxMs": 142
+                  }
+                }
+              },
+              "legacyMaxInteractionLongTaskMs": 0,
+              "maxInteractionLongTaskMs": 0,
+              "longTaskEntries": [
+                {
+                  "duration": 142,
+                  "startTime": 651.2999999998137,
+                  "legacyPhase": "navigation",
+                  "phase": "navigation",
+                  "overlapsInteraction": false
+                }
+              ]
+            }
+          },
+          "startup-chromium.json": {
+            "firstCardsMs": 865.2000000001863,
+            "firstCardsWaitReturnMs": 978.2486119999994,
+            "firstVisibleCard": {
+              "schema": 1,
+              "clock": "navigation",
+              "atMs": 865.2000000001863,
+              "submittedAtMs": 174.90000000037253
+            },
+            "startupBreakdown": {
+              "documentMs": 66.84943599999679,
+              "formWaitMs": 37.89393800000107,
+              "formFillMs": 27.411785000000236,
+              "signInClickMs": 51.71586899999966,
+              "afterClickToCardsMs": 812.5859440000022,
+              "includesLoginAutomation": true
+            }
+          }
+        }
+      },
+      "raw_artifacts": [
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909e/organization-chromium/baseline.json",
+          "sha256": "62ceda139a0b3f41741ef31da9c23e024b9b1a936efb21417557514251e00501"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909e/organization-chromium/selection-toolbar-chromium.png",
+          "sha256": "3c22e1d6045e5512fba15bdb89bfc14a511340e334cff23901ed2a2967f1f66f"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909e/organization-chromium/startup-chromium.json",
+          "sha256": "e7e360db6a1535944726dde55deac18c5035a1a6cd0abd576c6d9caf3d90145f"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909e/organization-chromium/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909e/organization-chromium/stdout.txt",
+          "sha256": "69bbdc6ff5fb77ed80dbe5b15c7d182fbcca37f4a5efc319c5b5b7046850acfb"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909e/summary.json",
+          "sha256": "b95cde0e4539a888f3055b88caa6ad6c708a09dea0f13ebaa11998c047a77c21"
+        }
+      ]
+    },
+    {
+      "id": "f",
+      "disposition": "Final 76b526d application / 53142f9 harness: third fresh unprofiled Chromium 600-Artifact/104-folder repeat.",
+      "output_root": "/tmp/makersvault-g13c-picker-0909f",
+      "summary": {
+        "captured_at": "2026-09-09T23:59:11.609663+00:00",
+        "harness_revision": "53142f9561edc7a5c417da9bcd61fc2c7b6a27ce",
+        "application_revision": "76b526d2a740bd33d04c92b06073b30063b0b9f8",
+        "application_version": "development-gate13b",
+        "diagnostic_profile": false,
+        "organization_fixture": "baseline-104",
+        "images": {
+          "api": "sha256:323acc46322c65dd6f64b11efdd3bb2361da9acc1a42265843d93e58d0c92a50",
+          "web": "sha256:c223700def24cb46555446238c86c28208ca9b722b9e65709c9bdabe0ef0a4cb"
+        },
+        "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+        "status": "passed",
+        "cases": [
+          {
+            "case": "organization-chromium",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "2d8b9301f2ac04e9f3d9f6c4c2a074d17a7cdbd654fdf7918a404c681b649dc5"
+          }
+        ],
+        "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+      },
+      "reports": {
+        "organization-chromium": {
+          "baseline.json": {
+            "schema": 4,
+            "diagnosticProfile": false,
+            "capturedAt": "2026-09-09T23:59:53.420Z",
+            "corpus": {
+              "assets": 600,
+              "folders": 104,
+              "roots": 8,
+              "branches": 32,
+              "leaves": 64,
+              "depth": 3,
+              "seedMs": 23548.02189
+            },
+            "api": {
+              "firstPage": {
+                "path": "/assets?limit=25&offset=0",
+                "itemCount": 25,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 11.541075000001001,
+                  "p95": 15.813242000000173,
+                  "max": 15.813242000000173
+                }
+              },
+              "exactSearch": {
+                "path": "/assets?limit=25&offset=0&q=Fixture%200595",
+                "itemCount": 1,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 7.06761799999731,
+                  "p95": 9.781805999999051,
+                  "max": 9.781805999999051
+                }
+              },
+              "folderPage": {
+                "path": "/assets?limit=25&offset=0&folder_id=d5dcebd2-b15d-48a1-8ef2-6487bb8cd071",
+                "itemCount": 9,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 14.076438000000053,
+                  "p95": 15.730712000000494,
+                  "max": 15.730712000000494
+                }
+              },
+              "folders": {
+                "path": "/folders",
+                "itemCount": 104,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 14.617361000000528,
+                  "p95": 18.39429999999993,
+                  "max": 18.39429999999993
+                }
+              }
+            },
+            "browser": {
+              "engine": "chromium",
+              "performanceBudgetEnforced": true,
+              "firstCardsMs": 546.9000000003725,
+              "firstCardsWaitReturnMs": 974.0969420000001,
+              "firstVisibleCard": {
+                "schema": 1,
+                "clock": "navigation",
+                "atMs": 546.9000000003725,
+                "submittedAtMs": 177.20000000018626
+              },
+              "startupBreakdown": {
+                "documentMs": 58.84261300000071,
+                "formWaitMs": 61.7514880000017,
+                "formFillMs": 19.95507699999871,
+                "signInClickMs": 43.710204999999405,
+                "afterClickToCardsMs": 812.6980729999996,
+                "includesLoginAutomation": true
+              },
+              "initialCardCount": 20,
+              "loadMoreMs": 109.37792500000069,
+              "loadedCardCount": 40,
+              "folderControls": {
+                "initial": {
+                  "cards": 20,
+                  "elements": 2647,
+                  "options": 88,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                },
+                "loaded": {
+                  "cards": 40,
+                  "elements": 3659,
+                  "options": 168,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                },
+                "folder": {
+                  "cards": 9,
+                  "elements": 694,
+                  "options": 44,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                }
+              },
+              "selectedAfterLoadMore": 2,
+              "exactSearchMs": 78.28828599999906,
+              "exactSearchResultCount": 1,
+              "selectedBeforeFilter": 2,
+              "selectedAfterFilter": 0,
+              "visibleBulkToolbarBeforeFilter": 1,
+              "preparedSummaryVisible": true,
+              "supportingDocumentVisible": true,
+              "preparedPayloadLinkCount": 0,
+              "mixedMoveSelectedAfter": 1,
+              "mixedMoveFailureVisible": true,
+              "tagPreservationVerified": true,
+              "selectedDownloadSuggestedFilename": "makersvault.zip",
+              "bulkTrashRecoverableVisible": true,
+              "bulkTrashSelectionAfterPanelCancel": 2,
+              "bulkTrashSelectionAfterDialogCancel": 2,
+              "singleTrashRestoreVerified": true,
+              "bulkTrashRestoreVerified": true,
+              "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+              "singleDeleteSelectionAfterCancel": 1,
+              "folderSearchMs": 43.796314999999595,
+              "visibleFolderRows": 3,
+              "folderOpenMs": 88.52134499999738,
+              "folderCardCount": 9,
+              "childFolderEmptyStateVisible": true,
+              "breadcrumbAncestorNavigationVisible": true,
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+              "heapBytes": 13852814,
+              "breadcrumbCount": 1,
+              "longTaskAttributionSchema": 2,
+              "longTasksAvailable": true,
+              "longTasks": {
+                "count": 0,
+                "totalMs": 0,
+                "maxMs": 0,
+                "byPhase": {}
+              },
+              "legacyLongTasks": {
+                "count": 0,
+                "totalMs": 0,
+                "maxMs": 0,
+                "byPhase": {}
+              },
+              "legacyMaxInteractionLongTaskMs": 0,
+              "maxInteractionLongTaskMs": 0,
+              "longTaskEntries": []
+            }
+          },
+          "startup-chromium.json": {
+            "firstCardsMs": 546.9000000003725,
+            "firstCardsWaitReturnMs": 974.0969420000001,
+            "firstVisibleCard": {
+              "schema": 1,
+              "clock": "navigation",
+              "atMs": 546.9000000003725,
+              "submittedAtMs": 177.20000000018626
+            },
+            "startupBreakdown": {
+              "documentMs": 58.84261300000071,
+              "formWaitMs": 61.7514880000017,
+              "formFillMs": 19.95507699999871,
+              "signInClickMs": 43.710204999999405,
+              "afterClickToCardsMs": 812.6980729999996,
+              "includesLoginAutomation": true
+            }
+          }
+        }
+      },
+      "raw_artifacts": [
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909f/organization-chromium/baseline.json",
+          "sha256": "d8ac719852f9161f520183a8843c3e11731aa1388053ac715477d146eb924b3d"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909f/organization-chromium/selection-toolbar-chromium.png",
+          "sha256": "694888760dc4a78772992d4bc7582931b01889199dae3bf20c2bdb274be20c64"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909f/organization-chromium/startup-chromium.json",
+          "sha256": "4da4bfd76ca1d3f5e0312b3afa3d128a2b4df49e616d2ae9fe79d2b0b9eac9e2"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909f/organization-chromium/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909f/organization-chromium/stdout.txt",
+          "sha256": "68562a5a9990a4a3054d39818a60a8943b785333b89a3c889fd2e0a146e93e92"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909f/summary.json",
+          "sha256": "6a9338bc978ed442143f6e803e846d950ed868eba11c4f0f20a4a83432c65ae5"
+        }
+      ]
+    },
+    {
+      "id": "g",
+      "disposition": "Final 76b526d application / 53142f9 harness: separate unprofiled 600-Artifact/1040-folder Chromium stress case; not a baseline substitute.",
+      "output_root": "/tmp/makersvault-g13c-picker-0909g",
+      "summary": {
+        "captured_at": "2026-09-10T00:00:06.324679+00:00",
+        "harness_revision": "53142f9561edc7a5c417da9bcd61fc2c7b6a27ce",
+        "application_revision": "76b526d2a740bd33d04c92b06073b30063b0b9f8",
+        "application_version": "development-gate13b",
+        "diagnostic_profile": false,
+        "organization_fixture": "folder-stress-1040",
+        "images": {
+          "api": "sha256:323acc46322c65dd6f64b11efdd3bb2361da9acc1a42265843d93e58d0c92a50",
+          "web": "sha256:c223700def24cb46555446238c86c28208ca9b722b9e65709c9bdabe0ef0a4cb"
+        },
+        "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+        "status": "failed",
+        "cases": [
+          {
+            "case": "organization-chromium",
+            "status": "failed",
+            "exit_code": 1,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "eef8b132440ac497650ff42dd5c27b25d78bb5eae2de52f437312b80dff19350"
+          }
+        ],
+        "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+      },
+      "reports": {
+        "organization-chromium": {
+          "baseline.json": {
+            "schema": 4,
+            "diagnosticProfile": false,
+            "capturedAt": "2026-09-10T00:01:13.671Z",
+            "corpus": {
+              "assets": 600,
+              "folders": 1040,
+              "roots": 80,
+              "branches": 320,
+              "leaves": 640,
+              "depth": 3,
+              "seedMs": 45099.93313
+            },
+            "api": {
+              "firstPage": {
+                "path": "/assets?limit=25&offset=0",
+                "itemCount": 25,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 11.067253000001074,
+                  "p95": 21.045297999997274,
+                  "max": 21.045297999997274
+                }
+              },
+              "exactSearch": {
+                "path": "/assets?limit=25&offset=0&q=Fixture%200595",
+                "itemCount": 1,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 13.060333000001265,
+                  "p95": 14.683547000000544,
+                  "max": 14.683547000000544
+                }
+              },
+              "folderPage": {
+                "path": "/assets?limit=25&offset=0&folder_id=a1b2f28e-1e6b-4bf5-b088-6d1511f01c6b",
+                "itemCount": 1,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 11.490294999995967,
+                  "p95": 14.49651399999857,
+                  "max": 14.49651399999857
+                }
+              },
+              "folders": {
+                "path": "/folders",
+                "itemCount": 1040,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 25.9980080000023,
+                  "p95": 99.29899399999704,
+                  "max": 99.29899399999704
+                }
+              }
+            },
+            "browser": {
+              "engine": "chromium",
+              "performanceBudgetEnforced": true,
+              "firstCardsMs": 1612.4000000003725,
+              "firstCardsWaitReturnMs": 1845.7021289999975,
+              "firstVisibleCard": {
+                "schema": 1,
+                "clock": "navigation",
+                "atMs": 1612.4000000003725,
+                "submittedAtMs": 246.40000000037253
+              },
+              "startupBreakdown": {
+                "documentMs": 88.3451270000005,
+                "formWaitMs": 91.3140790000034,
+                "formFillMs": 20.72712799999863,
+                "signInClickMs": 52.900589999997464,
+                "afterClickToCardsMs": 1639.7387880000024,
+                "includesLoginAutomation": true
+              },
+              "initialCardCount": 20,
+              "loadMoreMs": 164.0559260000009,
+              "loadedCardCount": 40,
+              "folderControls": {
+                "initial": {
+                  "cards": 20,
+                  "elements": 16399,
+                  "options": 88,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                },
+                "loaded": {
+                  "cards": 40,
+                  "elements": 17411,
+                  "options": 168,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                },
+                "folder": {
+                  "cards": 1,
+                  "elements": 291,
+                  "options": 12,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                }
+              },
+              "selectedAfterLoadMore": 2,
+              "exactSearchMs": 97.11243699999613,
+              "exactSearchResultCount": 1,
+              "selectedBeforeFilter": 2,
+              "selectedAfterFilter": 0,
+              "visibleBulkToolbarBeforeFilter": 1,
+              "preparedSummaryVisible": true,
+              "supportingDocumentVisible": true,
+              "preparedPayloadLinkCount": 0,
+              "mixedMoveSelectedAfter": 2,
+              "mixedMoveFailureVisible": true,
+              "tagPreservationVerified": true,
+              "selectedDownloadSuggestedFilename": "makersvault.zip",
+              "bulkTrashRecoverableVisible": true,
+              "bulkTrashSelectionAfterPanelCancel": 2,
+              "bulkTrashSelectionAfterDialogCancel": 2,
+              "singleTrashRestoreVerified": true,
+              "bulkTrashRestoreVerified": true,
+              "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+              "singleDeleteSelectionAfterCancel": 1,
+              "folderSearchMs": 494.9341659999991,
+              "visibleFolderRows": 3,
+              "folderOpenMs": 60.689604999999574,
+              "folderCardCount": 1,
+              "childFolderEmptyStateVisible": true,
+              "breadcrumbAncestorNavigationVisible": true,
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+              "heapBytes": 55927604,
+              "breadcrumbCount": 1,
+              "longTaskAttributionSchema": 2,
+              "longTasksAvailable": true,
+              "longTasks": {
+                "count": 5,
+                "totalMs": 868,
+                "maxMs": 591,
+                "byPhase": {
+                  "navigation": {
+                    "count": 3,
+                    "totalMs": 768,
+                    "maxMs": 591
+                  },
+                  "trash": {
+                    "count": 2,
+                    "totalMs": 100,
+                    "maxMs": 50
+                  }
+                }
+              },
+              "legacyLongTasks": {
+                "count": 5,
+                "totalMs": 868,
+                "maxMs": 591,
+                "byPhase": {
+                  "navigation": {
+                    "count": 3,
+                    "totalMs": 768,
+                    "maxMs": 591
+                  },
+                  "trash": {
+                    "count": 2,
+                    "totalMs": 100,
+                    "maxMs": 50
+                  }
+                }
+              },
+              "legacyMaxInteractionLongTaskMs": 50,
+              "maxInteractionLongTaskMs": 50,
+              "longTaskEntries": [
+                {
+                  "duration": 591,
+                  "startTime": 720.1000000005588,
+                  "legacyPhase": "navigation",
+                  "phase": "navigation",
+                  "overlapsInteraction": false
+                },
+                {
+                  "duration": 94,
+                  "startTime": 1374.300000000745,
+                  "legacyPhase": "navigation",
+                  "phase": "navigation",
+                  "overlapsInteraction": false
+                },
+                {
+                  "duration": 83,
+                  "startTime": 1469.4000000003725,
+                  "legacyPhase": "navigation",
+                  "phase": "navigation",
+                  "overlapsInteraction": false
+                },
+                {
+                  "duration": 50,
+                  "startTime": 5666.300000000745,
+                  "legacyPhase": "trash",
+                  "phase": "trash",
+                  "overlapsInteraction": true
+                },
+                {
+                  "duration": 50,
+                  "startTime": 6085.700000000186,
+                  "legacyPhase": "trash",
+                  "phase": "trash",
+                  "overlapsInteraction": true
+                }
+              ]
+            }
+          },
+          "startup-chromium.json": {
+            "firstCardsMs": 1612.4000000003725,
+            "firstCardsWaitReturnMs": 1845.7021289999975,
+            "firstVisibleCard": {
+              "schema": 1,
+              "clock": "navigation",
+              "atMs": 1612.4000000003725,
+              "submittedAtMs": 246.40000000037253
+            },
+            "startupBreakdown": {
+              "documentMs": 88.3451270000005,
+              "formWaitMs": 91.3140790000034,
+              "formFillMs": 20.72712799999863,
+              "signInClickMs": 52.900589999997464,
+              "afterClickToCardsMs": 1639.7387880000024,
+              "includesLoginAutomation": true
+            }
+          }
+        }
+      },
+      "raw_artifacts": [
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909g/organization-chromium/baseline.json",
+          "sha256": "ee7cf6116fd87b8eebb00557194b1b7caf6ed5b035e9d333a3e750a5d32a27e0"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909g/organization-chromium/selection-toolbar-chromium.png",
+          "sha256": "a79e80c085902e1592ea57b0ff362a52c63a5eb9e341914a4876963343dccca1"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909g/organization-chromium/startup-chromium.json",
+          "sha256": "4fe17527768b11fe54bf27f071f33f2c8d8de7509c537d5e142c12fae060dd06"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909g/organization-chromium/stderr.txt",
+          "sha256": "caf8ffdb98d2687b8bf69b92299790bc2ac5d85c6d1a2bb0878d50570face5e9"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909g/organization-chromium/stdout.txt",
+          "sha256": "718fabf400bb4eb20a4ec266c835faf2c43a3c2edb86cc2146f5c465129e46e6"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909g/summary.json",
+          "sha256": "f3039d918c6778992453706ee52c2be6f1c25ad364b6a3f7cfa89b8b6f63da3a"
+        }
+      ]
+    },
+    {
+      "id": "h",
+      "disposition": "Final 76b526d application / 10c7481 harness: fresh unprofiled 600-Artifact/1040-folder stress after explicit bulk-completion wait; G remains unchanged and failed.",
+      "output_root": "/tmp/makersvault-g13c-picker-0909h",
+      "summary": {
+        "captured_at": "2026-09-10T00:07:55.623955+00:00",
+        "harness_revision": "10c7481e98dd6bfb05ce01013c897ff31279c5a6",
+        "application_revision": "76b526d2a740bd33d04c92b06073b30063b0b9f8",
+        "application_version": "development-gate13b",
+        "diagnostic_profile": false,
+        "organization_fixture": "folder-stress-1040",
+        "images": {
+          "api": "sha256:323acc46322c65dd6f64b11efdd3bb2361da9acc1a42265843d93e58d0c92a50",
+          "web": "sha256:c223700def24cb46555446238c86c28208ca9b722b9e65709c9bdabe0ef0a4cb"
+        },
+        "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+        "status": "failed",
+        "cases": [
+          {
+            "case": "organization-chromium",
+            "status": "failed",
+            "exit_code": 1,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "c9e8eeeadd10fb17132c5dbd66d13519a0c11dbb80c1f91e74f29c009bba3c1e"
+          }
+        ],
+        "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+      },
+      "reports": {
+        "organization-chromium": {
+          "baseline.json": {
+            "schema": 4,
+            "diagnosticProfile": false,
+            "capturedAt": "2026-09-10T00:09:02.386Z",
+            "corpus": {
+              "assets": 600,
+              "folders": 1040,
+              "roots": 80,
+              "branches": 320,
+              "leaves": 640,
+              "depth": 3,
+              "seedMs": 44861.655128
+            },
+            "api": {
+              "firstPage": {
+                "path": "/assets?limit=25&offset=0",
+                "itemCount": 25,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 22.623506999996607,
+                  "p95": 30.251704999995127,
+                  "max": 30.251704999995127
+                }
+              },
+              "exactSearch": {
+                "path": "/assets?limit=25&offset=0&q=Fixture%200595",
+                "itemCount": 1,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 7.46592000000237,
+                  "p95": 10.381757000002835,
+                  "max": 10.381757000002835
+                }
+              },
+              "folderPage": {
+                "path": "/assets?limit=25&offset=0&folder_id=e50e8c2f-d86b-464f-9cf0-8f6768ab6299",
+                "itemCount": 1,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 6.1660960000008345,
+                  "p95": 8.144345000000612,
+                  "max": 8.144345000000612
+                }
+              },
+              "folders": {
+                "path": "/folders",
+                "itemCount": 1040,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 23.886231000004045,
+                  "p95": 75.4830559999973,
+                  "max": 75.4830559999973
+                }
+              }
+            },
+            "browser": {
+              "engine": "chromium",
+              "performanceBudgetEnforced": true,
+              "firstCardsMs": 499.59999999962747,
+              "firstCardsWaitReturnMs": 507.1226469999965,
+              "firstVisibleCard": {
+                "schema": 1,
+                "clock": "navigation",
+                "atMs": 499.59999999962747,
+                "submittedAtMs": 188.59999999962747
+              },
+              "startupBreakdown": {
+                "documentMs": 64.35928199999762,
+                "formWaitMs": 61.873922999999195,
+                "formFillMs": 21.328988000001118,
+                "signInClickMs": 47.827939000002516,
+                "afterClickToCardsMs": 631.876354,
+                "includesLoginAutomation": true
+              },
+              "initialCardCount": 20,
+              "loadMoreMs": 171.18017999999574,
+              "loadedCardCount": 40,
+              "folderControls": {
+                "initial": {
+                  "cards": 20,
+                  "elements": 16399,
+                  "options": 88,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                },
+                "loaded": {
+                  "cards": 40,
+                  "elements": 17411,
+                  "options": 168,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                },
+                "folder": {
+                  "cards": 1,
+                  "elements": 300,
+                  "options": 12,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                }
+              },
+              "selectedAfterLoadMore": 2,
+              "exactSearchMs": 76.02534999999625,
+              "exactSearchResultCount": 1,
+              "selectedBeforeFilter": 2,
+              "selectedAfterFilter": 0,
+              "visibleBulkToolbarBeforeFilter": 1,
+              "preparedSummaryVisible": true,
+              "supportingDocumentVisible": true,
+              "preparedPayloadLinkCount": 0,
+              "mixedMoveSelectedAfter": 1,
+              "mixedMoveCompletionWaited": true,
+              "mixedMoveSuccessSelected": false,
+              "mixedMoveConflictSelected": true,
+              "mixedMoveFailureVisible": true,
+              "tagPreservationVerified": true,
+              "selectedDownloadSuggestedFilename": "makersvault.zip",
+              "bulkTrashRecoverableVisible": true,
+              "bulkTrashSelectionAfterPanelCancel": 2,
+              "bulkTrashSelectionAfterDialogCancel": 2,
+              "singleTrashRestoreVerified": true,
+              "bulkTrashRestoreVerified": true,
+              "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+              "singleDeleteSelectionAfterCancel": 1,
+              "folderSearchMs": 454.6591619999963,
+              "visibleFolderRows": 3,
+              "folderOpenMs": 104.0067909999998,
+              "folderCardCount": 1,
+              "childFolderEmptyStateVisible": true,
+              "breadcrumbAncestorNavigationVisible": true,
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+              "heapBytes": 64860520,
+              "breadcrumbCount": 1,
+              "longTaskAttributionSchema": 2,
+              "longTasksAvailable": true,
+              "longTasks": {
+                "count": 2,
+                "totalMs": 141,
+                "maxMs": 90,
+                "byPhase": {
+                  "navigation": {
+                    "count": 1,
+                    "totalMs": 90,
+                    "maxMs": 90
+                  },
+                  "trash": {
+                    "count": 1,
+                    "totalMs": 51,
+                    "maxMs": 51
+                  }
+                }
+              },
+              "legacyLongTasks": {
+                "count": 2,
+                "totalMs": 141,
+                "maxMs": 90,
+                "byPhase": {
+                  "navigation": {
+                    "count": 1,
+                    "totalMs": 90,
+                    "maxMs": 90
+                  },
+                  "trash": {
+                    "count": 1,
+                    "totalMs": 51,
+                    "maxMs": 51
+                  }
+                }
+              },
+              "legacyMaxInteractionLongTaskMs": 51,
+              "maxInteractionLongTaskMs": 51,
+              "longTaskEntries": [
+                {
+                  "duration": 90,
+                  "startTime": 563.7999999998137,
+                  "legacyPhase": "navigation",
+                  "phase": "navigation",
+                  "overlapsInteraction": false
+                },
+                {
+                  "duration": 51,
+                  "startTime": 4040.5,
+                  "legacyPhase": "trash",
+                  "phase": "trash",
+                  "overlapsInteraction": true
+                }
+              ]
+            }
+          },
+          "startup-chromium.json": {
+            "firstCardsMs": 499.59999999962747,
+            "firstCardsWaitReturnMs": 507.1226469999965,
+            "firstVisibleCard": {
+              "schema": 1,
+              "clock": "navigation",
+              "atMs": 499.59999999962747,
+              "submittedAtMs": 188.59999999962747
+            },
+            "startupBreakdown": {
+              "documentMs": 64.35928199999762,
+              "formWaitMs": 61.873922999999195,
+              "formFillMs": 21.328988000001118,
+              "signInClickMs": 47.827939000002516,
+              "afterClickToCardsMs": 631.876354,
+              "includesLoginAutomation": true
+            }
+          }
+        }
+      },
+      "raw_artifacts": [
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909h/organization-chromium/baseline.json",
+          "sha256": "86ed2635c006dd1195d0896bdfa3e76b733e071efe8e69e199b2eb3d924c698f"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909h/organization-chromium/selection-toolbar-chromium.png",
+          "sha256": "8373664be74f6990ccb7ce487aa0dd241d381fb98fa4b6ec5216e53977790971"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909h/organization-chromium/startup-chromium.json",
+          "sha256": "fa2eb4f49ed07a1a804c61cf2c89d4b00372afafe1b6b2aa353a91a1ca05e5b8"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909h/organization-chromium/stderr.txt",
+          "sha256": "d09ccdec733b2bd3da1283161718e6afa08610943ccf70d0d5b6a8ba2ea32683"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909h/organization-chromium/stdout.txt",
+          "sha256": "ec4416009db50c1c56daa426c56bfd78b33fa282c95602c4a6f6d7d2ea975d6f"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909h/summary.json",
+          "sha256": "51216b02179b42871afcf9dfaebf8738b942c3eb0f0a2c46aca026ac64918844"
+        }
+      ]
+    },
+    {
+      "id": "i",
+      "disposition": "Final 76b526d application / 10c7481 harness: fresh unprofiled 600-Artifact/104-folder baseline after the bulk-completion wait; not a replacement for D-F.",
+      "output_root": "/tmp/makersvault-g13c-picker-0909i",
+      "summary": {
+        "captured_at": "2026-09-10T00:09:21.693301+00:00",
+        "harness_revision": "10c7481e98dd6bfb05ce01013c897ff31279c5a6",
+        "application_revision": "76b526d2a740bd33d04c92b06073b30063b0b9f8",
+        "application_version": "development-gate13b",
+        "diagnostic_profile": false,
+        "organization_fixture": "baseline-104",
+        "images": {
+          "api": "sha256:323acc46322c65dd6f64b11efdd3bb2361da9acc1a42265843d93e58d0c92a50",
+          "web": "sha256:c223700def24cb46555446238c86c28208ca9b722b9e65709c9bdabe0ef0a4cb"
+        },
+        "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+        "status": "passed",
+        "cases": [
+          {
+            "case": "organization-chromium",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "f16deeaecddfdeca2ebfaa2981d99e0d0029e10456bf75a69ab684d18d922c3a"
+          }
+        ],
+        "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+      },
+      "reports": {
+        "organization-chromium": {
+          "baseline.json": {
+            "schema": 4,
+            "diagnosticProfile": false,
+            "capturedAt": "2026-09-10T00:10:04.522Z",
+            "corpus": {
+              "assets": 600,
+              "folders": 104,
+              "roots": 8,
+              "branches": 32,
+              "leaves": 64,
+              "depth": 3,
+              "seedMs": 23744.905821
+            },
+            "api": {
+              "firstPage": {
+                "path": "/assets?limit=25&offset=0",
+                "itemCount": 25,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 17.50064100000236,
+                  "p95": 22.72165799999857,
+                  "max": 22.72165799999857
+                }
+              },
+              "exactSearch": {
+                "path": "/assets?limit=25&offset=0&q=Fixture%200595",
+                "itemCount": 1,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 13.019742000000406,
+                  "p95": 14.089020000003075,
+                  "max": 14.089020000003075
+                }
+              },
+              "folderPage": {
+                "path": "/assets?limit=25&offset=0&folder_id=43810937-697b-42a7-a547-11745c0c9370",
+                "itemCount": 9,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 9.48454099999799,
+                  "p95": 21.51488999999856,
+                  "max": 21.51488999999856
+                }
+              },
+              "folders": {
+                "path": "/folders",
+                "itemCount": 104,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 7.837761999999202,
+                  "p95": 9.276894999999058,
+                  "max": 9.276894999999058
+                }
+              }
+            },
+            "browser": {
+              "engine": "chromium",
+              "performanceBudgetEnforced": true,
+              "firstCardsMs": 585.6000000005588,
+              "firstCardsWaitReturnMs": 1029.0974979999992,
+              "firstVisibleCard": {
+                "schema": 1,
+                "clock": "navigation",
+                "atMs": 585.6000000005588,
+                "submittedAtMs": 187.90000000037253
+              },
+              "startupBreakdown": {
+                "documentMs": 62.38022400000045,
+                "formWaitMs": 45.674629999997705,
+                "formFillMs": 41.424558999999135,
+                "signInClickMs": 49.96516700000211,
+                "afterClickToCardsMs": 873.9955269999991,
+                "includesLoginAutomation": true
+              },
+              "initialCardCount": 20,
+              "loadMoreMs": 108.78680099999838,
+              "loadedCardCount": 40,
+              "folderControls": {
+                "initial": {
+                  "cards": 20,
+                  "elements": 2647,
+                  "options": 88,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                },
+                "loaded": {
+                  "cards": 40,
+                  "elements": 3659,
+                  "options": 168,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                },
+                "folder": {
+                  "cards": 9,
+                  "elements": 694,
+                  "options": 44,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "openDialogs": 0
+                }
+              },
+              "selectedAfterLoadMore": 2,
+              "exactSearchMs": 80.41577400000097,
+              "exactSearchResultCount": 1,
+              "selectedBeforeFilter": 2,
+              "selectedAfterFilter": 0,
+              "visibleBulkToolbarBeforeFilter": 1,
+              "preparedSummaryVisible": true,
+              "supportingDocumentVisible": true,
+              "preparedPayloadLinkCount": 0,
+              "mixedMoveSelectedAfter": 1,
+              "mixedMoveCompletionWaited": true,
+              "mixedMoveSuccessSelected": false,
+              "mixedMoveConflictSelected": true,
+              "mixedMoveFailureVisible": true,
+              "tagPreservationVerified": true,
+              "selectedDownloadSuggestedFilename": "makersvault.zip",
+              "bulkTrashRecoverableVisible": true,
+              "bulkTrashSelectionAfterPanelCancel": 2,
+              "bulkTrashSelectionAfterDialogCancel": 2,
+              "singleTrashRestoreVerified": true,
+              "bulkTrashRestoreVerified": true,
+              "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+              "singleDeleteSelectionAfterCancel": 1,
+              "folderSearchMs": 23.4780439999995,
+              "visibleFolderRows": 3,
+              "folderOpenMs": 90.03172300000006,
+              "folderCardCount": 9,
+              "childFolderEmptyStateVisible": true,
+              "breadcrumbAncestorNavigationVisible": true,
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+              "heapBytes": 16604970,
+              "breadcrumbCount": 1,
+              "longTaskAttributionSchema": 2,
+              "longTasksAvailable": true,
+              "longTasks": {
+                "count": 0,
+                "totalMs": 0,
+                "maxMs": 0,
+                "byPhase": {}
+              },
+              "legacyLongTasks": {
+                "count": 0,
+                "totalMs": 0,
+                "maxMs": 0,
+                "byPhase": {}
+              },
+              "legacyMaxInteractionLongTaskMs": 0,
+              "maxInteractionLongTaskMs": 0,
+              "longTaskEntries": []
+            }
+          },
+          "startup-chromium.json": {
+            "firstCardsMs": 585.6000000005588,
+            "firstCardsWaitReturnMs": 1029.0974979999992,
+            "firstVisibleCard": {
+              "schema": 1,
+              "clock": "navigation",
+              "atMs": 585.6000000005588,
+              "submittedAtMs": 187.90000000037253
+            },
+            "startupBreakdown": {
+              "documentMs": 62.38022400000045,
+              "formWaitMs": 45.674629999997705,
+              "formFillMs": 41.424558999999135,
+              "signInClickMs": 49.96516700000211,
+              "afterClickToCardsMs": 873.9955269999991,
+              "includesLoginAutomation": true
+            }
+          }
+        }
+      },
+      "raw_artifacts": [
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909i/organization-chromium/baseline.json",
+          "sha256": "ca6390acff803e40afe758338c2b5141cd2a8354828a3e425dbd3f952b9c6a93"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909i/organization-chromium/selection-toolbar-chromium.png",
+          "sha256": "3c22e1d6045e5512fba15bdb89bfc14a511340e334cff23901ed2a2967f1f66f"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909i/organization-chromium/startup-chromium.json",
+          "sha256": "4d49cd9a73502fa59d207806d11edaf2a9fac5778b4b14a21c7f4cf713d6487f"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909i/organization-chromium/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909i/organization-chromium/stdout.txt",
+          "sha256": "77c680c105a6dff78932eca31572aa26cd6a11596300fe04355a0ff3c9a99178"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-picker-0909i/summary.json",
+          "sha256": "1699cc8954d5f2c312b7211d4bc667dbe3312c78fbd7290e97197f7a5dbb0d40"
+        }
+      ]
+    }
+  ]
+}

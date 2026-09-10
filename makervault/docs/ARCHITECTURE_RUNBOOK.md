@@ -2,13 +2,14 @@
 
 **Status:** Governing working document
 
-**Baseline date:** 2026-09-08
+**Baseline date:** 2026-09-09
 
-**Committed baseline:** `main` browser corrections/full verification at `1255933` (schema 17; Gate 13B accepted at `2f61b37`, 13C performance qualification open and not accepted)
+**Committed baseline:** `main` approved folder-picker implementation at `76b526d` (schema 17; Gate 13B accepted at `2f61b37`, 13C performance qualification open and not accepted)
 
-**Latest diagnostic checkpoint:** profiling-only harness at `8e11610`, unchanged
-application images; [findings and proposed next slice](evidence/gate-13/CHROMIUM_PROFILE_RESULTS.md)
-await owner approval before product changes.
+**Latest verification checkpoint:** measurement harness `10c7481` (following `53142f9`) on exact `76b526d`
+images; [implementation, full-gate source note and all browser attempts](evidence/gate-13/FOLDER_PICKER_RESULTS.md).
+Three baseline Chromium organization runs pass; larger-folder and detail-preview
+performance findings remain open. Nothing is pushed or release-qualified.
 
 **Immutable v5.1 source baseline:** `f6ff55b33fd64c7a5037e8eb642bed048c3e0e4f`
 
@@ -266,7 +267,8 @@ row's future-tense wording.
 | T-058 | `VERIFIED` | Owner-approved targeted dependency/runtime maintenance and complete verification pass at clean `84b020d`: 313 API / 37 web tests, current production-HTTPS lifecycle and exact audited-image smoke. Fresh language locks report no advisories; images report 181 API / 3 web package matches. | `docs/evidence/gate-13/REMEDIATION_RESULTS.md`, new audit/match/vendor/verification records | T-057 remains historical entry evidence. Seven interpreter matches have explicit vendor exclusions; other findings are not waived. The subsequent approved archive guard is T-059. Browser/platform/release qualification and 13C acceptance remain open. |
 | T-059 | `VERIFIED` | Owner approved Stored/Deflate-only member parsing after `78f6aa3`. The bounded guard preserves conforming 3MF/ZIP64, original prepared handoff and library-size policy. Full gate at clean `ddf8cf4` passes 351 API / 45 web tests and the HTTPS recovery lifecycle. Exact-image rescan retains 181 API / 3 web matches; reviewed unsupported-member read paths are mitigated, not a patched interpreter inventory. | `docs/evidence/gate-13/ARCHIVE_GUARD_RESULTS.md`, compression regressions, new verification/audit records | Current browser evidence is separate: Chromium first cards miss <1000 ms despite completed functional workflows. No budget or security-policy relaxation, residual-risk waiver, 13C acceptance or publication follows from the full-gate pass. |
 | T-060 | `VERIFIED` | Owner-approved browser corrections at clean `1255933` pass the complete gate: 351 API / 51 web / 19 Python harness / 10 Node tests and joined HTTPS lifecycle. Seven request-order browser cases pass and the old-image control fails at 20 instead of two cards. Firefox trust and three-engine organization functional assertions pass. Browser-side first-card timing retains old wait duration separately. | `docs/evidence/gate-13/BROWSER_FIX_RESULTS.md`, new immutable image/verification/browser records | No blanket performance pass: Chromium A records 584.4 ms first cards and a 56 ms load-more long task; repeat B records 1433.2 ms first cards, 713 ms navigation and 55 ms folder-navigation tasks. Profile before an optimization proposal; thresholds, release pins, residual risks and 13C acceptance remain unchanged. |
-| T-061 | `VERIFIED` | Owner-approved diagnostic profiling on unchanged `1255933` images completes three traced and two unprofiled 600-Artifact/104-folder runs. Run D confirms 4,200 closed folder options for 40 cards. Traces separate real DOM-building work, expensive driver queries and large wall/thread-CPU gaps; unprofiled controls pass at 495.2/528.0 ms without erasing historical failures. Profiling harness `8e11610` passes 19 Python / 14 Node tests and static release checks. | `docs/evidence/gate-13/CHROMIUM_PROFILE_RESULTS.md`, all five reduced runs and private-artifact hashes | Shared on-demand folder picker, scoped benchmark locators and timestamp phase attribution are proposals awaiting approval, not implemented optimizations. No single proven cause for all stalls, budget change, security waiver or performance/13C acceptance. |
+| T-061 | `VERIFIED` | Owner-approved diagnostic profiling on unchanged `1255933` images completes three traced and two unprofiled 600-Artifact/104-folder runs. Run D confirms 4,200 closed folder options for 40 cards. Traces separate real DOM-building work, expensive driver queries and large wall/thread-CPU gaps; unprofiled controls pass at 495.2/528.0 ms without erasing historical failures. Profiling harness `8e11610` passes 19 Python / 14 Node tests and static release checks. | `docs/evidence/gate-13/CHROMIUM_PROFILE_RESULTS.md`, all five reduced runs and private-artifact hashes | The subsequent owner-approved picker and benchmark slice is T-062. These historical profiles did not establish a single cause for all stalls or accept performance/security/13C. |
+| T-062 | `VERIFIED` | Owner-approved shared on-demand folder picker at `76b526d` removes closed-card destination duplication (4,200→0 at 40 cards/104 folders), retains paths/confirmation/permissions/bytes and passes all ten picker cases in three engines plus seven Chromium ordering cases. Full-gate inputs match `76b526d`: 351 API / 56 web tests and joined HTTPS lifecycle; later harness `53142f9` passes 19 Python / 21 Node tests. Three unprofiled 600/104 Chromium repeats pass unchanged enforced budgets. | `docs/evidence/gate-13/FOLDER_PICKER_RESULTS.md`, explicit full-run source note, exact images, all attempts/hashes and fresh image audit | 600/1,040 stress fails first cards (1,612.4 ms) and folder search (494.9 ms); separate detail preview records 1,074 ms long task. Both remain unqualified; no historical failure erased. Residual 181 API / 3 web matches remain unwaived. Profile remaining paths before another optimization proposal; platform/release/13C acceptance remain owner checkpoints. |
 
 ### 5.4 Current storage invariants
 
@@ -1079,18 +1081,22 @@ and release-readiness evidence, and 13D owner acceptance/re-baselining. The
 [13B results](evidence/gate-13/SUBGATE_13B_RESULTS.md),
 [traceability ledger](evidence/gate-13/TRACEABILITY.md), and
 [security revalidation](security/GATE_13_REVALIDATION.md) retain their named evidence.
-The expanded full verification passed on `2c68d70` and passes again after approved
-maintenance/archive/browser corrections at clean `1255933`: 351 API / 51 web tests
-and the joined production-HTTPS lifecycle supplement the accepted 13A inventory. The
+The expanded full verification passed on `2c68d70` and passes again with the
+approved picker implementation's `76b526d` inputs: 351 API / 56 web tests and the
+joined production-HTTPS lifecycle. The [record](evidence/gate-13/FOLDER_PICKER_RESULTS.md)
+explicitly notes the mid-API-phase TypeScript-only correction, rather than claiming
+the full invocation started at that revision. These results supplement the accepted 13A inventory. The
 [archive guard](evidence/gate-13/ARCHIVE_GUARD_RESULTS.md) is implemented, not
 awaiting approval. Prior fresh language scans report no advisories; the exact-image
 rescan retains 181 API / 3 web matches, without risk waivers. The
 [browser corrections](evidence/gate-13/BROWSER_FIX_RESULTS.md) verify request ordering
 and Firefox trust; earlier Chromium runs miss unchanged startup/interaction
-budgets. Subsequent [profiling](evidence/gate-13/CHROMIUM_PROFILE_RESULTS.md) confirms
-repeated per-card folder options and driver-query costs; two unprofiled controls
-pass but do not erase those failures or explain all large elapsed pauses. The
-bounded optimization proposal needs owner approval. The browser/platform and
+budgets. Subsequent [profiling](evidence/gate-13/CHROMIUM_PROFILE_RESULTS.md) identified
+repeated folder options and driver costs. The owner-approved
+[picker and measurement slice](evidence/gate-13/FOLDER_PICKER_RESULTS.md) is now
+implemented: three fresh 600/104 Chromium runs pass unchanged enforced budgets and
+three-engine functional tests pass. The separate 1,040-folder stress and detail-preview
+timing failures remain open; no historical failure or risk was waived. The browser/platform and
 selected-release matrix remains 13C;
 13B does not reuse old timing as current evidence. Gate 12 remains desktop follow-up
 with outstanding evidence, not delivered work. No new release candidate or
@@ -1310,14 +1316,18 @@ invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
 
-Gate 13B was accepted at `2f61b37` on 2026-09-06. The approved 13C archive guard
-and browser corrections pass the complete gate at clean `1255933`. Request-order
-regressions and Firefox trusted-HTTPS workflows pass. The authorized profiling
-slice is complete on those same images; see [findings and proposal](evidence/gate-13/CHROMIUM_PROFILE_RESULTS.md).
-Owner review is next: an on-demand shared folder picker, separately scoped
-benchmark searches/phase attribution, then fresh unchanged-budget verification.
-No product optimization has been implemented or approved by the profiling request.
-Do not relax timing or authentication controls to obtain a pass. Complete remaining
+Gate 13B was accepted at `2f61b37` on 2026-09-06. The approved 13C folder-picker
+slice is implemented at `76b526d`, with exact-image lifecycle/browser/audit evidence
+and measurement harness `10c7481`; see [results](evidence/gate-13/FOLDER_PICKER_RESULTS.md).
+Three 600/104 Chromium runs pass unchanged enforced budgets; three-engine picker
+and organization functional checks pass. Retain the 1,040-folder startup/search
+failures, repeat stress's 51 ms interaction task and separate 1,074 ms detail-preview
+long task. The stress repeat verifies correct final bulk selection after the harness
+waits for completion; the original premature selected-count failure stays recorded. Proposed next bounded
+slice: profile those remaining paths on the same images and propose changes before
+implementation; the sidebar's eager row/menu DOM is a source-review candidate, not
+an attributed cause for every pause. Do not relax timing or authentication controls
+to obtain a pass. Complete remaining
 advisory dispositions, physical/native-platform evidence and operator/release
 readiness. Residual-risk, supported-platform and release decisions remain explicit
 owner checkpoints; 13C is not ready for closeout.

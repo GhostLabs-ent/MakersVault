@@ -1,12 +1,12 @@
 # Gate 13 security finding revalidation
 
-**Date:** 2026-09-08
+**Date:** 2026-09-09
 
-**Status:** 13A–13B accepted; approved 13C maintenance/archive/browser corrections verified;
+**Status:** 13A–13B accepted; approved 13C maintenance/archive/browser/picker corrections verified;
 browser qualification and advisory dispositions open, not release clearance
 
 **Baseline:** audit entry `236c0fd` / application `1a209aa`; current verification
-`1255933` after approved browser corrections, schema 17 unchanged
+`76b526d` approved picker application, schema 17 unchanged; harness-only follow-ups separately named
 
 This is the current-development disposition of all sixteen findings from the
 [original security review](../MakersVault_v5.1_Security_Analysis.md). The
@@ -41,6 +41,15 @@ still records Chromium startup/interaction budget failures. The
 [exact-image rescan](../evidence/gate-13/browser-fix-audit.json)
 retains 181 API / 3 web matches, with no waiver or release clearance.
 
+The subsequently approved [folder-picker slice](../evidence/gate-13/FOLDER_PICKER_RESULTS.md)
+adds explicit-confirmation, source/view ownership and three-engine Viewer/permission/
+stale-401 checks; full-gate inputs match `76b526d` (351 API / 56 web tests) under
+the recorded TypeScript-only mid-run source note. Production authentication and
+dependency locks are unchanged. The [September 9 exact-image scan](../evidence/gate-13/folder-picker-audit.json)
+again retains 181 API / 3 web matches with full reduced-record equality checked;
+no new language-lock scan or waiver is implied. Baseline organization repeats pass,
+while larger-folder and detail-preview performance evidence remains unqualified.
+
 ## Finding-by-finding disposition
 
 Test filenames refer to `api/tests/` unless otherwise stated. Each resolution is
@@ -70,7 +79,7 @@ bounded to the original finding, not a claim that a subsystem has no other risks
 | Boundary | Current enforcement and evidence | Limit |
 |---|---|---|
 | Browser → API | Exhaustive permission inventory; only health, password login, passkey-login completion and scoped redemption are non-session routes; exact-Origin/CSRF on cookie mutations; current-strength privileged authentication | One shared installation, not object privacy; production HTTPS remains mandatory |
-| Hostile file/remote server → vault | Bounded streaming, DNS/redirect transport policy, archive/image budgets, Stored/Deflate member preflight, regular no-follow mounted descriptors and persisted preview failures | CVE-2026-15310 application read paths mitigated at `ddf8cf4`, not a runtime-wide patch. Current browser load has a budget failure; provider behavior remains separate evidence |
+| Hostile file/remote server → vault | Bounded streaming, DNS/redirect transport policy, archive/image budgets, Stored/Deflate member preflight, regular no-follow mounted descriptors and persisted preview failures | CVE-2026-15310 application read paths mitigated at `ddf8cf4`, not a runtime-wide patch. Larger-folder/detail-preview browser performance remains unqualified; provider behavior remains separate evidence |
 | Vault → workstation | Exact supplied file/role/adapter grants, independently confirmed origin, local constrained executable configuration | Does not establish file or machine safety; OS/app launch qualification needs real platforms |
 | Live state → raw recovery | Matched archive auditing; schema-17 public credentials retained; copied sessions and pending ceremonies revoked; recovery marker audited before startup exposure. 13B proves the joined production-Compose HTTPS sequence with the same signing secret | G13-02 verified on named development images; raw archives contain secrets and require operator protection. Fixture public credentials are not physical-device proof |
 | Vault → portable archive | Independent bounded verification, content-only export, clean schema-12 reconstruction, no credentials/session/audit/provider activation; current scale/adversarial tests. 13B also proves schema-17 startup with only a new Administrator and Optional policy | Not raw rollback, merge or live restore; use private renameable staging before empty-volume population. No-copy bytes need separate preservation/remount |

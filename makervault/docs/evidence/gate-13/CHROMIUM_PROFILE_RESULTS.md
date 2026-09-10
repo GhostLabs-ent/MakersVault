@@ -1,6 +1,9 @@
 # Gate 13C — Chromium profiling and optimization proposal
 
-**Status:** diagnostic slice complete; proposed application changes await owner approval.
+**Status at capture:** diagnostic slice complete; proposed application changes awaited owner approval.
+**Follow-up:** owner approved that bounded slice on 2026-09-09; the
+[implementation and new verification](FOLDER_PICKER_RESULTS.md) are recorded separately.
+The measurements and proposal below remain historical, not current-image evidence.
 Captured 2026-09-08 UTC / America/New_York. Gate 13C performance qualification is
 still **OPEN**. No application source, dependency lock, image, budget, security
 policy or frozen release pin changed in this slice. Nothing was pushed or published.

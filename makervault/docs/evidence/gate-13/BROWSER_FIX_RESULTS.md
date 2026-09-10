@@ -150,8 +150,12 @@ Do not raise budgets, discard failed samples or presume GPU/API/host blame.
 **Subsequent owner-authorized follow-up:** [profiling results and proposal](CHROMIUM_PROFILE_RESULTS.md)
 complete that diagnostic slice on these same images. Repeated folder controls and
 driver queries are concrete targets; two unprofiled controls pass without erasing
-the failures above. Application optimization now awaits owner review of the bounded
+the failures above. At that checkpoint, application optimization awaited owner review of the bounded
 proposal; the original 713 ms observation is not assigned a speculative root cause.
+
+The owner subsequently approved that slice; the [implemented picker and new
+verification](FOLDER_PICKER_RESULTS.md) are recorded separately without replacing
+any measurements above.
 
 G13-04 image residuals, physical passkeys/native Windows/macOS/mobile/local-app
 evidence, supported-platform decisions, release scope/revision and matched

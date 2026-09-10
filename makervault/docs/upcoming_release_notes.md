@@ -13,6 +13,20 @@ printer controller, or multi-user cloud service.
 
 ## Highlights
 
+### Searchable folder moves without per-card destination lists (Gate 13C)
+
+- Each card keeps its current folder path visible. **Move to folder…** opens one
+  searchable dialog with full paths, Unassigned and explicit confirmation.
+- Keyboard focus/cancel, conflict retry, permission checks and stale-request safety
+  pass in Chromium, Firefox and WebKit. The existing bulk workflow remains intact.
+- The 104-folder fixture drops from 4,200 closed-card destination options to zero
+  at 40 cards. Three fresh baseline Chromium organization runs pass unchanged
+  enforced budgets; this is not an isolated speedup estimate or an upload limit.
+- Full-gate inputs match `76b526d`: 351 API / 56 web tests and current HTTPS
+  lifecycle, with the source-timing note preserved. Larger-folder stress and a
+  separate 1,074 ms detail-preview long task remain unqualified; no general
+  performance or release clearance. See [all results](evidence/gate-13/FOLDER_PICKER_RESULTS.md).
+
 ### Library request ordering and browser verification (Gate 13C)
 
 - Fixed older asset/tag responses replacing newer search results, including after
@@ -27,9 +41,9 @@ printer controller, or multi-user cloud service.
   recovery lifecycle. Chromium startup/interaction budget misses remain open;
   no release/performance clearance is claimed. See
   [browser correction evidence](evidence/gate-13/BROWSER_FIX_RESULTS.md).
-- Follow-up [profiling](evidence/gate-13/CHROMIUM_PROFILE_RESULTS.md) identifies
-  repeated folder-option DOM and test-driver query costs. Proposed on-demand folder
-  controls await approval; no additional product speedup or gate acceptance is claimed.
+- Follow-up [profiling](evidence/gate-13/CHROMIUM_PROFILE_RESULTS.md) identified
+  repeated folder-option DOM and test-driver query costs. The approved picker
+  implementation above follows that proposal; historical failures remain intact.
 
 ### Local dependency/runtime maintenance (Gate 13C)
 
