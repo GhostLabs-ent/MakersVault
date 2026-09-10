@@ -1,0 +1,651 @@
+{
+  "captured_at": "2026-09-10T20:44:26.177578+00:00",
+  "images": {
+    "api": {
+      "id": "sha256:b1c67e9f8dad2b29e72a816cc472da9130d02faddf9cd9d35b2a0bd18d633de0",
+      "labels": {
+        "org.opencontainers.image.created": "unknown",
+        "org.opencontainers.image.revision": "c42614e9cc99b45e32ffd203a4f7e70cb4ff0b30",
+        "org.opencontainers.image.source": "https://github.com/VincentCinque/MakersVault",
+        "org.opencontainers.image.title": "MakersVault API",
+        "org.opencontainers.image.version": "development-gate13b"
+      }
+    },
+    "web": {
+      "id": "sha256:7aa39929cd656b8fddaac64d62bc67174f172980e2ab0a1ccad0f298786da5f2",
+      "labels": {
+        "maintainer": "NGINX Docker Maintainers <docker-maint@nginx.com>",
+        "org.opencontainers.image.created": "unknown",
+        "org.opencontainers.image.description": "Unprivileged NGINX Dockerfiles",
+        "org.opencontainers.image.licenses": "Apache-2.0",
+        "org.opencontainers.image.revision": "c42614e9cc99b45e32ffd203a4f7e70cb4ff0b30",
+        "org.opencontainers.image.source": "https://github.com/VincentCinque/MakersVault",
+        "org.opencontainers.image.title": "MakersVault Web",
+        "org.opencontainers.image.url": "https://github.com/nginx/docker-nginx-unprivileged",
+        "org.opencontainers.image.version": "development-gate13b"
+      }
+    }
+  },
+  "lock_sha256": {
+    "api/requirements-build.lock": "d72227a29dc62ea3f688c01aa224673844fad5a15651f5f16969d805122332ad",
+    "api/requirements-dev.lock": "c1d57225e64cbfb3706b8e42ccb6b70cce445b448b3d2ab0fc121022ab8bb5a9",
+    "api/requirements.lock": "21a943baca1c298e9da2967bdb25c86854ab8235d98f5944b1e94d655d4bbd7f",
+    "benchmarks/organization/package-lock.json": "90685f4ed1d4fe25eb1ab4b7a4b58c199d3419f1e2bd9daa1c63fdf2c4fa2da2",
+    "benchmarks/preview/package-lock.json": "2bc7841853ef1546e351a9f653d35bec022e6f63bf015150c14fb3861200c799",
+    "slicer-bridge/go.mod": "49d06f23e0ec7f8e48794df1b7fcce355463df06189a378a10482c55abafe253",
+    "web/package-lock.json": "337c909818318f308c16683c63a674c921b79777c5d67e210d813668dd1bddd7"
+  },
+  "phase": "all",
+  "scans": {
+    "go": {
+      "config": {
+        "db": "https://vuln.go.dev",
+        "db_last_modified": "2026-09-10T14:48:42Z",
+        "go_version": "go1.26.6",
+        "protocol_version": "v1.0.0",
+        "scan_level": "symbol",
+        "scan_mode": "source",
+        "scanner_name": "govulncheck",
+        "scanner_version": "v1.7.0"
+      },
+      "exit_code": 0,
+      "findings": []
+    },
+    "image-api": {
+      "database": {
+        "providers": {
+          "alma": {
+            "captured": "2026-09-10T00:32:11Z",
+            "input": "xxh64:1807e105692cb88f"
+          },
+          "alpine": {
+            "captured": "2026-09-10T00:31:51Z",
+            "input": "xxh64:09d59dafdef78079"
+          },
+          "amazon": {
+            "captured": "2026-09-10T00:31:41Z",
+            "input": "xxh64:4117fe07be3c267a"
+          },
+          "arch": {
+            "captured": "2026-09-10T00:31:36Z",
+            "input": "xxh64:c00aebe2828c161c"
+          },
+          "bitnami": {
+            "captured": "2026-09-10T00:31:32Z",
+            "input": "xxh64:951c2d306a8b1b69"
+          },
+          "chainguard": {
+            "captured": "2026-09-10T00:31:37Z",
+            "input": "xxh64:27e03c57f3d9dcbf"
+          },
+          "chainguard-libraries": {
+            "captured": "2026-09-10T00:31:20Z",
+            "input": "xxh64:ef94aab8ce5da4c8"
+          },
+          "debian": {
+            "captured": "2026-09-10T00:31:20Z",
+            "input": "xxh64:204642a2b850cb27"
+          },
+          "echo": {
+            "captured": "2026-09-10T00:31:08Z",
+            "input": "xxh64:ff78d875989e7db4"
+          },
+          "eol": {
+            "captured": "2026-09-10T00:31:10Z",
+            "input": "xxh64:dfbfc9c07c312bda"
+          },
+          "epss": {
+            "captured": "2026-09-10T00:31:06Z",
+            "input": "xxh64:40d2df386998cfd9"
+          },
+          "fedora": {
+            "captured": "2026-09-10T00:31:16Z",
+            "input": "xxh64:25ae652358dbadfd"
+          },
+          "github": {
+            "captured": "2026-09-10T00:31:26Z",
+            "input": "xxh64:457b969106884a39"
+          },
+          "govulndb": {
+            "captured": "2026-09-10T00:31:03Z",
+            "input": "xxh64:cd35c449ef8579fd"
+          },
+          "hummingbird": {
+            "captured": "2026-09-10T00:33:21Z",
+            "input": "xxh64:7a731a5257f54a62"
+          },
+          "kev": {
+            "captured": "2026-09-10T00:31:41Z",
+            "input": "xxh64:cf42b0fc13505f0e"
+          },
+          "mariner": {
+            "captured": "2026-09-10T00:31:09Z",
+            "input": "xxh64:13e7b5eb73888863"
+          },
+          "minimos": {
+            "captured": "2026-09-10T00:31:10Z",
+            "input": "xxh64:2bdfa73053c0a427"
+          },
+          "nvd": {
+            "captured": "2026-09-10T00:32:03Z",
+            "input": "xxh64:940aa3847da19e49"
+          },
+          "oracle": {
+            "captured": "2026-09-10T00:31:11Z",
+            "input": "xxh64:b2d09e8869a1f381"
+          },
+          "photon": {
+            "captured": "2026-09-10T00:31:26Z",
+            "input": "xxh64:d040c89077557ee2"
+          },
+          "rhel": {
+            "captured": "2026-09-10T00:32:18Z",
+            "input": "xxh64:064c5e2b32fd5d02"
+          },
+          "secureos": {
+            "captured": "2026-09-10T00:31:01Z",
+            "input": "xxh64:d15a676bfc167e23"
+          },
+          "sles": {
+            "captured": "2026-09-10T00:31:42Z",
+            "input": "xxh64:8cd4754292a46849"
+          },
+          "ubuntu": {
+            "captured": "2026-09-10T00:33:18Z",
+            "input": "xxh64:a95743d0b61aae64"
+          },
+          "wolfi": {
+            "captured": "2026-09-10T00:31:13Z",
+            "input": "xxh64:2c86b25c0167c4ae"
+          }
+        },
+        "status": {
+          "built": "2026-09-10T06:30:24Z",
+          "from": "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.9_2026-09-10T00:31:01Z_1789021824.tar.zst?checksum=sha256%3Ace7ae6d4f7fb81029fc3bd1891b6b441f96bac4e278519743e4768eebd805e69",
+          "path": "/cache/6/vulnerability.db",
+          "schemaVersion": "v6.1.9",
+          "valid": true
+        }
+      },
+      "exit_code": 0,
+      "matches": 181,
+      "scanner": "0.118.0",
+      "severity": {
+        "Critical": 7,
+        "High": 61,
+        "Low": 9,
+        "Medium": 51,
+        "Negligible": 45,
+        "Unknown": 8
+      }
+    },
+    "image-web": {
+      "database": {
+        "providers": {
+          "alma": {
+            "captured": "2026-09-10T00:32:11Z",
+            "input": "xxh64:1807e105692cb88f"
+          },
+          "alpine": {
+            "captured": "2026-09-10T00:31:51Z",
+            "input": "xxh64:09d59dafdef78079"
+          },
+          "amazon": {
+            "captured": "2026-09-10T00:31:41Z",
+            "input": "xxh64:4117fe07be3c267a"
+          },
+          "arch": {
+            "captured": "2026-09-10T00:31:36Z",
+            "input": "xxh64:c00aebe2828c161c"
+          },
+          "bitnami": {
+            "captured": "2026-09-10T00:31:32Z",
+            "input": "xxh64:951c2d306a8b1b69"
+          },
+          "chainguard": {
+            "captured": "2026-09-10T00:31:37Z",
+            "input": "xxh64:27e03c57f3d9dcbf"
+          },
+          "chainguard-libraries": {
+            "captured": "2026-09-10T00:31:20Z",
+            "input": "xxh64:ef94aab8ce5da4c8"
+          },
+          "debian": {
+            "captured": "2026-09-10T00:31:20Z",
+            "input": "xxh64:204642a2b850cb27"
+          },
+          "echo": {
+            "captured": "2026-09-10T00:31:08Z",
+            "input": "xxh64:ff78d875989e7db4"
+          },
+          "eol": {
+            "captured": "2026-09-10T00:31:10Z",
+            "input": "xxh64:dfbfc9c07c312bda"
+          },
+          "epss": {
+            "captured": "2026-09-10T00:31:06Z",
+            "input": "xxh64:40d2df386998cfd9"
+          },
+          "fedora": {
+            "captured": "2026-09-10T00:31:16Z",
+            "input": "xxh64:25ae652358dbadfd"
+          },
+          "github": {
+            "captured": "2026-09-10T00:31:26Z",
+            "input": "xxh64:457b969106884a39"
+          },
+          "govulndb": {
+            "captured": "2026-09-10T00:31:03Z",
+            "input": "xxh64:cd35c449ef8579fd"
+          },
+          "hummingbird": {
+            "captured": "2026-09-10T00:33:21Z",
+            "input": "xxh64:7a731a5257f54a62"
+          },
+          "kev": {
+            "captured": "2026-09-10T00:31:41Z",
+            "input": "xxh64:cf42b0fc13505f0e"
+          },
+          "mariner": {
+            "captured": "2026-09-10T00:31:09Z",
+            "input": "xxh64:13e7b5eb73888863"
+          },
+          "minimos": {
+            "captured": "2026-09-10T00:31:10Z",
+            "input": "xxh64:2bdfa73053c0a427"
+          },
+          "nvd": {
+            "captured": "2026-09-10T00:32:03Z",
+            "input": "xxh64:940aa3847da19e49"
+          },
+          "oracle": {
+            "captured": "2026-09-10T00:31:11Z",
+            "input": "xxh64:b2d09e8869a1f381"
+          },
+          "photon": {
+            "captured": "2026-09-10T00:31:26Z",
+            "input": "xxh64:d040c89077557ee2"
+          },
+          "rhel": {
+            "captured": "2026-09-10T00:32:18Z",
+            "input": "xxh64:064c5e2b32fd5d02"
+          },
+          "secureos": {
+            "captured": "2026-09-10T00:31:01Z",
+            "input": "xxh64:d15a676bfc167e23"
+          },
+          "sles": {
+            "captured": "2026-09-10T00:31:42Z",
+            "input": "xxh64:8cd4754292a46849"
+          },
+          "ubuntu": {
+            "captured": "2026-09-10T00:33:18Z",
+            "input": "xxh64:a95743d0b61aae64"
+          },
+          "wolfi": {
+            "captured": "2026-09-10T00:31:13Z",
+            "input": "xxh64:2c86b25c0167c4ae"
+          }
+        },
+        "status": {
+          "built": "2026-09-10T06:30:24Z",
+          "from": "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.9_2026-09-10T00:31:01Z_1789021824.tar.zst?checksum=sha256%3Ace7ae6d4f7fb81029fc3bd1891b6b441f96bac4e278519743e4768eebd805e69",
+          "path": "/cache/6/vulnerability.db",
+          "schemaVersion": "v6.1.9",
+          "valid": true
+        }
+      },
+      "exit_code": 0,
+      "matches": 3,
+      "scanner": "0.118.0",
+      "severity": {
+        "Medium": 3
+      }
+    },
+    "npm-organization": {
+      "exit_code": 0,
+      "vulnerabilities": {
+        "critical": 0,
+        "high": 0,
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "total": 0
+      }
+    },
+    "npm-preview": {
+      "exit_code": 0,
+      "vulnerabilities": {
+        "critical": 0,
+        "high": 0,
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "total": 0
+      }
+    },
+    "npm-production": {
+      "exit_code": 0,
+      "vulnerabilities": {
+        "critical": 0,
+        "high": 0,
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "total": 0
+      }
+    },
+    "npm-web": {
+      "exit_code": 1,
+      "vulnerabilities": {
+        "critical": 0,
+        "high": 0,
+        "info": 0,
+        "low": 0,
+        "moderate": 2,
+        "total": 2
+      }
+    },
+    "python-build": {
+      "advisories": 0,
+      "dependencies": 2,
+      "exit_code": 0,
+      "skipped": []
+    },
+    "python-development": {
+      "advisories": 6,
+      "dependencies": 43,
+      "exit_code": 1,
+      "skipped": []
+    },
+    "python-runtime": {
+      "advisories": 0,
+      "dependencies": 35,
+      "exit_code": 0,
+      "skipped": []
+    }
+  },
+  "source_revision": "fb645d7b93d6a52dc1b2fe39ee493801084c882c",
+  "status": "audit_completed_not_release_clearance",
+  "verification_sources_dirty": false,
+  "raw_artifacts": [
+    {
+      "file": "go.json",
+      "sha256": "a00439695f7fe02a273d67162a35c6177e1564c2e9b5653088e816e289874817",
+      "bytes": 391828
+    },
+    {
+      "file": "go.stderr.txt",
+      "sha256": "afb3f5db0689dadb83ee3a60de18b046c9ee759c37a9c991185aee2a2326f1f2",
+      "bytes": 241
+    },
+    {
+      "file": "image-api.json",
+      "sha256": "863e2e35d03c760ed870a18efba68ddee00c4ef8c56ea589e18eabfd63eb98f2",
+      "bytes": 810614
+    },
+    {
+      "file": "image-api.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "file": "image-web.json",
+      "sha256": "e4c81f1f0a85fba5e1a0aa66d7098e54db0e9acc22d8f715c84c6a516e19a2fd",
+      "bytes": 37185
+    },
+    {
+      "file": "image-web.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "file": "npm-organization.json",
+      "sha256": "06c18d6ae5bb95560b3aaf924119c2ecbd29a69e9f4f8a67dc2bb1d7bc726c5e",
+      "bytes": 358
+    },
+    {
+      "file": "npm-organization.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "file": "npm-preview.json",
+      "sha256": "06c18d6ae5bb95560b3aaf924119c2ecbd29a69e9f4f8a67dc2bb1d7bc726c5e",
+      "bytes": 358
+    },
+    {
+      "file": "npm-preview.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "file": "npm-production.json",
+      "sha256": "e5d99d6a363e7eb92ce26b871b5f59ab5e19d570372d9c7dcd528aa2b8701e76",
+      "bytes": 364
+    },
+    {
+      "file": "npm-production.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "file": "npm-web.json",
+      "sha256": "695e7b29a941cc0f8f975563b2e35d0804a78098f85dedcc04c93a5c5cfd021a",
+      "bytes": 2248
+    },
+    {
+      "file": "npm-web.stderr.txt",
+      "sha256": "7f21a247ab842043bb15e4b4934a68a65d7cde384041a122e9ad6819e9235ab5",
+      "bytes": 208
+    },
+    {
+      "file": "partial-summary.json",
+      "sha256": "8090cec9a8e9a231a3650e9c2e96e44efd2fb296fdb9d9367e9ee05c9b16653a",
+      "bytes": 11864
+    },
+    {
+      "file": "python-build.json",
+      "sha256": "bcb6dc8a7d129def604d7153bd177092ac34ec34081cb44f0fa190583308d9b0",
+      "bytes": 139
+    },
+    {
+      "file": "python-build.stderr.txt",
+      "sha256": "8b03ecfdad0a2bdb1becaf7675571958c8127c4ab90922107b1b07a23734d9db",
+      "bytes": 598
+    },
+    {
+      "file": "python-development.json",
+      "sha256": "c5d3cbccf5584b53644f8d1fdc2544e495810d7a9df0e1ab9c4f99eac85782be",
+      "bytes": 18660
+    },
+    {
+      "file": "python-development.stderr.txt",
+      "sha256": "5fdb5334a76fefb899c4764198db052948f3cfb6bac9b4878c79a25507b486a6",
+      "bytes": 611
+    },
+    {
+      "file": "python-runtime.json",
+      "sha256": "f50b4efc5f4490acd1397fad6780c56263e01d3eaae541818d27cde41a701641",
+      "bytes": 2021
+    },
+    {
+      "file": "python-runtime.stderr.txt",
+      "sha256": "8b03ecfdad0a2bdb1becaf7675571958c8127c4ab90922107b1b07a23734d9db",
+      "bytes": 598
+    },
+    {
+      "file": "summary.json",
+      "sha256": "d804178199f549d819e1015d2e8482b77c56d2db045e25d87bb93ecd4ba19bce",
+      "bytes": 11917
+    }
+  ],
+  "vendor_snapshot": {
+    "sha256": "48adc0f0aa7b108c89f76a1ee1290c40eaeaa39456d66d12e900cb3c41147359",
+    "captured_at": "2026-09-10T20:51:12.878Z",
+    "matched_unique_ids": 97,
+    "cna_success": 93,
+    "cna_errors": [
+      "CVE-2026-19499",
+      "CVE-2026-19542",
+      "CVE-2026-77117",
+      "CVE-2026-80489"
+    ],
+    "debian_success": 79
+  },
+  "reduced_match_comparison": {
+    "scope": "advisory, severity, source, namespace, package, version, type, locations, match_types, fix_state, fix_versions; not every raw scanner field",
+    "api_prior": "sidebar-menu-audit.json#reduced_match_comparison.api_current_records",
+    "api_equal": true,
+    "web_prior": "remediation-image-matches.json#web.matches",
+    "web_equal": true
+  },
+  "language_findings": {
+    "npm_web": {
+      "@vitest/mocker": {
+        "name": "@vitest/mocker",
+        "severity": "moderate",
+        "isDirect": false,
+        "via": [
+          {
+            "source": 1193684,
+            "name": "@vitest/mocker",
+            "dependency": "@vitest/mocker",
+            "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+            "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+            "severity": "moderate",
+            "cwe": [
+              "CWE-22"
+            ],
+            "cvss": {
+              "score": 5.9,
+              "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N"
+            },
+            "range": ">=2.1.0 <4.1.11"
+          }
+        ],
+        "effects": [
+          "vitest"
+        ],
+        "range": "2.1.0 - 4.1.10",
+        "nodes": [
+          "node_modules/@vitest/mocker"
+        ],
+        "fixAvailable": {
+          "name": "vitest",
+          "version": "4.1.11",
+          "isSemVerMajor": false
+        }
+      },
+      "vitest": {
+        "name": "vitest",
+        "severity": "moderate",
+        "isDirect": true,
+        "via": [
+          "@vitest/mocker",
+          {
+            "source": 1193683,
+            "name": "vitest",
+            "dependency": "vitest",
+            "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+            "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+            "severity": "moderate",
+            "cwe": [
+              "CWE-22"
+            ],
+            "cvss": {
+              "score": 5.9,
+              "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N"
+            },
+            "range": ">=2.1.0 <4.1.11"
+          }
+        ],
+        "effects": [],
+        "range": "2.1.0-beta.1 - 4.1.10",
+        "nodes": [
+          "node_modules/vitest"
+        ],
+        "fixAvailable": {
+          "name": "vitest",
+          "version": "4.1.11",
+          "isSemVerMajor": false
+        }
+      }
+    },
+    "python_development": [
+      {
+        "name": "httpcore2",
+        "version": "2.9.0",
+        "vulnerabilities": [
+          {
+            "id": "PYSEC-2026-3844",
+            "fix_versions": [
+              "2.10.0"
+            ],
+            "aliases": [
+              "CVE-2026-84381",
+              "GHSA-7mj9-2mp8-4m2p"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "httpx2",
+        "version": "2.9.0",
+        "vulnerabilities": [
+          {
+            "id": "PYSEC-2026-3849",
+            "fix_versions": [
+              "2.11.0"
+            ],
+            "aliases": [
+              "CVE-2026-84380",
+              "GHSA-pf96-p4fj-6566"
+            ]
+          },
+          {
+            "id": "PYSEC-2026-3847",
+            "fix_versions": [
+              "2.10.0"
+            ],
+            "aliases": [
+              "GHSA-f2fp-rgf2-35cp",
+              "CVE-2026-84378"
+            ]
+          },
+          {
+            "id": "PYSEC-2026-3845",
+            "fix_versions": [
+              "2.10.0"
+            ],
+            "aliases": [
+              "CVE-2026-84381",
+              "GHSA-7mj9-2mp8-4m2p"
+            ]
+          },
+          {
+            "id": "PYSEC-2026-3848",
+            "fix_versions": [
+              "2.11.0"
+            ],
+            "aliases": [
+              "CVE-2026-84379",
+              "GHSA-h4x7-gw46-3wm6"
+            ]
+          },
+          {
+            "id": "PYSEC-2026-3846",
+            "fix_versions": [
+              "2.12.0"
+            ],
+            "aliases": [
+              "CVE-2026-84382",
+              "GHSA-8xx6-hgc6-gc2m"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "review_scope": "SECURITY_CLOSEOUT.md; review completed, no owner risk acceptance or release clearance"
+}

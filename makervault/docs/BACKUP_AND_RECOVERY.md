@@ -23,6 +23,15 @@ Compose project name used by the installation, and these canonical mounts:
 The archive also contains the deployment `.env`. It therefore contains secrets
 and must be protected like the vault itself. The tool creates it with mode `600`.
 
+Restore raw backups only from a trusted, operator-controlled installation with
+protected provenance. Raw verification opens SQLite database bytes, and restore
+uses GNU tar after archive auditing; read-only database access and checksums do
+not sandbox malicious databases or authenticate an archive's author. Do not use
+raw SQLite or format-1 backups received from untrusted parties as a sharing/import
+format. Use the independently verified logical `.mvault` workflow for portable
+content instead. The current [security review](evidence/gate-13/SECURITY_CLOSEOUT.md)
+records remaining native parser findings; this warning is not a patch or waiver.
+
 ## Raw backup and portable export are different
 
 The stopped format-1 server backup in this document remains the supported disaster

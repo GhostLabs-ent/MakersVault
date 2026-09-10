@@ -23,6 +23,14 @@ passing. The owner authorized one final pass and accepts carrying remaining
 performance issues for now. Further tuning is deferred, not a benchmark pass or
 automatic 13C closeout. Other security/platform/release obligations remain unchanged.
 
+**Security closeout review (2026-09-10):** [decision package](SECURITY_CLOSEOUT.md)
+and [fresh all-phase audit](security-closeout-audit.json) on unchanged `c42614e`
+images. Production language scopes are clean; development tooling has new findings.
+All 181 API / 3 web image matches remain recorded; seven Python branch exclusions
+are revalidated, and 68 focused security tests pass. S01 tooling refresh and S02
+hostname hardening are proposed for approval. Native-image/raw-recovery dispositions
+remain S04. Review complete does not mean security accepted or 13C closed.
+
 ## Bounded execution
 
 1. Refresh stale browser assertions to the accepted current UI, retaining explicit
