@@ -342,7 +342,12 @@ async function main() {
   await bulkToolbar.getByLabel(/Destination for/).selectOption(folders.special.bulkDestinationFolder.id);
   await bulkToolbar.getByRole("button", { name: "Move selected" }).click();
   await page.getByText("1 failed and remain selected:", { exact: false }).waitFor();
+  // Failures are displayed during the loop, before refresh and successful-ID
+  // deselection finish. The move panel closes only after that final state update.
+  await bulkToolbar.getByRole("button", { name: "Move selected", exact: true }).waitFor({ state: "hidden" });
   const mixedMoveSelectedAfter = await page.locator('input[type="checkbox"]:checked').count();
+  const mixedMoveSuccessSelected = await successCard.getByRole("checkbox", { name: "Select Workflow Bulk Success" }).isChecked();
+  const mixedMoveConflictSelected = await conflictCard.getByRole("checkbox", { name: "Select Workflow Bulk Conflict" }).isChecked();
   const mixedMoveFailureVisible = await page.getByText("Workflow Bulk Conflict:", { exact: false }).isVisible();
 
   await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "bulk-tags"; });
@@ -525,6 +530,9 @@ async function main() {
       supportingDocumentVisible,
       preparedPayloadLinkCount,
       mixedMoveSelectedAfter,
+      mixedMoveCompletionWaited: true,
+      mixedMoveSuccessSelected,
+      mixedMoveConflictSelected,
       mixedMoveFailureVisible,
       tagPreservationVerified,
       selectedDownloadSuggestedFilename,
@@ -576,6 +584,7 @@ async function main() {
     failures.push("supporting/prepared file visibility contract failed");
   }
   if (result.browser.mixedMoveSelectedAfter !== 1 || !result.browser.mixedMoveFailureVisible) failures.push("mixed move did not retain and explain the failed ID");
+  if (result.browser.mixedMoveSuccessSelected || !result.browser.mixedMoveConflictSelected) failures.push("mixed move retained the wrong selected ID after completion");
   if (!result.browser.tagPreservationVerified) failures.push("bulk tag mutation replaced unrelated tags");
   if (!result.browser.selectedDownloadSuggestedFilename.endsWith(".zip")) failures.push("selected download did not produce a ZIP");
   if (!result.browser.bulkTrashRecoverableVisible || result.browser.bulkTrashSelectionAfterPanelCancel !== 2 || result.browser.bulkTrashSelectionAfterDialogCancel !== 2) failures.push("bulk Trash cancellation/recoverability contract failed");
