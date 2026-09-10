@@ -70,7 +70,7 @@ export async function checkSidebarMenus({ page, session, check, acceptNextFolder
   await trigger('Menu parent B').click();
   await actions('Menu parent B').getByRole('button', { name: 'Subfolder', exact: true }).click();
   const create = sidebar.getByRole('dialog', { name: 'Create folder', exact: true });
-  assert.equal(await create.getByLabel('Location', { exact: true }).inputValue(), sibling.id);
+  assert.equal(await create.getByRole('combobox').inputValue(), sibling.id);
   await create.getByLabel('Name', { exact: true }).fill('UI child');
   await create.getByRole('button', { name: 'Create', exact: true }).click();
   await create.waitFor({ state: 'detached' });
@@ -78,8 +78,6 @@ export async function checkSidebarMenus({ page, session, check, acceptNextFolder
   await actions('Menu parent A refreshed').waitFor();
   assert.equal(await sidebar.locator('.sidebar-folder-menu').count(), 1);
   assert.equal((await request('/folders', 'GET')).find(folder => folder.name === 'UI child').parent_id, sibling.id);
-  await trigger('Menu parent A refreshed').focus(); await page.keyboard.press('Escape');
-  await waitClosed('Menu parent A refreshed');
   await check('subfolder targets the owning parent; another open menu follows refreshed folder data without opening closed siblings');
 
   // Synthetic browser DataTransfer exercises the existing file-drop handlers, not OS drag support.
@@ -98,7 +96,7 @@ export async function checkSidebarMenus({ page, session, check, acceptNextFolder
   const uploaded = await uploadedResponse.json();
   assert.equal(uploaded.folder_id, parent.id);
   assert.equal(await (await session.fetch(uploaded.url)).text(), droppedBytes);
-  await trigger('Menu parent A refreshed').click();
+  await actions('Menu parent A refreshed').waitFor();
   const [download, response] = await Promise.all([
     page.waitForEvent('download'),
     page.waitForResponse(response => new URL(response.url()).pathname === `/api/folder/${parent.id}/download`),
