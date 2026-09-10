@@ -36,12 +36,14 @@ The owner's subsequent [bounded performance pass](evidence/gate-13/BOUNDED_PERFO
 adds a read-only folder-list projection at `c42614e`, with 354 API tests passing.
 The stress API target still fails. Further performance tuning is deferred at the
 owner's request; historical/current failures remain recorded, not converted to passes.
-The [security closeout review](evidence/gate-13/SECURITY_CLOSEOUT.md) now records
-fresh all-phase scans on exact `c42614e` images, seven revalidated Python exclusions
-and 68 passing focused security tests. New development-tool advisories and reachable
-stdlib IDNA use have bounded patch proposals awaiting approval. Remaining native
-image risks, including trusted raw recovery, are not waived; security acceptance
-remains open. Deployment guidance requires production HTTPS even on LAN/VPN.
+The [security closeout review](evidence/gate-13/SECURITY_CLOSEOUT.md) led to the
+owner-approved [S01/S02 hardening](evidence/gate-13/SECURITY_HARDENING_RESULTS.md)
+at `ac4a051`: targeted test dependencies updated; outbound hostname identity uses
+strict IDNA2008. Full verification passes 422 API tests and the same-source 58-test
+web preflight, plus current HTTPS lifecycle. Fresh language audits are clean; exact
+images retain 181 API / 3 web matches. Remaining native risks, including trusted
+raw recovery, are not waived; security acceptance remains open. Production HTTPS
+is required even on LAN/VPN.
 Browser/platform and release-readiness
 evidence remain unfinished, followed by 13D owner acceptance of the end state and next
 roadmap. The [traceability/carry-forward register](evidence/gate-13/TRACEABILITY.md)

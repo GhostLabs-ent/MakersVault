@@ -3,11 +3,12 @@
 **Date:** 2026-09-10
 
 **Baseline:** audit entry `236c0fd` / application `1a209aa`; current verification
-`c42614e` bounded folder-list optimization; last full gate `82cb2cc` / later functional harness `7b0bb6e`, schema 17 unchanged
+`ac4a051` approved S01/S02 hardening and full verification; folder-list optimization
+`c42614e` and functional browser harness `7b0bb6e` remain separately named, schema 17 unchanged
 
 **Status:** 13A–13B accepted; approved 13C picker/sidebar optimizations implemented;
 remaining performance tuning deferred by owner after one bounded pass;
-security review documented with remediation decisions pending;
+approved S01/S02 security patches verified; S04 residual acceptance pending;
 browser/platform evidence and final Gate 13 acceptance remain open
 
 ## Reading this ledger
@@ -98,7 +99,7 @@ the next accepted slice. Re-review at that slice and again at 13D.
 | G13-01 | Approved picker/sidebar changes remove eager hidden controls. [Bounded API follow-up](BOUNDED_PERFORMANCE_RESULTS.md) at `c42614e` avoids folder ORM hydration and passes 354 API tests. HTTP instrumentation identifies garbage-collection contributions to some API spikes. New unprofiled stress still misses folders API <100 ms | DEFERRED tuning by owner's 2026-09-10 decision: one final pass is enough; carry remaining performance limitations for now. Historical/current startup, detail and API failures remain evidence, not passes. Reopen only with renewed owner direction or a materially worse user-visible regression. No changed budget, authentication relaxation, security/platform waiver or automatic 13C acceptance |
 | G13-02 | 13A found stale schema-5 recovery assertions and no joined current lifecycle. **13B VERIFIED:** `gate13-lifecycle-drill.py` passes schema 4→17, contract-6 restore, pre-start revocation/audit, schema 12→17 portable bootstrap and exact stopped rollback on `2c68d70` | Owner accepted 13B at `2f61b37`; injected interruption tests and three no-mutation operator refusals pass. Named local development evidence, not release or physical-power-loss qualification |
 | G13-03 | 13A found stale JWT/schema-5 exact-image smoke. **13B harness portion VERIFIED:** current production-HTTPS identity/security/persistence/schema-17 smoke against immutable local image IDs | 13C remains OPEN: owner-selected immutable scope/revision and matched-image/bridge/reproducibility evidence before any release claim; static `verify-release` remains only a contract check |
-| G13-04 | [Security closeout review](SECURITY_CLOSEOUT.md) and all-phase audit at `fb645d7` on exact `c42614e` images: production language scans clean within scope; new development findings affect Vitest/mocker and HTTPX2/httpcore2. Image inventory remains 181 API / 3 web with reduced-record equality. Seven Python branch exclusions freshly confirmed; 68 focused security tests pass. Last full gate remains `82cb2cc` | REVIEW COMPLETE, SECURITY ACCEPTANCE OPEN. Owner approval needed for S01 narrow development-tool refresh and S02 outbound IDNA hardening; S04 native/raw-recovery residuals need fixes or explicit scoped acceptance before candidate qualification. Application archive mitigation is not an interpreter patch. No automatic waiver, release clearance or full-gate claim |
+| G13-04 | Owner-approved [S01/S02 hardening](SECURITY_HARDENING_RESULTS.md) at clean `ac4a051` passes full verification: 422 API tests, same-source 58-test web preflight, security/passkeys and current HTTPS lifecycle. New language audits are clean; exact image matches remain 181 API / 3 web with reduced-record equality. Strict outbound IDNA2008 mitigates the reviewed application path; archive guard and seven dated Python branch exclusions remain | S01/S02 IMPLEMENTED/VERIFIED, SECURITY ACCEPTANCE OPEN. S04 native/raw-recovery residuals still need fixes or explicit scoped owner acceptance against exact images/architecture before candidate qualification. CPython remains matched/unpatched. No automatic waiver, release clearance or Gate 13C acceptance |
 
 P07/P11/P12 now also have G13-02's joined current lifecycle proof, supplementing
 their focused API tests. Raw restore preserves the complete content/security graph

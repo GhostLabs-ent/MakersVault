@@ -1,0 +1,660 @@
+{
+  "schema": 1,
+  "revision": "ac4a051302d49838ef676c760cdfd95ab2127408",
+  "scope": "Owner-approved S01/S02; not release clearance or S04 risk acceptance",
+  "dependency_delta": {
+    "changed_locks": [
+      "api/requirements-dev.lock",
+      "web/package-lock.json"
+    ],
+    "changed_web_packages": [
+      "node_modules/@vitest/expect",
+      "node_modules/@vitest/mocker",
+      "node_modules/@vitest/pretty-format",
+      "node_modules/@vitest/runner",
+      "node_modules/@vitest/snapshot",
+      "node_modules/@vitest/spy",
+      "node_modules/@vitest/utils",
+      "node_modules/vitest"
+    ],
+    "python_development": [
+      "httpx2:2.9.0->2.12.0",
+      "httpcore2:2.9.0->2.12.0"
+    ],
+    "runtime": "idna 3.18 now direct; all runtime lock versions unchanged"
+  },
+  "runs": {
+    "api-build": {
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "test",
+        "-t",
+        "makersvault-api-g13c-security-test",
+        "makervault/api"
+      ],
+      "started_at": "2026-09-10T21:38:17.291Z",
+      "source_revision": "b371ff86e302dd348850dc40dbbfc5cb7271bc1c",
+      "verification_source_status": "M makervault/api/requirements-dev.lock\n M makervault/api/requirements-dev.txt\n M makervault/api/requirements.txt\n M makervault/api/safe_http.py\n M makervault/api/url_utils.py\n M makervault/web/package-lock.json\n M makervault/web/package.json\n?? makervault/api/tests/test_remote_host_policy.py",
+      "finished_at": "2026-09-10T21:39:07.314Z",
+      "duration_seconds": 50.023,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "b371ff86e302dd348850dc40dbbfc5cb7271bc1c",
+      "end_verification_source_status": "M makervault/api/requirements-dev.lock\n M makervault/api/requirements-dev.txt\n M makervault/api/requirements.txt\n M makervault/api/safe_http.py\n M makervault/api/url_utils.py\n M makervault/web/package-lock.json\n M makervault/web/package.json\n?? makervault/api/tests/test_remote_host_policy.py",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 21858,
+          "sha256": "38dcfba15be5b59c4ca24df4a606cd09c2db1ccedc0768ac6b2178d1ea4e5ee5"
+        }
+      ],
+      "record_sha256": "21d886f693701b6b42e5356443ac9e71e6cc505422f9b855548cab12f4501b26"
+    },
+    "focused": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "makersvault-api-g13c-security-test",
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_remote_host_policy.py",
+        "tests/test_safe_http.py",
+        "tests/test_dependency_locks.py",
+        "tests/test_login_security.py",
+        "tests/test_passkey_foundation.py",
+        "tests/test_archive_compression.py"
+      ],
+      "started_at": "2026-09-10T21:39:38.108Z",
+      "source_revision": "b371ff86e302dd348850dc40dbbfc5cb7271bc1c",
+      "verification_source_status": "M makervault/api/requirements-dev.lock\n M makervault/api/requirements-dev.txt\n M makervault/api/requirements.txt\n M makervault/api/safe_http.py\n M makervault/api/url_utils.py\n M makervault/web/package-lock.json\n M makervault/web/package.json\n?? makervault/api/tests/test_remote_host_policy.py",
+      "finished_at": "2026-09-10T21:39:55.240Z",
+      "duration_seconds": 17.132,
+      "exit_code": 1,
+      "signal": null,
+      "end_source_revision": "b371ff86e302dd348850dc40dbbfc5cb7271bc1c",
+      "end_verification_source_status": "M makervault/api/requirements-dev.lock\n M makervault/api/requirements-dev.txt\n M makervault/api/requirements.txt\n M makervault/api/safe_http.py\n M makervault/api/url_utils.py\n M makervault/web/package-lock.json\n M makervault/web/package.json\n?? makervault/api/tests/test_remote_host_policy.py",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 6199,
+          "sha256": "f42eea17d38ce489906222a83eb672b7e4d11d36c72283013837ca934c5533a6"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "record_sha256": "43a83ee3a91b1cb78ba787c36b141e981fec691b9729eb7af76a395ee18eb318"
+    },
+    "web": {
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "test",
+        "-t",
+        "makersvault-web-g13c-security-test",
+        "makervault/web"
+      ],
+      "started_at": "2026-09-10T21:39:39.259Z",
+      "source_revision": "b371ff86e302dd348850dc40dbbfc5cb7271bc1c",
+      "verification_source_status": "M makervault/api/requirements-dev.lock\n M makervault/api/requirements-dev.txt\n M makervault/api/requirements.txt\n M makervault/api/safe_http.py\n M makervault/api/url_utils.py\n M makervault/web/package-lock.json\n M makervault/web/package.json\n?? makervault/api/tests/test_remote_host_policy.py",
+      "finished_at": "2026-09-10T21:40:48.667Z",
+      "duration_seconds": 69.408,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "b371ff86e302dd348850dc40dbbfc5cb7271bc1c",
+      "end_verification_source_status": "M makervault/api/requirements-dev.lock\n M makervault/api/requirements-dev.txt\n M makervault/api/requirements.txt\n M makervault/api/safe_http.py\n M makervault/api/url_utils.py\n M makervault/web/package-lock.json\n M makervault/web/package.json\n?? makervault/api/tests/test_remote_host_policy.py",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 6330,
+          "sha256": "cfb7a23ad0e187d50f444924e90e37b2b6b2f84a2d9d18a11bf88d4ed50287eb"
+        }
+      ],
+      "record_sha256": "46dfaa76b55ee9a4a0f810e8c7760626e0281668e25eef1be4eb4db9733b6035"
+    },
+    "api-build-b": {
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "test",
+        "-t",
+        "makersvault-api-g13c-security-test",
+        "makervault/api"
+      ],
+      "started_at": "2026-09-10T21:40:58.958Z",
+      "source_revision": "b371ff86e302dd348850dc40dbbfc5cb7271bc1c",
+      "verification_source_status": "M makervault/api/requirements-dev.lock\n M makervault/api/requirements-dev.txt\n M makervault/api/requirements.txt\n M makervault/api/safe_http.py\n M makervault/api/url_utils.py\n M makervault/web/package-lock.json\n M makervault/web/package.json\n?? makervault/api/tests/test_remote_host_policy.py",
+      "finished_at": "2026-09-10T21:40:59.825Z",
+      "duration_seconds": 0.867,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "b371ff86e302dd348850dc40dbbfc5cb7271bc1c",
+      "end_verification_source_status": "M makervault/api/requirements-dev.lock\n M makervault/api/requirements-dev.txt\n M makervault/api/requirements.txt\n M makervault/api/safe_http.py\n M makervault/api/url_utils.py\n M makervault/web/package-lock.json\n M makervault/web/package.json\n?? makervault/api/tests/test_remote_host_policy.py",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 1993,
+          "sha256": "38471bb1931c1d44f8b42b8cb328358b9c8e6297291d702e735f6497398c19c7"
+        }
+      ],
+      "record_sha256": "7ca52885e4a08ccbe24f893dc7500added0f13a47062a28b411868a178ba35f9"
+    },
+    "negative-control": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "-v",
+        "/home/vinnyc/Documents/GitHub/MakersVault/makervault/api/tests/test_remote_host_policy.py:/app/tests/test_remote_host_policy.py:ro",
+        "sha256:4704c6196a007886663402c78668d93160a302cf836e6a65424d48388e3ae3e4",
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_remote_host_policy.py",
+        "-k",
+        "unicode_identity_does_not_casefold_to_different_domain"
+      ],
+      "started_at": "2026-09-10T21:41:00.055Z",
+      "source_revision": "b371ff86e302dd348850dc40dbbfc5cb7271bc1c",
+      "verification_source_status": "M makervault/api/requirements-dev.lock\n M makervault/api/requirements-dev.txt\n M makervault/api/requirements.txt\n M makervault/api/safe_http.py\n M makervault/api/url_utils.py\n M makervault/web/package-lock.json\n M makervault/web/package.json\n?? makervault/api/tests/test_remote_host_policy.py",
+      "finished_at": "2026-09-10T21:41:02.044Z",
+      "duration_seconds": 1.989,
+      "exit_code": 1,
+      "signal": null,
+      "end_source_revision": "b371ff86e302dd348850dc40dbbfc5cb7271bc1c",
+      "end_verification_source_status": "M makervault/api/requirements-dev.lock\n M makervault/api/requirements-dev.txt\n M makervault/api/requirements.txt\n M makervault/api/safe_http.py\n M makervault/api/url_utils.py\n M makervault/web/package-lock.json\n M makervault/web/package.json\n?? makervault/api/tests/test_remote_host_policy.py",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 1191,
+          "sha256": "359523fb4ca09e029f4436dfb118c86dd69b26a12524aea95783a0822db79202"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "record_sha256": "733f3fc3a82fe41e4d2d270edc8e07cee9b69f4fe982e28e9b702e5f2a5831e6"
+    },
+    "focused-b": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "makersvault-api-g13c-security-test",
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_remote_host_policy.py",
+        "tests/test_safe_http.py",
+        "tests/test_dependency_locks.py",
+        "tests/test_login_security.py",
+        "tests/test_passkey_foundation.py",
+        "tests/test_archive_compression.py"
+      ],
+      "started_at": "2026-09-10T21:41:15.610Z",
+      "source_revision": "b371ff86e302dd348850dc40dbbfc5cb7271bc1c",
+      "verification_source_status": "M makervault/api/requirements-dev.lock\n M makervault/api/requirements-dev.txt\n M makervault/api/requirements.txt\n M makervault/api/safe_http.py\n M makervault/api/url_utils.py\n M makervault/web/package-lock.json\n M makervault/web/package.json\n?? makervault/api/tests/test_remote_host_policy.py",
+      "finished_at": "2026-09-10T21:41:30.900Z",
+      "duration_seconds": 15.29,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "b371ff86e302dd348850dc40dbbfc5cb7271bc1c",
+      "end_verification_source_status": "M makervault/api/requirements-dev.lock\n M makervault/api/requirements-dev.txt\n M makervault/api/requirements.txt\n M makervault/api/safe_http.py\n M makervault/api/url_utils.py\n M makervault/web/package-lock.json\n M makervault/web/package.json\n?? makervault/api/tests/test_remote_host_policy.py",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 181,
+          "sha256": "c0f13e93a43028256da3683694eb452f2f953090721787347b58ab623f2f7fa7"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "record_sha256": "315f8c56a403a2ca339fb10a1fc887b69cfad9e6ef6a601f81213c6d50ff31ae"
+    },
+    "full": {
+      "command": [
+        "make",
+        "verify"
+      ],
+      "started_at": "2026-09-10T21:42:10.253Z",
+      "source_revision": "ac4a051302d49838ef676c760cdfd95ab2127408",
+      "verification_source_status": "",
+      "finished_at": "2026-09-10T21:46:48.009Z",
+      "duration_seconds": 277.756,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "ac4a051302d49838ef676c760cdfd95ab2127408",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 22013,
+          "sha256": "721da8f444b40d42a337d6d3a250a2ab99b66422a41da65a136dcf258058e7f3"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 9020,
+          "sha256": "d7a3e1e91e38479da7a577c813dbb4f8dc3c228f45ef89ff2df519c1580d2085"
+        }
+      ],
+      "record_sha256": "78746bd4adef38ed83ab926a52e07dd6c26093c1040979564a460407ee717c11"
+    },
+    "languages": {
+      "command": [
+        "python3",
+        "makervault/scripts/gate13-advisory-audit.py",
+        "--phase",
+        "languages",
+        "--output",
+        "/tmp/makersvault-security-hardening-language-audit",
+        "--api-image",
+        "unused-language-phase",
+        "--web-image",
+        "unused-language-phase"
+      ],
+      "started_at": "2026-09-10T21:42:47.959Z",
+      "source_revision": "ac4a051302d49838ef676c760cdfd95ab2127408",
+      "verification_source_status": "",
+      "finished_at": "2026-09-10T21:43:28.292Z",
+      "duration_seconds": 40.333,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "ac4a051302d49838ef676c760cdfd95ab2127408",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 2213,
+          "sha256": "b9af629a5211d1c2bddf1cb7e2d54f265dc198e5f744be6b6f0a78dce7eabdc1"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "record_sha256": "239a47dc3e82054b9b3c436eb483b07cf7e221359f3609030b428bd5ae25fb28"
+    },
+    "images": {
+      "command": [
+        "python3",
+        "makervault/scripts/gate13-advisory-audit.py",
+        "--phase",
+        "images",
+        "--output",
+        "/tmp/makersvault-security-hardening-image-audit",
+        "--api-image",
+        "sha256:4ba3ee6147ed94fb0dd8f1502dba16d257ce98da0aa9595898e5b44ff3bdc5cc",
+        "--web-image",
+        "sha256:164a7f830ff2868bda6b8a0012a8ab421fe070c64f8f669a986896cd1f8a73fa"
+      ],
+      "started_at": "2026-09-10T21:46:21.327Z",
+      "source_revision": "ac4a051302d49838ef676c760cdfd95ab2127408",
+      "verification_source_status": "",
+      "finished_at": "2026-09-10T21:50:16.419Z",
+      "duration_seconds": 235.092,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "ac4a051302d49838ef676c760cdfd95ab2127408",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 7415,
+          "sha256": "14149a6544e12fbbe5a8b43be0e3bcbd98ec890de7a8f58c2eda1dd61b043c73"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "record_sha256": "99ea04f82aa5cbdb07166572e2caeb50bfb7613961d0cccdae7cb79cbaac2d74"
+    },
+    "runtime": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--read-only",
+        "--network",
+        "none",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+        "--user",
+        "65534:65534",
+        "--memory",
+        "256m",
+        "--cpus",
+        "1",
+        "--env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "--entrypoint",
+        "python",
+        "-v",
+        "/home/vinnyc/Documents/GitHub/MakersVault/makervault/docs/evidence/gate-13/security-hardening-runtime.py:/app/security-probe.py:ro",
+        "sha256:4ba3ee6147ed94fb0dd8f1502dba16d257ce98da0aa9595898e5b44ff3bdc5cc",
+        "/app/security-probe.py"
+      ],
+      "started_at": "2026-09-10T21:46:47.425Z",
+      "source_revision": "ac4a051302d49838ef676c760cdfd95ab2127408",
+      "verification_source_status": "",
+      "finished_at": "2026-09-10T21:46:48.168Z",
+      "duration_seconds": 0.743,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "ac4a051302d49838ef676c760cdfd95ab2127408",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 840,
+          "sha256": "b9105ab16a072cdfee170aabdb84ff04ae06254fcebe8292bf655d5d85fc9a63"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "record_sha256": "64074d3d56d41ac765e2d6d6943bc5d2108cadeeb6dd026cf272d95596c23c58"
+    },
+    "components": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--read-only",
+        "--network",
+        "none",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+        "--user",
+        "65534:65534",
+        "--memory",
+        "256m",
+        "--cpus",
+        "1",
+        "--env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "--entrypoint",
+        "python",
+        "-v",
+        "/home/vinnyc/Documents/GitHub/MakersVault/makervault/docs/evidence/gate-13/security-closeout-runtime.py:/app/component-probe.py:ro",
+        "sha256:4ba3ee6147ed94fb0dd8f1502dba16d257ce98da0aa9595898e5b44ff3bdc5cc",
+        "/app/component-probe.py"
+      ],
+      "started_at": "2026-09-10T21:46:48.282Z",
+      "source_revision": "ac4a051302d49838ef676c760cdfd95ab2127408",
+      "verification_source_status": "",
+      "finished_at": "2026-09-10T21:46:48.834Z",
+      "duration_seconds": 0.552,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "ac4a051302d49838ef676c760cdfd95ab2127408",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 2343,
+          "sha256": "74c8c64677326d9a68b36e179f4b9a45761a2dccd80a85bd69454c254825d75a"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "record_sha256": "ade9980707535760ce5a4ed7147704b6c8cc48b473366bff9261d1a6a1aa8b1b"
+    }
+  },
+  "results": {
+    "api_tests": 422,
+    "api_seconds": 153.55,
+    "new_hostname_cases": 68,
+    "focused_tests": 138,
+    "focused_seconds": 13.56,
+    "web_tests": 58,
+    "first_focused_attempt": "2 failed / 135 passed: repeated root dot and incomplete TLS test double; both corrected before commit",
+    "negative_control": "1 expected assertion failure / 67 deselected against old image: Unicode domain incorrectly mapped to fass.example",
+    "dependency_resolution": "Initial HTTPX2 2.12.0/httpcore2 2.10.0 dry run refused; exact upstream dependency requires matching 2.12.0",
+    "lifecycle": {
+      "benchmark_session_helper": "passed",
+      "dirty": false,
+      "exact_schema4_rollback": true,
+      "external_availability_normalized": true,
+      "fresh_identity_only": true,
+      "fresh_smoke": {
+        "https_secure_cookie_csrf": true,
+        "logout_revocation": true,
+        "non_root_api_web": true,
+        "restart_bytes": "1455ce259069704cf240787e3ba134426f9d6b04cdc49b7716a824ee905a65f6",
+        "schema": 17
+      },
+      "images": {
+        "api": "sha256:4ba3ee6147ed94fb0dd8f1502dba16d257ce98da0aa9595898e5b44ff3bdc5cc",
+        "web": "sha256:164a7f830ff2868bda6b8a0012a8ab421fe070c64f8f669a986896cd1f8a73fa"
+      },
+      "offline_portable_graph_equal": true,
+      "portable_import_schema": 12,
+      "portable_members_compared": 18,
+      "portable_staged_pair_verified": true,
+      "portable_startup_schema": 17,
+      "pre_start_revocation": true,
+      "raw_restore_contract": 6,
+      "refusals": [
+        "nonempty_raw_target",
+        "corrupt_raw_archive",
+        "nonempty_portable_target"
+      ],
+      "revision": "ac4a051302d49838ef676c760cdfd95ab2127408",
+      "startup_audit": true,
+      "startup_preview_reconciliation": "legacy_3mf_pending",
+      "status": "passed",
+      "upgrade": "4-to-17",
+      "version": "development-gate13b"
+    }
+  },
+  "runtime": {
+    "image": "sha256:4ba3ee6147ed94fb0dd8f1502dba16d257ce98da0aa9595898e5b44ff3bdc5cc",
+    "policy": {
+      "accepted": {
+        "https://EXAMPLE.com./model.stl": [
+          "https",
+          "example.com",
+          443
+        ],
+        "https://[2606:4700:4700::1111]/model.stl": [
+          "https",
+          "2606:4700:4700::1111",
+          443
+        ],
+        "https://bücher.example:8443/model.stl": [
+          "https",
+          "xn--bcher-kva.example",
+          8443
+        ],
+        "https://fass.example/model.stl": [
+          "https",
+          "fass.example",
+          443
+        ],
+        "https://faß.example/model.stl": [
+          "https",
+          "xn--fa-hia.example",
+          443
+        ],
+        "https://xn--bcher-kva.example/model.stl": [
+          "https",
+          "xn--bcher-kva.example",
+          443
+        ]
+      },
+      "machine": "x86_64",
+      "packages": {
+        "httpcore2": null,
+        "httpx2": null,
+        "idna": "3.18",
+        "pytest": null
+      },
+      "python": "3.11.16",
+      "rejected": {
+        "[::1]": 400,
+        "ab­cd.example": 400,
+        "example.com..": 400,
+        "localhost": 400,
+        "ẞ.example": 400,
+        "K.example": 400
+      },
+      "scope": "No DNS, network, TLS handshake, application startup or vault data",
+      "status": "passed"
+    },
+    "components": {
+      "benign_idna_observation": {
+        "input": "ẞ.example",
+        "scope": "Offline normalization only; no DNS/network request or demonstrated security bypass",
+        "stdlib_result": "ss.example"
+      },
+      "expat": "expat_2.8.3",
+      "machine": "x86_64",
+      "packages": {
+        "fastapi": "0.141.1",
+        "httpcore2": null,
+        "httpx2": null,
+        "idna": "3.18",
+        "pillow": "12.3.0",
+        "pytest": null,
+        "webauthn": "3.0.0"
+      },
+      "perl": {
+        "config": [
+          "x86_64-linux-gnu-thread-multi",
+          "8"
+        ],
+        "exit_code": 0,
+        "modules_loadable": {
+          "Archive::Tar": false,
+          "Encode": false,
+          "File::Find": false,
+          "File::GlobMapper": false,
+          "File::Temp": true,
+          "HTTP::Tiny": false,
+          "IO::Compress": false,
+          "IO::Uncompress::Unzip": false,
+          "Locale::Maketext": false,
+          "Socket": true,
+          "Storable": false
+        }
+      },
+      "pointer_bits": 64,
+      "python": "3.11.16 (main, Sep  1 2026, 00:12:26) [GCC 14.2.0]",
+      "sqlite": "3.46.1",
+      "sqlite_archive_functions": [],
+      "sqlite_compile_options": [
+        "ALLOW_ROWID_IN_VIEW",
+        "ATOMIC_INTRINSICS=1",
+        "COMPILER=gcc-14.2.0",
+        "DEFAULT_AUTOVACUUM",
+        "DEFAULT_CACHE_SIZE=-2000",
+        "DEFAULT_FILE_FORMAT=4",
+        "DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+        "DEFAULT_MMAP_SIZE=0",
+        "DEFAULT_PAGE_SIZE=4096",
+        "DEFAULT_PCACHE_INITSZ=20",
+        "DEFAULT_RECURSIVE_TRIGGERS",
+        "DEFAULT_SECTOR_SIZE=4096",
+        "DEFAULT_SYNCHRONOUS=2",
+        "DEFAULT_WAL_AUTOCHECKPOINT=1000",
+        "DEFAULT_WAL_SYNCHRONOUS=2",
+        "DEFAULT_WORKER_THREADS=0",
+        "DIRECT_OVERFLOW_READ",
+        "ENABLE_COLUMN_METADATA",
+        "ENABLE_DBPAGE_VTAB",
+        "ENABLE_DBSTAT_VTAB",
+        "ENABLE_FTS3",
+        "ENABLE_FTS3_PARENTHESIS",
+        "ENABLE_FTS3_TOKENIZER",
+        "ENABLE_FTS4",
+        "ENABLE_FTS5",
+        "ENABLE_LOAD_EXTENSION",
+        "ENABLE_MATH_FUNCTIONS",
+        "ENABLE_PREUPDATE_HOOK",
+        "ENABLE_RTREE",
+        "ENABLE_SESSION",
+        "ENABLE_STMTVTAB",
+        "ENABLE_UNLOCK_NOTIFY",
+        "ENABLE_UPDATE_DELETE_LIMIT",
+        "HAVE_ISNAN",
+        "LIKE_DOESNT_MATCH_BLOBS",
+        "MALLOC_SOFT_LIMIT=1024",
+        "MAX_ATTACHED=10",
+        "MAX_COLUMN=2000",
+        "MAX_COMPOUND_SELECT=500",
+        "MAX_DEFAULT_PAGE_SIZE=32768",
+        "MAX_EXPR_DEPTH=1000",
+        "MAX_FUNCTION_ARG=127",
+        "MAX_LENGTH=1000000000",
+        "MAX_LIKE_PATTERN_LENGTH=50000",
+        "MAX_MMAP_SIZE=0x7fff0000",
+        "MAX_PAGE_COUNT=0xfffffffe",
+        "MAX_PAGE_SIZE=65536",
+        "MAX_SCHEMA_RETRY=25",
+        "MAX_SQL_LENGTH=1000000000",
+        "MAX_TRIGGER_DEPTH=1000",
+        "MAX_VARIABLE_NUMBER=250000",
+        "MAX_VDBE_OP=250000000",
+        "MAX_WORKER_THREADS=8",
+        "MUTEX_PTHREADS",
+        "SECURE_DELETE",
+        "SOUNDEX",
+        "SYSTEM_MALLOC",
+        "TEMP_STORE=1",
+        "THREADSAFE=1",
+        "USE_URI"
+      ],
+      "zlib_compile": "1.3.1",
+      "zlib_runtime": "1.3.1"
+    }
+  }
+}

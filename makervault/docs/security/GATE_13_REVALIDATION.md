@@ -6,8 +6,8 @@
 browser qualification and advisory dispositions open, not release clearance
 
 **Baseline:** audit entry `236c0fd` / application `1a209aa`; current application
-`c42614e`, last complete gate `82cb2cc`; fresh security audit at documentation
-checkpoint `fb645d7` on exact `c42614e` images. Schema 17 unchanged.
+`ac4a051`, approved S01/S02 hardening with complete verification and fresh language/
+exact-image audits. Prior closeout review is `b371ff8` on `c42614e`. Schema 17 unchanged.
 
 This is the current-development disposition of all sixteen findings from the
 [original security review](../MakersVault_v5.1_Security_Analysis.md). The
@@ -67,13 +67,22 @@ change is implied. The interrupted development-image audit remains separately re
 The subsequent [security closeout review](../evidence/gate-13/SECURITY_CLOSEOUT.md)
 repeats all language and exact-image scans on unchanged `c42614e` inputs. Runtime
 Python, production npm, Python build, harness locks and Go source scans are clean
-within their stated scope. **Development scans now report two moderate web
+within their stated scope. **Development scans at that checkpoint reported two moderate web
 packages/one advisory and six Python package/advisory matches/five CVEs.** Image
 inventory remains 181 API / 3 web with full reduced-record equality verified.
 Seven PSF branch exclusions are freshly reconfirmed; 68 focused tests pass, and
 isolated runtime inspection narrows several native preconditions. Outbound IDNA
 normalization and remaining native/SQLite/raw-recovery risks stay open. S01/S02
-patches are proposed, not authorized or installed. Security acceptance remains open.
+patches were proposed, not yet authorized or installed at that checkpoint.
+
+The owner subsequently approved [S01/S02 hardening](../evidence/gate-13/SECURITY_HARDENING_RESULTS.md),
+implemented at clean `ac4a051`. Full verification passes 422 API tests, same-source
+58-test web preflight, current smoke/passkeys and joined HTTPS lifecycle. Fresh
+language scans are clean again, with no skipped Python dependencies; exact image
+inventory remains 181 API / 3 web matches with reduced-record equality. Strict
+IDNA2008 mitigates the reviewed outbound hostname path; the interpreter itself
+remains matched/unpatched. Native/raw-recovery S04 risks remain unwaived, and
+security acceptance is still open.
 
 ## Finding-by-finding disposition
 
@@ -84,14 +93,14 @@ bounded to the original finding, not a claim that a subsystem has no other risks
 |---|---|---|
 | MV-SEC-001 — arbitrary bridge download/open | VERIFIED replacement boundary | Accepted Gates 1E/8; `test_handoff.py`, bridge `handoff_test.go`, `adapters_test.go`, `main_test.go`. Exact-file short-lived grants, paired origin, no redirects/default opener/remote executable authority. Real workstation scope remains C03 |
 | MV-SEC-002 — default credentials/secret | VERIFIED fail-closed configuration and persistent bootstrap | `test_security_config.py`, `test_identity.py`, Compose secret rejection. Environment inputs cannot bypass an existing persistent account |
-| MV-SEC-003 — redirect/DNS SSRF | VERIFIED transport regression boundary; separate Unicode residual open | `test_safe_http.py`: special/mixed DNS targets, connected numeric peer, each redirect, downgrade refusal, credential stripping; Gate 1D evidence. Closeout S02 identifies affected stdlib IDNA use, not a demonstrated SSRF bypass. No fresh public-network import-provider certification claimed |
-| MV-SEC-004 — vulnerable multipart pin | Historical pin replaced; current runtime-lock scan reports no advisories | Fresh pip-audit checks all 35 runtime / 43 development dependencies with none skipped. Development HTTPX2/httpcore2 now have six package/advisory matches, separate from this historical multipart finding. Image and new development findings remain G13-04 |
-| MV-SEC-005 — vulnerable Pillow pin | Historical pin replaced; current runtime-lock scan reports no advisories | Gate 1B compatibility and current image/parser tests, plus dated 13C Python lock scans. Development-tool and runtime OS/interpreter/vendor findings remain separately open; G13-04 |
+| MV-SEC-003 — redirect/DNS SSRF | VERIFIED transport and strict outbound hostname boundary | `test_safe_http.py` and 68 new `test_remote_host_policy.py` cases verify IDNA2008 identity, rejection before DNS, numeric peers, Host/SNI, mixed/private answers, redirects, credentials and TLS refusal. S02 reviewed outbound path mitigated at `ac4a051`; not a runtime-wide Python patch or public-provider certification |
+| MV-SEC-004 — vulnerable multipart pin | Historical pin replaced; current runtime/development locks report no advisories | Fresh pip-audit checks all 35 runtime / 43 development dependencies with none skipped. S01 HTTPX2/httpcore2 update removes the later development findings. Native/interpreter image findings remain G13-04 |
+| MV-SEC-005 — vulnerable Pillow pin | Historical pin replaced; current runtime-lock scan reports no advisories | Gate 1B compatibility and current image/parser tests, plus dated 13C Python lock scans. Runtime OS/interpreter/vendor findings remain separately open; G13-04 |
 | MV-SEC-006 — unbounded uploads/archives | Bounded-ingest regressions pass; reviewed interpreter ZIP read paths mitigated | Approved Stored/Deflate-only guard at `ddf8cf4` rejects unsupported member methods before reads/partial imports; `test_archive_compression.py` verifies no unsupported open/decompressor calls, ZIP64 and original prepared handoff. Existing file/expansion/capacity budgets remain, without a library quota. CVE-2026-15310 remains in the interpreter inventory; G13-04 is not waived |
 | MV-SEC-007 — general bearer in file URLs | VERIFIED removed in current build | `test_sessions.py::test_bearer_and_query_token_compatibility_paths_are_removed`; web `auth.test.ts`; separate scoped bridge grants and private/no-store file response tests. Frozen candidate residual unchanged |
 | MV-SEC-008 — persistent browser bearer | VERIFIED replaced in current build | Protected HttpOnly host-only cookie sessions, digest-only server records, web auth/passkey tests. XSS could still act within a live page; cookies/CSP are not an XSS-immunity claim |
 | MV-SEC-009 — login/session lifecycle | VERIFIED within single-process deployment | `test_login_security.py`, `test_sessions.py`, account/passkey tests: bounded throttling, expiry, session rotation/revocation. Distributed throttling is not implemented |
-| MV-SEC-010 — production Vite server | VERIFIED static unprivileged serving | Current web Dockerfile, full web production build, fresh API/web non-root container smoke. 13C build-tool and runtime-image findings remain open despite this deployment boundary |
+| MV-SEC-010 — production Vite server | VERIFIED static unprivileged serving | Current web Dockerfile, full web production build, fresh API/web non-root container smoke. S01 fixes the later Vitest development advisory; runtime-image findings remain open despite this deployment boundary |
 | MV-SEC-011 — mounted symlink escape | VERIFIED descriptor/path regression boundary | `test_mount_security.py`, mounted scan and local ContentStore symlink tests. External no-copy bytes remain operator-owned |
 | MV-SEC-012 — absent multi-user authorization | VERIFIED for accepted shared-vault scope | `test_authorization.py`: exhaustive routes/system services, fixed Viewer/Member/Administrator permission tests; account administration/last-Administrator tests. Private objects, ACLs and hosted tenancy are excluded, not secured by these roles |
 | MV-SEC-013 — unsafe ZIP names | VERIFIED archive regression boundary | `test_archive_limits.py`, Project/history/export tests and adversarial `.mvault` verifier/import tests. Traversal/duplicate/non-regular and unowned members fail closed |
@@ -122,13 +131,13 @@ restrictions continue; this audit does not silently accept a new risk.
   is owner-deferred after `c42614e`, without converting failures to passes. The
   selected-release/platform matrix remains open. No auth or production policy
   was weakened to repair a harness.
-- **G13-04:** [closeout review](../evidence/gate-13/SECURITY_CLOSEOUT.md) is complete;
-  security acceptance is not. Latest all-phase audit retains 181 API / 3 web
-  matches and identifies new development-only Vitest/mocker and HTTPX2/httpcore2
-  advisories. Seven PSF branch exclusions are revalidated; applicable
-  CVE-2026-15310 read paths retain their approved compression guard. Proposed
-  S01 tooling updates and S02 hostname hardening need owner approval, then tested
-  evidence. S04 native residuals require fixes or explicit scoped dispositions
+- **G13-04:** approved [S01/S02 hardening](../evidence/gate-13/SECURITY_HARDENING_RESULTS.md)
+  is implemented and verified at `ac4a051`. Fresh language audits are clean;
+  exact images retain all 181 API / 3 web matches. The reviewed outbound
+  CVE-2026-17084 path now uses strict IDNA2008; applicable CVE-2026-15310 paths
+  retain their compression guard. Neither is a runtime-wide interpreter patch.
+  Seven dated PSF branch exclusions remain. S04 native/raw-recovery residuals
+  require fixes or explicit scoped owner dispositions
   before candidate qualification. No scanner suppression or risk waiver was added.
 - **C03:** only Chromium with a virtual authenticator is currently exercised as a
   complete passkey ceremony; physical keys, platform prompts and other browser/OS

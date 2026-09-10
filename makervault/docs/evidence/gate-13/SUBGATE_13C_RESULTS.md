@@ -31,6 +31,13 @@ are revalidated, and 68 focused security tests pass. S01 tooling refresh and S02
 hostname hardening are proposed for approval. Native-image/raw-recovery dispositions
 remain S04. Review complete does not mean security accepted or 13C closed.
 
+**Approved S01/S02 implementation:** [hardening results](SECURITY_HARDENING_RESULTS.md)
+at clean `ac4a051` pass the complete gate: 422 API tests, the same-source 58-test
+web preflight, current smoke/passkeys and joined HTTPS lifecycle. Fresh language
+audits are clean; exact images retain all 181 API / 3 web matches with reduced-record
+equality. Strict outbound IDNA2008 mitigates the reviewed application path, not the
+whole interpreter. S04 residual-risk acceptance and platform/release proof remain open.
+
 ## Bounded execution
 
 1. Refresh stale browser assertions to the accepted current UI, retaining explicit

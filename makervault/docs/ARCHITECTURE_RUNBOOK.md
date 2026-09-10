@@ -4,14 +4,15 @@
 
 **Baseline date:** 2026-09-10
 
-**Committed baseline:** `main` bounded folder-list optimization at `c42614e` (schema 17; Gate 13B accepted at `2f61b37`, 13C qualification open and not accepted)
+**Committed baseline:** `main` approved S01/S02 security hardening at `ac4a051` (schema 17; Gate 13B accepted at `2f61b37`, 13C qualification open and not accepted)
 
-**Latest verification checkpoint:** full gate on committed `82cb2cc`, with later
-functional harness `7b0bb6e`; [sidebar implementation and evidence](evidence/gate-13/SIDEBAR_MENU_RESULTS.md).
-351 API / 58 web tests and current HTTPS lifecycle pass. Three-engine picker/sidebar
-checks retain explicit WebKit synthetic-drop limits. The scoped search locator and
-lazy menu contents are implemented, not awaiting approval; separate viewer-wait,
-API-latency, advisory and platform findings are not silently cleared. Nothing is pushed or release-qualified.
+**Latest verification checkpoint:** full gate on clean committed `ac4a051`;
+[security hardening evidence](evidence/gate-13/SECURITY_HARDENING_RESULTS.md).
+422 API tests, same-source 58-test web preflight, 19 Python / 28 Node harness tests,
+current smoke/passkeys and HTTPS lifecycle pass. Fresh language audits are clean;
+exact image inventory remains 181 API / 3 web matches, unwaived. Earlier functional
+browser evidence and its WebKit synthetic-drop limits remain separately dated;
+G13-01 performance tuning stays deferred. Nothing is pushed or release-qualified.
 
 **Bounded follow-up:** the owner authorized one final performance pass on 2026-09-10
 and is content to carry remaining stalls/latency rather than prolong tuning.
@@ -282,6 +283,7 @@ row's future-tense wording.
 | T-064 | `VERIFIED` | Owner-approved on-demand sidebar menus and scoped search locator at `82cb2cc` remove 8,800 closed-menu descendants in the 1,040-folder fixture without changing 400 visible rows. Full gate passes 351 API / 58 web tests and HTTPS lifecycle. Seventeen picker/sidebar checks pass across three engines with explicit WebKit FileList-only event limits; seven ordering cases pass. All five Chromium organization runs have zero observed interaction tasks and fast folder search. | `docs/evidence/gate-13/SIDEBAR_MENU_RESULTS.md`, twelve retained browser attempts, final-image/full-gate identities, harness `7b0bb6e` | No general performance clearance: baseline E fails first cards at 1,368.5 ms; stress D/G fail folders API p95 at 113.3/108.3 ms. Historical detail wait, non-Chromium/native-platform evidence, advisories and release qualification remain open. No upload/folder quota, application API/auth/lock change, risk waiver, push or Gate 13C acceptance. |
 | T-065 | `VERIFIED` / `DECIDED` | Bounded folder-list projection at `c42614e` preserves output and immediate mutation visibility without ORM hydration; 354 API tests pass. Disposable HTTP instrumentation attributes some API spikes to cyclic garbage collection, not expensive SQL execution. | `docs/evidence/gate-13/BOUNDED_PERFORMANCE_RESULTS.md`, diagnostic samples and same-image unprofiled browser reports | Stress API still misses <100 ms. Exact intermittent browser wait remains unresolved. Owner authorized this one final pass and accepts carrying remaining performance issues for now: stop tuning; retain failures and original budgets. Not full-gate rerun, advisory waiver, native-platform proof, release or 13C acceptance. |
 | T-066 | `VERIFIED` / `PROPOSED` | Security closeout review at `fb645d7` audits exact `c42614e` images and unchanged locks: production language scopes clean; development scans find Vitest/mocker and HTTPX2/httpcore2 advisories. All 181 API / 3 web matches are retained with reduced-record equality. Seven Python exclusions freshly confirmed; 68 focused security tests pass. Runtime inspection narrows several Perl preconditions; Unicode IDNA and native/raw-recovery residuals remain | `docs/evidence/gate-13/SECURITY_CLOSEOUT.md`, audit/inventory/runtime evidence and source URLs | REVIEW COMPLETE, SECURITY ACCEPTANCE OPEN. Approve bounded S01 tool refresh/S02 hostname hardening before implementation; resolve or explicitly disposition S04 against exact candidate images. No application/lock change, suppression, waiver, full-gate repeat, release or 13C acceptance. G13-01 stays deferred. |
+| T-067 | `VERIFIED` | Owner-approved S01/S02 implementation at clean `ac4a051` updates Vitest and HTTPX2/httpcore2, declares existing idna directly, and uses strict IDNA2008 across outbound DNS/Host/SNI/redirect identity. 68 new cases and old-image negative control verify the boundary; 138 focused tests pass. Full gate passes 422 API tests, same-source 58-test web preflight, 19 Python / 28 Node harness tests and current HTTPS lifecycle. Fresh language audits are clean; exact runtime matches remain 181 API / 3 web with reduced-record equality | `docs/evidence/gate-13/SECURITY_HARDENING_RESULTS.md`, complete captured attempts/audit/runtime evidence | Reviewed outbound IDNA path mitigated, not a whole-interpreter patch. S04 native/raw-recovery residuals remain unwaived and require explicit dispositions before candidate qualification. No changed inbound auth, schema, base image, installer/bridge/release pin or stored model bytes. Performance G13-01 stays deferred; no push, release or automatic 13C acceptance. |
 
 ### 5.4 Current storage invariants
 
@@ -1104,8 +1106,10 @@ awaiting approval. Historical clean language scans remain dated evidence. The
 [security closeout review](evidence/gate-13/SECURITY_CLOSEOUT.md) now repeats all
 scans on `c42614e`: production language scopes are clean, development-tool findings
 are new, and the exact-image scan retains 181 API / 3 web matches without waivers.
-S01 tool refresh/S02 hostname hardening are proposed for approval; native residual
-dispositions remain open. The
+The owner subsequently approved [S01/S02 hardening](evidence/gate-13/SECURITY_HARDENING_RESULTS.md)
+at `ac4a051`: full verification and fresh language audits pass, the reviewed
+outbound IDNA path is mitigated, and exact images retain all 181 API / 3 web matches.
+Native residual dispositions remain open. The
 [browser corrections](evidence/gate-13/BROWSER_FIX_RESULTS.md) verify request ordering
 and Firefox trust; earlier Chromium runs miss unchanged startup/interaction
 budgets. Subsequent [profiling](evidence/gate-13/CHROMIUM_PROFILE_RESULTS.md) identified
@@ -1353,13 +1357,13 @@ performance tuning; do not start another investigation without renewed direction
 Historical and current timing failures remain failures, with unchanged budgets and
 authentication controls. The owner-authorized
 [security closeout review](evidence/gate-13/SECURITY_CLOSEOUT.md) is documented;
-security acceptance remains open. **Next checkpoint: approve S01's narrow
-development-tool refresh and S02's strict outbound hostname policy/hardening**,
-then run their regression/full-gate/audit evidence and reassess S04 native-image
-and raw-recovery residuals. Those residuals need fixes or explicit scoped owner
-acceptance before candidate qualification. No patch or waiver was inferred from
-the review request. Physical/native-platform and operator/release readiness follow;
-13C is not ready for closeout.
+its S01/S02 proposal was explicitly approved and is now
+[implemented and verified](evidence/gate-13/SECURITY_HARDENING_RESULTS.md) at `ac4a051`.
+**Next checkpoint: accept the bounded S01/S02 evidence and explicitly disposition
+S04 native-image/raw-recovery residuals against the exact images and architecture.**
+Those residuals need fixes or scoped owner acceptance before candidate qualification;
+the patch approval did not waive them. Physical/native-platform and operator/release
+readiness follow. Security acceptance and 13C closeout remain open.
 Gate 12 remains deferred to desktop. End-state acceptance and the next roadmap remain 13D owner
 decisions; the frozen Gate 5 release baseline is unchanged. Push, tag, image
 publication, deployment, and release remain separately gated. Keep the

@@ -2,6 +2,12 @@
 
 **Date:** 2026-09-10. **Status: REVIEW COMPLETE; SECURITY ACCEPTANCE OPEN.**
 
+**Subsequent checkpoint:** the owner approved S01/S02, implemented at `ac4a051`.
+The [hardening results](SECURITY_HARDENING_RESULTS.md) supersede the pending patch
+proposal and development-tool findings below: full verification passes, fresh
+language audits are clean, and image matches remain 181 API / 3 web. The rest of
+this document preserves the pre-patch review. S04 risks are still not waived.
+
 Owner authorized the security closeout review after parking further performance
 tuning. This package records current scans, bounded source/runtime review, proposed
 dispositions and the next approval checkpoint. It does not authorize application
