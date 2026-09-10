@@ -441,7 +441,7 @@ async function main() {
   await searchLibrary(page, librarySearch, "");
 
   await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "folder-navigation"; });
-  const folderSearch = sidebar.getByLabel("Search folders");
+  const folderSearch = sidebar.getByRole("textbox", { name: "Search folders", exact: true });
   const folderSearchStarted = performance.now();
   await folderSearch.fill(targetLeaf.path);
   await sidebar.getByTitle(targetLeaf.path).waitFor();
@@ -497,7 +497,7 @@ async function main() {
   await browser.close();
   activeBrowser = null;
   const result = {
-    schema: 4,
+    schema: 5,
     diagnosticProfile: profileEnabled,
     capturedAt: new Date().toISOString(),
     corpus: {
@@ -561,6 +561,7 @@ async function main() {
   const failures = [];
   for (const snapshot of Object.values(result.browser.folderControls)) {
     if (snapshot.cardFolderOptions !== 0 || snapshot.openDialogs !== 0) failures.push("Closed cards eagerly mounted folder destinations");
+    if (snapshot.closedFolderMenuElements !== 0) failures.push("Closed sidebar menus eagerly mounted action contents");
   }
   for (const [name, probe] of Object.entries(api)) {
     if (probe.latencyMs.p95 >= 100) failures.push(`${name} API p95 was ${probe.latencyMs.p95.toFixed(1)} ms`);

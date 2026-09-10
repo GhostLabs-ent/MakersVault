@@ -4,6 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { chromium, firefox, webkit } from "playwright-core";
 import { loginSession } from "../session-client.mjs";
+import { checkSidebarMenus, checkViewerSidebarMenu } from "./sidebar-menu-regression.mjs";
 
 const origin = process.env.MAKERSVAULT_BENCHMARK_WEB_URL;
 const api = process.env.MAKERSVAULT_BENCHMARK_API_URL;
@@ -41,7 +42,13 @@ async function main() {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   page.setDefaultTimeout(10000);
   const alerts = [];
-  page.on("dialog", async dialog => { alerts.push(dialog.message()); await dialog.dismiss(); });
+  let acceptFolderDelete = false;
+  page.on("dialog", async dialog => {
+    alerts.push(dialog.message());
+    if (acceptFolderDelete && dialog.type() === "confirm" && dialog.message().startsWith("Delete this folder?")) {
+      acceptFolderDelete = false; await dialog.accept();
+    } else await dialog.dismiss();
+  });
   const mutations = [];
   page.on("request", request => {
     if (request.method() === "POST" && /\/api\/asset\/[^/]+\/folder$/.test(new URL(request.url()).pathname)) {
@@ -64,6 +71,12 @@ async function main() {
   const destinations = dialog.getByRole("listbox", { name: "Destination folder" });
   const confirm = dialog.getByRole("button", { name: "Move model", exact: true });
   async function check(label) { report.checks.push(label); await save(); }
+  const menuFolder = await checkSidebarMenus({ page, session, check,
+    acceptNextFolderDelete: () => { acceptFolderDelete = true; } });
+  assert.equal(alerts.length, 2);
+  assert.ok(alerts.every(message => message.startsWith("Delete this folder?")));
+  assert.equal(acceptFolderDelete, false);
+  alerts.length = 0;
   async function folderIs(expected) {
     const response = await session.fetch("/assets?limit=25"); assert.equal(response.status, 200);
     const assets = await response.json();
@@ -214,6 +227,7 @@ async function main() {
   const denied = await viewerSession.fetch(`/asset/${target.id}/folder`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ folder_id: free.id }) });
   assert.equal(denied.status, 403); await folderIs(source.id);
   await check("real Viewer account sees current paths but no move controls; API independently denies mutation");
+  await checkViewerSidebarMenu({ page: viewer, session: viewerSession, folder: menuFolder, check });
   report.status = "passed";
 }
 

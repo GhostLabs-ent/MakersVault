@@ -7,7 +7,6 @@ import {
   FolderOpen,
   FolderPlus,
   Layers3,
-  MoreHorizontal,
   Pencil,
   Plus,
   Search,
@@ -30,6 +29,7 @@ import {
 import { entriesFromDataTransfer, uploadEntriesToFolder } from "../lib/uploadTree";
 import { buildUploadEntriesFromZip, isZipFile, readZipEntries } from "../lib/zipUtils";
 import TagInput from "./TagInput";
+import FolderActionMenu from "./FolderActionMenu";
 import { useZipImportPrompt } from "./ZipImportModal";
 import { useVaultCapabilities } from "../lib/CapabilityContext";
 import type { VaultRole } from "../lib/capabilities";
@@ -479,13 +479,6 @@ export default function Sidebar({
     });
   };
 
-  const closeFolderMenu = (e: React.MouseEvent<HTMLElement>) => {
-    const details = e.currentTarget.closest("details") as HTMLDetailsElement | null;
-    if (details?.open) {
-      details.open = false;
-    }
-  };
-
   const renderFolderNode = (folder: Folder, depth = 0): React.ReactNode => {
     if (visibleFolderIds && !visibleFolderIds.has(folder.id)) return null;
     const children = (childrenMap[folder.id] || []).filter(
@@ -528,41 +521,38 @@ export default function Sidebar({
             <span className="truncate">{folder.name || "Untitled"}</span>
           </button>
           <div className="relative sidebar-folder-actions">
-            <details>
-              <summary className="sidebar-action-trigger" aria-label={`Actions for ${folder.name || "Untitled"}`}>
-                <MoreHorizontal className="h-4 w-4" />
-              </summary>
-              <div className="sidebar-folder-menu">
+            <FolderActionMenu name={folder.name || "Untitled"}>
+              {close => <>
                 {capabilities.manageContent && <button
                   className="sidebar-menu-item"
                   disabled={busy}
-                  onClick={(e) => { closeFolderMenu(e); startCreate(folder.id); }}
+                  onClick={() => { close(); startCreate(folder.id); }}
                 >
                   <FolderPlus className="h-4 w-4" /> Subfolder
                 </button>}
                 {capabilities.manageContent && <button
                   className="sidebar-menu-item"
                   disabled={busy}
-                  onClick={(e) => { closeFolderMenu(e); startEdit(folder); }}
+                  onClick={() => { close(); startEdit(folder); }}
                 >
                   <Pencil className="h-4 w-4" /> Rename &amp; edit
                 </button>}
                 <button
                   className="sidebar-menu-item"
                   disabled={busy}
-                  onClick={(e) => { closeFolderMenu(e); downloadFolder(folder); }}
+                  onClick={() => { close(); downloadFolder(folder); }}
                 >
                   <Download className="h-4 w-4" /> Download ZIP
                 </button>
                 {capabilities.manageContent && <button
                   className="sidebar-menu-item sidebar-menu-danger"
                   disabled={busy}
-                  onClick={(e) => { closeFolderMenu(e); remove(folder.id); }}
+                  onClick={() => { close(); remove(folder.id); }}
                 >
                   <Trash2 className="h-4 w-4" /> Delete
                 </button>}
-              </div>
-            </details>
+              </>}
+            </FolderActionMenu>
           </div>
         </div>
         {isOpen && children.length > 0 && (

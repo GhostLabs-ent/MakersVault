@@ -38,7 +38,7 @@ verify-harness:
 	python3 -m unittest discover -s makervault/scripts/tests -v
 	docker run --rm -v "$(CURDIR)/makervault/benchmarks:/bench:ro" \
 		node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 \
-		sh -c 'node --check /bench/preview/preview-baseline.mjs && node --check /bench/organization/organization-baseline.mjs && node --check /bench/organization/mount-scan-verification.mjs && node --check /bench/organization/tls-probe.mjs && node --check /bench/organization/request-order-regression.mjs && node --check /bench/organization/folder-picker-regression.mjs && node --test /bench/session-client.test.mjs /bench/first-visible-card.test.mjs /bench/organization/chromium-profile.test.mjs /bench/organization/organization-timing.test.mjs /bench/preview/detail-profile.test.mjs'
+		sh -c 'node --check /bench/preview/preview-baseline.mjs && node --check /bench/organization/organization-baseline.mjs && node --check /bench/organization/mount-scan-verification.mjs && node --check /bench/organization/tls-probe.mjs && node --check /bench/organization/request-order-regression.mjs && node --check /bench/organization/folder-picker-regression.mjs && node --check /bench/organization/sidebar-menu-regression.mjs && node --test /bench/session-client.test.mjs /bench/first-visible-card.test.mjs /bench/organization/chromium-profile.test.mjs /bench/organization/organization-timing.test.mjs /bench/preview/detail-profile.test.mjs'
 
 verify-lifecycle:
 	python3 makervault/scripts/gate13-lifecycle-drill.py --allow-dirty

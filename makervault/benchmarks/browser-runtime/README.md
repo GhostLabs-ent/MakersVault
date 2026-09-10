@@ -47,11 +47,15 @@ The `folder-picker` workflow runs all selected engines with real keyboard/dialog
 cancel, move/conflict, missing-target and Viewer checks. Its explicitly injected
 background refresh/navigation races check request ownership, not timing or normal
 modal interaction. Fixture-only accounts and files are discarded with the stack.
+It also verifies lazy sidebar-menu mounting, native disclosure keys and focus,
+duplicate-name action ownership, open-menu refresh, subfolder creation, ZIP download,
+confirmed/cancelled deletion, filtering/collapse and Viewer restrictions. Its synthetic
+DataTransfer check covers browser file-drop handlers, not native OS drag support.
 The ordering fixture delays assets, tags and pagination across searches and view
 changes, including stale versus current authorization errors. It also checks that
 unsubmitted search text cannot change pagination's applied query.
 
-Organization report schema 4 retains schema 3's first-card visibility inside the browser at
+Organization report schema 5 retains schema 3's first-card visibility inside the browser at
 an animation frame, independently of Playwright locator retry timing. It is a
 visible-layout measurement, not physical display presentation. Navigation and
 automated sign-in remain included; the existing Chromium <1000 ms budget is
@@ -65,6 +69,11 @@ completion checks the actual returned IDs/current folder instead of an old card 
 an eagerly mounted select. Navigation and automated login remain inside startup.
 Post-action DOM snapshots require zero per-card folder destination options when
 the shared dialog is closed. No performance limit changed.
+Schema 5 additionally records sidebar rows/elements and closed-menu descendants,
+requiring zero eager closed-menu contents. The folder-search input now uses its
+scoped textbox role and exact accessible name; the same timer, real fill and visible
+results assertion remain. This is a measurement correction distinct from lazy-menu
+application work, and no historical failed report is retroactively changed.
 
 Use `--folder-stress --workflows organization --browsers chromium` for a separately
 labelled 600-Artifact/1,040-folder probe. The default fixture remains 600/104 and

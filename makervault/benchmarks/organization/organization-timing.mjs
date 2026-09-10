@@ -67,5 +67,9 @@ export function readFolderControlDom(folderIds) {
   return { cards: cards.length, elements: document.querySelectorAll("*").length,
     options: document.querySelectorAll("option").length, cardFolderSelects: folderSelects.length,
     cardFolderOptions: folderSelects.reduce((sum, select) => sum + select.options.length, 0),
+    sidebarElements: document.querySelectorAll("aside *").length,
+    folderRows: document.querySelectorAll(".sidebar-tree-row").length,
+    closedFolderMenus: document.querySelectorAll(".sidebar-folder-actions details:not([open])").length,
+    closedFolderMenuElements: document.querySelectorAll(".sidebar-folder-actions details:not([open]) .sidebar-folder-menu, .sidebar-folder-actions details:not([open]) .sidebar-folder-menu *").length,
     openDialogs: document.querySelectorAll("dialog[open]").length };
 }
