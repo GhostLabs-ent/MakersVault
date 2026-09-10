@@ -82,7 +82,15 @@ language scans are clean again, with no skipped Python dependencies; exact image
 inventory remains 181 API / 3 web matches with reduced-record equality. Strict
 IDNA2008 mitigates the reviewed outbound hostname path; the interpreter itself
 remains matched/unpatched. Native/raw-recovery S04 risks remain unwaived, and
-security acceptance is still open.
+security acceptance is still open. The subsequent
+[S04 decision checkpoint](../evidence/gate-13/SECURITY_RESIDUAL_DECISIONS.md) accounts
+for 80 native CVEs: 11 proposed exact-image precondition exclusions, 10 priority
+unresolved reviews and 59 scoped residual decisions, all owner-pending. It finds
+no explicit no-new-privileges/capability policy in shipped Compose; disposable
+probe isolation is not production containment evidence. The bounded containment
+implementation is proposed for approval, not installed. Historical private temporary
+reports are unavailable this session; committed records remain and the exact-image
+benign component probe was repeated. Release raw evidence must be retained durably.
 
 ## Finding-by-finding disposition
 

@@ -1,0 +1,2323 @@
+{
+  "schema": 1,
+  "status": "proposed_not_accepted",
+  "application_revision": "ac4a051302d49838ef676c760cdfd95ab2127408",
+  "images": {
+    "api": {
+      "id": "sha256:4ba3ee6147ed94fb0dd8f1502dba16d257ce98da0aa9595898e5b44ff3bdc5cc",
+      "platform": "linux/amd64"
+    },
+    "web": {
+      "id": "sha256:164a7f830ff2868bda6b8a0012a8ab421fe070c64f8f669a986896cd1f8a73fa",
+      "platform": "linux/amd64"
+    }
+  },
+  "input_sha256": {
+    "security-closeout-inventory.json": "d10aa9b8396c7b984f6fe07850fcd8053c9f799e97eaaf28c86b89b594d66324",
+    "security-hardening-audit.json": "5fd920c706cf48471995344bfa25bba85f9282c46a490a32a73b2a9ed312ab6b",
+    "security-hardening-verification.json": "0c5987e1b6b242acf1bc97f2ecbb9027ca75a78119eba27951d394d0fd795e74",
+    "security-residual-observations.json": "c36a31cc9e45a022ab8d7c9af611628dcf2d4105f6fe5648e52e56410926b28a"
+  },
+  "scope": "80 S04 CVEs / 167 matches; 17 interpreter CVEs remain in S02/S03; all 184 scanner matches retained",
+  "decision_policy": {
+    "risk_acceptance": "not_granted",
+    "proposed_owner": "MakersVault maintainer; confirm named approver",
+    "proposed_review_deadline": "Before candidate freeze/13D and within 30 days of acceptance, whichever comes first",
+    "reopen_on": [
+      "relevant vendor fix",
+      "new reachable path",
+      "changed image or architecture",
+      "weaker deployment or raw-backup trust boundary"
+    ],
+    "containment": "SECURITY_RESIDUAL_DECISIONS.md#proposed-next-slice--containment-before-acceptance"
+  },
+  "counts": {
+    "E_exact_image_precondition_exclusion": 11,
+    "H_priority_unresolved_review": 10,
+    "R_scoped_residual_decision": 59
+  },
+  "records": [
+    {
+      "id": "CVE-2005-2541",
+      "source_families": [
+        "tar"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "tar",
+          "version": "1.35+dfsg-3.1",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2005-2541",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2007-5686",
+      "source_families": [
+        "shadow"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "login.defs",
+          "version": "1:4.17.4-2",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "passwd",
+          "version": "1:4.17.4-2",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2007-5686",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2010-4756",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2010-4756",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2011-3374",
+      "source_families": [
+        "apt"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "apt",
+          "version": "3.0.3",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libapt-pkg7.0",
+          "version": "3.0.3",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2011-3374",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2011-4116",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2011-4116",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2013-4392",
+      "source_families": [
+        "systemd"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2013-4392",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2017-18018",
+      "source_families": [
+        "coreutils"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "coreutils",
+          "version": "9.7-3",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2017-18018",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2018-20796",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2018-20796",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2019-1010022",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2019-1010022",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2019-1010023",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2019-1010023",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2019-1010024",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2019-1010024",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2019-1010025",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2019-1010025",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2019-9192",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2019-9192",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2021-45346",
+      "source_families": [
+        "sqlite3"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2021-45346",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2022-0563",
+      "source_families": [
+        "util-linux"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libblkid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libmount1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libuuid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "mount",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "util-linux",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2022-0563",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2023-31437",
+      "source_families": [
+        "systemd"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2023-31437",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2023-31438",
+      "source_families": [
+        "systemd"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2023-31438",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2023-31439",
+      "source_families": [
+        "systemd"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2023-31439",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2024-56433",
+      "source_families": [
+        "shadow"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "login.defs",
+          "version": "1:4.17.4-2",
+          "severity": "Low"
+        },
+        {
+          "image": "api",
+          "package": "passwd",
+          "version": "1:4.17.4-2",
+          "severity": "Low"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2024-56433",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2025-15649",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "required_perl_module_not_loadable_in_inspected_runtime",
+      "proposed_action": "E_exact_image_precondition_exclusion",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2025-15649",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2025-5278",
+      "source_families": [
+        "coreutils"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "coreutils",
+          "version": "9.7-3",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2025-5278",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2025-60876",
+      "source_families": [
+        "busybox"
+      ],
+      "matches": [
+        {
+          "image": "web",
+          "package": "busybox",
+          "version": "1.37.0-r31",
+          "severity": "Medium"
+        },
+        {
+          "image": "web",
+          "package": "busybox-binsh",
+          "version": "1.37.0-r31",
+          "severity": "Medium"
+        },
+        {
+          "image": "web",
+          "package": "ssl_client",
+          "version": "1.37.0-r31",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "no_application_input_to_busybox_wget_identified",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://raw.githubusercontent.com/CVEProject/cvelistV5/main/cves/2025/60xxx/CVE-2025-60876.json",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2025-6141",
+      "source_families": [
+        "ncurses"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libncursesw6",
+          "version": "6.5+20250216-2",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libtinfo6",
+          "version": "6.5+20250216-2",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "ncurses-base",
+          "version": "6.5+20250216-2",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "ncurses-bin",
+          "version": "6.5+20250216-2",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2025-6141",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2025-69720",
+      "source_families": [
+        "ncurses"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libncursesw6",
+          "version": "6.5+20250216-2",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libtinfo6",
+          "version": "6.5+20250216-2",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "ncurses-base",
+          "version": "6.5+20250216-2",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "ncurses-bin",
+          "version": "6.5+20250216-2",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2025-69720",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2025-70873",
+      "source_families": [
+        "sqlite3"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2025-70873",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-11822",
+      "source_families": [
+        "sqlite3"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "H_priority_unresolved_review",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-11822",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-11824",
+      "source_families": [
+        "sqlite3"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "H_priority_unresolved_review",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-11824",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-12087",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Critical"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-12087",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-13221",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Critical"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-13221",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-15059",
+      "source_families": [
+        "systemd"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-15059",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-15534",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-15534",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-16742",
+      "source_families": [
+        "systemd"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-16742",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-18374",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-18374",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-18477",
+      "source_families": [
+        "tar"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "tar",
+          "version": "1.35+dfsg-3.1",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-18477",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-18508",
+      "source_families": [
+        "tar"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "tar",
+          "version": "1.35+dfsg-3.1",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-18508",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-19487",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-19487",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-19499",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Unknown"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "H_priority_unresolved_review",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-19499",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-19542",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Unknown"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "H_priority_unresolved_review",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-19542",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-27171",
+      "source_families": [
+        "zlib"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "zlib1g",
+          "version": "1:1.3.dfsg+really1.3.1-1+b1",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-27171",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-3184",
+      "source_families": [
+        "util-linux"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libblkid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libmount1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libuuid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "mount",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "util-linux",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-3184",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-39113",
+      "source_families": [
+        "sqlite3"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "H_priority_unresolved_review",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-39113",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-40228",
+      "source_families": [
+        "systemd"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Low"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Low"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-40228",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-41991",
+      "source_families": [
+        "gzip"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "gzip",
+          "version": "1.13-1",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-41991",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-41992",
+      "source_families": [
+        "gzip"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "gzip",
+          "version": "1.13-1",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-41992",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-42250",
+      "source_families": [
+        "bzip2"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libbz2-1.0",
+          "version": "1.0.8-6",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-42250",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-42496",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Critical"
+        }
+      ],
+      "review_basis": "required_perl_module_not_loadable_in_inspected_runtime",
+      "proposed_action": "E_exact_image_precondition_exclusion",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-42496",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-42497",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "required_perl_module_not_loadable_in_inspected_runtime",
+      "proposed_action": "E_exact_image_precondition_exclusion",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-42497",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-48959",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "required_perl_module_not_loadable_in_inspected_runtime",
+      "proposed_action": "E_exact_image_precondition_exclusion",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-48959",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-48961",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "required_perl_module_not_loadable_in_inspected_runtime",
+      "proposed_action": "E_exact_image_precondition_exclusion",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-48961",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-48962",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "required_perl_module_not_loadable_in_inspected_runtime",
+      "proposed_action": "E_exact_image_precondition_exclusion",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-48962",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-50812",
+      "source_families": [
+        "sqlite3"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "H_priority_unresolved_review",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-50812",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-50813",
+      "source_families": [
+        "sqlite3"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-50813",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-53910",
+      "source_families": [
+        "diffutils"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "diffutils",
+          "version": "1:3.10-4",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-53910",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-5435",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-5435",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-54369",
+      "source_families": [
+        "acl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libacl1",
+          "version": "2.3.2-2+b1",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-54369",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-54370",
+      "source_families": [
+        "acl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libacl1",
+          "version": "2.3.2-2+b1",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-54370",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-54371",
+      "source_families": [
+        "attr"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libattr1",
+          "version": "1:2.5.2-3",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-54371",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-54411",
+      "source_families": [
+        "pam"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libpam-modules",
+          "version": "1.7.0-5",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libpam-modules-bin",
+          "version": "1.7.0-5",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libpam-runtime",
+          "version": "1.7.0-5",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libpam0g",
+          "version": "1.7.0-5",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-54411",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-5450",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Critical"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Critical"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "H_priority_unresolved_review",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-5450",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-56391",
+      "source_families": [
+        "coreutils"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "coreutils",
+          "version": "9.7-3",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-56391",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-56392",
+      "source_families": [
+        "coreutils"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "coreutils",
+          "version": "9.7-3",
+          "severity": "Negligible"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-56392",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-5704",
+      "source_families": [
+        "tar"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "tar",
+          "version": "1.35+dfsg-3.1",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-5704",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-57432",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-57432",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-57433",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Critical"
+        }
+      ],
+      "review_basis": "required_perl_module_not_loadable_in_inspected_runtime",
+      "proposed_action": "E_exact_image_precondition_exclusion",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-57433",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-5928",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-5928",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-6238",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-6238",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-6368",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Low"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Low"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-6368",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-6791",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-6791",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-7010",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Medium"
+        }
+      ],
+      "review_basis": "required_perl_module_not_loadable_in_inspected_runtime",
+      "proposed_action": "E_exact_image_precondition_exclusion",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-7010",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-7017",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "required_perl_module_not_loadable_in_inspected_runtime",
+      "proposed_action": "E_exact_image_precondition_exclusion",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-7017",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-76642",
+      "source_families": [
+        "util-linux"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libblkid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libmount1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libuuid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "mount",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "util-linux",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-76642",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-77117",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Unknown"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "H_priority_unresolved_review",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-77117",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-78408",
+      "source_families": [
+        "util-linux"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libblkid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libmount1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libuuid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "mount",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "util-linux",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-78408",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-78409",
+      "source_families": [
+        "util-linux"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libblkid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libmount1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libuuid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "mount",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "util-linux",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-78409",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-78410",
+      "source_families": [
+        "util-linux"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libblkid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libmount1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libuuid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "mount",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "util-linux",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-78410",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-80489",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Unknown"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "H_priority_unresolved_review",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-80489",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-8376",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Critical"
+        }
+      ],
+      "review_basis": "32_bit_precondition_absent_in_inspected_64_bit_runtime",
+      "proposed_action": "E_exact_image_precondition_exclusion",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-8376",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-85091",
+      "source_families": [
+        "zlib"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "zlib1g",
+          "version": "1:1.3.dfsg+really1.3.1-1+b1",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "H_priority_unresolved_review",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-85091",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-86145",
+      "source_families": [
+        "pcre2"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libpcre2-8-0",
+          "version": "10.46-1~deb13u1",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "unresolved_platform_residual",
+      "proposed_action": "R_scoped_residual_decision",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-86145",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-9538",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "High"
+        }
+      ],
+      "review_basis": "required_perl_module_not_loadable_in_inspected_runtime",
+      "proposed_action": "E_exact_image_precondition_exclusion",
+      "evidence": "SECURITY_CLOSEOUT.md#s04--native-image-residuals-and-recovery-boundary",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-9538",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    }
+  ]
+}

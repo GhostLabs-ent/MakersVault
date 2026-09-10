@@ -38,6 +38,14 @@ audits are clean; exact images retain all 181 API / 3 web matches with reduced-r
 equality. Strict outbound IDNA2008 mitigates the reviewed application path, not the
 whole interpreter. S04 residual-risk acceptance and platform/release proof remain open.
 
+**S04 follow-up:** [per-CVE decision checkpoint](SECURITY_RESIDUAL_DECISIONS.md)
+records 11 proposed exact-image precondition exclusions and 69 unwaived residual
+CVEs (10 prioritized for uncertainty/raw-input/native review). Fresh exact-image
+component observations match prior evidence. Proposed runtime containment requires
+owner approval; the probe's isolation flags are not shipped Compose defaults.
+No new full-gate/advisory scan or risk acceptance is claimed. Historical private
+temporary logs are unavailable this session; durable candidate raw evidence is required.
+
 ## Bounded execution
 
 1. Refresh stale browser assertions to the accepted current UI, retaining explicit

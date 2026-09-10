@@ -284,6 +284,7 @@ row's future-tense wording.
 | T-065 | `VERIFIED` / `DECIDED` | Bounded folder-list projection at `c42614e` preserves output and immediate mutation visibility without ORM hydration; 354 API tests pass. Disposable HTTP instrumentation attributes some API spikes to cyclic garbage collection, not expensive SQL execution. | `docs/evidence/gate-13/BOUNDED_PERFORMANCE_RESULTS.md`, diagnostic samples and same-image unprofiled browser reports | Stress API still misses <100 ms. Exact intermittent browser wait remains unresolved. Owner authorized this one final pass and accepts carrying remaining performance issues for now: stop tuning; retain failures and original budgets. Not full-gate rerun, advisory waiver, native-platform proof, release or 13C acceptance. |
 | T-066 | `VERIFIED` / `PROPOSED` | Security closeout review at `fb645d7` audits exact `c42614e` images and unchanged locks: production language scopes clean; development scans find Vitest/mocker and HTTPX2/httpcore2 advisories. All 181 API / 3 web matches are retained with reduced-record equality. Seven Python exclusions freshly confirmed; 68 focused security tests pass. Runtime inspection narrows several Perl preconditions; Unicode IDNA and native/raw-recovery residuals remain | `docs/evidence/gate-13/SECURITY_CLOSEOUT.md`, audit/inventory/runtime evidence and source URLs | REVIEW COMPLETE, SECURITY ACCEPTANCE OPEN. Approve bounded S01 tool refresh/S02 hostname hardening before implementation; resolve or explicitly disposition S04 against exact candidate images. No application/lock change, suppression, waiver, full-gate repeat, release or 13C acceptance. G13-01 stays deferred. |
 | T-067 | `VERIFIED` | Owner-approved S01/S02 implementation at clean `ac4a051` updates Vitest and HTTPX2/httpcore2, declares existing idna directly, and uses strict IDNA2008 across outbound DNS/Host/SNI/redirect identity. 68 new cases and old-image negative control verify the boundary; 138 focused tests pass. Full gate passes 422 API tests, same-source 58-test web preflight, 19 Python / 28 Node harness tests and current HTTPS lifecycle. Fresh language audits are clean; exact runtime matches remain 181 API / 3 web with reduced-record equality | `docs/evidence/gate-13/SECURITY_HARDENING_RESULTS.md`, complete captured attempts/audit/runtime evidence | Reviewed outbound IDNA path mitigated, not a whole-interpreter patch. S04 native/raw-recovery residuals remain unwaived and require explicit dispositions before candidate qualification. No changed inbound auth, schema, base image, installer/bridge/release pin or stored model bytes. Performance G13-01 stays deferred; no push, release or automatic 13C acceptance. |
+| T-068 | `VERIFIED` / `PROPOSED` | S04 decision preparation at unchanged `ac4a051` inputs accounts for 80 native CVEs / 167 matches: 11 exact-image precondition exclusions proposed, 10 priority unresolved reviews and 59 scoped residual decisions. A fresh benign probe exactly matches prior components on the named linux/amd64 images; targeted vendor pages rechecked. Shipped Compose does not explicitly apply the probe's isolation flags | `docs/evidence/gate-13/SECURITY_RESIDUAL_DECISIONS.md`, per-CVE pending register and new observations | Zero owner risk acceptances. Approve bounded no-new-privileges/capability hardening before implementing it; preserve startup ownership, upload limits and recovery. Historical private temporary logs are unavailable this session; committed evidence retained, no new full gate/advisory scan claimed. Durable raw candidate evidence required. No runtime changes, release, push or gate acceptance. |
 
 ### 5.4 Current storage invariants
 
@@ -1359,11 +1360,15 @@ authentication controls. The owner-authorized
 [security closeout review](evidence/gate-13/SECURITY_CLOSEOUT.md) is documented;
 its S01/S02 proposal was explicitly approved and is now
 [implemented and verified](evidence/gate-13/SECURITY_HARDENING_RESULTS.md) at `ac4a051`.
-**Next checkpoint: accept the bounded S01/S02 evidence and explicitly disposition
-S04 native-image/raw-recovery residuals against the exact images and architecture.**
-Those residuals need fixes or scoped owner acceptance before candidate qualification;
-the patch approval did not waive them. Physical/native-platform and operator/release
-readiness follow. Security acceptance and 13C closeout remain open.
+The [S04 decision checkpoint](evidence/gate-13/SECURITY_RESIDUAL_DECISIONS.md)
+now covers every native CVE and distinguishes shipped deployment controls from
+inspection-only isolation. **Next checkpoint: approve the bounded runtime containment
+slice (no-new-privileges / least capabilities, preserving ownership and upload limits)
+before implementation, then revisit named residual decisions against verified images.**
+All E/H/R decisions remain pending; 69 residual CVEs are unwaived. Historical private
+temporary reports are unavailable this session; preserve fresh candidate raw evidence
+durably. Physical/native-platform and operator/release readiness follow. Security
+acceptance and 13C closeout remain open.
 Gate 12 remains deferred to desktop. End-state acceptance and the next roadmap remain 13D owner
 decisions; the frozen Gate 5 release baseline is unchanged. Push, tag, image
 publication, deployment, and release remain separately gated. Keep the

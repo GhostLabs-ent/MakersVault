@@ -7,6 +7,10 @@ The [hardening results](SECURITY_HARDENING_RESULTS.md) supersede the pending pat
 proposal and development-tool findings below: full verification passes, fresh
 language audits are clean, and image matches remain 181 API / 3 web. The rest of
 this document preserves the pre-patch review. S04 risks are still not waived.
+The later [S04 decision checkpoint](SECURITY_RESIDUAL_DECISIONS.md) supplies the
+per-CVE pending register, repeated component evidence, deployment-control distinction
+and bounded containment proposal. Its evidence-retention note supersedes any
+assumption below that historical private temporary artifacts are still available.
 
 Owner authorized the security closeout review after parking further performance
 tuning. This package records current scans, bounded source/runtime review, proposed

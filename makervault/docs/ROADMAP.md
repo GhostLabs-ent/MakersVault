@@ -43,7 +43,11 @@ strict IDNA2008. Full verification passes 422 API tests and the same-source 58-t
 web preflight, plus current HTTPS lifecycle. Fresh language audits are clean; exact
 images retain 181 API / 3 web matches. Remaining native risks, including trusted
 raw recovery, are not waived; security acceptance remains open. Production HTTPS
-is required even on LAN/VPN.
+is required even on LAN/VPN. The subsequent
+[S04 decision record](evidence/gate-13/SECURITY_RESIDUAL_DECISIONS.md) covers all
+80 native CVEs, with zero acceptances. It proposes bounded runtime capability /
+no-new-privileges hardening for approval; inspection-only isolation is not claimed
+as shipped Compose policy. No upload/resource limit or application change was made.
 Browser/platform and release-readiness
 evidence remain unfinished, followed by 13D owner acceptance of the end state and next
 roadmap. The [traceability/carry-forward register](evidence/gate-13/TRACEABILITY.md)
