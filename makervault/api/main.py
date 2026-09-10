@@ -3035,8 +3035,12 @@ def delete_project_relationship(
 @app.get("/folders", response_model=List[FolderOut])
 def list_folders(_: Optional[str] = Depends(require_auth)):
     with Session(engine) as s:
-        rows = list(s.exec(select(Folder)))
-    return [folder_to_out(f) for f in rows]
+        # This read-only list needs values, not tracked ORM objects for every folder.
+        rows = s.exec(select(Folder.id, Folder.name, Folder.tags_json, Folder.parent_id)).all()
+    return [
+        FolderOut(id=row.id, name=row.name, tags=json.loads(row.tags_json or "[]"), parent_id=row.parent_id)
+        for row in rows
+    ]
 
 
 @app.post("/folders", response_model=FolderOut)
