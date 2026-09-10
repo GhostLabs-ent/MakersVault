@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 
 // Called only by the functional picker fixture, never inside a timed workflow.
-export async function checkSidebarMenus({ page, session, check, acceptNextFolderDelete }) {
+export async function checkSidebarMenus({ page, session, check, acceptNextFolderDelete, step }) {
   async function request(path, method, body) {
     const response = await session.fetch(path, { method, headers: { "content-type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body) });
@@ -81,6 +81,7 @@ export async function checkSidebarMenus({ page, session, check, acceptNextFolder
   await check('subfolder targets the owning parent; another open menu follows refreshed folder data without opening closed siblings');
 
   // Synthetic browser DataTransfer exercises the existing file-drop handlers, not OS drag support.
+  await step('synthetic file-drop upload');
   const droppedBytes = 'cube([7,8,9]);\n';
   const transfer = await page.evaluateHandle(bytes => {
     const data = new DataTransfer(); data.items.add(new File([bytes], 'menu-drop.scad', { type: 'text/plain' })); return data;
@@ -96,6 +97,7 @@ export async function checkSidebarMenus({ page, session, check, acceptNextFolder
   const uploaded = await uploadedResponse.json();
   assert.equal(uploaded.folder_id, parent.id);
   assert.equal(await (await session.fetch(uploaded.url)).text(), droppedBytes);
+  await step('refreshed open-menu ZIP download');
   await actions('Menu parent A refreshed').waitFor();
   const [download, response] = await Promise.all([
     page.waitForEvent('download'),
@@ -106,6 +108,7 @@ export async function checkSidebarMenus({ page, session, check, acceptNextFolder
   assert.match(download.suggestedFilename(), /Menu_parent_A_refreshed.*\.zip$/);
   await waitClosed('Menu parent A refreshed');
   await check('folder drop keeps exact target and original bytes; refreshed-name ZIP download uses the current folder and closes its menu');
+  await step('cancelled and confirmed folder deletion');
 
   await trigger(rightPath).click();
   await actions(rightPath).getByRole('button', { name: 'Delete', exact: true }).click(); // Default fixture handler dismisses confirmation.
