@@ -32,6 +32,10 @@ contents and the scoped accessible locator at `82cb2cc`; full verification passe
 folder-API latency remain separate investigative tracks, not claimed fixed by menus.
 Current repetitions retain a 1,368.5 ms startup failure and 113.3/108.3 ms stress
 folders API p95 failures, despite fast search and zero observed interaction tasks.
+The owner's subsequent [bounded performance pass](evidence/gate-13/BOUNDED_PERFORMANCE_RESULTS.md)
+adds a read-only folder-list projection at `c42614e`, with 354 API tests passing.
+The stress API target still fails. Further performance tuning is deferred at the
+owner's request; historical/current failures remain recorded, not converted to passes.
 Remaining image findings are not
 waived. Deployment guidance explicitly requires production HTTPS even on LAN/VPN.
 Browser/platform and release-readiness

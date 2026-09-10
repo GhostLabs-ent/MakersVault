@@ -13,6 +13,15 @@ printer controller, or multi-user cloud service.
 
 ## Highlights
 
+### Lower-overhead folder listing (Gate 13C)
+
+- Folder lists read plain database values instead of constructing tracked objects
+  for every folder. Response fields, permissions and immediate updates are unchanged;
+  no cache or folder/upload limit is added.
+- All 354 API tests pass at `c42614e`. This is a bounded improvement, not a complete
+  fix for intermittent stalls or API tail latency. Further tuning is deferred at
+  the owner's request; see [results](evidence/gate-13/BOUNDED_PERFORMANCE_RESULTS.md).
+
 ### Lighter folder-tree action menus (Gate 13C)
 
 - Folder action contents are created only when opened and removed when closed.

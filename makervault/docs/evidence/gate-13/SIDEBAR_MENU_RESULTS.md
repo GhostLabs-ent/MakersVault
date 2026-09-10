@@ -213,6 +213,11 @@ reducer syntax and `git diff --check` pass. Frozen release pins remain unchanged
 
 ## Remaining checkpoint
 
+**Follow-up:** the owner authorized one bounded pass and then a stop to further
+performance tuning. [Results and disposition](BOUNDED_PERFORMANCE_RESULTS.md)
+record `c42614e`, the remaining failures and that decision. The proposal below is
+historical; it is not authorization for another open-ended investigation.
+
 Next proposed bounded work: profile the repeatable folder-list API miss separately
 (authentication, SQL, conversion/serialization, proxy and host elapsed time), and
 capture the intermittent startup/detail wait without treating it as DOM-bound by

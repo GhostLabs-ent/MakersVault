@@ -1,0 +1,864 @@
+{
+  "schema": 1,
+  "notice": "Two complete unprofiled runs from the owner-authorized bounded pass. Failed timing budgets remain failures; further tuning is deferred by owner choice, not a performance pass.",
+  "runs": [
+    {
+      "id": "a",
+      "disposition": "Unprofiled 600-Artifact/1040-folder stress on c42614e; unchanged timing budgets.",
+      "output_root": "/tmp/makersvault-g13c-bounded-0910a",
+      "summary": {
+        "captured_at": "2026-09-10T20:33:19.182869+00:00",
+        "harness_revision": "c42614e9cc99b45e32ffd203a4f7e70cb4ff0b30",
+        "application_revision": "c42614e9cc99b45e32ffd203a4f7e70cb4ff0b30",
+        "application_version": "development-gate13b",
+        "diagnostic_profile": false,
+        "organization_fixture": "folder-stress-1040",
+        "images": {
+          "api": "sha256:b1c67e9f8dad2b29e72a816cc472da9130d02faddf9cd9d35b2a0bd18d633de0",
+          "web": "sha256:7aa39929cd656b8fddaac64d62bc67174f172980e2ab0a1ccad0f298786da5f2"
+        },
+        "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+        "status": "failed",
+        "cases": [
+          {
+            "case": "organization-chromium",
+            "status": "failed",
+            "exit_code": 1,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "523fb558bc600a704d7f3a62f76a2b60ef6353376beee1874aaeba7eafb16e18"
+          }
+        ],
+        "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+      },
+      "reports": {
+        "organization-chromium": {
+          "baseline.json": {
+            "schema": 5,
+            "diagnosticProfile": false,
+            "capturedAt": "2026-09-10T20:34:23.763Z",
+            "corpus": {
+              "assets": 600,
+              "folders": 1040,
+              "roots": 80,
+              "branches": 320,
+              "leaves": 640,
+              "depth": 3,
+              "seedMs": 44330.483079
+            },
+            "api": {
+              "firstPage": {
+                "path": "/assets?limit=25&offset=0",
+                "itemCount": 25,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 22.90361000000121,
+                  "p95": 27.072720999996818,
+                  "max": 27.072720999996818
+                }
+              },
+              "exactSearch": {
+                "path": "/assets?limit=25&offset=0&q=Fixture%200595",
+                "itemCount": 1,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 9.557463999997708,
+                  "p95": 18.741432000002533,
+                  "max": 18.741432000002533
+                }
+              },
+              "folderPage": {
+                "path": "/assets?limit=25&offset=0&folder_id=a9be1820-ae9c-4609-9688-d079239dc470",
+                "itemCount": 1,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 6.628897999995388,
+                  "p95": 8.596230999995896,
+                  "max": 8.596230999995896
+                }
+              },
+              "folders": {
+                "path": "/folders",
+                "itemCount": 1040,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 22.834170000001905,
+                  "p95": 108.24693700000353,
+                  "max": 108.24693700000353
+                }
+              }
+            },
+            "browser": {
+              "engine": "chromium",
+              "performanceBudgetEnforced": true,
+              "firstCardsMs": 471,
+              "firstCardsWaitReturnMs": 490.2876400000023,
+              "firstVisibleCard": {
+                "schema": 1,
+                "clock": "navigation",
+                "atMs": 471,
+                "submittedAtMs": 182.70000000018626
+              },
+              "startupBreakdown": {
+                "documentMs": 58.582260999995924,
+                "formWaitMs": 61.14290700000129,
+                "formFillMs": 17.26769200000126,
+                "signInClickMs": 53.76265599999897,
+                "afterClickToCardsMs": 339.62130900000193,
+                "includesLoginAutomation": true
+              },
+              "initialCardCount": 20,
+              "loadMoreMs": 114.94597900000372,
+              "loadedCardCount": 40,
+              "folderControls": {
+                "initial": {
+                  "cards": 20,
+                  "elements": 1126,
+                  "options": 88,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "sidebarElements": 80,
+                  "folderRows": 0,
+                  "closedFolderMenus": 0,
+                  "closedFolderMenuElements": 0,
+                  "openDialogs": 0
+                },
+                "loaded": {
+                  "cards": 40,
+                  "elements": 8611,
+                  "options": 168,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "sidebarElements": 6553,
+                  "folderRows": 400,
+                  "closedFolderMenus": 400,
+                  "closedFolderMenuElements": 0,
+                  "openDialogs": 0
+                },
+                "folder": {
+                  "cards": 1,
+                  "elements": 234,
+                  "options": 12,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "sidebarElements": 125,
+                  "folderRows": 3,
+                  "closedFolderMenus": 3,
+                  "closedFolderMenuElements": 0,
+                  "openDialogs": 0
+                }
+              },
+              "selectedAfterLoadMore": 2,
+              "exactSearchMs": 95.26144800000475,
+              "exactSearchResultCount": 1,
+              "selectedBeforeFilter": 2,
+              "selectedAfterFilter": 0,
+              "visibleBulkToolbarBeforeFilter": 1,
+              "preparedSummaryVisible": true,
+              "supportingDocumentVisible": true,
+              "preparedPayloadLinkCount": 0,
+              "mixedMoveSelectedAfter": 1,
+              "mixedMoveCompletionWaited": true,
+              "mixedMoveSuccessSelected": false,
+              "mixedMoveConflictSelected": true,
+              "mixedMoveFailureVisible": true,
+              "tagPreservationVerified": true,
+              "selectedDownloadSuggestedFilename": "makersvault.zip",
+              "bulkTrashRecoverableVisible": true,
+              "bulkTrashSelectionAfterPanelCancel": 2,
+              "bulkTrashSelectionAfterDialogCancel": 2,
+              "singleTrashRestoreVerified": true,
+              "bulkTrashRestoreVerified": true,
+              "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+              "singleDeleteSelectionAfterCancel": 1,
+              "folderSearchMs": 59.326970999994955,
+              "visibleFolderRows": 3,
+              "folderOpenMs": 66.76603199999954,
+              "folderCardCount": 1,
+              "childFolderEmptyStateVisible": true,
+              "breadcrumbAncestorNavigationVisible": true,
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+              "heapBytes": 30643977,
+              "breadcrumbCount": 1,
+              "longTaskAttributionSchema": 2,
+              "longTasksAvailable": true,
+              "longTasks": {
+                "count": 0,
+                "totalMs": 0,
+                "maxMs": 0,
+                "byPhase": {}
+              },
+              "legacyLongTasks": {
+                "count": 0,
+                "totalMs": 0,
+                "maxMs": 0,
+                "byPhase": {}
+              },
+              "legacyMaxInteractionLongTaskMs": 0,
+              "maxInteractionLongTaskMs": 0,
+              "longTaskEntries": []
+            }
+          },
+          "startup-chromium.json": {
+            "firstCardsMs": 471,
+            "firstCardsWaitReturnMs": 490.2876400000023,
+            "firstVisibleCard": {
+              "schema": 1,
+              "clock": "navigation",
+              "atMs": 471,
+              "submittedAtMs": 182.70000000018626
+            },
+            "startupBreakdown": {
+              "documentMs": 58.582260999995924,
+              "formWaitMs": 61.14290700000129,
+              "formFillMs": 17.26769200000126,
+              "signInClickMs": 53.76265599999897,
+              "afterClickToCardsMs": 339.62130900000193,
+              "includesLoginAutomation": true
+            }
+          }
+        }
+      },
+      "raw_artifacts": [
+        {
+          "path": "/tmp/makersvault-g13c-bounded-0910a/organization-chromium/baseline.json",
+          "sha256": "9e38557b7f87d0bd73b93ff8e286700462de3978e32a9b74574470d5bb3a6f28"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-bounded-0910a/organization-chromium/selection-toolbar-chromium.png",
+          "sha256": "a79e80c085902e1592ea57b0ff362a52c63a5eb9e341914a4876963343dccca1"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-bounded-0910a/organization-chromium/startup-chromium.json",
+          "sha256": "baeef8a3a6db0f32c05a574b4f58896a184b2c98e28ce01a1a165ba6032b589d"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-bounded-0910a/organization-chromium/stderr.txt",
+          "sha256": "8f42e282a15e71aec6d5c1a50a77e4a5e6074d4096b46dd4be320332aad272f4"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-bounded-0910a/organization-chromium/stdout.txt",
+          "sha256": "c7e274d993b9b61c40c8e6326c8f7181fe01ac10a614fc5a2d697c0e729e2123"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-bounded-0910a/summary.json",
+          "sha256": "3fdfd3a23e9b0293da7102bc42c19f1c88b5d01cbc4d73876ed4a150287aea9d"
+        }
+      ]
+    },
+    {
+      "id": "b",
+      "disposition": "Unprofiled 600-Artifact/104-folder organization and separate mixed preview on c42614e.",
+      "output_root": "/tmp/makersvault-g13c-bounded-0910b",
+      "summary": {
+        "captured_at": "2026-09-10T20:34:53.274837+00:00",
+        "harness_revision": "c42614e9cc99b45e32ffd203a4f7e70cb4ff0b30",
+        "application_revision": "c42614e9cc99b45e32ffd203a4f7e70cb4ff0b30",
+        "application_version": "development-gate13b",
+        "diagnostic_profile": false,
+        "organization_fixture": "baseline-104",
+        "images": {
+          "api": "sha256:b1c67e9f8dad2b29e72a816cc472da9130d02faddf9cd9d35b2a0bd18d633de0",
+          "web": "sha256:7aa39929cd656b8fddaac64d62bc67174f172980e2ab0a1ccad0f298786da5f2"
+        },
+        "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+        "status": "failed",
+        "cases": [
+          {
+            "case": "organization-chromium",
+            "status": "failed",
+            "exit_code": 1,
+            "scope": "workflow assertions (including existing budgets for organization)",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "eb4ba6549b154b3a1d5c3a06c268e7ddb8a5caa968edc12246b3a1877f98c88e"
+          },
+          {
+            "case": "preview-chromium",
+            "status": "passed",
+            "exit_code": 0,
+            "scope": "functional probes and metrics collection; preview budgets require review",
+            "mounted_source_preserved": null,
+            "fixture_certificate_sha256": "2b5bb9b772c5eb943c70918707e0b0fbd1016f697d807d544af159271c9972ac"
+          }
+        ],
+        "scope": "Linux headless workflow checks; preview metrics need separate review; not physical passkeys, native workstation launch or a release qualification"
+      },
+      "reports": {
+        "organization-chromium": {
+          "baseline.json": {
+            "schema": 5,
+            "diagnosticProfile": false,
+            "capturedAt": "2026-09-10T20:35:35.142Z",
+            "corpus": {
+              "assets": 600,
+              "folders": 104,
+              "roots": 8,
+              "branches": 32,
+              "leaves": 64,
+              "depth": 3,
+              "seedMs": 23591.596515999998
+            },
+            "api": {
+              "firstPage": {
+                "path": "/assets?limit=25&offset=0",
+                "itemCount": 25,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 11.652024999999412,
+                  "p95": 16.91531599999871,
+                  "max": 16.91531599999871
+                }
+              },
+              "exactSearch": {
+                "path": "/assets?limit=25&offset=0&q=Fixture%200595",
+                "itemCount": 1,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 5.7766909999991185,
+                  "p95": 13.883817000001727,
+                  "max": 13.883817000001727
+                }
+              },
+              "folderPage": {
+                "path": "/assets?limit=25&offset=0&folder_id=4e781232-fa06-476a-9418-17c540a5a0de",
+                "itemCount": 9,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 15.847875999999815,
+                  "p95": 18.724308000000747,
+                  "max": 18.724308000000747
+                }
+              },
+              "folders": {
+                "path": "/folders",
+                "itemCount": 104,
+                "latencyMs": {
+                  "samples": 20,
+                  "p50": 14.373579999999492,
+                  "p95": 20.1317710000003,
+                  "max": 20.1317710000003
+                }
+              }
+            },
+            "browser": {
+              "engine": "chromium",
+              "performanceBudgetEnforced": true,
+              "firstCardsMs": 1039.5,
+              "firstCardsWaitReturnMs": 1485.101129999999,
+              "firstVisibleCard": {
+                "schema": 1,
+                "clock": "navigation",
+                "atMs": 1039.5,
+                "submittedAtMs": 173.3999999994412
+              },
+              "startupBreakdown": {
+                "documentMs": 64.60047000000122,
+                "formWaitMs": 59.33397999999943,
+                "formFillMs": 18.246203999999125,
+                "signInClickMs": 40.65734900000098,
+                "afterClickToCardsMs": 1353.098786999999,
+                "includesLoginAutomation": true
+              },
+              "initialCardCount": 20,
+              "loadMoreMs": 145.84275200000047,
+              "loadedCardCount": 40,
+              "folderControls": {
+                "initial": {
+                  "cards": 20,
+                  "elements": 1767,
+                  "options": 88,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "sidebarElements": 721,
+                  "folderRows": 40,
+                  "closedFolderMenus": 40,
+                  "closedFolderMenuElements": 0,
+                  "openDialogs": 0
+                },
+                "loaded": {
+                  "cards": 40,
+                  "elements": 2779,
+                  "options": 168,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "sidebarElements": 721,
+                  "folderRows": 40,
+                  "closedFolderMenus": 40,
+                  "closedFolderMenuElements": 0,
+                  "openDialogs": 0
+                },
+                "folder": {
+                  "cards": 9,
+                  "elements": 619,
+                  "options": 44,
+                  "cardFolderSelects": 0,
+                  "cardFolderOptions": 0,
+                  "sidebarElements": 125,
+                  "folderRows": 3,
+                  "closedFolderMenus": 3,
+                  "closedFolderMenuElements": 0,
+                  "openDialogs": 0
+                }
+              },
+              "selectedAfterLoadMore": 2,
+              "exactSearchMs": 67.94000600000072,
+              "exactSearchResultCount": 1,
+              "selectedBeforeFilter": 2,
+              "selectedAfterFilter": 0,
+              "visibleBulkToolbarBeforeFilter": 1,
+              "preparedSummaryVisible": true,
+              "supportingDocumentVisible": true,
+              "preparedPayloadLinkCount": 0,
+              "mixedMoveSelectedAfter": 1,
+              "mixedMoveCompletionWaited": true,
+              "mixedMoveSuccessSelected": false,
+              "mixedMoveConflictSelected": true,
+              "mixedMoveFailureVisible": true,
+              "tagPreservationVerified": true,
+              "selectedDownloadSuggestedFilename": "makersvault.zip",
+              "bulkTrashRecoverableVisible": true,
+              "bulkTrashSelectionAfterPanelCancel": 2,
+              "bulkTrashSelectionAfterDialogCancel": 2,
+              "singleTrashRestoreVerified": true,
+              "bulkTrashRestoreVerified": true,
+              "singleDeleteConfirmation": "Move \"Workflow Bulk Success\" to Trash? You can restore it later.",
+              "singleDeleteSelectionAfterCancel": 1,
+              "folderSearchMs": 23.44517000000269,
+              "visibleFolderRows": 3,
+              "folderOpenMs": 121.21175000000221,
+              "folderCardCount": 9,
+              "childFolderEmptyStateVisible": true,
+              "breadcrumbAncestorNavigationVisible": true,
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+              "heapBytes": 8337472,
+              "breadcrumbCount": 1,
+              "longTaskAttributionSchema": 2,
+              "longTasksAvailable": true,
+              "longTasks": {
+                "count": 1,
+                "totalMs": 311,
+                "maxMs": 311,
+                "byPhase": {
+                  "navigation": {
+                    "count": 1,
+                    "totalMs": 311,
+                    "maxMs": 311
+                  }
+                }
+              },
+              "legacyLongTasks": {
+                "count": 1,
+                "totalMs": 311,
+                "maxMs": 311,
+                "byPhase": {
+                  "navigation": {
+                    "count": 1,
+                    "totalMs": 311,
+                    "maxMs": 311
+                  }
+                }
+              },
+              "legacyMaxInteractionLongTaskMs": 0,
+              "maxInteractionLongTaskMs": 0,
+              "longTaskEntries": [
+                {
+                  "duration": 311,
+                  "startTime": 655.1999999992549,
+                  "legacyPhase": "navigation",
+                  "phase": "navigation",
+                  "overlapsInteraction": false
+                }
+              ]
+            }
+          },
+          "startup-chromium.json": {
+            "firstCardsMs": 1039.5,
+            "firstCardsWaitReturnMs": 1485.101129999999,
+            "firstVisibleCard": {
+              "schema": 1,
+              "clock": "navigation",
+              "atMs": 1039.5,
+              "submittedAtMs": 173.3999999994412
+            },
+            "startupBreakdown": {
+              "documentMs": 64.60047000000122,
+              "formWaitMs": 59.33397999999943,
+              "formFillMs": 18.246203999999125,
+              "signInClickMs": 40.65734900000098,
+              "afterClickToCardsMs": 1353.098786999999,
+              "includesLoginAutomation": true
+            }
+          }
+        },
+        "preview-chromium": {
+          "baseline.json": {
+            "schema": 2,
+            "diagnosticProfile": false,
+            "capturedAt": "2026-09-10T20:36:11.463Z",
+            "corpus": {
+              "fixtureCount": 20,
+              "totalBytes": 66037534,
+              "expectedColdFileParses": 16,
+              "persistedThumbnailsAfterColdRun": 14,
+              "expectedWarmFileParses": 0
+            },
+            "cold": {
+              "cardsReadyMs": 1186.562727,
+              "settledMs": 6165.506825999999,
+              "timedOut": false,
+              "requestCounts": {
+                "files": 16,
+                "thumbnails": 0,
+                "generatedThumbnailUploads": 12
+              },
+              "originalFileRequests": [
+                "/api/file/866031cb-80be-4ca2-bbdf-4841504a9323/02-small-binary.stl",
+                "/api/file/ae960f61-5b23-4bba-b35b-d328a305803d/03-small-grid.stl",
+                "/api/file/20b45b43-fc25-464f-be7d-25a43a32e322/04-small-detailed.stl",
+                "/api/file/02601dd7-dbe0-4491-86dc-acce3d162be1/01-small-ascii.stl",
+                "/api/file/3256064b-b986-4791-b83e-91dc66475303/06-medium-50k.stl",
+                "/api/file/1e99fb98-aeae-41a0-b277-b767b19bb722/05-medium-25k.stl",
+                "/api/file/58297b47-f516-4d13-b7c0-423250706c05/07-medium-100k.stl",
+                "/api/file/32d196b5-4321-4f0a-9b43-beab32cdf9ca/08-large-250k.stl",
+                "/api/file/75249e53-c215-4bf4-b12b-4cb6e8ebe440/11-multipart-50k.obj",
+                "/api/file/8ab4e9f5-fbd0-4e47-83ae-7d80f730c189/12-multipart-100k.obj",
+                "/api/file/08a4bf28-1ffb-47e2-a2d5-58e288077cb3/10-multipart-10k.obj",
+                "/api/file/b18088d0-ed57-4468-b254-a200245982f4/13-multibody-10k.3mf",
+                "/api/file/f3917ca8-9693-4e8b-b9ac-476a66c1db36/14-multiplate-50k.3mf",
+                "/api/file/8bd360b4-6d23-4852-8fb1-98f47457e8dd/19-malformed-mesh.obj",
+                "/api/file/dee08358-27f0-48cf-8983-b5f3121cefae/18-malformed-archive.3mf",
+                "/api/file/96584c14-6a73-4272-b08b-d2d9cded3dfb/17-malformed-truncated.stl"
+              ],
+              "maxActiveFileRequests": 1,
+              "responseRoundTripMs": {
+                "samples": 59,
+                "p95": 7.609428000000662,
+                "max": 161.26504000000023
+              },
+              "eventLoopDriftMs": {
+                "samples": 119,
+                "p95": 10.600000000558794,
+                "max": 206.79999999981374
+              },
+              "longTasks": {
+                "count": 1,
+                "totalMs": 67,
+                "maxMs": 67
+              },
+              "heap": {
+                "samples": 59,
+                "startBytes": 578986,
+                "endBytes": 9044546,
+                "peakBytes": 10091004
+              },
+              "visiblePreviewState": {
+                "images": 14,
+                "skipped": 3,
+                "failed": 3
+              },
+              "browser": {
+                "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+                "hardwareConcurrency": 16,
+                "deviceMemoryGiB": 32,
+                "webglVendor": "Google Inc. (Google)",
+                "webglRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+              }
+            },
+            "warm": {
+              "cardsReadyMs": 145.11243399999876,
+              "settledMs": 4735.960341,
+              "timedOut": false,
+              "requestCounts": {
+                "files": 0,
+                "thumbnails": 0,
+                "generatedThumbnailUploads": 0
+              },
+              "originalFileRequests": [],
+              "maxActiveFileRequests": 0,
+              "responseRoundTripMs": {
+                "samples": 46,
+                "p95": 3.185061999998652,
+                "max": 31.76992599999903
+              },
+              "eventLoopDriftMs": {
+                "samples": 94,
+                "p95": 1.2000000001862645,
+                "max": 14.599999999627471
+              },
+              "longTasks": {
+                "count": 0,
+                "totalMs": 0,
+                "maxMs": 0
+              },
+              "heap": {
+                "samples": 46,
+                "startBytes": 9589449,
+                "endBytes": 11666379,
+                "peakBytes": 12713803
+              },
+              "visiblePreviewState": {
+                "images": 14,
+                "skipped": 3,
+                "failed": 3
+              },
+              "browser": {
+                "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+                "hardwareConcurrency": 16,
+                "deviceMemoryGiB": 32,
+                "webglVendor": "Google Inc. (Google)",
+                "webglRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+              }
+            },
+            "detail": {
+              "modelName": "01-small-ascii",
+              "state": "ready",
+              "loadMs": 286.31576400000085,
+              "originalFileRequests": 1,
+              "maxActiveFileRequests": 1,
+              "longTasks": {
+                "count": 0,
+                "maxMs": 0
+              }
+            },
+            "lightburn": {
+              "state": "ready",
+              "coldOriginalFileRequests": 1,
+              "generatedThumbnailUploads": 1,
+              "warmOriginalFileRequests": 0,
+              "longTasks": {
+                "count": 0,
+                "maxMs": 0
+              }
+            },
+            "consoleErrors": [
+              {
+                "type": "error",
+                "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+              }
+            ],
+            "browserDiagnostics": [
+              {
+                "type": "warning",
+                "text": "[.WebGL-0x1d8401cf4c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+              },
+              {
+                "type": "warning",
+                "text": "[.WebGL-0x1d8401cf4c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+              }
+            ]
+          },
+          "corpus-manifest.json": {
+            "schema": 1,
+            "generator": "generate_corpus.py",
+            "fixture_count": 20,
+            "total_bytes": 66037534,
+            "fixtures": [
+              {
+                "filename": "01-small-ascii.stl",
+                "category": "small",
+                "bytes": 417,
+                "complexity": 4,
+                "sha256": "955f9da977cd4f52345d0da166eda3b90773d51fce1ebe7972b2de9999e7e905",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "02-small-binary.stl",
+                "category": "small",
+                "bytes": 684,
+                "complexity": 12,
+                "sha256": "6dbb9536d658712d6f7b5db960c9df2aa495ec02ac6de609fd1fcb6203824f7b",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "03-small-grid.stl",
+                "category": "small",
+                "bytes": 50084,
+                "complexity": 1000,
+                "sha256": "cbe1c584a5981248694a2af506a67ce857fb61a92248f5e980281b765565bc7b",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "04-small-detailed.stl",
+                "category": "small",
+                "bytes": 250084,
+                "complexity": 5000,
+                "sha256": "f5227bad68abc79b9de7785f204fcdb1960ba429456b5d96a1fcc5d770b8e97d",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "05-medium-25k.stl",
+                "category": "medium",
+                "bytes": 1250084,
+                "complexity": 25000,
+                "sha256": "e32c8d45e3a41674d237f69224eb584287b1f734aeb530e6b7357fd800d3c0ef",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "06-medium-50k.stl",
+                "category": "medium",
+                "bytes": 2500084,
+                "complexity": 50000,
+                "sha256": "3880d23902a204a8f579ba9fb8cb49b14bf64d0482d9cd8925f87dc471787c34",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "07-medium-100k.stl",
+                "category": "medium",
+                "bytes": 5000084,
+                "complexity": 100000,
+                "sha256": "805eea1c0a3595607bfc3e19229072ae764f8a606f34f581ca7d2ee9895b26d4",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "08-large-250k.stl",
+                "category": "large",
+                "bytes": 12500084,
+                "complexity": 250000,
+                "sha256": "1f0d3cc3dad7ad9132ca7d51fb922c2fd39e76ec1108b8ad06f8e95ea97f9fde",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "09-large-500k.stl",
+                "category": "large",
+                "bytes": 25000084,
+                "complexity": 500000,
+                "sha256": "364851295cbf48cb81ef45c2b6ed2285f70088ebdb43e7c66c03d846b001c102",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "10-multipart-10k.obj",
+                "category": "multi-part",
+                "bytes": 245481,
+                "complexity": 10000,
+                "sha256": "9c03ffb1fa7db9e87c87b81c19790ec85304a27b295210d9f0a0624c826921ac",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "11-multipart-50k.obj",
+                "category": "multi-part",
+                "bytes": 1360783,
+                "complexity": 50000,
+                "sha256": "07bb94efbb9cbde1771b24194181d8db80e7d58ec915a1622ab88d861320d7a6",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "12-multipart-100k.obj",
+                "category": "multi-part",
+                "bytes": 2797283,
+                "complexity": 100000,
+                "sha256": "52b1859548391e0eeffecdb547989c30895644db7b875fd0d369c347679f2656",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "13-multibody-10k.3mf",
+                "category": "multi-part",
+                "bytes": 70029,
+                "complexity": 10000,
+                "sha256": "87eed71a6d7ce21fa7d5d570024e5144eaf40e800716a3c183c278451afa0411",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "14-multiplate-50k.3mf",
+                "category": "multi-plate",
+                "bytes": 348878,
+                "complexity": 50000,
+                "sha256": "5d4f2c8fcbad8c59c962ab0613343c665ac5456c63d96fdb74671d88a7be80e9",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "15-image-heavy-25k.3mf",
+                "category": "image-heavy",
+                "bytes": 7263164,
+                "complexity": 25000,
+                "sha256": "29e3d0c72b89a6be7a748209ac88bde3fd6560e155c51f023a0d8be1193f5d5d",
+                "embedded_thumbnail": true
+              },
+              {
+                "filename": "16-multiplate-image-heavy.3mf",
+                "category": "multi-plate-image-heavy",
+                "bytes": 7400076,
+                "complexity": 45000,
+                "sha256": "f4b9deaf1278c23796163073f35f965a2422724e63a06677d9232e191d0d1d4d",
+                "embedded_thumbnail": true
+              },
+              {
+                "filename": "17-malformed-truncated.stl",
+                "category": "malformed",
+                "bytes": 20,
+                "complexity": null,
+                "sha256": "cd31012478251127d626f6be46a1182a925176b2158d31b4b7a5eb020dd397d0",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "18-malformed-archive.3mf",
+                "category": "malformed",
+                "bytes": 31,
+                "complexity": null,
+                "sha256": "0383c35833e7ac7e34b8ac3ba623b73785e4700063ba6639d0b3798470d7cbfe",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "19-malformed-mesh.obj",
+                "category": "malformed",
+                "bytes": 34,
+                "complexity": null,
+                "sha256": "c89b98fcd2bb331621f493e57a6bdb58651dd2558a50426eb06df04d8d7c80be",
+                "embedded_thumbnail": false
+              },
+              {
+                "filename": "20-malformed-shape.step",
+                "category": "malformed",
+                "bytes": 66,
+                "complexity": null,
+                "sha256": "0aa811ab25e601ee9135589f6d6c8013d7f19dd4d6c2df386083cf7fa7f4a394",
+                "embedded_thumbnail": false
+              }
+            ]
+          }
+        }
+      },
+      "raw_artifacts": [
+        {
+          "path": "/tmp/makersvault-g13c-bounded-0910b/organization-chromium/baseline.json",
+          "sha256": "77a530595a32270c56aa1c88e5cff7ccf258661703af9df413d0388bacb9b423"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-bounded-0910b/organization-chromium/selection-toolbar-chromium.png",
+          "sha256": "3c22e1d6045e5512fba15bdb89bfc14a511340e334cff23901ed2a2967f1f66f"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-bounded-0910b/organization-chromium/startup-chromium.json",
+          "sha256": "9acee0ec83c756ff0e2a0e2edbbf29f72c13cf588060aa7750fea120fdbe9db1"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-bounded-0910b/organization-chromium/stderr.txt",
+          "sha256": "79c8790a05c97dff1bcde2a8a00c9ca6d9c0b2d8e97815513d371e104a566347"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-bounded-0910b/organization-chromium/stdout.txt",
+          "sha256": "efd2df94e8a69e7db7f79944f2abd7335a6e7bc9b65b93d0a225a15b1e38e01f"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-bounded-0910b/preview-chromium/baseline.json",
+          "sha256": "1511a820288dd5c04d919ebbab34dc64b63c38c0eabcaa715ad351b4e47d3120"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-bounded-0910b/preview-chromium/corpus-manifest.json",
+          "sha256": "afafc4d07c09805ffb1e7cbd94b84d820eef7b0cf6ed3b3c049a519e5944af51"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-bounded-0910b/preview-chromium/stderr.txt",
+          "sha256": "6f231aab91206d92d27e77be18e074ab28310c399547b20ee144b9172bdd8fe3"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-bounded-0910b/preview-chromium/stdout.txt",
+          "sha256": "28026171a491bf4e3980a0dc769cf5dd5faf37fa4b55d3d59079fd5eb864caa5"
+        },
+        {
+          "path": "/tmp/makersvault-g13c-bounded-0910b/summary.json",
+          "sha256": "fed8cf657dd1ccfea54ff954250fb8c0de2ef802ae214f374ff640adf129847a"
+        }
+      ]
+    }
+  ]
+}

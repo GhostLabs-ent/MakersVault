@@ -17,6 +17,12 @@ or replacement candidate selected. This is not a request to accept or close 13C.
 **Entry verification:** `2c68d70`; accepted 13B evidence `2f61b37`. Application
 behavior remains the local schema-17 implementation, not the frozen Gate 5 release.
 
+**Latest bounded follow-up (2026-09-10):** [folder-list projection and performance
+disposition](BOUNDED_PERFORMANCE_RESULTS.md), application `c42614e`, 354 API tests
+passing. The owner authorized one final pass and accepts carrying remaining
+performance issues for now. Further tuning is deferred, not a benchmark pass or
+automatic 13C closeout. Other security/platform/release obligations remain unchanged.
+
 ## Bounded execution
 
 1. Refresh stale browser assertions to the accepted current UI, retaining explicit

@@ -4,7 +4,7 @@
 
 **Baseline date:** 2026-09-10
 
-**Committed baseline:** `main` approved on-demand sidebar menus at `82cb2cc` (schema 17; Gate 13B accepted at `2f61b37`, 13C qualification open and not accepted)
+**Committed baseline:** `main` bounded folder-list optimization at `c42614e` (schema 17; Gate 13B accepted at `2f61b37`, 13C qualification open and not accepted)
 
 **Latest verification checkpoint:** full gate on committed `82cb2cc`, with later
 functional harness `7b0bb6e`; [sidebar implementation and evidence](evidence/gate-13/SIDEBAR_MENU_RESULTS.md).
@@ -12,6 +12,13 @@ functional harness `7b0bb6e`; [sidebar implementation and evidence](evidence/gat
 checks retain explicit WebKit synthetic-drop limits. The scoped search locator and
 lazy menu contents are implemented, not awaiting approval; separate viewer-wait,
 API-latency, advisory and platform findings are not silently cleared. Nothing is pushed or release-qualified.
+
+**Bounded follow-up:** the owner authorized one final performance pass on 2026-09-10
+and is content to carry remaining stalls/latency rather than prolong tuning.
+`c42614e` avoids tracked ORM objects in the read-only folder list; all 354 API tests
+pass. [Bounded-pass evidence](evidence/gate-13/BOUNDED_PERFORMANCE_RESULTS.md)
+retains remaining timing failures. Further performance tuning is deferred by that
+owner decision, not relabeled a benchmark pass. No security/platform/release waiver.
 
 **Immutable v5.1 source baseline:** `f6ff55b33fd64c7a5037e8eb642bed048c3e0e4f`
 
@@ -273,6 +280,7 @@ row's future-tense wording.
 | T-062 | `VERIFIED` | Owner-approved shared on-demand folder picker at `76b526d` removes closed-card destination duplication (4,200→0 at 40 cards/104 folders), retains paths/confirmation/permissions/bytes and passes all ten picker cases in three engines plus seven Chromium ordering cases. Full-gate inputs match `76b526d`: 351 API / 56 web tests and joined HTTPS lifecycle; later harness `53142f9` passes 19 Python / 21 Node tests. Three unprofiled 600/104 Chromium repeats pass unchanged enforced budgets. | `docs/evidence/gate-13/FOLDER_PICKER_RESULTS.md`, explicit full-run source note, exact images, all attempts/hashes and fresh image audit | 600/1,040 stress fails first cards (1,612.4 ms) and folder search (494.9 ms); separate detail preview records 1,074 ms long task. Both remain unqualified; no historical failure erased. Residual 181 API / 3 web matches remain unwaived. Profile remaining paths before another optimization proposal; platform/release/13C acceptance remain owner checkpoints. |
 | T-063 | `VERIFIED` | Owner-authorized diagnosis on unchanged `76b526d` images retains six attempts. Stress sidebar mounts 8,800 hidden menu descendants; real DOM callbacks and 405–475 ms driver label queries are distinct costs. Captured detail pause is 1,039.5 ms wall / 1.0 ms renderer CPU, before the STL request; observed context creation is under 8 ms. Diagnostic harness `3101b68` passes 19 Python / 28 Node tests and static release checks. | `docs/evidence/gate-13/RESIDUAL_DIAGNOSIS.md`, complete reduced runs/private-artifact hashes | Diagnosis is not a fix or blanket causal attribution. Unprofiled stress still fails search, interaction and folders API p95; exact detail native wait and API-time breakdown remain unresolved. Lazy sidebar menus plus scoped accessible locator are proposed, not implemented. No threshold, security, image, release-pin or owner-acceptance change. |
 | T-064 | `VERIFIED` | Owner-approved on-demand sidebar menus and scoped search locator at `82cb2cc` remove 8,800 closed-menu descendants in the 1,040-folder fixture without changing 400 visible rows. Full gate passes 351 API / 58 web tests and HTTPS lifecycle. Seventeen picker/sidebar checks pass across three engines with explicit WebKit FileList-only event limits; seven ordering cases pass. All five Chromium organization runs have zero observed interaction tasks and fast folder search. | `docs/evidence/gate-13/SIDEBAR_MENU_RESULTS.md`, twelve retained browser attempts, final-image/full-gate identities, harness `7b0bb6e` | No general performance clearance: baseline E fails first cards at 1,368.5 ms; stress D/G fail folders API p95 at 113.3/108.3 ms. Historical detail wait, non-Chromium/native-platform evidence, advisories and release qualification remain open. No upload/folder quota, application API/auth/lock change, risk waiver, push or Gate 13C acceptance. |
+| T-065 | `VERIFIED` / `DECIDED` | Bounded folder-list projection at `c42614e` preserves output and immediate mutation visibility without ORM hydration; 354 API tests pass. Disposable HTTP instrumentation attributes some API spikes to cyclic garbage collection, not expensive SQL execution. | `docs/evidence/gate-13/BOUNDED_PERFORMANCE_RESULTS.md`, diagnostic samples and same-image unprofiled browser reports | Stress API still misses <100 ms. Exact intermittent browser wait remains unresolved. Owner authorized this one final pass and accepts carrying remaining performance issues for now: stop tuning; retain failures and original budgets. Not full-gate rerun, advisory waiver, native-platform proof, release or 13C acceptance. |
 
 ### 5.4 Current storage invariants
 
@@ -1105,7 +1113,10 @@ confirms hidden sidebar-menu DOM and driver-query costs, while the exact detail
 native wait and folder-list API latency remain unresolved. The owner-approved
 [sidebar-menu slice](evidence/gate-13/SIDEBAR_MENU_RESULTS.md) implements lazy contents
 and the scoped accessible locator at `82cb2cc`, with a new full-gate pass;
-no historical failure or risk was waived. The browser/platform and
+no historical failure or risk was waived by that slice. The later
+[bounded API pass](evidence/gate-13/BOUNDED_PERFORMANCE_RESULTS.md) at `c42614e`
+passes 354 API tests; the owner's time-box decision defers remaining performance
+tuning without changing measured failures. The browser/platform and
 selected-release matrix remains 13C;
 13B does not reuse old timing as current evidence. Gate 12 remains desktop follow-up
 with outstanding evidence, not delivered work. No new release candidate or
@@ -1330,10 +1341,12 @@ and subsequent [sidebar-menu slice](evidence/gate-13/SIDEBAR_MENU_RESULTS.md) at
 `82cb2cc` are implemented locally. Review their retained results and every failed
 sample; the [residual diagnosis](evidence/gate-13/RESIDUAL_DIAGNOSIS.md) remains
 historical evidence, not a claim that all waits were fixed by reducing DOM.
-The bounded menu/locator change needs no further implementation authorization.
-Keep the intermittent detail native wait and folder-list API latency as separate
-investigations before another application proposal. Do not relax timing or
-authentication controls to obtain a pass. Complete remaining
+The subsequent [bounded API pass](evidence/gate-13/BOUNDED_PERFORMANCE_RESULTS.md)
+is implemented at `c42614e`. The owner explicitly prefers to stop after this pass
+even if stalls/API latency are not fully resolved. Carry G13-01 as deferred
+performance tuning; do not start another investigation without renewed direction.
+Historical and current timing failures remain failures, with unchanged budgets and
+authentication controls. Complete remaining
 advisory dispositions, physical/native-platform evidence and operator/release
 readiness. Residual-risk, supported-platform and release decisions remain explicit
 owner checkpoints; 13C is not ready for closeout.

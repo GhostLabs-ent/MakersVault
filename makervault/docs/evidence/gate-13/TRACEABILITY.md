@@ -3,11 +3,11 @@
 **Date:** 2026-09-10
 
 **Baseline:** audit entry `236c0fd` / application `1a209aa`; current verification
-`82cb2cc` approved sidebar-menu application / `7b0bb6e` functional harness, schema 17 unchanged
+`c42614e` bounded folder-list optimization; last full gate `82cb2cc` / later functional harness `7b0bb6e`, schema 17 unchanged
 
 **Status:** 13A–13B accepted; approved 13C picker/sidebar optimizations implemented;
-current organization startup/API failures, browser/platform performance and final
-Gate 13 acceptance remain open
+remaining performance tuning deferred by owner after one bounded pass;
+browser/platform evidence and final Gate 13 acceptance remain open
 
 ## Reading this ledger
 
@@ -37,6 +37,9 @@ wait and folder-API latency unresolved. The subsequent owner-approved
 search locator on `82cb2cc`, with full-gate/HTTPS lifecycle and named browser checks.
 It does not clear those separate causal questions or grant general performance acceptance.
 Carry-forward IDs have reasons, dependencies, and a review checkpoint below.
+The [bounded performance follow-up](BOUNDED_PERFORMANCE_RESULTS.md) at `c42614e`
+passes 354 API tests but retains timing failures. The owner prefers to carry those
+performance limitations for now; this decision does not waive other gate findings.
 
 Source commitments are from [Product Strategy](../../PRODUCT_STRATEGY.md),
 [Competitive Strategy](../../MakersVault_v5.1_Competitive_Strategy(1).md),
@@ -91,10 +94,10 @@ the next accepted slice. Re-review at that slice and again at 13D.
 
 | ID | Source evidence / effect | Required next proof |
 |---|---|---|
-| G13-01 | [Approved picker/measurement slice](FOLDER_PICKER_RESULTS.md) removes 4,200 closed-card options. [Residual diagnosis](RESIDUAL_DIAGNOSIS.md) leads to the approved [sidebar-menu slice](SIDEBAR_MENU_RESULTS.md) at `82cb2cc`, removing 8,800 closed-menu descendants in stress and correcting the scoped search locator. Exact-image full-gate and functional checks pass with explicit fixture limits | OPEN performance: baseline E still fails first cards at 1,368.5 ms with a 652 ms navigation task; stress D still fails folders API p95 at 113.3 ms. Fast search and zero observed interaction tasks do not resolve all startup/detail native waits or API latency. Preserve all runs and investigate before another application proposal. No budget/risk waiver or 13C acceptance |
+| G13-01 | Approved picker/sidebar changes remove eager hidden controls. [Bounded API follow-up](BOUNDED_PERFORMANCE_RESULTS.md) at `c42614e` avoids folder ORM hydration and passes 354 API tests. HTTP instrumentation identifies garbage-collection contributions to some API spikes. New unprofiled stress still misses folders API <100 ms | DEFERRED tuning by owner's 2026-09-10 decision: one final pass is enough; carry remaining performance limitations for now. Historical/current startup, detail and API failures remain evidence, not passes. Reopen only with renewed owner direction or a materially worse user-visible regression. No changed budget, authentication relaxation, security/platform waiver or automatic 13C acceptance |
 | G13-02 | 13A found stale schema-5 recovery assertions and no joined current lifecycle. **13B VERIFIED:** `gate13-lifecycle-drill.py` passes schema 4→17, contract-6 restore, pre-start revocation/audit, schema 12→17 portable bootstrap and exact stopped rollback on `2c68d70` | Owner accepted 13B at `2f61b37`; injected interruption tests and three no-mutation operator refusals pass. Named local development evidence, not release or physical-power-loss qualification |
 | G13-03 | 13A found stale JWT/schema-5 exact-image smoke. **13B harness portion VERIFIED:** current production-HTTPS identity/security/persistence/schema-17 smoke against immutable local image IDs | 13C remains OPEN: owner-selected immutable scope/revision and matched-image/bridge/reproducibility evidence before any release claim; static `verify-release` remains only a contract check |
-| G13-04 | Approved maintenance/archive/browser/picker/sidebar slices pass the full gate, latest committed application `82cb2cc`. Historical language scans remain dated evidence. The [latest final-image scan](sidebar-menu-audit.json) retains 181 API / 3 web matches; web records are identical, while three Python fix-metadata deltas are explicit. No installed package/advisory identity change or automatic waiver | Reviewed CVE-2026-15310 application read paths are mitigated, not removed from the runtime inventory. New scanner `3.15.0rc2` metadata does not patch installed 3.11.16. Seven interpreter matches have explicit historical vendor exclusions; remaining OS/interpreter findings are unwaived and need reviewed dispositions before candidate qualification |
+| G13-04 | Approved maintenance/archive/browser/picker/sidebar slices pass the full gate at `82cb2cc`. Later folder-list-only `c42614e` has focused/API verification, not a new full-gate or image scan. Historical language scans remain dated evidence. The [latest scanned images](sidebar-menu-audit.json) retain 181 API / 3 web matches; three Python fix-metadata deltas are explicit. No installed package/advisory identity change or automatic waiver | Reviewed CVE-2026-15310 application read paths are mitigated, not removed from the runtime inventory. New scanner `3.15.0rc2` metadata does not patch installed 3.11.16. Seven interpreter matches have explicit historical vendor exclusions; remaining OS/interpreter findings are unwaived and need reviewed dispositions before candidate qualification |
 
 P07/P11/P12 now also have G13-02's joined current lifecycle proof, supplementing
 their focused API tests. Raw restore preserves the complete content/security graph
