@@ -9,7 +9,10 @@ from urllib.request import Request
 from fastapi import HTTPException
 
 from config import IMPORT_MAX_REDIRECTS, IMPORT_TIMEOUT_SECONDS
-from url_utils import ResolvedAddress, ResolvedTarget, resolve_remote_target, validate_remote_url
+from url_utils import (
+    ResolvedAddress, ResolvedTarget, remote_url_origin, resolve_remote_target,
+    validate_remote_url,
+)
 
 
 REDIRECT_STATUSES = {301, 302, 303, 307, 308}
@@ -112,16 +115,9 @@ def _request_once(request: Request, target: ResolvedTarget, timeout: float) -> S
         raise
 
 
-def _origin(url: str) -> tuple[str, str, int]:
-    parsed = urlsplit(url)
-    scheme = parsed.scheme.lower()
-    port = parsed.port if parsed.port is not None else (443 if scheme == "https" else 80)
-    return scheme, (parsed.hostname or "").rstrip(".").lower(), port
-
-
 def _redirect_request(request: Request, response: SafeHTTPResponse, next_url: str) -> Request:
-    old_origin = _origin(request.full_url)
-    next_origin = _origin(next_url)
+    old_origin = remote_url_origin(request.full_url)
+    next_origin = remote_url_origin(next_url)
     if old_origin[0] == "https" and next_origin[0] != "https":
         raise HTTPException(status_code=400, detail="HTTPS downgrade redirects are not allowed")
 
@@ -150,6 +146,8 @@ def safe_urlopen(
     timeout: float = IMPORT_TIMEOUT_SECONDS,
     max_redirects: int = IMPORT_MAX_REDIRECTS,
 ) -> SafeHTTPResponse:
+    # Request strips some raw input characters; validate before that conversion.
+    validate_remote_url(request.full_url if isinstance(request, Request) else request)
     current = request if isinstance(request, Request) else Request(request)
     redirects = 0
     while True:

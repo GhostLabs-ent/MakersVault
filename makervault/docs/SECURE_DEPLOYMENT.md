@@ -1,6 +1,6 @@
 # Secure Deployment and v5.1 Authentication Upgrade
 
-This guide describes the current local build through Gate 11E. The frozen Gate 5
+This guide describes the current local build through Gate 13C hardening. The frozen Gate 5
 candidate remains at `f6ff55b`; release qualification and deployment approval for
 later work are separate.
 
@@ -176,9 +176,19 @@ startup rather than silently removing a safety control.
 Remote import accepts public HTTP and HTTPS targets only. Each DNS answer and
 redirect is checked before MakersVault connects; private, loopback, link-local,
 special-use, or mixed public/private results are rejected. Connections are pinned
-to the checked numeric peer while HTTPS still verifies the original hostname.
+to the checked numeric peer while HTTPS verifies the canonical destination hostname.
 HTTPS-to-HTTP redirects and URL-embedded credentials are rejected, and source
 cookies or authorization are not forwarded to a different origin.
+
+Outbound DNS names use strict IDNA2008 validation. ASCII names are case-insensitive;
+valid Unicode names and their ASCII punycode forms use the same name for DNS,
+HTTP Host, TLS SNI and redirect-origin comparison. A single trailing root dot is
+accepted. Unicode case/compatibility mapping, non-NFC text, malformed punycode,
+empty labels, escaped hostnames and IPv6 zone identifiers are rejected before DNS.
+For a rejected internationalized hostname, use its verified canonical lowercase/NFC
+spelling or ASCII punycode form. This never rewrites stored URLs or model files.
+Public IPv4/IPv6 literals retain numeric-address validation. This outbound policy
+does not change the installation's configured Host, browser Origin or passkey rules.
 
 The default redirect ceiling is five and can be changed with
 `IMPORT_MAX_REDIRECTS`; `0` disables redirects. MakersVault intentionally ignores

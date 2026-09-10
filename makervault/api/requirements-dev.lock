@@ -10,9 +10,9 @@ cryptography==50.0.1
 fastapi==0.141.1
 greenlet==3.5.5
 h11==0.16.0
-httpcore2==2.9.0
+httpcore2==2.12.0
 httptools==0.8.0
-httpx2==2.9.0
+httpx2==2.12.0
 idna==3.18
 iniconfig==2.3.0
 packaging==26.3

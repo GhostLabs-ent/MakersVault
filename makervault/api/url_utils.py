@@ -3,7 +3,11 @@ import socket
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
+import idna
 from fastapi import HTTPException
+
+
+_ASCII_LOWERCASE = str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz")
 
 
 @dataclass(frozen=True)
@@ -29,9 +33,27 @@ def is_blocked_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
 
 
 def _normalized_host(host: str) -> str:
+    # One DNS root dot is allowed, not arbitrary empty labels. Bound work before
+    # punycode conversion, and never accept an IPv6 zone identifier or URL escape.
+    if not host or len(host) > 254 or "%" in host:
+        raise HTTPException(status_code=400, detail="Invalid URL host")
+    candidate = host.removesuffix(".")
+    if candidate.endswith("."):
+        raise HTTPException(status_code=400, detail="Invalid URL host")
     try:
-        return host.rstrip(".").encode("idna").decode("ascii").lower()
-    except UnicodeError as exc:
+        literal = ipaddress.ip_address(candidate)
+    except ValueError:
+        pass
+    else:
+        return literal.compressed
+    try:
+        # Lower ASCII only: Unicode casefold/compatibility mapping can change
+        # domain identity. IDNA2008 validates Unicode/NFC and existing A-labels.
+        return idna.encode(
+            candidate.translate(_ASCII_LOWERCASE), strict=True, uts46=False,
+            std3_rules=True,
+        ).decode("ascii")
+    except idna.IDNAError as exc:
         raise HTTPException(status_code=400, detail="Invalid URL host") from exc
 
 
@@ -56,7 +78,8 @@ def _validate_host_name(host: str) -> str:
     return normalized
 
 
-def _parse_remote_url(url: str) -> tuple[str, str, int]:
+def remote_url_origin(url: str) -> tuple[str, str, int]:
+    """Validate an outbound authority and return its canonical origin without DNS."""
     if not isinstance(url, str) or not url:
         raise HTTPException(status_code=400, detail="Invalid URL")
     if any(ord(character) < 32 or ord(character) == 127 for character in url):
@@ -69,11 +92,29 @@ def _parse_remote_url(url: str) -> tuple[str, str, int]:
     scheme = parsed.scheme.lower()
     if scheme not in {"http", "https"}:
         raise HTTPException(status_code=400, detail="URL must start with http:// or https://")
-    if parsed.username or parsed.password:
+    if "@" in parsed.netloc:
         raise HTTPException(status_code=400, detail="Credentials in URL are not allowed")
-    if not parsed.hostname:
+    # Split the original authority: SplitResult.hostname lowercases Unicode
+    # before our explicit policy can reject it (for example, the Kelvin sign).
+    authority = parsed.netloc
+    if authority.startswith("["):
+        closing = authority.find("]")
+        raw_host = authority[1:closing]
+        suffix = authority[closing + 1 :]
+        try:
+            ipaddress.IPv6Address(raw_host)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="Invalid URL host") from exc
+    else:
+        raw_host, separator, port_text = authority.partition(":")
+        suffix = separator + port_text
+    if suffix and (
+        not suffix.startswith(":") or not suffix[1:].isascii() or not suffix[1:].isdigit()
+    ):
+        raise HTTPException(status_code=400, detail="Invalid URL port")
+    if not raw_host:
         raise HTTPException(status_code=400, detail="Invalid URL")
-    host = _validate_host_name(parsed.hostname)
+    host = _validate_host_name(raw_host)
     target_port = port if port is not None else (443 if scheme == "https" else 80)
     if target_port < 1 or target_port > 65535:
         raise HTTPException(status_code=400, detail="Invalid URL port")
@@ -104,12 +145,12 @@ def validate_remote_host(host: str) -> None:
 
 
 def validate_remote_url(url: str) -> str:
-    _parse_remote_url(url)
+    remote_url_origin(url)
     return url
 
 
 def resolve_remote_target(url: str) -> ResolvedTarget:
-    scheme, host, port = _parse_remote_url(url)
+    scheme, host, port = remote_url_origin(url)
     try:
         literal = ipaddress.ip_address(host)
     except ValueError:

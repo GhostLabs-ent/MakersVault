@@ -1,7 +1,7 @@
 # MakersVault v5.1.0
 
 **Working draft:** The highlights below include later local roadmap work through
-Gate 11E. The qualified Gate 5 source remains `f6ff55b` at schema 5. These edits do
+Gate 13C security hardening. The qualified Gate 5 source remains `f6ff55b` at schema 5. These edits do
 not replace that frozen candidate or establish a new release artifact.
 
 MakersVault v5.1.0 is a confidence release: faster library browsing, clearer
@@ -43,6 +43,10 @@ vault into a slicer, printer controller, or multi-user cloud service.
   changing its password.
 - Ordered additive migrations, stopped matched backups, clean recovery, and exact
   rollback are source-owned and tested.
+- Current local remote-import hardening uses strict IDNA2008 hostname validation
+  and one canonical destination across DNS, HTTP Host, TLS and redirects. Vitest
+  and HTTPX2 development dependencies receive targeted security updates; native
+  container findings still require explicit dispositions before release clearance.
 
 ## Upgrade requirements
 
@@ -58,6 +62,10 @@ administrator password and a distinct random signing secret. Changing the signin
 secret invalidates old browser sessions and pending authentication ceremonies but
 does not remove vault data. Passkey use additionally requires one stable HTTPS RP ID
 and exact origin as documented in the secure-deployment guide.
+
+Unusual internationalized import hostnames that require Unicode case/compatibility
+mapping or contain malformed labels are now rejected. Valid canonical Unicode and
+punycode hosts remain supported; stored URLs and original model bytes are unchanged.
 
 ## Artifacts and verification
 
