@@ -243,3 +243,10 @@ do not present that bounded optimization as fixing them. Physical/native-platfor
 advisory disposition, release scope and matched-distribution decisions remain open.
 Gate 13C is not accepted; Gate 12 stays desktop-deferred and public rollout remains
 separately gated.
+
+### Approved follow-up
+
+The owner subsequently approved the proposed menu/locator slice. It is implemented
+at `82cb2cc`; see [current results](SIDEBAR_MENU_RESULTS.md). The diagnostic records
+above are unchanged historical evidence. Viewer native-wait and folder-API causal
+attribution are not supplied by that optimization.

@@ -1,12 +1,12 @@
 # Gate 13 security finding revalidation
 
-**Date:** 2026-09-09
+**Date:** 2026-09-10
 
 **Status:** 13A–13B accepted; approved 13C maintenance/archive/browser/picker corrections verified;
 browser qualification and advisory dispositions open, not release clearance
 
 **Baseline:** audit entry `236c0fd` / application `1a209aa`; current verification
-`76b526d` approved picker application, schema 17 unchanged; harness-only follow-ups separately named
+`82cb2cc` approved sidebar-menu application, schema 17 unchanged; harness-only follow-ups separately named
 
 This is the current-development disposition of all sixteen findings from the
 [original security review](../MakersVault_v5.1_Security_Analysis.md). The
@@ -49,6 +49,19 @@ dependency locks are unchanged. The [September 9 exact-image scan](../evidence/g
 again retains 181 API / 3 web matches with full reduced-record equality checked;
 no new language-lock scan or waiver is implied. Baseline organization repeats pass,
 while larger-folder and detail-preview performance evidence remains unqualified.
+
+The approved [sidebar-menu slice](../evidence/gate-13/SIDEBAR_MENU_RESULTS.md) passes
+the full gate at committed `82cb2cc` (351 API / 58 web tests) and current HTTPS
+lifecycle. Named three-engine picker/sidebar checks preserve Viewer restrictions,
+current authorization refusal and exact action ownership, with explicit WebKit
+synthetic-drop limits. Application authentication, API, Compose and locks are unchanged.
+The [September 10 final-image scan](../evidence/gate-13/sidebar-menu-audit.json)
+retains 181 API / 3 web matches. Web records are identical; three API Python records
+(CVE-2026-17084, CVE-2026-15806, CVE-2026-15310) now list `fixed` / `3.15.0rc2` in
+scanner metadata. Installed Python remains 3.11.16 and all three matches remain.
+The exact deltas are retained, not called an installed fix or complete inventory
+equality. No advisory is waived and no language-lock rescan or vendor-disposition
+change is implied. The interrupted development-image audit remains separately recorded.
 
 ## Finding-by-finding disposition
 

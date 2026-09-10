@@ -13,6 +13,19 @@ printer controller, or multi-user cloud service.
 
 ## Highlights
 
+### Lighter folder-tree action menus (Gate 13C)
+
+- Folder action contents are created only when opened and removed when closed.
+  Existing folder expansion, paths, actions and permissions remain unchanged;
+  no new folder or upload limit is introduced.
+- Native disclosure keys, Escape/focus, duplicate-name action ownership, folder
+  refresh/deletion and Viewer restrictions have real-browser regression checks.
+  WebKit's synthetic filesystem-drag limitation is explicitly recorded, not hidden.
+- Full verification passes at `82cb2cc`: 351 API / 58 web tests and current HTTPS
+  lifecycle. A separately identified benchmark-locator correction preserves timing
+  boundaries and budgets. See [current results](evidence/gate-13/SIDEBAR_MENU_RESULTS.md);
+  this is not a blanket performance, platform or release qualification.
+
 ### Searchable folder moves without per-card destination lists (Gate 13C)
 
 - Each card keeps its current folder path visible. **Move to folder…** opens one

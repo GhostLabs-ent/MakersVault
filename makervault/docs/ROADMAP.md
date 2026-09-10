@@ -25,9 +25,13 @@ recorded source note (351 API / 56 web tests and HTTPS lifecycle). Three baselin
 Chromium organization runs and three-engine functional checks pass. Historical
 failures, the 1,040-folder stress failures and a separate detail-preview long task
 remain open. The [residual diagnosis](evidence/gate-13/RESIDUAL_DIAGNOSIS.md) now
-confirms hidden sidebar-menu DOM and driver-query costs. Lazy menu contents plus
-a scoped accessible locator await approval; exact detail native wait and folder-API
-latency remain separate unresolved tracks. No application changes in that diagnosis.
+confirms hidden sidebar-menu DOM and driver-query costs. The subsequently approved
+[sidebar-menu slice](evidence/gate-13/SIDEBAR_MENU_RESULTS.md) implements on-demand
+contents and the scoped accessible locator at `82cb2cc`; full verification passes
+351 API / 58 web tests and current HTTPS lifecycle. Exact detail native wait and
+folder-API latency remain separate investigative tracks, not claimed fixed by menus.
+Current repetitions retain a 1,368.5 ms startup failure and 113.3/108.3 ms stress
+folders API p95 failures, despite fast search and zero observed interaction tasks.
 Remaining image findings are not
 waived. Deployment guidance explicitly requires production HTTPS even on LAN/VPN.
 Browser/platform and release-readiness

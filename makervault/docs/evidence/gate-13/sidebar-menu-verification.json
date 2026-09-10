@@ -1,0 +1,68 @@
+{
+  "source_revision": "82cb2cc873fb5c9a1b5ed58c1f14ca36495869a0",
+  "verification_sources_dirty": false,
+  "make_verify": {
+    "exit_code": 0,
+    "api_tests": 351,
+    "api_seconds": 155.91,
+    "web_tests": 58,
+    "web_test_files": 16,
+    "web_typecheck_build": "passed; separate 58-test invocation also executed",
+    "bridge_tests_build": "passed",
+    "compose_security": "passed",
+    "container_smoke": "passed",
+    "virtual_chromium_passkey_smoke": "passed",
+    "python_harness_tests": 19,
+    "node_tests": 28,
+    "browser_syntax_checks": 7,
+    "release_static_contract": "passed",
+    "source_note": "The complete invocation used committed 82cb2cc sources throughout. Earlier parallel development browser images lost their local references when this lifecycle phase rebuilt the same tags; those incomplete/failed browser attempts do not qualify the final images named below."
+  },
+  "lifecycle_stdout": {
+    "benchmark_session_helper": "passed",
+    "dirty": false,
+    "exact_schema4_rollback": true,
+    "external_availability_normalized": true,
+    "fresh_identity_only": true,
+    "fresh_smoke": {
+      "https_secure_cookie_csrf": true,
+      "logout_revocation": true,
+      "non_root_api_web": true,
+      "restart_bytes": "1455ce259069704cf240787e3ba134426f9d6b04cdc49b7716a824ee905a65f6",
+      "schema": 17
+    },
+    "images": {
+      "api": "sha256:a099ec86206c9e9204267e63ed4953f86f6ecb217077994f6488a536500ba27b",
+      "web": "sha256:a833cb7fc959b27979c9d7e89fe02680913b61375d158aeebd43129d4fcc0352"
+    },
+    "offline_portable_graph_equal": true,
+    "portable_import_schema": 12,
+    "portable_members_compared": 18,
+    "portable_staged_pair_verified": true,
+    "portable_startup_schema": 17,
+    "pre_start_revocation": true,
+    "raw_restore_contract": 6,
+    "refusals": [
+      "nonempty_raw_target",
+      "corrupt_raw_archive",
+      "nonempty_portable_target"
+    ],
+    "revision": "82cb2cc873fb5c9a1b5ed58c1f14ca36495869a0",
+    "startup_audit": true,
+    "startup_preview_reconciliation": "legacy_3mf_pending",
+    "status": "passed",
+    "upgrade": "4-to-17",
+    "version": "development-gate13b"
+  },
+  "notice": "Local development evidence, not release acceptance. All historical and development failures remain separate.",
+  "subsequent_harness_verification": {
+    "source_revision": "7b0bb6eb506f84f7b6756245f42a6c16ee6793c2",
+    "command": "make verify-harness verify-release",
+    "exit_code": 0,
+    "python_harness_tests": 19,
+    "node_tests": 28,
+    "browser_syntax_checks": 7,
+    "release_static_contract": "passed",
+    "scope": "Functional-test locator, failure-stage and explicit WebKit FileList-only DOM-event fixture corrections only; application images and full-gate source remain 82cb2cc. No native filesystem drag qualification."
+  }
+}

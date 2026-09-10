@@ -3,11 +3,11 @@
 **Date:** 2026-09-10
 
 **Baseline:** audit entry `236c0fd` / application `1a209aa`; current verification
-`76b526d` approved picker application / `3101b68` latest diagnostic harness, schema 17 unchanged
+`82cb2cc` approved sidebar-menu application / `7b0bb6e` functional harness, schema 17 unchanged
 
-**Status:** 13A–13B accepted; approved 13C picker optimization verified;
-baseline Chromium organization repeats pass, larger-folder/preview performance
-and final Gate 13 acceptance remain open
+**Status:** 13A–13B accepted; approved 13C picker/sidebar optimizations implemented;
+current organization startup/API failures, browser/platform performance and final
+Gate 13 acceptance remain open
 
 ## Reading this ledger
 
@@ -32,7 +32,10 @@ Its full-run source note is explicit; larger-folder and detail-preview failures
 remain open, not erased by the optimization.
 The [residual diagnosis](RESIDUAL_DIAGNOSIS.md) adds six same-image runs, confirms
 hidden sidebar-menu DOM and driver-query costs, and leaves the exact detail native
-wait and folder-API latency unresolved. Proposed changes are not implemented fixes.
+wait and folder-API latency unresolved. The subsequent owner-approved
+[sidebar-menu slice](SIDEBAR_MENU_RESULTS.md) implements lazy contents and the scoped
+search locator on `82cb2cc`, with full-gate/HTTPS lifecycle and named browser checks.
+It does not clear those separate causal questions or grant general performance acceptance.
 Carry-forward IDs have reasons, dependencies, and a review checkpoint below.
 
 Source commitments are from [Product Strategy](../../PRODUCT_STRATEGY.md),
@@ -46,8 +49,8 @@ Test paths in this table are relative to `api/tests/` unless qualified otherwise
 
 | ID / commitment | Current behavior and direct proof | Remaining evidence or disposition |
 |---|---|---|
-| P01 — find a large mixed library without stalls | Bounded worker previews, static thumbnail reuse, pagination; `test_preview_policy.py`, `test_api_smoke.py`; on-demand picker removes 4,200 closed options; current preview/cache and three baseline organization passes on `76b526d` images | G13-01: 1,040-folder startup/search fail; detail preview records 1,074 ms long task; no blanket performance qualification |
-| P02 — modern folder navigation and bulk organization | Folder-scoped naming, nested lookup, conflicts, breadcrumbs, explicit selected IDs and shared searchable move dialog; seven request-order regressions, ten picker cases in three engines and organization matrix on `76b526d` images | G13-01 scale performance remains open; C04 for server-wide selection, whole-app narrow/touch/accessibility and density polish |
+| P01 — find a large mixed library without stalls | Bounded worker previews, static thumbnail reuse, pagination; `test_preview_policy.py`, `test_api_smoke.py`; on-demand picker removes 4,200 closed options; `82cb2cc` adds lazy sidebar menus and current preview/cache/organization evidence in [results](SIDEBAR_MENU_RESULTS.md) | G13-01 retains all scale/startup/API/preview observations; reduced DOM does not establish a cause for every wait or blanket performance qualification |
+| P02 — modern folder navigation and bulk organization | Folder-scoped naming, nested lookup, conflicts, breadcrumbs, explicit selected IDs, shared searchable move dialog and native on-demand folder menus; 17 named picker/sidebar cases across three engines, with explicit WebKit FileList-only limit, plus seven ordering regressions on `82cb2cc` images | G13-01 performance/support boundaries remain open; C04 for server-wide selection, whole-app narrow/touch/accessibility and density polish |
 | P03 — editable identity, metadata, configurable paths | Names, creator/collection/tags/notes/provenance and managed-storage templates; `test_organization.py`, `test_revisions.py`, `test_content_identity.py` | Renaming never moves immutable historical or external no-copy bytes; C05 for custom fields and automatic source artwork |
 | P04 — supporting documents and prepared context | Visible supporting files, internal prepared role and supplied summary, scoped slicer handoff; API/revision/export tests and current three-engine visibility/no-prepared-link assertions on `76b526d` images | No thumbnail-upload chore or machine operation; real local-tool launch remains C03 |
 | P05 — observable copy/no-copy imports | Restartable scans, bounded failures/counts, repeat-path safety; mount/descriptor tests and current Chromium copy-mode scan/repeat/source-preservation drill on `76b526d` images | No blanket real NAS/provider qualification; C04 continuous watching/exclusions/live per-file progress |
@@ -88,10 +91,10 @@ the next accepted slice. Re-review at that slice and again at 13D.
 
 | ID | Source evidence / effect | Required next proof |
 |---|---|---|
-| G13-01 | [Approved picker/measurement slice](FOLDER_PICKER_RESULTS.md) on `76b526d` images removes 4,200 closed-card options and passes three-engine regressions and baseline Chromium budgets. [Six-run residual diagnosis](RESIDUAL_DIAGNOSIS.md) confirms 8,800 hidden sidebar-menu descendants and expensive driver label queries. All older failures remain | OPEN performance: propose lazy sidebar menus and scoped exact-name textbox locator for approval. Final unprofiled stress still fails search, interaction and folders API p95. Captured detail pause is 1,039.5 ms wall / 1.0 ms renderer CPU before the STL request; exact native wait and API-time breakdown remain unresolved. No application fix, budget/risk waiver or 13C acceptance |
+| G13-01 | [Approved picker/measurement slice](FOLDER_PICKER_RESULTS.md) removes 4,200 closed-card options. [Residual diagnosis](RESIDUAL_DIAGNOSIS.md) leads to the approved [sidebar-menu slice](SIDEBAR_MENU_RESULTS.md) at `82cb2cc`, removing 8,800 closed-menu descendants in stress and correcting the scoped search locator. Exact-image full-gate and functional checks pass with explicit fixture limits | OPEN performance: baseline E still fails first cards at 1,368.5 ms with a 652 ms navigation task; stress D still fails folders API p95 at 113.3 ms. Fast search and zero observed interaction tasks do not resolve all startup/detail native waits or API latency. Preserve all runs and investigate before another application proposal. No budget/risk waiver or 13C acceptance |
 | G13-02 | 13A found stale schema-5 recovery assertions and no joined current lifecycle. **13B VERIFIED:** `gate13-lifecycle-drill.py` passes schema 4→17, contract-6 restore, pre-start revocation/audit, schema 12→17 portable bootstrap and exact stopped rollback on `2c68d70` | Owner accepted 13B at `2f61b37`; injected interruption tests and three no-mutation operator refusals pass. Named local development evidence, not release or physical-power-loss qualification |
 | G13-03 | 13A found stale JWT/schema-5 exact-image smoke. **13B harness portion VERIFIED:** current production-HTTPS identity/security/persistence/schema-17 smoke against immutable local image IDs | 13C remains OPEN: owner-selected immutable scope/revision and matched-image/bridge/reproducibility evidence before any release claim; static `verify-release` remains only a contract check |
-| G13-04 | [Approved maintenance](REMEDIATION_RESULTS.md), [archive guard](ARCHIVE_GUARD_RESULTS.md), browser corrections and picker pass the full gate, latest inputs matching `76b526d` under the explicit source note. Refreshed language scans report no advisories for their recorded date; the [latest exact-image scan](folder-picker-audit.json) retains 181 API / 3 web matches with reduced-record equality checked. Historical scans remain intact | Reviewed CVE-2026-15310 application read paths are mitigated, not removed from the runtime inventory. Seven interpreter matches have explicit vendor exclusions; remaining OS/interpreter findings are unwaived and need reviewed dispositions before candidate qualification |
+| G13-04 | Approved maintenance/archive/browser/picker/sidebar slices pass the full gate, latest committed application `82cb2cc`. Historical language scans remain dated evidence. The [latest final-image scan](sidebar-menu-audit.json) retains 181 API / 3 web matches; web records are identical, while three Python fix-metadata deltas are explicit. No installed package/advisory identity change or automatic waiver | Reviewed CVE-2026-15310 application read paths are mitigated, not removed from the runtime inventory. New scanner `3.15.0rc2` metadata does not patch installed 3.11.16. Seven interpreter matches have explicit historical vendor exclusions; remaining OS/interpreter findings are unwaived and need reviewed dispositions before candidate qualification |
 
 P07/P11/P12 now also have G13-02's joined current lifecycle proof, supplementing
 their focused API tests. Raw restore preserves the complete content/security graph

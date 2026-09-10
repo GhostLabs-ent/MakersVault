@@ -281,3 +281,7 @@ and consumes about 1 ms of renderer-thread CPU; its exact native wait is unresol
 Folders API p95 also fails separately. Six new attempts retain all failures;
 lazy sidebar menus plus a scoped accessible locator are proposed for approval.
 No further application fix or performance acceptance is claimed.
+
+The subsequent owner-approved [sidebar-menu implementation](SIDEBAR_MENU_RESULTS.md)
+is delivered at `82cb2cc`; it retains these earlier picker/diagnostic samples and
+reports its own functional, timing, image-audit and remaining-failure evidence.

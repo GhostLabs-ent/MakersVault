@@ -2,13 +2,15 @@
 
 **Opened:** 2026-09-06, following owner acceptance of 13B at `2f61b37`.
 
-**Status:** IN PROGRESS — PICKER VERIFIED; RESIDUAL DIAGNOSIS COMPLETE;
-three baseline Chromium organization runs pass unchanged enforced budgets, while
-larger-folder stress and detail-preview timing remain unqualified.
+**Status:** IN PROGRESS — PICKER AND APPROVED SIDEBAR-MENU SLICE IMPLEMENTED;
+current Chromium baselines retain one startup failure; larger-folder browser timing
+passes but folders API p95 fails. Overall performance remains unqualified.
 [Implementation, full-gate source note and current evidence](FOLDER_PICKER_RESULTS.md)
 follow the owner-approved [profiling proposal](CHROMIUM_PROFILE_RESULTS.md).
-The [latest diagnosis](RESIDUAL_DIAGNOSIS.md) proposes lazy sidebar menus and a
-scoped accessible locator; exact detail native wait and folder-API latency remain unresolved.
+The [residual diagnosis](RESIDUAL_DIAGNOSIS.md) led to the approved
+[on-demand sidebar-menu implementation](SIDEBAR_MENU_RESULTS.md) at `82cb2cc`.
+Its full gate passes 351 API / 58 web tests and current HTTPS lifecycle; exact
+detail native wait and folder-API latency remain separate investigative tracks.
 See also [browser correction evidence](BROWSER_FIX_RESULTS.md). No release scope
 or replacement candidate selected. This is not a request to accept or close 13C.
 
@@ -240,3 +242,25 @@ is claimed. Next checkpoint: approve or revise lazy sidebar-menu contents plus t
 scoped exact-name textbox locator, then reverify unchanged-budget baseline/stress
 and keyboard/permission/action behavior. Detail native-wait and API-time profiling
 remain distinct tracks; this proposal does not claim to fix them. Gate 13C stays open.
+
+### Approved on-demand sidebar menus
+
+The owner approved the bounded menu/locator proposal; it is implemented at `82cb2cc`.
+[Current results](SIDEBAR_MENU_RESULTS.md) retain full-gate verification, all failed
+development attempts and the final-image workflow records. Closed contents are no
+longer constructed; root expansion, paths, actions, permissions and upload limits
+are unchanged. The baseline's 40-card DOM drops from 3,659 to 2,779 elements.
+
+All 17 picker/sidebar scenarios pass in Chromium/Firefox (H) and WebKit (J), with
+WebKit's native synthetic-entry failure explicitly separated from its FileList-only
+DOM-event fixture. No native filesystem-drag qualification is claimed. All seven
+ordering cases pass. The complete gate at committed `82cb2cc` passes 351 API /
+58 web tests, security/passkeys and joined HTTPS lifecycle; later functional harness
+`7b0bb6e` separately passes 19 Python / 28 Node checks and static release contract.
+The menu optimization does not resolve every historical startup, preview or API
+observation, accept Gate 13C, change release pins or authorize publication.
+Current Chromium baseline runs C/F pass, but E fails first cards at 1,368.5 ms.
+Both stress runs D/G pass browser timing and fail folders API p95 at 113.3/108.3 ms.
+All five runs have zero observed interaction tasks and 16.4–74.8 ms folder search;
+navigation tasks and every historical failure remain recorded. Next proposal is
+separate API timing and intermittent startup/detail-wait attribution before another fix.
