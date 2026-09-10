@@ -51,6 +51,11 @@ It also verifies lazy sidebar-menu mounting, native disclosure keys and focus,
 duplicate-name action ownership, open-menu refresh, subfolder creation, ZIP download,
 confirmed/cancelled deletion, filtering/collapse and Viewer restrictions. Its synthetic
 DataTransfer check covers browser file-drop handlers, not native OS drag support.
+The synthetic entry is read before dispatch: Chromium's item-file fallback and
+Firefox's readable entry are exercised as supplied. WebKit's observed standalone
+`NotFoundError` is retained explicitly; only for that exact failure it separately
+exercises a FileList-only fixture. This does not qualify WebKit's native-entry drag
+path or patch the application's existing upload traversal. Other read failures fail.
 The ordering fixture delays assets, tags and pagination across searches and view
 changes, including stale versus current authorization errors. It also checks that
 unsubmitted search text cannot change pagination's applied query.

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 
 // Called only by the functional picker fixture, never inside a timed workflow.
-export async function checkSidebarMenus({ page, session, check, acceptNextFolderDelete, step }) {
+export async function checkSidebarMenus({ page, session, check, acceptNextFolderDelete, step, engine, recordDropProbe }) {
   async function request(path, method, body) {
     const response = await session.fetch(path, { method, headers: { "content-type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body) });
@@ -86,13 +86,33 @@ export async function checkSidebarMenus({ page, session, check, acceptNextFolder
   const transfer = await page.evaluateHandle(bytes => {
     const data = new DataTransfer(); data.items.add(new File([bytes], 'menu-drop.scad', { type: 'text/plain' })); return data;
   }, droppedBytes);
+  const probe = await transfer.evaluate(async data => {
+    const entry = data.items[0].webkitGetAsEntry?.();
+    if (!entry) return { entry: 'absent', read: 'item-file fallback' };
+    return new Promise(resolve => {
+      const timer = setTimeout(() => resolve({ entry: 'file', read: 'timeout' }), 1000);
+      entry.file(file => { clearTimeout(timer); resolve({ entry: 'file', read: 'passed', bytes: file.size }); },
+        error => { clearTimeout(timer); resolve({ entry: 'file', read: error.name }); });
+    });
+  });
+  let dropTransfer = transfer, dropMode = 'native synthetic DataTransfer';
+  if (probe.read === 'NotFoundError') {
+    assert.equal(engine, 'webkit', 'Unexpected engine entry-read failure');
+    // WebKit cannot read this synthetic filesystem entry even on about:blank.
+    // Exercise the supported FileList-only input separately; never report this
+    // as a passing native-entry/OS drag test or change the application fallback.
+    dropMode = 'FileList-only fixture; native synthetic entry unavailable (NotFoundError)';
+    dropTransfer = await transfer.evaluateHandle(data => ({ types: [...data.types], files: data.files, items: [] }));
+  } else assert.ok(['passed', 'item-file fallback'].includes(probe.read), `Synthetic entry read failed: ${probe.read}`);
+  await recordDropProbe({ ...probe, mode: dropMode, nativeFilesystemDragQualified: false });
   const dropRow = row('Menu parent A refreshed');
-  await dropRow.dispatchEvent('dragover', { dataTransfer: transfer });
+  await dropRow.dispatchEvent('dragover', { dataTransfer: dropTransfer });
   assert.match(await dropRow.getAttribute('class'), /is-drop-target/);
   const [uploadedResponse] = await Promise.all([
     page.waitForResponse(response => new URL(response.url()).pathname === '/api/upload' && response.request().method() === 'POST'),
-    dropRow.dispatchEvent('drop', { dataTransfer: transfer }),
+    dropRow.dispatchEvent('drop', { dataTransfer: dropTransfer }),
   ]);
+  if (dropTransfer !== transfer) await dropTransfer.dispose();
   await transfer.dispose(); assert.equal(uploadedResponse.status(), 200);
   const uploaded = await uploadedResponse.json();
   assert.equal(uploaded.folder_id, parent.id);
@@ -107,7 +127,7 @@ export async function checkSidebarMenus({ page, session, check, acceptNextFolder
   assert.equal(response.status(), 200); assert.equal(await download.failure(), null);
   assert.match(download.suggestedFilename(), /Menu_parent_A_refreshed.*\.zip$/);
   await waitClosed('Menu parent A refreshed');
-  await check('folder drop keeps exact target and original bytes; refreshed-name ZIP download uses the current folder and closes its menu');
+  await check(`folder drop (${dropMode}) keeps exact target and original bytes; refreshed-name ZIP download uses the current folder and closes its menu`);
   await step('cancelled and confirmed folder deletion');
 
   await trigger(rightPath).click();

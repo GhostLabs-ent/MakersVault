@@ -73,7 +73,8 @@ async function main() {
   async function check(label) { report.checks.push(label); await save(); }
   const menuFolder = await checkSidebarMenus({ page, session, check,
     acceptNextFolderDelete: () => { acceptFolderDelete = true; },
-    step: async label => { report.sidebarStep = label; await save(); } });
+    step: async label => { report.sidebarStep = label; await save(); }, engine,
+    recordDropProbe: async probe => { report.sidebarDropProbe = probe; await save(); } });
   assert.equal(alerts.length, 2);
   assert.ok(alerts.every(message => message.startsWith("Delete this folder?")));
   assert.equal(acceptFolderDelete, false);
