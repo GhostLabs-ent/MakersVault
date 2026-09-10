@@ -102,7 +102,10 @@ export async function checkSidebarMenus({ page, session, check, acceptNextFolder
     // Exercise the supported FileList-only input separately; never report this
     // as a passing native-entry/OS drag test or change the application fallback.
     dropMode = 'FileList-only fixture; native synthetic entry unavailable (NotFoundError)';
-    dropTransfer = await transfer.evaluateHandle(data => ({ types: [...data.types], files: data.files, items: [] }));
+    // Keep the native DataTransfer brand required by WebKit's DragEvent constructor.
+    dropTransfer = await transfer.evaluateHandle(data => {
+      Object.defineProperty(data, 'items', { value: [] }); return data;
+    });
   } else assert.ok(['passed', 'item-file fallback'].includes(probe.read), `Synthetic entry read failed: ${probe.read}`);
   await recordDropProbe({ ...probe, mode: dropMode, nativeFilesystemDragQualified: false });
   const dropRow = row('Menu parent A refreshed');
