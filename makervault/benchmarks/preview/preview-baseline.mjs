@@ -2,6 +2,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { chromium } from "playwright-core";
 import { loginSession } from "../session-client.mjs";
+import { startDetailProfile } from "./detail-profile.mjs";
 
 const corpusDir = resolve(process.env.MAKERSVAULT_BENCHMARK_CORPUS || "../benchmarks/preview/corpus/generated");
 const outputPath = resolve(process.env.MAKERSVAULT_BENCHMARK_OUTPUT || "../benchmarks/preview/.artifacts/baseline.json");
@@ -11,6 +12,8 @@ const username = process.env.MAKERSVAULT_BENCHMARK_USERNAME || "admin";
 const password = process.env.MAKERSVAULT_BENCHMARK_PASSWORD || "local-development-only";
 const timeoutMs = Number(process.env.MAKERSVAULT_BENCHMARK_TIMEOUT_MS || 60_000);
 let activeBrowser = null;
+let activeProfile = null;
+const profileEnabled = process.env.MAKERSVAULT_CHROMIUM_PROFILE === "1";
 
 const percentile = (values, ratio) => {
   if (!values.length) return 0;
@@ -233,17 +236,24 @@ async function runPhase(page, tracker, phase, action, expectedMinimum) {
   const settledMs = performance.now() - started;
   stopSignal.done = true;
   const samples = await sampler;
+  if (profileEnabled && phase === "warm") {
+    await mkdir(dirname(outputPath), { recursive: true });
+    activeProfile = await startDetailProfile(page, dirname(outputPath));
+  }
   return collectPhase(page, tracker, phase, { cardsReadyMs, settledMs }, samples, timedOut);
 }
 
 async function runDetailProbe(page, tracker, asset) {
+  if (activeProfile) await activeProfile.mark("detail-before-metric-reset");
   tracker.setPhase("detail");
   await page.evaluate(() => {
     if (window.__mvBenchmark) window.__mvBenchmark.longTasks = [];
   });
   const started = performance.now();
   const card = page.locator(`[title="Double-click to open large preview"][data-asset-id="${asset.id}"]`);
+  if (activeProfile) await activeProfile.mark("detail-before-click");
   await card.dblclick();
+  if (activeProfile) await activeProfile.mark("detail-after-click");
   const viewer = page.locator("[data-detail-preview-state]").first();
   await viewer.waitFor({ timeout: 10_000 });
   await page.waitForFunction(() => {
@@ -252,9 +262,15 @@ async function runDetailProbe(page, tracker, asset) {
   }, undefined, { timeout: 30_000 });
   const state = await viewer.getAttribute("data-detail-preview-state");
   const loadMs = performance.now() - started;
+  if (activeProfile) await activeProfile.mark("detail-ready");
   const longTasks = await page.evaluate(() => window.__mvBenchmark?.longTasksAvailable ? window.__mvBenchmark.longTasks : null);
   const network = tracker.data("detail");
   await page.getByRole("button", { name: "Close" }).first().click();
+  if (activeProfile) {
+    await activeProfile.mark("detail-closed");
+    await activeProfile.finish();
+    activeProfile = null;
+  }
   return {
     modelName: asset.name,
     state,
@@ -392,6 +408,7 @@ async function main() {
   activeBrowser = null;
   const result = {
     schema: 2,
+    diagnosticProfile: profileEnabled,
     capturedAt: new Date().toISOString(),
     corpus: {
       fixtureCount: manifest.fixture_count,
@@ -417,6 +434,10 @@ main().catch(error => {
   console.error(error);
   process.exitCode = 1;
 }).finally(async () => {
+  if (activeProfile) await activeProfile.finish().catch(error => {
+    console.error("Profile collection failed:", error.message);
+    process.exitCode = 1;
+  });
   if (activeBrowser) {
     await activeBrowser.close().catch(() => {});
     activeBrowser = null;

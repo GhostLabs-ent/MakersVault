@@ -116,11 +116,11 @@ def main():
     parser.add_argument("--output", required=True, type=Path, help="new private directory; never overwritten")
     parser.add_argument("--workflows", nargs="+", choices=("organization", "preview", "mount", "ordering", "folder-picker"), default=["ordering", "folder-picker", "organization", "preview", "mount"])
     parser.add_argument("--browsers", nargs="+", choices=("chromium", "firefox", "webkit"), default=["chromium", "firefox", "webkit"])
-    parser.add_argument("--profile-chromium", action="store_true", help="private diagnostic traces; organization/Chromium only, not qualification timing")
+    parser.add_argument("--profile-chromium", action="store_true", help="private diagnostic traces; organization or warm-metrics/detail preview in Chromium, not qualification timing")
     parser.add_argument("--folder-stress", action="store_true", help="separate 600-Artifact/1040-folder organization case; unchanged thresholds")
     args = parser.parse_args()
-    if args.profile_chromium and (args.workflows != ["organization"] or args.browsers != ["chromium"]):
-        parser.error("--profile-chromium requires --workflows organization --browsers chromium")
+    if args.profile_chromium and (args.workflows not in (["organization"], ["preview"]) or args.browsers != ["chromium"]):
+        parser.error("--profile-chromium requires --workflows organization or preview, and --browsers chromium")
     if args.folder_stress and args.workflows != ["organization"]:
         parser.error("--folder-stress requires --workflows organization")
     harness_revision = source_identity()

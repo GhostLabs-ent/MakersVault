@@ -88,6 +88,15 @@ fails explicitly. Raw traces can contain sensitive fixture context: do not publi
 them; review reduced summaries and hashes instead. Run unprofiled controls on the
 same images separately. Production source, browser flags and host trust are unchanged.
 
+`--workflows preview --browsers chromium --profile-chromium` instead profiles the
+warm browser-information collection through detail open/ready/close on one page.
+It records context-creation durations and distinct metric/reset/click/ready markers
+to distinguish measurement work from viewer startup. The opt-in canvas wrapper
+forwards native behavior and is restored at completion; this adds diagnostic
+overhead, not a renderer fix. Cold/warm/LightBurn behavior remains in the report,
+but only warm metrics/detail has a trace. Run without the flag for controls.
+Keep private context/trace files uncommitted and reject incomplete captures.
+
 Protocol references: [Chrome tracing](https://chromedevtools.github.io/devtools-protocol/tot/Tracing/)
 and [CPU profiler](https://chromedevtools.github.io/devtools-protocol/tot/Profiler/).
 
