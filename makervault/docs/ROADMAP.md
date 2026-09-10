@@ -9,7 +9,7 @@ architecture is re-baselined.
 
 ## Active gate — end-state audit
 
-**2026-09-09:** Gates 13A–13B are owner-accepted. The accepted
+**2026-09-10:** Gates 13A–13B are owner-accepted. The accepted
 [13B lifecycle results](evidence/gate-13/SUBGATE_13B_RESULTS.md) were captured
 at verification implementation `2c68d70`: the complete gate and production-HTTPS
 upgrade/restore/rollback/portable-startup checks pass. This is local development
@@ -24,7 +24,10 @@ per-card destination lists. Full-gate executed inputs match that revision under 
 recorded source note (351 API / 56 web tests and HTTPS lifecycle). Three baseline
 Chromium organization runs and three-engine functional checks pass. Historical
 failures, the 1,040-folder stress failures and a separate detail-preview long task
-remain open; next proposed work is scoped diagnosis before another code change.
+remain open. The [residual diagnosis](evidence/gate-13/RESIDUAL_DIAGNOSIS.md) now
+confirms hidden sidebar-menu DOM and driver-query costs. Lazy menu contents plus
+a scoped accessible locator await approval; exact detail native wait and folder-API
+latency remain separate unresolved tracks. No application changes in that diagnosis.
 Remaining image findings are not
 waived. Deployment guidance explicitly requires production HTTPS even on LAN/VPN.
 Browser/platform and release-readiness

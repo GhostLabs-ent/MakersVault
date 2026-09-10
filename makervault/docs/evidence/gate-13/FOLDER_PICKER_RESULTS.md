@@ -270,3 +270,14 @@ qualification, physical passkeys/native workstation evidence or explicit support
 limits, advisory dispositions, owner-selected release scope/revision and matched
 distribution qualification remain checkpoints. Gate 13C is not accepted or ready
 for closeout. Gate 12 stays desktop-deferred; publication remains separately gated.
+
+### September 10 diagnostic follow-up
+
+The owner-authorized [residual diagnosis](RESIDUAL_DIAGNOSIS.md) is complete on
+these unchanged images. It confirms 8,800 closed sidebar-menu descendants in the
+stress fixture and expensive driver label lookups, distinct from the removed
+per-card options. The captured one-second detail pause precedes the model request
+and consumes about 1 ms of renderer-thread CPU; its exact native wait is unresolved.
+Folders API p95 also fails separately. Six new attempts retain all failures;
+lazy sidebar menus plus a scoped accessible locator are proposed for approval.
+No further application fix or performance acceptance is claimed.

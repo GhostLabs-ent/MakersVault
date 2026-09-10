@@ -2,11 +2,13 @@
 
 **Opened:** 2026-09-06, following owner acceptance of 13B at `2f61b37`.
 
-**Status:** IN PROGRESS — APPROVED FOLDER-PICKER OPTIMIZATION VERIFIED;
+**Status:** IN PROGRESS — PICKER VERIFIED; RESIDUAL DIAGNOSIS COMPLETE;
 three baseline Chromium organization runs pass unchanged enforced budgets, while
 larger-folder stress and detail-preview timing remain unqualified.
 [Implementation, full-gate source note and current evidence](FOLDER_PICKER_RESULTS.md)
 follow the owner-approved [profiling proposal](CHROMIUM_PROFILE_RESULTS.md).
+The [latest diagnosis](RESIDUAL_DIAGNOSIS.md) proposes lazy sidebar menus and a
+scoped accessible locator; exact detail native wait and folder-API latency remain unresolved.
 See also [browser correction evidence](BROWSER_FIX_RESULTS.md). No release scope
 or replacement candidate selected. This is not a request to accept or close 13C.
 
@@ -215,10 +217,26 @@ neither stress failure nor the detail-preview pause is erased.
 
 The [fresh exact-image audit](folder-picker-audit.json) retains 181 API / 3 web
 matches; all reduced records equal the previous inventory, with nothing waived.
-Next proposed bounded work is profiling the larger-folder startup/search path and
-detail-preview pause before another code proposal. Sidebar eager menu/row rendering
-is a source-review candidate, not a demonstrated explanation for all elapsed time.
+That proposed diagnostic work is now complete; see the follow-up below. It does
+not establish sidebar rendering as an explanation for all elapsed time.
 Physical/native-platform evidence or explicit support limits, remaining advisory
 dispositions, release scope/revision and matched distribution qualification remain
 owner checkpoints. Gate 13C is not accepted or ready for closeout. No push, tag,
 publication, deployment, frozen-pin change or Gate 12 expansion is authorized.
+
+### September 10 residual diagnosis and proposed next slice
+
+Six fresh runs on the unchanged application/images separate real sidebar DOM cost
+(8,800 closed-menu descendants) from 405–475 ms test-driver label queries. The
+captured detail pause is 1,039.5 ms elapsed but about 1.0 ms renderer-thread CPU,
+before the model request; observed context creation is under 8 ms. The exact native
+wait remains unresolved, not attributed to model parsing, GPU or Docker. The final
+unprofiled stress still fails search, interaction and the separate folders API p95.
+
+[Evidence and proposals](RESIDUAL_DIAGNOSIS.md) retain all attempts and limits.
+Opt-in diagnostic harness `3101b68` passes 19 Python / 28 Node tests and static
+release checks. No application change, new full-gate result, image scan or waiver
+is claimed. Next checkpoint: approve or revise lazy sidebar-menu contents plus the
+scoped exact-name textbox locator, then reverify unchanged-budget baseline/stress
+and keyboard/permission/action behavior. Detail native-wait and API-time profiling
+remain distinct tracks; this proposal does not claim to fix them. Gate 13C stays open.

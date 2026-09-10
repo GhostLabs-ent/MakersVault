@@ -1,9 +1,9 @@
 # Gate 13 strategy and invariant traceability
 
-**Date:** 2026-09-09
+**Date:** 2026-09-10
 
 **Baseline:** audit entry `236c0fd` / application `1a209aa`; current verification
-`76b526d` approved picker application / `10c7481` latest measurement harness, schema 17 unchanged
+`76b526d` approved picker application / `3101b68` latest diagnostic harness, schema 17 unchanged
 
 **Status:** 13A–13B accepted; approved 13C picker optimization verified;
 baseline Chromium organization repeats pass, larger-folder/preview performance
@@ -30,6 +30,9 @@ all historical failures. The subsequently approved
 `76b526d`, three-engine picker tests and three passing baseline Chromium repeats.
 Its full-run source note is explicit; larger-folder and detail-preview failures
 remain open, not erased by the optimization.
+The [residual diagnosis](RESIDUAL_DIAGNOSIS.md) adds six same-image runs, confirms
+hidden sidebar-menu DOM and driver-query costs, and leaves the exact detail native
+wait and folder-API latency unresolved. Proposed changes are not implemented fixes.
 Carry-forward IDs have reasons, dependencies, and a review checkpoint below.
 
 Source commitments are from [Product Strategy](../../PRODUCT_STRATEGY.md),
@@ -85,7 +88,7 @@ the next accepted slice. Re-review at that slice and again at 13D.
 
 | ID | Source evidence / effect | Required next proof |
 |---|---|---|
-| G13-01 | [Approved picker/measurement slice](FOLDER_PICKER_RESULTS.md) on `76b526d` images removes 4,200 closed-card options, passes three-engine functional regressions and three fresh 600/104 Chromium budget runs at 546.9–865.2 ms first cards. All older browser/profile failures remain | OPEN performance: 600/1,040 stress fails first cards at 1,612.4 ms and folder search at 494.9 ms; separate detail preview records a 1,074 ms task. Profile those remaining paths before another code proposal. Sidebar row/menu DOM is a candidate, not an attributed cause. No budget/risk waiver or 13C acceptance |
+| G13-01 | [Approved picker/measurement slice](FOLDER_PICKER_RESULTS.md) on `76b526d` images removes 4,200 closed-card options and passes three-engine regressions and baseline Chromium budgets. [Six-run residual diagnosis](RESIDUAL_DIAGNOSIS.md) confirms 8,800 hidden sidebar-menu descendants and expensive driver label queries. All older failures remain | OPEN performance: propose lazy sidebar menus and scoped exact-name textbox locator for approval. Final unprofiled stress still fails search, interaction and folders API p95. Captured detail pause is 1,039.5 ms wall / 1.0 ms renderer CPU before the STL request; exact native wait and API-time breakdown remain unresolved. No application fix, budget/risk waiver or 13C acceptance |
 | G13-02 | 13A found stale schema-5 recovery assertions and no joined current lifecycle. **13B VERIFIED:** `gate13-lifecycle-drill.py` passes schema 4→17, contract-6 restore, pre-start revocation/audit, schema 12→17 portable bootstrap and exact stopped rollback on `2c68d70` | Owner accepted 13B at `2f61b37`; injected interruption tests and three no-mutation operator refusals pass. Named local development evidence, not release or physical-power-loss qualification |
 | G13-03 | 13A found stale JWT/schema-5 exact-image smoke. **13B harness portion VERIFIED:** current production-HTTPS identity/security/persistence/schema-17 smoke against immutable local image IDs | 13C remains OPEN: owner-selected immutable scope/revision and matched-image/bridge/reproducibility evidence before any release claim; static `verify-release` remains only a contract check |
 | G13-04 | [Approved maintenance](REMEDIATION_RESULTS.md), [archive guard](ARCHIVE_GUARD_RESULTS.md), browser corrections and picker pass the full gate, latest inputs matching `76b526d` under the explicit source note. Refreshed language scans report no advisories for their recorded date; the [latest exact-image scan](folder-picker-audit.json) retains 181 API / 3 web matches with reduced-record equality checked. Historical scans remain intact | Reviewed CVE-2026-15310 application read paths are mitigated, not removed from the runtime inventory. Seven interpreter matches have explicit vendor exclusions; remaining OS/interpreter findings are unwaived and need reviewed dispositions before candidate qualification |
