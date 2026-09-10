@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { chromium, firefox, webkit } from "playwright-core";
 import { loginSession } from "../session-client.mjs";
 import { installFirstVisibleCardProbe } from "../first-visible-card.mjs";
-import { startChromiumProfile, installProfileObservers, recordProfileDom } from "./chromium-profile.mjs";
+import { startChromiumProfile, installProfileObservers, recordProfileDom, probeFolderLocators } from "./chromium-profile.mjs";
 import { installOrganizationTiming, readOrganizationTiming, readFolderControlDom } from "./organization-timing.mjs";
 
 const apiUrl = (process.env.MAKERSVAULT_BENCHMARK_API_URL || "http://localhost:18003").replace(/\/$/, "");
@@ -295,6 +295,7 @@ async function main() {
   const initialCardCount = await cards.count();
   const initialFolderControls = await page.evaluate(readFolderControlDom, folderIds);
   if (profileEnabled) await recordProfileDom(page, "initial-cards");
+  if (profileEnabled) await probeFolderLocators(page);
 
   await page.evaluate(() => { window.__mvOrganizationBenchmark.phase = "selection"; });
   await cards.nth(0).locator("..").getByRole("checkbox").check();

@@ -97,6 +97,11 @@ overhead, not a renderer fix. Cold/warm/LightBurn behavior remains in the report
 but only warm metrics/detail has a trace. Run without the flag for controls.
 Keep private context/trace files uncommitted and reject incomplete captures.
 
+Organization profiling also counts sidebar/closed-menu DOM and runs nine read-only
+label/textbox/CSS locator probes in rotated order after the initial-card observation.
+These are explicitly diagnostic; normal search/actions, assertions and budgets are
+unchanged, and the probe observations are not substituted for workflow timings.
+
 Protocol references: [Chrome tracing](https://chromedevtools.github.io/devtools-protocol/tot/Tracing/)
 and [CPU profiler](https://chromedevtools.github.io/devtools-protocol/tot/Profiler/).
 

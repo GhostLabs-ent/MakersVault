@@ -86,8 +86,36 @@ export async function recordProfileDom(page, phase) {
     window.__mvProfile.domSnapshots.push({ phase: label, atMs: performance.now(),
       cards: document.querySelectorAll('[title="Double-click to open large preview"]').length,
       elements: document.querySelectorAll("*").length,
-      options: document.querySelectorAll("option").length, selectOptionHistogram: histogram });
+      options: document.querySelectorAll("option").length, selectOptionHistogram: histogram,
+      sidebarElements: document.querySelectorAll('aside, aside *').length,
+      folderRows: document.querySelectorAll('aside .sidebar-tree-node > .sidebar-tree-row').length,
+      closedFolderMenus: document.querySelectorAll('aside details:not([open]) .sidebar-folder-menu').length,
+      closedFolderMenuElements: [...document.querySelectorAll('aside details:not([open]) .sidebar-folder-menu')]
+        .reduce((total, menu) => total + 1 + menu.querySelectorAll('*').length, 0),
+    });
   }, phase);
+}
+
+// Read-only diagnostic comparison, never used to replace a timed workflow action.
+export async function probeFolderLocators(page) {
+  const sidebar = page.locator('aside');
+  const locators = {
+    label: sidebar.getByLabel('Search folders'),
+    textbox: sidebar.getByRole('textbox', { name: 'Search folders', exact: true }),
+    css: sidebar.locator('input[aria-label="Search folders"]'),
+  };
+  const observations = [];
+  for (const order of [['label', 'textbox', 'css'], ['css', 'label', 'textbox'], ['textbox', 'css', 'label']]) {
+    for (const name of order) {
+      await page.evaluate(label => performance.mark('mv.probe:' + label), name);
+      const started = performance.now();
+      const value = await locators[name].getAttribute('aria-label');
+      const elapsedMs = performance.now() - started;
+      if (value !== 'Search folders') throw new Error('Diagnostic locator resolved a different control');
+      observations.push({ name, elapsedMs });
+    }
+  }
+  await page.evaluate(samples => { window.__mvProfile.locatorProbes = samples; }, observations);
 }
 
 // Called in the benchmark's existing init script, never injected into app sources.

@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
-import { startChromiumProfile, installProfileObservers } from "./chromium-profile.mjs";
+import { startChromiumProfile, installProfileObservers, probeFolderLocators } from "./chromium-profile.mjs";
 
 async function fixture(event, action) {
   const directory = await mkdtemp(join(tmpdir(), "mv-profile-test-"));
@@ -62,4 +62,22 @@ test("phase marks retain original state and unavailable frame attribution stays 
   assert.equal(state.phase, "load-more");
   assert.deepEqual(marks, ["mv.phase:navigation", "mv.phase:load-more"]);
   assert.equal(window.__mvProfile.loafAvailable, false);
+});
+
+test('locator comparison reads the same label without interaction and rotates sample order', async () => {
+  const reads = [], output = [];
+  const locator = name => ({ getAttribute: async attribute => {
+    assert.equal(attribute, 'aria-label'); reads.push(name); return 'Search folders';
+  } });
+  const sidebar = { getByLabel: () => locator('label'), getByRole: () => locator('textbox'), locator: () => locator('css') };
+  await probeFolderLocators({ locator: () => sidebar, evaluate: async (_fn, value) => { if (Array.isArray(value)) output.push(value); } });
+  assert.deepEqual(reads, ['label', 'textbox', 'css', 'css', 'label', 'textbox', 'textbox', 'css', 'label']);
+  assert.equal(output[0].length, 9);
+  assert(output[0].every(row => row.elapsedMs >= 0));
+});
+
+test('locator comparison refuses a mismatched control', async () => {
+  const wrong = { getAttribute: async () => 'wrong control' };
+  const sidebar = { getByLabel: () => wrong, getByRole: () => wrong, locator: () => wrong };
+  await assert.rejects(probeFolderLocators({ locator: () => sidebar, evaluate: async () => {} }), /different control/);
 });
