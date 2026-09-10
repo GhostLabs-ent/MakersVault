@@ -101,19 +101,25 @@ export async function checkSidebarMenus({ page, session, check, acceptNextFolder
     // WebKit cannot read this synthetic filesystem entry even on about:blank.
     // Exercise the supported FileList-only input separately; never report this
     // as a passing native-entry/OS drag test or change the application fallback.
-    dropMode = 'FileList-only fixture; native synthetic entry unavailable (NotFoundError)';
-    // Keep the native DataTransfer brand required by WebKit's DragEvent constructor.
-    dropTransfer = await transfer.evaluateHandle(data => {
-      Object.defineProperty(data, 'items', { value: [] }); return data;
-    });
+    dropMode = 'FileList-only DOM event fixture; native synthetic entry unavailable (NotFoundError)';
+    dropTransfer = await transfer.evaluateHandle(data => ({ types: [...data.types], files: data.files, items: [] }));
   } else assert.ok(['passed', 'item-file fallback'].includes(probe.read), `Synthetic entry read failed: ${probe.read}`);
   await recordDropProbe({ ...probe, mode: dropMode, nativeFilesystemDragQualified: false });
   const dropRow = row('Menu parent A refreshed');
-  await dropRow.dispatchEvent('dragover', { dataTransfer: dropTransfer });
-  assert.match(await dropRow.getAttribute('class'), /is-drop-target/);
+  const dispatch = async type => {
+    if (dropTransfer === transfer) await dropRow.dispatchEvent(type, { dataTransfer: transfer });
+    else await dropRow.evaluate((element, { type, data }) => {
+      // An explicit FileList-only event fixture, not a native DragEvent claim.
+      const event = new Event(type, { bubbles: true, cancelable: true });
+      Object.defineProperty(event, 'dataTransfer', { value: data });
+      element.dispatchEvent(event);
+    }, { type, data: dropTransfer });
+  };
+  await dispatch('dragover');
+  await dropRow.locator('xpath=self::*[contains(@class, "is-drop-target")]').waitFor();
   const [uploadedResponse] = await Promise.all([
     page.waitForResponse(response => new URL(response.url()).pathname === '/api/upload' && response.request().method() === 'POST'),
-    dropRow.dispatchEvent('drop', { dataTransfer: dropTransfer }),
+    dispatch('drop'),
   ]);
   if (dropTransfer !== transfer) await dropTransfer.dispose();
   await transfer.dispose(); assert.equal(uploadedResponse.status(), 200);
