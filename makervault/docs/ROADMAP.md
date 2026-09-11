@@ -45,9 +45,15 @@ images retain 181 API / 3 web matches. Remaining native risks, including trusted
 raw recovery, are not waived; security acceptance remains open. Production HTTPS
 is required even on LAN/VPN. The subsequent
 [S04 decision record](evidence/gate-13/SECURITY_RESIDUAL_DECISIONS.md) covers all
-80 native CVEs, with zero acceptances. It proposes bounded runtime capability /
-no-new-privileges hardening for approval; inspection-only isolation is not claimed
-as shipped Compose policy. No upload/resource limit or application change was made.
+80 native CVEs, with zero acceptances. Its subsequently approved
+[runtime containment](evidence/gate-13/SECURITY_CONTAINMENT_RESULTS.md) is implemented
+at `ea17494`: explicit Compose policy and emptied API capability sets after setup.
+Full verification passes 422 API / 58 reexecuted web / 25 Python harness / 28 Node
+tests, current HTTPS lifecycle, actual API/Nginx privilege checks and preview persistence.
+Ownership/recovery remain supported; no upload/resource limit was added. Final
+audits match the successful lifecycle images and retain identical reduced records
+for all 181 API / 3 web matches. The incomplete first scan is preserved, final raw
+evidence is durable/private, and residual acceptance remains open.
 Browser/platform and release-readiness
 evidence remain unfinished, followed by 13D owner acceptance of the end state and next
 roadmap. The [traceability/carry-forward register](evidence/gate-13/TRACEABILITY.md)

@@ -2,6 +2,14 @@
 
 **Date:** 2026-09-10. **Status: REVIEWED; OWNER DECISIONS PENDING.**
 
+**Subsequent checkpoint:** the owner approved the bounded containment proposal,
+now [implemented at `ea17494`](SECURITY_CONTAINMENT_RESULTS.md). The new record
+supersedes the proposed implementation/deployment-policy statements below and joins
+fresh evidence to the actual lifecycle images. This earlier per-CVE review remains
+historical; none of its pending E/H/R decisions was accepted by that approval.
+Use the new evidence checker for current code; the earlier checker deliberately
+binds the pre-containment deployment hashes and is not expected to pass after changes.
+
 The owner requested continuation after the verified S01/S02 patch. This authorizes
 the next review, not a blanket vulnerability waiver or release. Application source
 remains `ac4a051`; entry documentation is `20342e7`. This checkpoint adds no

@@ -6,8 +6,9 @@
 browser qualification and advisory dispositions open, not release clearance
 
 **Baseline:** audit entry `236c0fd` / application `1a209aa`; current application
-`ac4a051`, approved S01/S02 hardening with complete verification and fresh language/
-exact-image audits. Prior closeout review is `b371ff8` on `c42614e`. Schema 17 unchanged.
+`ea17494`, approved runtime containment following `ac4a051` S01/S02 hardening.
+Complete verification and actual-process privilege checks pass; exact-image audits
+are bound to lifecycle IDs. Prior closeout review is `b371ff8` on `c42614e`. Schema 17 unchanged.
 
 This is the current-development disposition of all sixteen findings from the
 [original security review](../MakersVault_v5.1_Security_Analysis.md). The
@@ -91,6 +92,18 @@ probe isolation is not production containment evidence. The bounded containment
 implementation is proposed for approval, not installed. Historical private temporary
 reports are unavailable this session; committed records remain and the exact-image
 benign component probe was repeated. Release raw evidence must be retained durably.
+
+The owner subsequently approved [runtime containment](../evidence/gate-13/SECURITY_CONTAINMENT_RESULTS.md),
+implemented at clean `ea17494`. Both canonical Compose manifests enforce
+no-new-privileges and explicit capability policy; after initialization the API has
+no remaining capabilities. Web has none. Full gate and current HTTPS lifecycle
+pass (422 API / 58 reexecuted web / 25 Python harness / 28 Node tests), including
+actual API/Nginx master/worker state, preview persistence and trusted recovery.
+Native findings are not patched or waived; all S04 decisions remain pending.
+Final audits match the exact successful lifecycle images and retain 181 API / 3 web
+matches with unchanged reduced records. The earlier incomplete image scan is not
+used as matched proof. New raw verification/audit evidence is retained in durable
+private storage, with 86 retained-hash checks passing.
 
 ## Finding-by-finding disposition
 

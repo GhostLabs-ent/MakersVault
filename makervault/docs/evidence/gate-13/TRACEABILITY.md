@@ -3,12 +3,12 @@
 **Date:** 2026-09-10
 
 **Baseline:** audit entry `236c0fd` / application `1a209aa`; current verification
-`ac4a051` approved S01/S02 hardening and full verification; folder-list optimization
+`ea17494` approved runtime containment and full verification after `ac4a051` S01/S02 hardening; folder-list optimization
 `c42614e` and functional browser harness `7b0bb6e` remain separately named, schema 17 unchanged
 
 **Status:** 13A–13B accepted; approved 13C picker/sidebar optimizations implemented;
 remaining performance tuning deferred by owner after one bounded pass;
-approved S01/S02 security patches verified; S04 residual acceptance pending;
+approved S01/S02 patches and runtime containment verified; S04 residual acceptance pending;
 browser/platform evidence and final Gate 13 acceptance remain open
 
 ## Reading this ledger
@@ -101,13 +101,16 @@ the next accepted slice. Re-review at that slice and again at 13D.
 | G13-03 | 13A found stale JWT/schema-5 exact-image smoke. **13B harness portion VERIFIED:** current production-HTTPS identity/security/persistence/schema-17 smoke against immutable local image IDs | 13C remains OPEN: owner-selected immutable scope/revision and matched-image/bridge/reproducibility evidence before any release claim; static `verify-release` remains only a contract check |
 | G13-04 | Owner-approved [S01/S02 hardening](SECURITY_HARDENING_RESULTS.md) at clean `ac4a051` passes full verification: 422 API tests, same-source 58-test web preflight, security/passkeys and current HTTPS lifecycle. New language audits are clean; exact image matches remain 181 API / 3 web with reduced-record equality. Strict outbound IDNA2008 mitigates the reviewed application path; archive guard and seven dated Python branch exclusions remain | S01/S02 IMPLEMENTED/VERIFIED, SECURITY ACCEPTANCE OPEN. S04 native/raw-recovery residuals still need fixes or explicit scoped owner acceptance against exact images/architecture before candidate qualification. CPython remains matched/unpatched. No automatic waiver, release clearance or Gate 13C acceptance |
 
-G13-04's next checkpoint is the [S04 per-CVE decision record](SECURITY_RESIDUAL_DECISIONS.md):
-11 exact-image precondition exclusions proposed and 69 unwaived residual CVEs,
-all owner-pending. Approve the bounded runtime containment slice before changing
-Compose/startup; probe isolation does not establish shipped deployment policy.
-Historical private temporary logs are unavailable this session; fresh exact-image
-component observations and committed summaries remain. Candidate raw evidence
-must be retained durably; no new full-suite run, scan or acceptance is claimed.
+G13-04's [S04 per-CVE decision record](SECURITY_RESIDUAL_DECISIONS.md) retains 11
+proposed exact-image precondition exclusions and 69 unwaived residual CVEs, all
+owner-pending. Its approved [containment implementation](SECURITY_CONTAINMENT_RESULTS.md)
+at `ea17494` passes the complete gate and verifies the actual API/Nginx capability
+boundary. Default/custom ownership, uploads, preview persistence and trusted recovery
+remain supported. New raw evidence is durable/private; historical temporary artifacts
+are not recovered. Accept this bounded implementation separately from the remaining
+CVEs and candidate/platform qualification. The final audit matches lifecycle IDs
+and retains identical reduced records for 181 API / 3 web matches; the first
+incomplete image attempt is separately recorded, never promoted to a complete scan.
 
 P07/P11/P12 now also have G13-02's joined current lifecycle proof, supplementing
 their focused API tests. Raw restore preserves the complete content/security graph

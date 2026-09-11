@@ -1,0 +1,1680 @@
+{
+  "schema": 1,
+  "revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+  "status": "verified_not_security_acceptance",
+  "durable_private_root": "/home/vinnyc/.local/state/makersvault/verification",
+  "runs": {
+    "preflight-build": {
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "runtime",
+        "-t",
+        "makersvault-api-containment-test",
+        "makervault/api"
+      ],
+      "started_at": "2026-09-11T00:03:56.693Z",
+      "source_revision": "65348c85da5bc0f68f175f3fbce22ef54e60d376",
+      "verification_source_status": "M Makefile\n M makervault/api/docker-entrypoint.sh\n M makervault/docker-compose.deploy.yml\n M makervault/docker-compose.yml\n M makervault/scripts/verification_runtime.py\n?? makervault/scripts/container_privileges.py\n?? makervault/scripts/tests/test_container_privileges.py\n?? makervault/scripts/verify-compose-privileges.py",
+      "finished_at": "2026-09-11T00:03:59.321Z",
+      "duration_seconds": 2.628,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "65348c85da5bc0f68f175f3fbce22ef54e60d376",
+      "end_verification_source_status": "M Makefile\n M makervault/api/docker-entrypoint.sh\n M makervault/docker-compose.deploy.yml\n M makervault/docker-compose.yml\n M makervault/scripts/verification_runtime.py\n?? makervault/scripts/container_privileges.py\n?? makervault/scripts/tests/test_container_privileges.py\n?? makervault/scripts/verify-compose-privileges.py",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 2380,
+          "sha256": "ad19182356e9b14e05c50efd8c71c99975c0e9b2703969e78bad19c85a9f8a63"
+        }
+      ],
+      "record_sha256": "0202348a2b940711857b9fcc6e1d367cfaa4e42849670e8ddb4f6d5471ffd6fa"
+    },
+    "preflight-matrix": {
+      "command": [
+        "python3",
+        "makervault/scripts/verify-container-privileges.py",
+        "--api-image",
+        "makersvault-api-containment-test"
+      ],
+      "started_at": "2026-09-11T00:05:44.917Z",
+      "source_revision": "65348c85da5bc0f68f175f3fbce22ef54e60d376",
+      "verification_source_status": "M Makefile\n M makervault/api/docker-entrypoint.sh\n M makervault/docker-compose.deploy.yml\n M makervault/docker-compose.yml\n M makervault/scripts/verification_runtime.py\n?? makervault/scripts/container-privilege-probe.py\n?? makervault/scripts/container_privileges.py\n?? makervault/scripts/tests/test_container_privileges.py\n?? makervault/scripts/verify-compose-privileges.py\n?? makervault/scripts/verify-container-privileges.py",
+      "finished_at": "2026-09-11T00:05:46.284Z",
+      "duration_seconds": 1.367,
+      "exit_code": 1,
+      "signal": null,
+      "end_source_revision": "65348c85da5bc0f68f175f3fbce22ef54e60d376",
+      "end_verification_source_status": "M Makefile\n M makervault/api/docker-entrypoint.sh\n M makervault/docker-compose.deploy.yml\n M makervault/docker-compose.yml\n M makervault/scripts/verification_runtime.py\n?? makervault/scripts/container-privilege-probe.py\n?? makervault/scripts/container_privileges.py\n?? makervault/scripts/tests/test_container_privileges.py\n?? makervault/scripts/verify-compose-privileges.py\n?? makervault/scripts/verify-container-privileges.py",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 925,
+          "sha256": "161b83f67df84b8250acf60844bca2b4697a0ec078c53e6eac063ecd3b8d12dc"
+        }
+      ],
+      "record_sha256": "27e6e4b6fa0773c0819aa72153d2587d8a18fe3832e71690fd3298b3e0fa6c0c"
+    },
+    "preflight-matrix-b": {
+      "command": [
+        "python3",
+        "makervault/scripts/verify-container-privileges.py",
+        "--api-image",
+        "makersvault-api-containment-test"
+      ],
+      "started_at": "2026-09-11T00:06:52.453Z",
+      "source_revision": "65348c85da5bc0f68f175f3fbce22ef54e60d376",
+      "verification_source_status": "M Makefile\n M makervault/api/docker-entrypoint.sh\n M makervault/docker-compose.deploy.yml\n M makervault/docker-compose.yml\n M makervault/scripts/verification_runtime.py\n?? makervault/scripts/container-privilege-probe.py\n?? makervault/scripts/container_privileges.py\n?? makervault/scripts/tests/test_container_privileges.py\n?? makervault/scripts/verify-compose-privileges.py\n?? makervault/scripts/verify-container-privileges.py",
+      "finished_at": "2026-09-11T00:07:02.084Z",
+      "duration_seconds": 9.631,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "65348c85da5bc0f68f175f3fbce22ef54e60d376",
+      "end_verification_source_status": "M Makefile\n M makervault/api/docker-entrypoint.sh\n M makervault/docker-compose.deploy.yml\n M makervault/docker-compose.yml\n M makervault/scripts/verification_runtime.py\n?? makervault/scripts/container-privilege-probe.py\n?? makervault/scripts/container_privileges.py\n?? makervault/scripts/tests/test_container_privileges.py\n?? makervault/scripts/verify-compose-privileges.py\n?? makervault/scripts/verify-container-privileges.py",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 5114,
+          "sha256": "2b09b2520225920005ee70697a522c735ca8ba87eb8d359e92a0ffc60f7ab126"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "record_sha256": "c190a6275eef05d6f7c9e12d8fc060165754a8c98a7097cb790862e851bad0a5"
+    },
+    "old-image-negative": {
+      "command": [
+        "python3",
+        "makervault/scripts/verify-container-privileges.py",
+        "--api-image",
+        "sha256:4ba3ee6147ed94fb0dd8f1502dba16d257ce98da0aa9595898e5b44ff3bdc5cc"
+      ],
+      "started_at": "2026-09-11T00:07:23.243Z",
+      "source_revision": "65348c85da5bc0f68f175f3fbce22ef54e60d376",
+      "verification_source_status": "M Makefile\n M makervault/api/docker-entrypoint.sh\n M makervault/docker-compose.deploy.yml\n M makervault/docker-compose.yml\n M makervault/scripts/container-smoke.sh\n M makervault/scripts/verification_runtime.py\n?? makervault/scripts/container-privilege-probe.py\n?? makervault/scripts/container_privileges.py\n?? makervault/scripts/tests/test_container_privileges.py\n?? makervault/scripts/verify-compose-privileges.py\n?? makervault/scripts/verify-container-privileges.py",
+      "finished_at": "2026-09-11T00:07:24.257Z",
+      "duration_seconds": 1.014,
+      "exit_code": 1,
+      "signal": null,
+      "end_source_revision": "65348c85da5bc0f68f175f3fbce22ef54e60d376",
+      "end_verification_source_status": "M Makefile\n M makervault/api/docker-entrypoint.sh\n M makervault/docker-compose.deploy.yml\n M makervault/docker-compose.yml\n M makervault/scripts/container-smoke.sh\n M makervault/scripts/verification_runtime.py\n?? makervault/scripts/container-privilege-probe.py\n?? makervault/scripts/container_privileges.py\n?? makervault/scripts/tests/test_container_privileges.py\n?? makervault/scripts/verify-compose-privileges.py\n?? makervault/scripts/verify-container-privileges.py",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 1314,
+          "sha256": "8e609d6e39905af18eea4619eeece274d4e2d33a7017e5515e7fa58c7c67bee9"
+        }
+      ],
+      "record_sha256": "4c702201edfdfd3c576b3559615476e5b8c0d5bc09a0aeaa4684d062ac9208a8"
+    },
+    "full": {
+      "command": [
+        "make",
+        "verify"
+      ],
+      "started_at": "2026-09-11T00:09:22.757Z",
+      "source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "verification_source_status": "",
+      "finished_at": "2026-09-11T00:14:16.428Z",
+      "duration_seconds": 293.671,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 28676,
+          "sha256": "b7af0f50d0e7556af7f5928130a6cbb4a6b1fd7e06fa388c2a67649a46f2171b"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 12048,
+          "sha256": "09f67f286e56879defc6070ac45766d940598be276ae0b972d58a69cc11c17ef"
+        }
+      ],
+      "record_sha256": "ebe0b3232d57a1c572df2ff112d33a108f96e52cab7d8e676fc0a2d975812f24"
+    },
+    "language-run": {
+      "command": [
+        "python3",
+        "makervault/scripts/gate13-advisory-audit.py",
+        "--phase",
+        "languages",
+        "--output",
+        "/home/vinnyc/.local/state/makersvault/verification/containment-language-audit",
+        "--api-image",
+        "unused",
+        "--web-image",
+        "unused"
+      ],
+      "started_at": "2026-09-11T00:09:23.937Z",
+      "source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "verification_source_status": "",
+      "finished_at": "2026-09-11T00:10:06.654Z",
+      "duration_seconds": 42.717,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 2213,
+          "sha256": "71d7f07d516efdc4ce67e593ba27517ef6aaefcbf2b7ec0904b7f61e1653d874"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "record_sha256": "d8dbcebe2268251b104fc374261e78cdbb20f0af0bb1ab71c160fc6df7b2c343"
+    },
+    "api-build": {
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "runtime",
+        "--build-arg",
+        "MAKERSVAULT_VERSION=development-gate13b",
+        "--build-arg",
+        "MAKERSVAULT_REVISION=ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+        "-t",
+        "makersvault-api:gate13b-ea17494b610f",
+        "makervault/api"
+      ],
+      "started_at": "2026-09-11T00:09:48.924Z",
+      "source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "verification_source_status": "",
+      "finished_at": "2026-09-11T00:09:50.697Z",
+      "duration_seconds": 1.773,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 2270,
+          "sha256": "a35f8e9920fb04fae67b9aae19a6e076c68e3461718b0682968da6be7094b7e6"
+        }
+      ],
+      "record_sha256": "98fb372bea220517f1de7b21604ba74ddffe62502a83fea39e422e273168714d"
+    },
+    "web-build": {
+      "command": [
+        "docker",
+        "build",
+        "--build-arg",
+        "MAKERSVAULT_VERSION=development-gate13b",
+        "--build-arg",
+        "MAKERSVAULT_REVISION=ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+        "-t",
+        "makersvault-web:gate13b-ea17494b610f",
+        "makervault/web"
+      ],
+      "started_at": "2026-09-11T00:09:50.087Z",
+      "source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "verification_source_status": "",
+      "finished_at": "2026-09-11T00:09:51.954Z",
+      "duration_seconds": 1.867,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 2953,
+          "sha256": "c3bc3366b37755e0144c3d0caa5c1b4062f6fe16bd400759ddf32f5d2a22cb3b"
+        }
+      ],
+      "record_sha256": "1b619790d1f93e8d3146f1a71de5c6cdbf3a261cc1c8403ebae92f168fd0ad84"
+    },
+    "image-run": {
+      "command": [
+        "python3",
+        "makervault/scripts/gate13-advisory-audit.py",
+        "--phase",
+        "images",
+        "--output",
+        "/home/vinnyc/.local/state/makersvault/verification/containment-image-audit",
+        "--api-image",
+        "sha256:fea0f9ae38fe5568b9d0708cc252317596a40fb4ff879633e77fe8ffa0f3a00f",
+        "--web-image",
+        "sha256:cbc44f2a49fceee9226330ee6d17cdb2b162db3f266a2bc4fde229fd75d41afb"
+      ],
+      "started_at": "2026-09-11T00:10:38.027Z",
+      "source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "verification_source_status": "",
+      "finished_at": "2026-09-11T00:14:38.443Z",
+      "duration_seconds": 240.416,
+      "exit_code": 1,
+      "signal": null,
+      "end_source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 20,
+          "sha256": "869a241e9d3ee0d8b18c473fd0ededcf824af25546f145ef9c1ae6a29be37559"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 824,
+          "sha256": "c74d9ddc031d8e5ab2c22f3b446212a5d3a6b6638ebeae653422c2b88bd0d2de"
+        }
+      ],
+      "record_sha256": "f8e3684c59b956d4821cf15b7abfb36e054570f64b2f67217f6c5bb6d8745b98"
+    },
+    "exact-matrix": {
+      "command": [
+        "python3",
+        "makervault/scripts/verify-container-privileges.py",
+        "--api-image",
+        "sha256:fea0f9ae38fe5568b9d0708cc252317596a40fb4ff879633e77fe8ffa0f3a00f"
+      ],
+      "started_at": "2026-09-11T00:10:39.167Z",
+      "source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "verification_source_status": "",
+      "finished_at": "2026-09-11T00:10:49.974Z",
+      "duration_seconds": 10.807,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 5114,
+          "sha256": "3dab03efcb9a9a991accfdf869621a94b408106cf753d0ea63bf8c883b5a60bf"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "record_sha256": "4d9b747230978690b9ddc50d1ee1bcc456e6046ad3c78991b709840f06c51361"
+    },
+    "web-tests": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "makersvault-web-gate0-test"
+      ],
+      "started_at": "2026-09-11T00:10:40.336Z",
+      "source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "verification_source_status": "",
+      "finished_at": "2026-09-11T00:10:49.931Z",
+      "duration_seconds": 9.595,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 2916,
+          "sha256": "b7ff865650f007f2e162351133cc4451f7ac853c0b35bd318a63a81264974e6d"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 360,
+          "sha256": "351b524197fb492920789369e7f1a271420c757633fbb553b280a181ac4c31a4"
+        }
+      ],
+      "record_sha256": "1e6e7dedf2e1de919d1ec5c6d2decb0cb1465e4a1695147da59c03414c46dc5f"
+    },
+    "components": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--read-only",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+        "--user",
+        "65534:65534",
+        "--memory",
+        "256m",
+        "--cpus",
+        "1",
+        "--env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "--mount",
+        "type=bind,src=/home/vinnyc/Documents/GitHub/MakersVault/makervault/docs/evidence/gate-13/security-closeout-runtime.py,dst=/probe.py,readonly",
+        "--entrypoint",
+        "python",
+        "sha256:fea0f9ae38fe5568b9d0708cc252317596a40fb4ff879633e77fe8ffa0f3a00f",
+        "/probe.py"
+      ],
+      "started_at": "2026-09-11T00:11:09.096Z",
+      "source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "verification_source_status": "",
+      "finished_at": "2026-09-11T00:11:09.759Z",
+      "duration_seconds": 0.663,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 2343,
+          "sha256": "74c8c64677326d9a68b36e179f4b9a45761a2dccd80a85bd69454c254825d75a"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "record_sha256": "89b27cccc9c2f20221655514340cca61a72b1f1b7f751464dee7b7db87cb6e78"
+    },
+    "final-image-run": {
+      "command": [
+        "python3",
+        "makervault/scripts/gate13-advisory-audit.py",
+        "--phase",
+        "images",
+        "--output",
+        "/home/vinnyc/.local/state/makersvault/verification/containment-final-image-audit",
+        "--api-image",
+        "sha256:40aef54d6acf598ce49197d1aac966c96cc38ddd887ca10feff6a3ef4a74edec",
+        "--web-image",
+        "sha256:390b8dbb18c868f72366fe4353c2d8a944b3b0b412ad6fd46455dc2e5debcf82"
+      ],
+      "started_at": "2026-09-11T00:15:47.253Z",
+      "source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "verification_source_status": "",
+      "finished_at": "2026-09-11T00:19:49.678Z",
+      "duration_seconds": 242.425,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 7415,
+          "sha256": "c254e6c08d54d9b072d99c30ddd71df5d51b01bc1b7108b706af926ca1a41807"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "record_sha256": "7279f515dcc48198bff0cf54afd13df2f55448746bea18f2626f1875dab6d4f3"
+    },
+    "final-exact-matrix": {
+      "command": [
+        "python3",
+        "makervault/scripts/verify-container-privileges.py",
+        "--api-image",
+        "sha256:40aef54d6acf598ce49197d1aac966c96cc38ddd887ca10feff6a3ef4a74edec"
+      ],
+      "started_at": "2026-09-11T00:15:48.421Z",
+      "source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "verification_source_status": "",
+      "finished_at": "2026-09-11T00:15:57.540Z",
+      "duration_seconds": 9.12,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 5114,
+          "sha256": "bc3c1768729056e6ee755a51822b2387711077c6de82e816fe41d3aea739ca2f"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "record_sha256": "5cf523122c596b1025b7f02eea4fe9859634f31f8c903c33769e86aed6e15373"
+    },
+    "final-components": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--read-only",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+        "--user",
+        "65534:65534",
+        "--memory",
+        "256m",
+        "--cpus",
+        "1",
+        "--env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "--mount",
+        "type=bind,src=/home/vinnyc/Documents/GitHub/MakersVault/makervault/docs/evidence/gate-13/security-closeout-runtime.py,dst=/probe.py,readonly",
+        "--entrypoint",
+        "python",
+        "sha256:40aef54d6acf598ce49197d1aac966c96cc38ddd887ca10feff6a3ef4a74edec",
+        "/probe.py"
+      ],
+      "started_at": "2026-09-11T00:15:49.582Z",
+      "source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "verification_source_status": "",
+      "finished_at": "2026-09-11T00:15:50.168Z",
+      "duration_seconds": 0.586,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 2343,
+          "sha256": "74c8c64677326d9a68b36e179f4b9a45761a2dccd80a85bd69454c254825d75a"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "record_sha256": "f66b85caee743a3739dec628c0573dfd88f3e8be455bfc4b178979090b338a82"
+    }
+  },
+  "language_phase": {
+    "captured_at": "2026-09-11T00:09:24.021054+00:00",
+    "images": {},
+    "lock_sha256": {
+      "api/requirements-build.lock": "d72227a29dc62ea3f688c01aa224673844fad5a15651f5f16969d805122332ad",
+      "api/requirements-dev.lock": "7003bd48f4d5a9ba596be0625f36ef7fdf601baf43d00f62eb9abaa5c7b19583",
+      "api/requirements.lock": "21a943baca1c298e9da2967bdb25c86854ab8235d98f5944b1e94d655d4bbd7f",
+      "benchmarks/organization/package-lock.json": "90685f4ed1d4fe25eb1ab4b7a4b58c199d3419f1e2bd9daa1c63fdf2c4fa2da2",
+      "benchmarks/preview/package-lock.json": "2bc7841853ef1546e351a9f653d35bec022e6f63bf015150c14fb3861200c799",
+      "slicer-bridge/go.mod": "49d06f23e0ec7f8e48794df1b7fcce355463df06189a378a10482c55abafe253",
+      "web/package-lock.json": "8217918e8120d05b8ecd3b51e7b5f814c112aced3f3702346e1fd0f7028b2ab9"
+    },
+    "phase": "languages",
+    "scans": {
+      "go": {
+        "config": {
+          "db": "https://vuln.go.dev",
+          "db_last_modified": "2026-09-10T14:48:42Z",
+          "go_version": "go1.26.6",
+          "protocol_version": "v1.0.0",
+          "scan_level": "symbol",
+          "scan_mode": "source",
+          "scanner_name": "govulncheck",
+          "scanner_version": "v1.7.0"
+        },
+        "exit_code": 0,
+        "findings": []
+      },
+      "npm-organization": {
+        "exit_code": 0,
+        "vulnerabilities": {
+          "critical": 0,
+          "high": 0,
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "total": 0
+        }
+      },
+      "npm-preview": {
+        "exit_code": 0,
+        "vulnerabilities": {
+          "critical": 0,
+          "high": 0,
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "total": 0
+        }
+      },
+      "npm-production": {
+        "exit_code": 0,
+        "vulnerabilities": {
+          "critical": 0,
+          "high": 0,
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "total": 0
+        }
+      },
+      "npm-web": {
+        "exit_code": 0,
+        "vulnerabilities": {
+          "critical": 0,
+          "high": 0,
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "total": 0
+        }
+      },
+      "python-build": {
+        "advisories": 0,
+        "dependencies": 2,
+        "exit_code": 0,
+        "skipped": []
+      },
+      "python-development": {
+        "advisories": 0,
+        "dependencies": 43,
+        "exit_code": 0,
+        "skipped": []
+      },
+      "python-runtime": {
+        "advisories": 0,
+        "dependencies": 35,
+        "exit_code": 0,
+        "skipped": []
+      }
+    },
+    "source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+    "status": "audit_completed_not_release_clearance",
+    "verification_sources_dirty": false
+  },
+  "image_phase": {
+    "captured_at": "2026-09-11T00:15:47.335804+00:00",
+    "images": {
+      "api": {
+        "id": "sha256:40aef54d6acf598ce49197d1aac966c96cc38ddd887ca10feff6a3ef4a74edec",
+        "labels": {
+          "org.opencontainers.image.created": "unknown",
+          "org.opencontainers.image.revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+          "org.opencontainers.image.source": "https://github.com/VincentCinque/MakersVault",
+          "org.opencontainers.image.title": "MakersVault API",
+          "org.opencontainers.image.version": "development-gate13b"
+        }
+      },
+      "web": {
+        "id": "sha256:390b8dbb18c868f72366fe4353c2d8a944b3b0b412ad6fd46455dc2e5debcf82",
+        "labels": {
+          "maintainer": "NGINX Docker Maintainers <docker-maint@nginx.com>",
+          "org.opencontainers.image.created": "unknown",
+          "org.opencontainers.image.description": "Unprivileged NGINX Dockerfiles",
+          "org.opencontainers.image.licenses": "Apache-2.0",
+          "org.opencontainers.image.revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+          "org.opencontainers.image.source": "https://github.com/VincentCinque/MakersVault",
+          "org.opencontainers.image.title": "MakersVault Web",
+          "org.opencontainers.image.url": "https://github.com/nginx/docker-nginx-unprivileged",
+          "org.opencontainers.image.version": "development-gate13b"
+        }
+      }
+    },
+    "lock_sha256": {
+      "api/requirements-build.lock": "d72227a29dc62ea3f688c01aa224673844fad5a15651f5f16969d805122332ad",
+      "api/requirements-dev.lock": "7003bd48f4d5a9ba596be0625f36ef7fdf601baf43d00f62eb9abaa5c7b19583",
+      "api/requirements.lock": "21a943baca1c298e9da2967bdb25c86854ab8235d98f5944b1e94d655d4bbd7f",
+      "benchmarks/organization/package-lock.json": "90685f4ed1d4fe25eb1ab4b7a4b58c199d3419f1e2bd9daa1c63fdf2c4fa2da2",
+      "benchmarks/preview/package-lock.json": "2bc7841853ef1546e351a9f653d35bec022e6f63bf015150c14fb3861200c799",
+      "slicer-bridge/go.mod": "49d06f23e0ec7f8e48794df1b7fcce355463df06189a378a10482c55abafe253",
+      "web/package-lock.json": "8217918e8120d05b8ecd3b51e7b5f814c112aced3f3702346e1fd0f7028b2ab9"
+    },
+    "phase": "images",
+    "scans": {
+      "image-api": {
+        "database": {
+          "providers": {
+            "alma": {
+              "captured": "2026-09-10T00:32:11Z",
+              "input": "xxh64:1807e105692cb88f"
+            },
+            "alpine": {
+              "captured": "2026-09-10T00:31:51Z",
+              "input": "xxh64:09d59dafdef78079"
+            },
+            "amazon": {
+              "captured": "2026-09-10T00:31:41Z",
+              "input": "xxh64:4117fe07be3c267a"
+            },
+            "arch": {
+              "captured": "2026-09-10T00:31:36Z",
+              "input": "xxh64:c00aebe2828c161c"
+            },
+            "bitnami": {
+              "captured": "2026-09-10T00:31:32Z",
+              "input": "xxh64:951c2d306a8b1b69"
+            },
+            "chainguard": {
+              "captured": "2026-09-10T00:31:37Z",
+              "input": "xxh64:27e03c57f3d9dcbf"
+            },
+            "chainguard-libraries": {
+              "captured": "2026-09-10T00:31:20Z",
+              "input": "xxh64:ef94aab8ce5da4c8"
+            },
+            "debian": {
+              "captured": "2026-09-10T00:31:20Z",
+              "input": "xxh64:204642a2b850cb27"
+            },
+            "echo": {
+              "captured": "2026-09-10T00:31:08Z",
+              "input": "xxh64:ff78d875989e7db4"
+            },
+            "eol": {
+              "captured": "2026-09-10T00:31:10Z",
+              "input": "xxh64:dfbfc9c07c312bda"
+            },
+            "epss": {
+              "captured": "2026-09-10T00:31:06Z",
+              "input": "xxh64:40d2df386998cfd9"
+            },
+            "fedora": {
+              "captured": "2026-09-10T00:31:16Z",
+              "input": "xxh64:25ae652358dbadfd"
+            },
+            "github": {
+              "captured": "2026-09-10T00:31:26Z",
+              "input": "xxh64:457b969106884a39"
+            },
+            "govulndb": {
+              "captured": "2026-09-10T00:31:03Z",
+              "input": "xxh64:cd35c449ef8579fd"
+            },
+            "hummingbird": {
+              "captured": "2026-09-10T00:33:21Z",
+              "input": "xxh64:7a731a5257f54a62"
+            },
+            "kev": {
+              "captured": "2026-09-10T00:31:41Z",
+              "input": "xxh64:cf42b0fc13505f0e"
+            },
+            "mariner": {
+              "captured": "2026-09-10T00:31:09Z",
+              "input": "xxh64:13e7b5eb73888863"
+            },
+            "minimos": {
+              "captured": "2026-09-10T00:31:10Z",
+              "input": "xxh64:2bdfa73053c0a427"
+            },
+            "nvd": {
+              "captured": "2026-09-10T00:32:03Z",
+              "input": "xxh64:940aa3847da19e49"
+            },
+            "oracle": {
+              "captured": "2026-09-10T00:31:11Z",
+              "input": "xxh64:b2d09e8869a1f381"
+            },
+            "photon": {
+              "captured": "2026-09-10T00:31:26Z",
+              "input": "xxh64:d040c89077557ee2"
+            },
+            "rhel": {
+              "captured": "2026-09-10T00:32:18Z",
+              "input": "xxh64:064c5e2b32fd5d02"
+            },
+            "secureos": {
+              "captured": "2026-09-10T00:31:01Z",
+              "input": "xxh64:d15a676bfc167e23"
+            },
+            "sles": {
+              "captured": "2026-09-10T00:31:42Z",
+              "input": "xxh64:8cd4754292a46849"
+            },
+            "ubuntu": {
+              "captured": "2026-09-10T00:33:18Z",
+              "input": "xxh64:a95743d0b61aae64"
+            },
+            "wolfi": {
+              "captured": "2026-09-10T00:31:13Z",
+              "input": "xxh64:2c86b25c0167c4ae"
+            }
+          },
+          "status": {
+            "built": "2026-09-10T06:30:24Z",
+            "from": "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.9_2026-09-10T00:31:01Z_1789021824.tar.zst?checksum=sha256%3Ace7ae6d4f7fb81029fc3bd1891b6b441f96bac4e278519743e4768eebd805e69",
+            "path": "/cache/6/vulnerability.db",
+            "schemaVersion": "v6.1.9",
+            "valid": true
+          }
+        },
+        "exit_code": 0,
+        "matches": 181,
+        "scanner": "0.118.0",
+        "severity": {
+          "Critical": 7,
+          "High": 61,
+          "Low": 9,
+          "Medium": 51,
+          "Negligible": 45,
+          "Unknown": 8
+        }
+      },
+      "image-web": {
+        "database": {
+          "providers": {
+            "alma": {
+              "captured": "2026-09-10T00:32:11Z",
+              "input": "xxh64:1807e105692cb88f"
+            },
+            "alpine": {
+              "captured": "2026-09-10T00:31:51Z",
+              "input": "xxh64:09d59dafdef78079"
+            },
+            "amazon": {
+              "captured": "2026-09-10T00:31:41Z",
+              "input": "xxh64:4117fe07be3c267a"
+            },
+            "arch": {
+              "captured": "2026-09-10T00:31:36Z",
+              "input": "xxh64:c00aebe2828c161c"
+            },
+            "bitnami": {
+              "captured": "2026-09-10T00:31:32Z",
+              "input": "xxh64:951c2d306a8b1b69"
+            },
+            "chainguard": {
+              "captured": "2026-09-10T00:31:37Z",
+              "input": "xxh64:27e03c57f3d9dcbf"
+            },
+            "chainguard-libraries": {
+              "captured": "2026-09-10T00:31:20Z",
+              "input": "xxh64:ef94aab8ce5da4c8"
+            },
+            "debian": {
+              "captured": "2026-09-10T00:31:20Z",
+              "input": "xxh64:204642a2b850cb27"
+            },
+            "echo": {
+              "captured": "2026-09-10T00:31:08Z",
+              "input": "xxh64:ff78d875989e7db4"
+            },
+            "eol": {
+              "captured": "2026-09-10T00:31:10Z",
+              "input": "xxh64:dfbfc9c07c312bda"
+            },
+            "epss": {
+              "captured": "2026-09-10T00:31:06Z",
+              "input": "xxh64:40d2df386998cfd9"
+            },
+            "fedora": {
+              "captured": "2026-09-10T00:31:16Z",
+              "input": "xxh64:25ae652358dbadfd"
+            },
+            "github": {
+              "captured": "2026-09-10T00:31:26Z",
+              "input": "xxh64:457b969106884a39"
+            },
+            "govulndb": {
+              "captured": "2026-09-10T00:31:03Z",
+              "input": "xxh64:cd35c449ef8579fd"
+            },
+            "hummingbird": {
+              "captured": "2026-09-10T00:33:21Z",
+              "input": "xxh64:7a731a5257f54a62"
+            },
+            "kev": {
+              "captured": "2026-09-10T00:31:41Z",
+              "input": "xxh64:cf42b0fc13505f0e"
+            },
+            "mariner": {
+              "captured": "2026-09-10T00:31:09Z",
+              "input": "xxh64:13e7b5eb73888863"
+            },
+            "minimos": {
+              "captured": "2026-09-10T00:31:10Z",
+              "input": "xxh64:2bdfa73053c0a427"
+            },
+            "nvd": {
+              "captured": "2026-09-10T00:32:03Z",
+              "input": "xxh64:940aa3847da19e49"
+            },
+            "oracle": {
+              "captured": "2026-09-10T00:31:11Z",
+              "input": "xxh64:b2d09e8869a1f381"
+            },
+            "photon": {
+              "captured": "2026-09-10T00:31:26Z",
+              "input": "xxh64:d040c89077557ee2"
+            },
+            "rhel": {
+              "captured": "2026-09-10T00:32:18Z",
+              "input": "xxh64:064c5e2b32fd5d02"
+            },
+            "secureos": {
+              "captured": "2026-09-10T00:31:01Z",
+              "input": "xxh64:d15a676bfc167e23"
+            },
+            "sles": {
+              "captured": "2026-09-10T00:31:42Z",
+              "input": "xxh64:8cd4754292a46849"
+            },
+            "ubuntu": {
+              "captured": "2026-09-10T00:33:18Z",
+              "input": "xxh64:a95743d0b61aae64"
+            },
+            "wolfi": {
+              "captured": "2026-09-10T00:31:13Z",
+              "input": "xxh64:2c86b25c0167c4ae"
+            }
+          },
+          "status": {
+            "built": "2026-09-10T06:30:24Z",
+            "from": "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.9_2026-09-10T00:31:01Z_1789021824.tar.zst?checksum=sha256%3Ace7ae6d4f7fb81029fc3bd1891b6b441f96bac4e278519743e4768eebd805e69",
+            "path": "/cache/6/vulnerability.db",
+            "schemaVersion": "v6.1.9",
+            "valid": true
+          }
+        },
+        "exit_code": 0,
+        "matches": 3,
+        "scanner": "0.118.0",
+        "severity": {
+          "Medium": 3
+        }
+      }
+    },
+    "source_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+    "status": "audit_completed_not_release_clearance",
+    "verification_sources_dirty": false
+  },
+  "raw_audit_artifacts": {
+    "language": [
+      {
+        "file": "go.json",
+        "sha256": "a00439695f7fe02a273d67162a35c6177e1564c2e9b5653088e816e289874817"
+      },
+      {
+        "file": "go.stderr.txt",
+        "sha256": "f7d35a969a312b0037dbc03fd37eae08cb0e3684ae74a002b4460445e8e71525"
+      },
+      {
+        "file": "npm-organization.json",
+        "sha256": "06c18d6ae5bb95560b3aaf924119c2ecbd29a69e9f4f8a67dc2bb1d7bc726c5e"
+      },
+      {
+        "file": "npm-organization.stderr.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "npm-preview.json",
+        "sha256": "06c18d6ae5bb95560b3aaf924119c2ecbd29a69e9f4f8a67dc2bb1d7bc726c5e"
+      },
+      {
+        "file": "npm-preview.stderr.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "npm-production.json",
+        "sha256": "e5d99d6a363e7eb92ce26b871b5f59ab5e19d570372d9c7dcd528aa2b8701e76"
+      },
+      {
+        "file": "npm-production.stderr.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "npm-web.json",
+        "sha256": "e5d99d6a363e7eb92ce26b871b5f59ab5e19d570372d9c7dcd528aa2b8701e76"
+      },
+      {
+        "file": "npm-web.stderr.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "partial-summary.json",
+        "sha256": "6a3ed8aa2be949cf89cd9b2f89b397cb20747d969959e29cf456cb9d2c2ebdbd"
+      },
+      {
+        "file": "python-build.json",
+        "sha256": "bcb6dc8a7d129def604d7153bd177092ac34ec34081cb44f0fa190583308d9b0"
+      },
+      {
+        "file": "python-build.stderr.txt",
+        "sha256": "8b03ecfdad0a2bdb1becaf7675571958c8127c4ab90922107b1b07a23734d9db"
+      },
+      {
+        "file": "python-development.json",
+        "sha256": "e1b283b65dcb7567d7133444765b52a5299f486ea05fd44301d879e73289bc1b"
+      },
+      {
+        "file": "python-development.stderr.txt",
+        "sha256": "8b03ecfdad0a2bdb1becaf7675571958c8127c4ab90922107b1b07a23734d9db"
+      },
+      {
+        "file": "python-runtime.json",
+        "sha256": "f50b4efc5f4490acd1397fad6780c56263e01d3eaae541818d27cde41a701641"
+      },
+      {
+        "file": "python-runtime.stderr.txt",
+        "sha256": "8b03ecfdad0a2bdb1becaf7675571958c8127c4ab90922107b1b07a23734d9db"
+      },
+      {
+        "file": "summary.json",
+        "sha256": "62f34b8a3a747edc793205b377f3454368e770413c28ddc956ab818adbd48ef5"
+      }
+    ],
+    "image": [
+      {
+        "file": "image-api.json",
+        "sha256": "c969015b1bab0bd9d38d437b3f271f00e17fd673acb6ddeafb48ab86df5c8468"
+      },
+      {
+        "file": "image-api.stderr.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "partial-summary.json",
+        "sha256": "b8c05b6823a7ab772388a47de6af919eb0ec012ec9ca40e0b436ad673eaeabcf"
+      }
+    ],
+    "final-image": [
+      {
+        "file": "image-api.json",
+        "sha256": "38c98dbdac251fa582b98d6d98ad694870f94bdd5b6ad79647cec113c3ff7622"
+      },
+      {
+        "file": "image-api.stderr.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "image-web.json",
+        "sha256": "c73e9e634f52589e11cadd08710f9fd1a80055a7a4538bc4a0be79d2e57cc4f8"
+      },
+      {
+        "file": "image-web.stderr.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "partial-summary.json",
+        "sha256": "7a27b99e46b93022cd9ba0c0d071a8a447c022cd2345cd8357cd2461d0fb7c2c"
+      },
+      {
+        "file": "summary.json",
+        "sha256": "24516490f4cf8d2458af769ad91a92c50622095a191e495de56d0e601a494805"
+      }
+    ]
+  },
+  "image_match_comparison": {
+    "api": {
+      "baseline": "security-closeout-inventory.json#api.matches",
+      "count": 181,
+      "unique_advisories": 96,
+      "equal": true,
+      "added": [],
+      "removed": []
+    },
+    "web": {
+      "baseline": "security-closeout-inventory.json#web.matches",
+      "count": 3,
+      "unique_advisories": 1,
+      "equal": true,
+      "added": [],
+      "removed": []
+    }
+  },
+  "lifecycle": {
+    "benchmark_session_helper": "passed",
+    "dirty": false,
+    "exact_schema4_rollback": true,
+    "external_availability_normalized": true,
+    "fresh_identity_only": true,
+    "fresh_smoke": {
+      "generated_preview_restart_sha256": "81fe920eb6e9803d394e68e306d37ed3a13d9ed5d89d1649c6719ba852a97920",
+      "https_secure_cookie_csrf": true,
+      "logout_revocation": true,
+      "non_root_api_web": true,
+      "process_privileges": {
+        "api": {
+          "capabilities": {
+            "CapAmb": 0,
+            "CapBnd": 0,
+            "CapEff": 0,
+            "CapInh": 0,
+            "CapPrm": 0
+          },
+          "no_new_privileges": true,
+          "uid": 1000
+        },
+        "web": {
+          "capabilities": {
+            "CapAmb": 0,
+            "CapBnd": 0,
+            "CapEff": 0,
+            "CapInh": 0,
+            "CapPrm": 0
+          },
+          "no_new_privileges": true,
+          "uid": 101,
+          "workers": [
+            {
+              "capabilities": {
+                "CapAmb": 0,
+                "CapBnd": 0,
+                "CapEff": 0,
+                "CapInh": 0,
+                "CapPrm": 0
+              },
+              "no_new_privileges": true,
+              "uid": 101
+            },
+            {
+              "capabilities": {
+                "CapAmb": 0,
+                "CapBnd": 0,
+                "CapEff": 0,
+                "CapInh": 0,
+                "CapPrm": 0
+              },
+              "no_new_privileges": true,
+              "uid": 101
+            },
+            {
+              "capabilities": {
+                "CapAmb": 0,
+                "CapBnd": 0,
+                "CapEff": 0,
+                "CapInh": 0,
+                "CapPrm": 0
+              },
+              "no_new_privileges": true,
+              "uid": 101
+            },
+            {
+              "capabilities": {
+                "CapAmb": 0,
+                "CapBnd": 0,
+                "CapEff": 0,
+                "CapInh": 0,
+                "CapPrm": 0
+              },
+              "no_new_privileges": true,
+              "uid": 101
+            },
+            {
+              "capabilities": {
+                "CapAmb": 0,
+                "CapBnd": 0,
+                "CapEff": 0,
+                "CapInh": 0,
+                "CapPrm": 0
+              },
+              "no_new_privileges": true,
+              "uid": 101
+            },
+            {
+              "capabilities": {
+                "CapAmb": 0,
+                "CapBnd": 0,
+                "CapEff": 0,
+                "CapInh": 0,
+                "CapPrm": 0
+              },
+              "no_new_privileges": true,
+              "uid": 101
+            },
+            {
+              "capabilities": {
+                "CapAmb": 0,
+                "CapBnd": 0,
+                "CapEff": 0,
+                "CapInh": 0,
+                "CapPrm": 0
+              },
+              "no_new_privileges": true,
+              "uid": 101
+            },
+            {
+              "capabilities": {
+                "CapAmb": 0,
+                "CapBnd": 0,
+                "CapEff": 0,
+                "CapInh": 0,
+                "CapPrm": 0
+              },
+              "no_new_privileges": true,
+              "uid": 101
+            },
+            {
+              "capabilities": {
+                "CapAmb": 0,
+                "CapBnd": 0,
+                "CapEff": 0,
+                "CapInh": 0,
+                "CapPrm": 0
+              },
+              "no_new_privileges": true,
+              "uid": 101
+            },
+            {
+              "capabilities": {
+                "CapAmb": 0,
+                "CapBnd": 0,
+                "CapEff": 0,
+                "CapInh": 0,
+                "CapPrm": 0
+              },
+              "no_new_privileges": true,
+              "uid": 101
+            },
+            {
+              "capabilities": {
+                "CapAmb": 0,
+                "CapBnd": 0,
+                "CapEff": 0,
+                "CapInh": 0,
+                "CapPrm": 0
+              },
+              "no_new_privileges": true,
+              "uid": 101
+            },
+            {
+              "capabilities": {
+                "CapAmb": 0,
+                "CapBnd": 0,
+                "CapEff": 0,
+                "CapInh": 0,
+                "CapPrm": 0
+              },
+              "no_new_privileges": true,
+              "uid": 101
+            },
+            {
+              "capabilities": {
+                "CapAmb": 0,
+                "CapBnd": 0,
+                "CapEff": 0,
+                "CapInh": 0,
+                "CapPrm": 0
+              },
+              "no_new_privileges": true,
+              "uid": 101
+            },
+            {
+              "capabilities": {
+                "CapAmb": 0,
+                "CapBnd": 0,
+                "CapEff": 0,
+                "CapInh": 0,
+                "CapPrm": 0
+              },
+              "no_new_privileges": true,
+              "uid": 101
+            },
+            {
+              "capabilities": {
+                "CapAmb": 0,
+                "CapBnd": 0,
+                "CapEff": 0,
+                "CapInh": 0,
+                "CapPrm": 0
+              },
+              "no_new_privileges": true,
+              "uid": 101
+            },
+            {
+              "capabilities": {
+                "CapAmb": 0,
+                "CapBnd": 0,
+                "CapEff": 0,
+                "CapInh": 0,
+                "CapPrm": 0
+              },
+              "no_new_privileges": true,
+              "uid": 101
+            }
+          ]
+        }
+      },
+      "restart_bytes": "1455ce259069704cf240787e3ba134426f9d6b04cdc49b7716a824ee905a65f6",
+      "schema": 17
+    },
+    "images": {
+      "api": "sha256:40aef54d6acf598ce49197d1aac966c96cc38ddd887ca10feff6a3ef4a74edec",
+      "web": "sha256:390b8dbb18c868f72366fe4353c2d8a944b3b0b412ad6fd46455dc2e5debcf82"
+    },
+    "offline_portable_graph_equal": true,
+    "portable_import_schema": 12,
+    "portable_members_compared": 18,
+    "portable_staged_pair_verified": true,
+    "portable_startup_schema": 17,
+    "pre_start_revocation": true,
+    "raw_restore_contract": 6,
+    "refusals": [
+      "nonempty_raw_target",
+      "corrupt_raw_archive",
+      "nonempty_portable_target"
+    ],
+    "revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+    "startup_audit": true,
+    "startup_preview_reconciliation": "legacy_3mf_pending",
+    "status": "passed",
+    "upgrade": "4-to-17",
+    "version": "development-gate13b"
+  },
+  "exact_image_matrix": {
+    "cases": {
+      "custom_uid_gid_existing_volume": {
+        "capabilities": {
+          "CapAmb": 0,
+          "CapBnd": 0,
+          "CapEff": 0,
+          "CapInh": 0,
+          "CapPrm": 0
+        },
+        "child": {
+          "capabilities": {
+            "CapAmb": 0,
+            "CapBnd": 0,
+            "CapEff": 0,
+            "CapInh": 0,
+            "CapPrm": 0
+          },
+          "clear_nnp_refused": true,
+          "no_new_privileges": true,
+          "setuid_root_refused": true,
+          "uid": 1501
+        },
+        "clear_nnp_refused": true,
+        "imports_read_only": true,
+        "nested_ownership": true,
+        "no_new_privileges": true,
+        "persistent_bytes": true,
+        "setuid_root_refused": true,
+        "startup_stderr": "",
+        "startup_stdout": [],
+        "uid": 1501
+      },
+      "custom_uid_gid_recursive_ownership": {
+        "capabilities": {
+          "CapAmb": 0,
+          "CapBnd": 0,
+          "CapEff": 0,
+          "CapInh": 0,
+          "CapPrm": 0
+        },
+        "child": {
+          "capabilities": {
+            "CapAmb": 0,
+            "CapBnd": 0,
+            "CapEff": 0,
+            "CapInh": 0,
+            "CapPrm": 0
+          },
+          "clear_nnp_refused": true,
+          "no_new_privileges": true,
+          "setuid_root_refused": true,
+          "uid": 1501
+        },
+        "clear_nnp_refused": true,
+        "imports_read_only": true,
+        "nested_ownership": true,
+        "no_new_privileges": true,
+        "persistent_bytes": true,
+        "setuid_root_refused": true,
+        "startup_stderr": "",
+        "startup_stdout": [],
+        "uid": 1501
+      },
+      "existing_group": {
+        "capabilities": {
+          "CapAmb": 0,
+          "CapBnd": 0,
+          "CapEff": 0,
+          "CapInh": 0,
+          "CapPrm": 0
+        },
+        "child": {
+          "capabilities": {
+            "CapAmb": 0,
+            "CapBnd": 0,
+            "CapEff": 0,
+            "CapInh": 0,
+            "CapPrm": 0
+          },
+          "clear_nnp_refused": true,
+          "no_new_privileges": true,
+          "setuid_root_refused": true,
+          "uid": 1502
+        },
+        "clear_nnp_refused": true,
+        "imports_read_only": true,
+        "nested_ownership": false,
+        "no_new_privileges": true,
+        "persistent_bytes": true,
+        "setuid_root_refused": true,
+        "startup_stderr": "",
+        "startup_stdout": [],
+        "uid": 1502
+      },
+      "existing_volume_recreate": {
+        "capabilities": {
+          "CapAmb": 0,
+          "CapBnd": 0,
+          "CapEff": 0,
+          "CapInh": 0,
+          "CapPrm": 0
+        },
+        "child": {
+          "capabilities": {
+            "CapAmb": 0,
+            "CapBnd": 0,
+            "CapEff": 0,
+            "CapInh": 0,
+            "CapPrm": 0
+          },
+          "clear_nnp_refused": true,
+          "no_new_privileges": true,
+          "setuid_root_refused": true,
+          "uid": 1000
+        },
+        "clear_nnp_refused": true,
+        "imports_read_only": true,
+        "nested_ownership": false,
+        "no_new_privileges": true,
+        "persistent_bytes": true,
+        "setuid_root_refused": true,
+        "startup_stderr": "",
+        "startup_stdout": [],
+        "uid": 1000
+      },
+      "fresh_default": {
+        "capabilities": {
+          "CapAmb": 0,
+          "CapBnd": 0,
+          "CapEff": 0,
+          "CapInh": 0,
+          "CapPrm": 0
+        },
+        "child": {
+          "capabilities": {
+            "CapAmb": 0,
+            "CapBnd": 0,
+            "CapEff": 0,
+            "CapInh": 0,
+            "CapPrm": 0
+          },
+          "clear_nnp_refused": true,
+          "no_new_privileges": true,
+          "setuid_root_refused": true,
+          "uid": 1000
+        },
+        "clear_nnp_refused": true,
+        "imports_read_only": true,
+        "nested_ownership": false,
+        "no_new_privileges": true,
+        "persistent_bytes": true,
+        "setuid_root_refused": true,
+        "startup_stderr": "",
+        "startup_stdout": [],
+        "uid": 1000
+      },
+      "operator_read_private": {
+        "read_private": true,
+        "startup_stderr": "",
+        "startup_stdout": []
+      },
+      "operator_restore_metadata": {
+        "restore_metadata": true,
+        "startup_stderr": "",
+        "startup_stdout": []
+      },
+      "same_container_restart": {
+        "capabilities": {
+          "CapAmb": 0,
+          "CapBnd": 0,
+          "CapEff": 0,
+          "CapInh": 0,
+          "CapPrm": 0
+        },
+        "child": {
+          "capabilities": {
+            "CapAmb": 0,
+            "CapBnd": 0,
+            "CapEff": 0,
+            "CapInh": 0,
+            "CapPrm": 0
+          },
+          "clear_nnp_refused": true,
+          "no_new_privileges": true,
+          "setuid_root_refused": true,
+          "uid": 1000
+        },
+        "clear_nnp_refused": true,
+        "imports_read_only": true,
+        "nested_ownership": false,
+        "no_new_privileges": true,
+        "persistent_bytes": true,
+        "setuid_root_refused": true,
+        "startup_stderr": "",
+        "startup_stdout": [
+          "usermod: no changes"
+        ],
+        "uid": 1000
+      }
+    },
+    "image": "sha256:40aef54d6acf598ce49197d1aac966c96cc38ddd887ca10feff6a3ef4a74edec",
+    "negative_controls": {
+      "CHOWN": {
+        "exit_code": 10,
+        "mode": "app",
+        "stderr": "groupadd: failure while writing changes to /etc/gshadow\n"
+      },
+      "DAC_OVERRIDE": {
+        "exit_code": 1,
+        "mode": "read-private",
+        "stderr": "Traceback (most recent call last):\n  File \"/probe/container-privilege-probe.py\", line 30, in <module>\n    assert Path(\"/app/storage/private/payload\").read_bytes() == b\"preserve-fixture-bytes\"\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/pathlib.py\", line 1050, in read_bytes\n    with self.open(mode='rb') as f:\n         ^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/pathlib.py\", line 1044, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 13] Permission denied: '/app/storage/private/payload'\n"
+      },
+      "FOWNER": {
+        "exit_code": 1,
+        "mode": "restore-metadata",
+        "stderr": "Traceback (most recent call last):\n  File \"/probe/container-privilege-probe.py\", line 37, in <module>\n    target.chmod(0o600)\n  File \"/usr/local/lib/python3.11/pathlib.py\", line 1132, in chmod\n    os.chmod(self, mode, follow_symlinks=follow_symlinks)\nPermissionError: [Errno 1] Operation not permitted: '/tmp/restore-metadata-fixture'\n"
+      },
+      "SETGID": {
+        "exit_code": 127,
+        "mode": "app",
+        "stderr": "setpriv: setresgid failed: Operation not permitted\n"
+      },
+      "SETPCAP": {
+        "exit_code": 127,
+        "mode": "app",
+        "stderr": "setpriv: apply bounding set: Operation not permitted\n"
+      },
+      "SETUID": {
+        "exit_code": 127,
+        "mode": "app",
+        "stderr": "setpriv: setresuid failed: Operation not permitted\n"
+      }
+    },
+    "status": "passed"
+  },
+  "components": {
+    "benign_idna_observation": {
+      "input": "ẞ.example",
+      "scope": "Offline normalization only; no DNS/network request or demonstrated security bypass",
+      "stdlib_result": "ss.example"
+    },
+    "expat": "expat_2.8.3",
+    "machine": "x86_64",
+    "packages": {
+      "fastapi": "0.141.1",
+      "httpcore2": null,
+      "httpx2": null,
+      "idna": "3.18",
+      "pillow": "12.3.0",
+      "pytest": null,
+      "webauthn": "3.0.0"
+    },
+    "perl": {
+      "config": [
+        "x86_64-linux-gnu-thread-multi",
+        "8"
+      ],
+      "exit_code": 0,
+      "modules_loadable": {
+        "Archive::Tar": false,
+        "Encode": false,
+        "File::Find": false,
+        "File::GlobMapper": false,
+        "File::Temp": true,
+        "HTTP::Tiny": false,
+        "IO::Compress": false,
+        "IO::Uncompress::Unzip": false,
+        "Locale::Maketext": false,
+        "Socket": true,
+        "Storable": false
+      }
+    },
+    "pointer_bits": 64,
+    "python": "3.11.16 (main, Sep  1 2026, 00:12:26) [GCC 14.2.0]",
+    "sqlite": "3.46.1",
+    "sqlite_archive_functions": [],
+    "sqlite_compile_options": [
+      "ALLOW_ROWID_IN_VIEW",
+      "ATOMIC_INTRINSICS=1",
+      "COMPILER=gcc-14.2.0",
+      "DEFAULT_AUTOVACUUM",
+      "DEFAULT_CACHE_SIZE=-2000",
+      "DEFAULT_FILE_FORMAT=4",
+      "DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+      "DEFAULT_MMAP_SIZE=0",
+      "DEFAULT_PAGE_SIZE=4096",
+      "DEFAULT_PCACHE_INITSZ=20",
+      "DEFAULT_RECURSIVE_TRIGGERS",
+      "DEFAULT_SECTOR_SIZE=4096",
+      "DEFAULT_SYNCHRONOUS=2",
+      "DEFAULT_WAL_AUTOCHECKPOINT=1000",
+      "DEFAULT_WAL_SYNCHRONOUS=2",
+      "DEFAULT_WORKER_THREADS=0",
+      "DIRECT_OVERFLOW_READ",
+      "ENABLE_COLUMN_METADATA",
+      "ENABLE_DBPAGE_VTAB",
+      "ENABLE_DBSTAT_VTAB",
+      "ENABLE_FTS3",
+      "ENABLE_FTS3_PARENTHESIS",
+      "ENABLE_FTS3_TOKENIZER",
+      "ENABLE_FTS4",
+      "ENABLE_FTS5",
+      "ENABLE_LOAD_EXTENSION",
+      "ENABLE_MATH_FUNCTIONS",
+      "ENABLE_PREUPDATE_HOOK",
+      "ENABLE_RTREE",
+      "ENABLE_SESSION",
+      "ENABLE_STMTVTAB",
+      "ENABLE_UNLOCK_NOTIFY",
+      "ENABLE_UPDATE_DELETE_LIMIT",
+      "HAVE_ISNAN",
+      "LIKE_DOESNT_MATCH_BLOBS",
+      "MALLOC_SOFT_LIMIT=1024",
+      "MAX_ATTACHED=10",
+      "MAX_COLUMN=2000",
+      "MAX_COMPOUND_SELECT=500",
+      "MAX_DEFAULT_PAGE_SIZE=32768",
+      "MAX_EXPR_DEPTH=1000",
+      "MAX_FUNCTION_ARG=127",
+      "MAX_LENGTH=1000000000",
+      "MAX_LIKE_PATTERN_LENGTH=50000",
+      "MAX_MMAP_SIZE=0x7fff0000",
+      "MAX_PAGE_COUNT=0xfffffffe",
+      "MAX_PAGE_SIZE=65536",
+      "MAX_SCHEMA_RETRY=25",
+      "MAX_SQL_LENGTH=1000000000",
+      "MAX_TRIGGER_DEPTH=1000",
+      "MAX_VARIABLE_NUMBER=250000",
+      "MAX_VDBE_OP=250000000",
+      "MAX_WORKER_THREADS=8",
+      "MUTEX_PTHREADS",
+      "SECURE_DELETE",
+      "SOUNDEX",
+      "SYSTEM_MALLOC",
+      "TEMP_STORE=1",
+      "THREADSAFE=1",
+      "USE_URI"
+    ],
+    "zlib_compile": "1.3.1",
+    "zlib_runtime": "1.3.1"
+  },
+  "verification": {
+    "api_tests": 422,
+    "web_tests": 58,
+    "web_reexecuted": true,
+    "python_harness_tests": 25,
+    "node_harness_tests": 28,
+    "first_matrix_attempt": "Harness JSON parser rejected informational usermod output on restart; corrected, failure retained",
+    "old_image_negative": "Expected failure: nonempty application bounding set (459), not an exploit demonstration",
+    "first_image_attempt": "API scan completed; earlier web image unavailable after lifecycle rebuild produced different IDs. Incomplete attempt retained; final matrix, component probe and both-image audit repeated against exact successful lifecycle IDs. No reproducibility claim.",
+    "frozen_boundary_sha256": {
+      "api/requirements.txt": "74292c7c40dd6867313899bf42c4bd1e17791feccf8392cf4b94232f8c949e1f",
+      "api/requirements.lock": "21a943baca1c298e9da2967bdb25c86854ab8235d98f5944b1e94d655d4bbd7f",
+      "api/requirements-dev.lock": "7003bd48f4d5a9ba596be0625f36ef7fdf601baf43d00f62eb9abaa5c7b19583",
+      "api/requirements-build.lock": "d72227a29dc62ea3f688c01aa224673844fad5a15651f5f16969d805122332ad",
+      "api/Dockerfile": "bf5f961fbb5cf8b64f0a92f775ae698c6a81dfcd8859fa3202edb693c7c2e986",
+      "api/main.py": "c73a4ef95baf855d046973660b9d78b98b3a8c0ae9d91549577ab92ff3d6c785",
+      "api/auth.py": "24c1d6354fcb2db154f12039e0edac2fe1c7b618d706356ba9094cc9bb6f842b",
+      "api/http_security.py": "7f961d7d804916c0169bf3213b2d63683b0bff0a8ecbfc41af9fd340fba1e033",
+      "api/migrations.py": "3d0b52a91768e230667cf790442f171bafe0b8a879019ca400450ccab9cfaf85",
+      "api/url_utils.py": "0fc44d3de65371dc745a26a934a7a4decf98f0025d6f71d52335ede8a0b02530",
+      "api/safe_http.py": "35bc13c902792639a6fd20d561a1e16dc34259876579f00af7e231c6c00eae39",
+      "web/Dockerfile": "20d9e74ba9b598a318f2cdc1b94b623cd9fdc05f76f26739141f9536e159a1e7",
+      "web/package-lock.json": "8217918e8120d05b8ecd3b51e7b5f814c112aced3f3702346e1fd0f7028b2ab9",
+      "scripts/backup.sh": "8f54fd1f133169df7bf8928b30ddf611640466028428c226e62774387ac19e53",
+      "scripts/restore.sh": "e02f23809b87cff63c48bb59120f5f5c292398d207cdd4333ea5a578693d4f80",
+      "docker-deploy.yml": "394798bcba200729865564453c987ad5a4c32ba3973e6e8a702945b04c051baf"
+    }
+  },
+  "residuals": {
+    "source": "security-residual-decisions.json",
+    "source_sha256": "c5cc7645d7dbf975b568080c7c3bbafe47a9c44a1601c759b00e1bbb5c33de71",
+    "scope": "Same 80 S04 CVEs now attached to the exact lifecycle/audit images above; stronger verified deployment boundary, no installed native fixes",
+    "images": {
+      "api": "sha256:40aef54d6acf598ce49197d1aac966c96cc38ddd887ca10feff6a3ef4a74edec",
+      "web": "sha256:390b8dbb18c868f72366fe4353c2d8a944b3b0b412ad6fd46455dc2e5debcf82"
+    },
+    "platform": "linux/amd64",
+    "counts": {
+      "E_exact_image_precondition_exclusion": 11,
+      "H_priority_unresolved_review": 10,
+      "R_scoped_residual_decision": 59
+    },
+    "all_owner_decisions": "pending",
+    "risk_acceptance": "not_granted",
+    "reopen": "Any changed advisory, caller, platform/image or weaker deployment requires renewed review"
+  }
+}

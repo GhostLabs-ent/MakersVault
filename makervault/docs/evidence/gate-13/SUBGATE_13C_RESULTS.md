@@ -46,6 +46,15 @@ owner approval; the probe's isolation flags are not shipped Compose defaults.
 No new full-gate/advisory scan or risk acceptance is claimed. Historical private
 temporary logs are unavailable this session; durable candidate raw evidence is required.
 
+**Approved containment implementation:** [results](SECURITY_CONTAINMENT_RESULTS.md)
+at clean `ea17494` pass the full gate, 422 API / 58 reexecuted web tests, 25 Python /
+28 Node harness tests and current HTTPS lifecycle. Actual application processes
+have five empty capability sets and no-new-privileges; default/custom-ID ownership,
+read-only imports, restart and generated-preview persistence remain supported.
+Failed attempts are retained and new raw evidence is durable/private. The final
+audit matches the exact lifecycle images, retaining 181 API / 3 web findings with
+unchanged reduced records. S04 exceptions and Gate 13C remain unaccepted.
+
 ## Bounded execution
 
 1. Refresh stale browser assertions to the accepted current UI, retaining explicit
