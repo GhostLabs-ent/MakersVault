@@ -288,6 +288,7 @@ row's future-tense wording.
 | T-067 | `VERIFIED` | Owner-approved S01/S02 implementation at clean `ac4a051` updates Vitest and HTTPX2/httpcore2, declares existing idna directly, and uses strict IDNA2008 across outbound DNS/Host/SNI/redirect identity. 68 new cases and old-image negative control verify the boundary; 138 focused tests pass. Full gate passes 422 API tests, same-source 58-test web preflight, 19 Python / 28 Node harness tests and current HTTPS lifecycle. Fresh language audits are clean; exact runtime matches remain 181 API / 3 web with reduced-record equality | `docs/evidence/gate-13/SECURITY_HARDENING_RESULTS.md`, complete captured attempts/audit/runtime evidence | Reviewed outbound IDNA path mitigated, not a whole-interpreter patch. S04 native/raw-recovery residuals remain unwaived and require explicit dispositions before candidate qualification. No changed inbound auth, schema, base image, installer/bridge/release pin or stored model bytes. Performance G13-01 stays deferred; no push, release or automatic 13C acceptance. |
 | T-068 | `VERIFIED` / `PROPOSED` | S04 decision preparation at unchanged `ac4a051` inputs accounts for 80 native CVEs / 167 matches: 11 exact-image precondition exclusions proposed, 10 priority unresolved reviews and 59 scoped residual decisions. A fresh benign probe exactly matches prior components on the named linux/amd64 images; targeted vendor pages rechecked. Shipped Compose does not explicitly apply the probe's isolation flags | `docs/evidence/gate-13/SECURITY_RESIDUAL_DECISIONS.md`, per-CVE pending register and new observations | Zero owner risk acceptances. Approve bounded no-new-privileges/capability hardening before implementing it; preserve startup ownership, upload limits and recovery. Historical private temporary logs are unavailable this session; committed evidence retained, no new full gate/advisory scan claimed. Durable raw candidate evidence required. No runtime changes, release, push or gate acceptance. |
 | T-069 | `VERIFIED` | Owner-approved runtime containment at clean `ea17494` sets canonical Compose no-new-privileges / capability allowlists and empties API capability sets after setup. Full gate passes 422 API tests, 58 reexecuted web tests, 25 Python / 28 Node harness tests and HTTPS lifecycle with generated-preview persistence. Actual API/Nginx master/16 workers have five empty capability sets. Eight startup/ownership cases and six capability-removal controls pass on exact lifecycle API; old image fails the bounding-set assertion | `docs/evidence/gate-13/SECURITY_CONTAINMENT_RESULTS.md`, durable private captures and exact-image evidence | Preserve failed parser and initial image-audit attempts. Final audits match exact lifecycle IDs and retain identical reduced records for 181 API / 3 web matches; fresh language scopes clean, locks unchanged. Durable evidence passes 86 hash checks. Stronger containment is not a native patch, risk acceptance, hostile raw-snapshot sandbox or release qualification. No quota/resource limit, schema, model-byte or frozen-release change. |
+| T-070 | `VERIFIED` / `PROPOSED` | S04 owner package joins all 80 native CVEs / 167 matches to the exact `ea17494` lifecycle images. Recommends E11 exact-image exclusions, R59 time-limited local-qualification exceptions and H10 holds. Targeted vendor review corrects the zipdetails CLI rationale; new exact-image probe confirms command absence and narrows SQLite symbol evidence without clearing SESSION | `docs/evidence/gate-13/SECURITY_DISPOSITION_PROPOSAL.md`, per-CVE proposal, four new durable probe captures and evidence checker | No owner acceptances recorded. R59 explicitly includes two critical Perl CVEs; all 184 image matches remain visible. Proposed named owner/C1–C7 conditions expire by 30 days or candidate freeze, whichever first. H10 and security/Gate 13C stay open even if E/R approved. No application changes, broad rescan, full-suite repeat, push or release. |
 
 ### 5.4 Current storage invariants
 
@@ -1366,11 +1367,15 @@ its S01/S02 proposal was explicitly approved and is now
 The [S04 decision checkpoint](evidence/gate-13/SECURITY_RESIDUAL_DECISIONS.md)
 now covers every native CVE. The owner approved its bounded containment slice,
 [implemented and verified](evidence/gate-13/SECURITY_CONTAINMENT_RESULTS.md) at `ea17494`,
-preserving ownership, uploads and trusted recovery. **Next checkpoint: accept the
-containment evidence, then explicitly disposition the S04 exceptions against the
-actual lifecycle/audit images and documented deployment/backup boundary.**
-All E/H/R decisions remain pending; 69 residual CVEs are unwaived. New raw evidence
-is retained in durable private storage; this does not recover historical temporary
+preserving ownership, uploads and trusted recovery. The subsequent
+[owner disposition package](evidence/gate-13/SECURITY_DISPOSITION_PROPOSAL.md)
+is ready: **approve or revise E11 exact-image exclusions and R59 time-limited
+local-qualification exceptions under C1–C7, confirm the named approver, and retain
+H10 on hold.** R59 explicitly includes two scanner-rated critical Perl CVEs.
+No acceptance is yet recorded; all 69 residual CVEs remain unwaived. Even approval
+of E/R would leave H10 and security closeout open. Then continue only the named
+H source/build applicability review; no unreviewed distribution migration.
+New raw evidence is retained in durable private storage; this does not recover historical temporary
 artifacts. Physical/native-platform and operator/release readiness follow. Security
 acceptance and 13C closeout remain open.
 Gate 12 remains deferred to desktop. End-state acceptance and the next roadmap remain 13D owner

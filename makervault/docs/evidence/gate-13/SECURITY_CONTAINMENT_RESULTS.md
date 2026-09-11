@@ -8,6 +8,11 @@
 **Status:** implementation and full verification complete; final exact-image
 audits match the successful lifecycle images. **S04 risk acceptance remains open.**
 
+**Subsequent owner review:** [the disposition proposal](SECURITY_DISPOSITION_PROPOSAL.md)
+now supplies named-owner/expiry conditions and recommends E11 exclusions, R59
+temporary local-qualification exceptions and H10 holds. Nothing is accepted by
+preparing that package; its CLI-specific evidence refines one earlier exclusion.
+
 ## Shipped behavior and scope
 
 Both canonical Compose manifests now set `no-new-privileges:true`, drop all default

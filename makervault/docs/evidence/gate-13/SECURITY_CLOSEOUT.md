@@ -11,6 +11,10 @@ The later [S04 decision checkpoint](SECURITY_RESIDUAL_DECISIONS.md) supplies the
 per-CVE pending register, repeated component evidence, deployment-control distinction
 and bounded containment proposal. Its evidence-retention note supersedes any
 assumption below that historical private temporary artifacts are still available.
+The current [owner disposition proposal](SECURITY_DISPOSITION_PROPOSAL.md) joins
+the subsequently verified containment images to all S04 IDs, with E11 exclusions,
+R59 temporary local-qualification exceptions and H10 holds recommended. Approval
+is pending; the new CLI probe corrects one earlier module-only exclusion rationale.
 
 Owner authorized the security closeout review after parking further performance
 tuning. This package records current scans, bounded source/runtime review, proposed

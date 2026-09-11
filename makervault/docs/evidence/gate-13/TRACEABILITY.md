@@ -111,6 +111,11 @@ are not recovered. Accept this bounded implementation separately from the remain
 CVEs and candidate/platform qualification. The final audit matches lifecycle IDs
 and retains identical reduced records for 181 API / 3 web matches; the first
 incomplete image attempt is separately recorded, never promoted to a complete scan.
+The [current owner package](SECURITY_DISPOSITION_PROPOSAL.md) proposes E11 exact-image
+exclusions, R59 exceptions under named C1–C7 local-qualification conditions and H10
+holds. R59 includes two critical Perl CVEs; no decision is yet accepted. A new
+durable CLI/symbol probe refines evidence without removing any scanner matches.
+Approval of E/R would still leave S04/G13-04 open; candidate acceptance remains separate.
 
 P07/P11/P12 now also have G13-02's joined current lifecycle proof, supplementing
 their focused API tests. Raw restore preserves the complete content/security graph

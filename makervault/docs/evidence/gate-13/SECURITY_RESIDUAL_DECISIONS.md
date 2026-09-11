@@ -10,6 +10,12 @@ historical; none of its pending E/H/R decisions was accepted by that approval.
 Use the new evidence checker for current code; the earlier checker deliberately
 binds the pre-containment deployment hashes and is not expected to pass after changes.
 
+The subsequent [owner disposition proposal](SECURITY_DISPOSITION_PROPOSAL.md)
+is the current decision package against the final containment images. It retains
+E11/R59/H10, adds proposed bounded acceptance conditions and corrects the 48961
+CLI rationale with a new probe. This earlier register remains an unchanged,
+unaccepted historical proposal; do not edit it to manufacture acceptance.
+
 The owner requested continuation after the verified S01/S02 patch. This authorizes
 the next review, not a blanket vulnerability waiver or release. Application source
 remains `ac4a051`; entry documentation is `20342e7`. This checkpoint adds no

@@ -105,6 +105,14 @@ matches with unchanged reduced records. The earlier incomplete image scan is not
 used as matched proof. New raw verification/audit evidence is retained in durable
 private storage, with 86 retained-hash checks passing.
 
+The subsequent [S04 owner proposal](../evidence/gate-13/SECURITY_DISPOSITION_PROPOSAL.md)
+maps every native CVE to these exact images and proposes E11 exclusions, R59
+time-limited local-qualification exceptions and H10 holds. The R set explicitly
+includes critical-rated CVE-2026-12087/13221. A new private, benign component probe
+corrects the zipdetails exclusion rationale and narrows one SQLite symbol question
+without claiming a SESSION exclusion. All decisions remain owner-pending; no
+scanner suppression, application change, release clearance or security closure.
+
 ## Finding-by-finding disposition
 
 Test filenames refer to `api/tests/` unless otherwise stated. Each resolution is

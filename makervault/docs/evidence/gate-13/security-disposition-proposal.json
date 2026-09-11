@@ -1,0 +1,3311 @@
+{
+  "schema": 1,
+  "status": "proposal_only_no_acceptances",
+  "prepared_date_utc": "2026-09-11",
+  "application_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+  "entry_revision": "290df5518b7863802c06f96080336f9d7ed6e079",
+  "images": {
+    "api": {
+      "id": "sha256:40aef54d6acf598ce49197d1aac966c96cc38ddd887ca10feff6a3ef4a74edec",
+      "platform": "linux/amd64"
+    },
+    "web": {
+      "id": "sha256:390b8dbb18c868f72366fe4353c2d8a944b3b0b412ad6fd46455dc2e5debcf82",
+      "platform": "linux/amd64"
+    }
+  },
+  "scope": "S04 only: 80 native CVEs / 167 matches. All 184 image matches remain; 17 interpreter CVEs / 17 matches stay in S02/S03.",
+  "input_sha256": {
+    "security-residual-decisions.json": "c5cc7645d7dbf975b568080c7c3bbafe47a9c44a1601c759b00e1bbb5c33de71",
+    "security-containment-verification.json": "d902247c671f31493d958b000e30e324f4566164aace8f404db629a032f2e908",
+    "security-closeout-inventory.json": "d10aa9b8396c7b984f6fe07850fcd8053c9f799e97eaaf28c86b89b594d66324",
+    "security-disposition-components.py": "65da2904a826c27297393861635e315349ed1fcc0a7e640a92c754c588a40ffb"
+  },
+  "probe": {
+    "directory": "/home/vinnyc/.local/state/makersvault/verification/containment-disposition-components",
+    "run": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--read-only",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+        "--user",
+        "65534:65534",
+        "--memory",
+        "256m",
+        "--cpus",
+        "1",
+        "--env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "--mount",
+        "type=bind,src=/home/vinnyc/Documents/GitHub/MakersVault/makervault/docs/evidence/gate-13/security-disposition-components.py,dst=/probe.py,readonly",
+        "--entrypoint",
+        "python",
+        "sha256:40aef54d6acf598ce49197d1aac966c96cc38ddd887ca10feff6a3ef4a74edec",
+        "/probe.py"
+      ],
+      "started_at": "2026-09-11T00:37:23.195Z",
+      "source_revision": "290df5518b7863802c06f96080336f9d7ed6e079",
+      "verification_source_status": "",
+      "finished_at": "2026-09-11T00:37:23.652Z",
+      "duration_seconds": 0.457,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "290df5518b7863802c06f96080336f9d7ed6e079",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 725,
+          "sha256": "2db6119329fd38e8546a75e3e07ef51a0eb596f256a97d46b05a5143c101840d"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    "raw_sha256": {
+      "started.json": "93978ce7bfcb259a18db9dc304c4ae315cd3619cd5202540d8f9bfb858878a37",
+      "result.json": "59574f0e5e548086dbdcfccdcffbb27a1537aadfd2c223f9829530a1eea18987",
+      "stdout.log": "2db6119329fd38e8546a75e3e07ef51a0eb596f256a97d46b05a5143c101840d",
+      "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "observations": {
+      "scope": "Installed package manifests and named executable paths; dynamic symbol presence only, no vulnerable function invoked",
+      "sqlite": {
+        "library": "libsqlite3.so.0",
+        "limit": "Absence of one symbol is not exclusion of all SESSION code or resolution of Debian version applicability",
+        "python_runtime": "3.46.1",
+        "symbols": {
+          "sqlite3changeset_apply": true,
+          "sqlite3changeset_apply_v2": true,
+          "sqlite3changeset_apply_v3": false
+        }
+      },
+      "zipdetails": {
+        "package_search_exit": 1,
+        "package_search_stderr": "dpkg-query: no path found matching pattern *zipdetails*\n",
+        "package_search_stdout": "",
+        "present_paths": [],
+        "searched_paths": [
+          "/bin",
+          "/sbin",
+          "/usr/bin",
+          "/usr/local/bin",
+          "/usr/local/sbin",
+          "/usr/sbin"
+        ],
+        "which": null
+      }
+    }
+  },
+  "owner_policy": {
+    "proposed_approver": "VincentCinque (repository maintainer); confirm on approval",
+    "accepted_by": null,
+    "accepted_at": null,
+    "review_due": null,
+    "risk_acceptance": "not_granted",
+    "expiry": "Earlier of acceptance plus 30 days or candidate freeze/13D; reopen immediately under C6",
+    "record_approval": "Append a new named, dated decision record referencing this proposal hash and exact IDs; do not rewrite historical proposed evidence.",
+    "release_authority": "none",
+    "conditions": {
+      "C1": "Exact named linux/amd64 development images only. No transfer to a rebuild, another architecture, desktop or a public candidate.",
+      "C2": "Canonical Compose and entrypoint; nonzero API PUID/PGID; no privileged/capability overrides. Actual API/Nginx processes retain five empty capability sets and no-new-privileges.",
+      "C3": "Production-style HTTPS, authentication/authorization, outbound-hostname checks and existing file/preview guards remain enabled; do not expose development servers to untrusted networks.",
+      "C4": "Raw snapshots come only from trusted operator-controlled installations with protected provenance and private staging. GNU tar, chown and SQLite processing are not a hostile-input sandbox; checksums do not authenticate origin.",
+      "C5": "Keep writable vault access, native memory-corruption/data-loss and denial-of-service residuals explicit. No read-only-root or memory/CPU/PID cap is claimed; daemon containment does not cover separate privileged operator recovery.",
+      "C6": "Expiry is the earlier of acceptance plus 30 days or candidate freeze/13D. Reopen immediately for a relevant vendor fix, new caller/input path, changed image/platform, changed advisory, missing evidence or weaker controls. No automatic renewal.",
+      "C7": "Approval is local-qualification risk acceptance only, not publication, deployment, a support-policy change, S04/G13-04 closure or Gate 13C/13D acceptance. Hold entries remain unwaived."
+    }
+  },
+  "counts": {
+    "E": {
+      "cves": 11,
+      "package_matches": 11
+    },
+    "R": {
+      "cves": 59,
+      "package_matches": 141
+    },
+    "H": {
+      "cves": 10,
+      "package_matches": 15
+    }
+  },
+  "unchanged_image_matches": {
+    "api": 181,
+    "web": 3
+  },
+  "records": [
+    {
+      "id": "CVE-2005-2541",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "tar"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "tar",
+          "version": "1.35+dfsg-3.1",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "Raw recovery invokes GNU tar extraction after Python checks. Require trusted snapshots/private staging; parser differentials, path and resource risks remain.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2005-2541",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2007-5686",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "shadow"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "login.defs",
+          "version": "1:4.17.4-2",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "passwd",
+          "version": "1:4.17.4-2",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "Startup uses OS account tools; web authentication is separate. Local/operator preconditions and protected account/volume configuration are required.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2007-5686",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2010-4756",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "Core native runtime remains present, including resolver/locale interfaces. Review identifies bounded/local/disputed conditions, not an exhaustive native call graph; accept only temporarily under C1-C7.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2010-4756",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2011-3374",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "apt"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "apt",
+          "version": "3.0.3",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libapt-pkg7.0",
+          "version": "3.0.3",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "No application-controlled package-manager invocation identified. Package tooling remains installed; operator commands are separate from the capability-free daemon.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2011-3374",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2011-4116",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "Perl core, File::Temp and Socket remain present. No application-controlled Perl invocation identified; do not claim the whole interpreter absent or patched.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2011-4116",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2013-4392",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "systemd"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "The API is not a systemd service manager; installed system libraries and local/operator tooling remain. This is no family-wide absence claim.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2013-4392",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2017-18018",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "coreutils"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "coreutils",
+          "version": "9.7-3",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "Startup/recovery use ownership tools. Restrict storage roots and staging to the operator; specific option/race preconditions do not justify excluding the entire family.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2017-18018",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2018-20796",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "Core native runtime remains present, including resolver/locale interfaces. Review identifies bounded/local/disputed conditions, not an exhaustive native call graph; accept only temporarily under C1-C7.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2018-20796",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2019-1010022",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "Core native runtime remains present, including resolver/locale interfaces. Review identifies bounded/local/disputed conditions, not an exhaustive native call graph; accept only temporarily under C1-C7.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2019-1010022",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2019-1010023",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "Core native runtime remains present, including resolver/locale interfaces. Review identifies bounded/local/disputed conditions, not an exhaustive native call graph; accept only temporarily under C1-C7.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2019-1010023",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2019-1010024",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "Core native runtime remains present, including resolver/locale interfaces. Review identifies bounded/local/disputed conditions, not an exhaustive native call graph; accept only temporarily under C1-C7.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2019-1010024",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2019-1010025",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "Core native runtime remains present, including resolver/locale interfaces. Review identifies bounded/local/disputed conditions, not an exhaustive native call graph; accept only temporarily under C1-C7.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2019-1010025",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2019-9192",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "Core native runtime remains present, including resolver/locale interfaces. Review identifies bounded/local/disputed conditions, not an exhaustive native call graph; accept only temporarily under C1-C7.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2019-9192",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2021-45346",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "sqlite3"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "SQLite is an active runtime dependency. No relevant extension/query caller identified in the prior review, but raw recovery processes supplied database bytes; trusted provenance is required and not parser safety.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2021-45346",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2022-0563",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "util-linux"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libblkid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libmount1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libuuid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "mount",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "util-linux",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "Startup actively uses setpriv and now empties daemon capabilities. No untrusted mount/nsenter/login command path identified; operator recovery retains its separate six-capability policy.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2022-0563",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2023-31437",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "systemd"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "The API is not a systemd service manager; installed system libraries and local/operator tooling remain. This is no family-wide absence claim.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2023-31437",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2023-31438",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "systemd"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "The API is not a systemd service manager; installed system libraries and local/operator tooling remain. This is no family-wide absence claim.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2023-31438",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2023-31439",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "systemd"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "The API is not a systemd service manager; installed system libraries and local/operator tooling remain. This is no family-wide absence claim.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2023-31439",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2024-56433",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "shadow"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "login.defs",
+          "version": "1:4.17.4-2",
+          "severity": "Low"
+        },
+        {
+          "image": "api",
+          "package": "passwd",
+          "version": "1:4.17.4-2",
+          "severity": "Low"
+        }
+      ],
+      "rationale": "Startup uses OS account tools; web authentication is separate. Local/operator preconditions and protected account/volume configuration are required.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2024-56433",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2025-15649",
+      "bucket": "E",
+      "recommendation": "approve_exact_image_precondition_exclusion",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "Required IO::Uncompress::Unzip module is not loadable in the exact inspected API runtime; no other image or installed-package exclusion is implied.",
+      "exit_criteria": "Recheck the exact precondition for any changed image/module/tool/path/platform; retain raw scanner matches and dated source record.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2025-15649",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2025-5278",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "coreutils"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "coreutils",
+          "version": "9.7-3",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "Startup/recovery use ownership tools. Restrict storage roots and staging to the operator; specific option/race preconditions do not justify excluding the entire family.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2025-5278",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2025-60876",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "busybox"
+      ],
+      "matches": [
+        {
+          "image": "web",
+          "package": "busybox",
+          "version": "1.37.0-r31",
+          "severity": "Medium"
+        },
+        {
+          "image": "web",
+          "package": "busybox-binsh",
+          "version": "1.37.0-r31",
+          "severity": "Medium"
+        },
+        {
+          "image": "web",
+          "package": "ssl_client",
+          "version": "1.37.0-r31",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "The matched web advisory concerns BusyBox wget, not an identified Nginx parser defect. No application URL-to-wget path identified; BusyBox remains installed.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://raw.githubusercontent.com/CVEProject/cvelistV5/main/cves/2025/60xxx/CVE-2025-60876.json",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2025-6141",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "ncurses"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libncursesw6",
+          "version": "6.5+20250216-2",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libtinfo6",
+          "version": "6.5+20250216-2",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "ncurses-base",
+          "version": "6.5+20250216-2",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "ncurses-bin",
+          "version": "6.5+20250216-2",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "No application-controlled terminal-tool invocation identified. Installed terminal libraries/utilities are not proven unreachable from every dependency.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2025-6141",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2025-69720",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "ncurses"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libncursesw6",
+          "version": "6.5+20250216-2",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libtinfo6",
+          "version": "6.5+20250216-2",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "ncurses-base",
+          "version": "6.5+20250216-2",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "ncurses-bin",
+          "version": "6.5+20250216-2",
+          "severity": "High"
+        }
+      ],
+      "rationale": "No application-controlled terminal-tool invocation identified. Installed terminal libraries/utilities are not proven unreachable from every dependency.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2025-69720",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2025-70873",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "sqlite3"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "SQLite is an active runtime dependency. No relevant extension/query caller identified in the prior review, but raw recovery processes supplied database bytes; trusted provenance is required and not parser safety.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2025-70873",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-11822",
+      "bucket": "H",
+      "recommendation": "hold_not_recommended_for_acceptance",
+      "source_families": [
+        "sqlite3"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "rationale": "SQLite FTS5 is enabled; malformed database plus FTS5 MATCH is the described path. No application MATCH caller identified, but raw recovery opens supplied database bytes.",
+      "exit_criteria": "Resolve raw-schema/query reachability with authoritative code evidence or a supported SQLite fix; trusted snapshots alone do not prove parser safety.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-11822",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-11824",
+      "bucket": "H",
+      "recommendation": "hold_not_recommended_for_acceptance",
+      "source_families": [
+        "sqlite3"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "rationale": "SQLite FTS5 is enabled; malformed continuation-page data during MATCH is the described path. No application MATCH caller identified; raw database boundary remains.",
+      "exit_criteria": "Resolve raw-schema/query reachability with authoritative code evidence or a supported SQLite fix; read-only SQLite is not a sandbox.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-11824",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-12087",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Critical"
+        }
+      ],
+      "rationale": "CRITICAL scanner label retained. Socket is loadable; its short source argument heap-read defect requires a matching Perl helper call. No application-controlled Perl invocation identified; installed code and dependency/operator uncertainty remain.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-12087",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-13221",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Critical"
+        }
+      ],
+      "rationale": "CRITICAL scanner label retained. Perl core is present; the described large fixed-branch regex trie can make incorrect match decisions. No application-controlled Perl invocation identified; installed code and dependency/operator uncertainty remain.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-13221",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-15059",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "systemd"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "The API is not a systemd service manager; installed system libraries and local/operator tooling remain. This is no family-wide absence claim.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-15059",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-15534",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "Perl core, File::Temp and Socket remain present. No application-controlled Perl invocation identified; do not claim the whole interpreter absent or patched.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-15534",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-16742",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "systemd"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "The API is not a systemd service manager; installed system libraries and local/operator tooling remain. This is no family-wide absence claim.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-16742",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-18374",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "Core native runtime remains present, including resolver/locale interfaces. Review identifies bounded/local/disputed conditions, not an exhaustive native call graph; accept only temporarily under C1-C7.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-18374",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-18477",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "tar"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "tar",
+          "version": "1.35+dfsg-3.1",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "Raw recovery invokes GNU tar extraction after Python checks. Require trusted snapshots/private staging; parser differentials, path and resource risks remain.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-18477",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-18508",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "tar"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "tar",
+          "version": "1.35+dfsg-3.1",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "Raw recovery invokes GNU tar extraction after Python checks. Require trusted snapshots/private staging; parser differentials, path and resource risks remain.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-18508",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-19487",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "Perl core, File::Temp and Socket remain present. No application-controlled Perl invocation identified; do not claim the whole interpreter absent or patched.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-19487",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-19499",
+      "bucket": "H",
+      "recommendation": "hold_not_recommended_for_acceptance",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Unknown"
+        }
+      ],
+      "rationale": "Installed glibc still affected in Debian; description insufficient, current CNA retrieval 404 and upstream detail unavailable through this review.",
+      "exit_criteria": "Obtain authoritative preconditions or a supported installed fix; do not infer safety from missing text.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-19499",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-19542",
+      "bucket": "H",
+      "recommendation": "hold_not_recommended_for_acceptance",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Unknown"
+        }
+      ],
+      "rationale": "Debian identifies a tdelete stack-access issue and still marks installed glibc affected; current CNA retrieval 404 and upstream detail unavailable.",
+      "exit_criteria": "Establish native tdelete call/input applicability or install an applicable supported fix; unavailable detail is not an exclusion.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-19542",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-27171",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "zlib"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "zlib1g",
+          "version": "1:1.3.dfsg+really1.3.1-1+b1",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "CVE-2026-27171 concerns negative combine arguments; no matching application caller identified. zlib remains used by native decompression paths and is not patched by containment.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-27171",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-3184",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "util-linux"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libblkid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libmount1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libuuid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "mount",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "util-linux",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "Startup actively uses setpriv and now empties daemon capabilities. No untrusted mount/nsenter/login command path identified; operator recovery retains its separate six-capability policy.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-3184",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-39113",
+      "bucket": "H",
+      "recommendation": "hold_not_recommended_for_acceptance",
+      "source_families": [
+        "sqlite3"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "sqlar_uncompress is absent from the default connection, but upstream introduction details conflict with Debian affected-version mapping; no whole-extension exclusion established.",
+      "exit_criteria": "Reconcile the shipped Debian source/build and sqlar component with the upstream defect, or install an applicable supported fix.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-39113",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-40228",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "systemd"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Low"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Low"
+        }
+      ],
+      "rationale": "The API is not a systemd service manager; installed system libraries and local/operator tooling remain. This is no family-wide absence claim.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-40228",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-41991",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "gzip"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "gzip",
+          "version": "1.13-1",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "GNU tar backup/recovery invokes compression paths. Only trusted snapshots and private staging are in scope; corruption/resource risk remains.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-41991",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-41992",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "gzip"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "gzip",
+          "version": "1.13-1",
+          "severity": "High"
+        }
+      ],
+      "rationale": "GNU tar backup/recovery invokes compression paths. Only trusted snapshots and private staging are in scope; corruption/resource risk remains.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-41992",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-42250",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "bzip2"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libbz2-1.0",
+          "version": "1.0.8-6",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "Compression utility remains installed in the trusted raw-backup/recovery boundary. Archive validation is not a native-parser or resource sandbox.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-42250",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-42496",
+      "bucket": "E",
+      "recommendation": "approve_exact_image_precondition_exclusion",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Critical"
+        }
+      ],
+      "rationale": "Required Archive::Tar module is not loadable in the exact inspected API runtime; no other image or installed-package exclusion is implied.",
+      "exit_criteria": "Recheck the exact precondition for any changed image/module/tool/path/platform; retain raw scanner matches and dated source record.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-42496",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-42497",
+      "bucket": "E",
+      "recommendation": "approve_exact_image_precondition_exclusion",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "High"
+        }
+      ],
+      "rationale": "Required Archive::Tar module is not loadable in the exact inspected API runtime; no other image or installed-package exclusion is implied.",
+      "exit_criteria": "Recheck the exact precondition for any changed image/module/tool/path/platform; retain raw scanner matches and dated source record.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-42497",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-48959",
+      "bucket": "E",
+      "recommendation": "approve_exact_image_precondition_exclusion",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "High"
+        }
+      ],
+      "rationale": "Required IO::Uncompress::Unzip module is not loadable in the exact inspected API runtime; no other image or installed-package exclusion is implied.",
+      "exit_criteria": "Recheck the exact precondition for any changed image/module/tool/path/platform; retain raw scanner matches and dated source record.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-48959",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-48961",
+      "bucket": "E",
+      "recommendation": "approve_exact_image_precondition_exclusion",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "High"
+        }
+      ],
+      "rationale": "This is the zipdetails CLI defect, not a library-call defect. New inspection finds no installed package manifest or named executable-path entry for zipdetails. IO::Compress module absence alone was insufficient evidence.",
+      "exit_criteria": "Recheck the exact precondition for any changed image/module/tool/path/platform; retain raw scanner matches and dated source record.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-48961",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-48962",
+      "bucket": "E",
+      "recommendation": "approve_exact_image_precondition_exclusion",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "High"
+        }
+      ],
+      "rationale": "Required File::GlobMapper module is not loadable in the exact inspected API runtime; no other image or installed-package exclusion is implied.",
+      "exit_criteria": "Recheck the exact precondition for any changed image/module/tool/path/platform; retain raw scanner matches and dated source record.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-48962",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-50812",
+      "bucket": "H",
+      "recommendation": "hold_not_recommended_for_acceptance",
+      "source_families": [
+        "sqlite3"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "Described changeset_apply_v3 symbol is absent in the inspected library, while older apply/apply_v2 and SESSION are present. Debian still marks the installed source affected.",
+      "exit_criteria": "Reconcile the vendor mapping and actual affected source implementation; absent v3 symbol alone does not clear all shared SESSION code.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-50812",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-50813",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "sqlite3"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "SQLite is an active runtime dependency. No relevant extension/query caller identified in the prior review, but raw recovery processes supplied database bytes; trusted provenance is required and not parser safety.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-50813",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-53910",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "diffutils"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "diffutils",
+          "version": "1:3.10-4",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "No application-controlled diff3 invocation identified. Installed utility and future/operator use remain residual exposure.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-53910",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-5435",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "High"
+        }
+      ],
+      "rationale": "Core native runtime remains present, including resolver/locale interfaces. Review identifies bounded/local/disputed conditions, not an exhaustive native call graph; accept only temporarily under C1-C7.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-5435",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-54369",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "acl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libacl1",
+          "version": "2.3.2-2+b1",
+          "severity": "High"
+        }
+      ],
+      "rationale": "Ownership/ACL tooling has privileged path/metadata preconditions. Startup/recovery use chown; require protected storage roots and staging, not a blanket unused-utility exclusion.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-54369",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-54370",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "acl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libacl1",
+          "version": "2.3.2-2+b1",
+          "severity": "High"
+        }
+      ],
+      "rationale": "Ownership/ACL tooling has privileged path/metadata preconditions. Startup/recovery use chown; require protected storage roots and staging, not a blanket unused-utility exclusion.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-54370",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-54371",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "attr"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libattr1",
+          "version": "1:2.5.2-3",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "Extended-attribute/metadata tools remain installed; protected operator roots and staging constrain path manipulation, without establishing a native patch.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-54371",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-54411",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "pam"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libpam-modules",
+          "version": "1.7.0-5",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libpam-modules-bin",
+          "version": "1.7.0-5",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libpam-runtime",
+          "version": "1.7.0-5",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libpam0g",
+          "version": "1.7.0-5",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "Web identity is not a PAM service. OS startup/account tools still exist; local/operator preconditions and daemon capability removal constrain, not remove, exposure.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-54411",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-5450",
+      "bucket": "H",
+      "recommendation": "hold_not_recommended_for_acceptance",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Critical"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Critical"
+        }
+      ],
+      "rationale": "Allocating scanf conversion in installed glibc; no complete native reachability exclusion. Containment does not repair heap corruption.",
+      "exit_criteria": "Obtain an applicable supported glibc fix and requalify, or document the actual native call boundary for this conversion; otherwise request a separately explicit informed exception.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-5450",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-56391",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "coreutils"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "coreutils",
+          "version": "9.7-3",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "Startup/recovery use ownership tools. Restrict storage roots and staging to the operator; specific option/race preconditions do not justify excluding the entire family.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-56391",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-56392",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "coreutils"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "coreutils",
+          "version": "9.7-3",
+          "severity": "Negligible"
+        }
+      ],
+      "rationale": "Startup/recovery use ownership tools. Restrict storage roots and staging to the operator; specific option/race preconditions do not justify excluding the entire family.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-56392",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-5704",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "tar"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "tar",
+          "version": "1.35+dfsg-3.1",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "Raw recovery invokes GNU tar extraction after Python checks. Require trusted snapshots/private staging; parser differentials, path and resource risks remain.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-5704",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-57432",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "High"
+        }
+      ],
+      "rationale": "Perl core, File::Temp and Socket remain present. No application-controlled Perl invocation identified; do not claim the whole interpreter absent or patched.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-57432",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-57433",
+      "bucket": "E",
+      "recommendation": "approve_exact_image_precondition_exclusion",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Critical"
+        }
+      ],
+      "rationale": "Required Storable module is not loadable in the exact inspected API runtime; no other image or installed-package exclusion is implied.",
+      "exit_criteria": "Recheck the exact precondition for any changed image/module/tool/path/platform; retain raw scanner matches and dated source record.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-57433",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-5928",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "High"
+        }
+      ],
+      "rationale": "Core native runtime remains present, including resolver/locale interfaces. Review identifies bounded/local/disputed conditions, not an exhaustive native call graph; accept only temporarily under C1-C7.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-5928",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-6238",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "Core native runtime remains present, including resolver/locale interfaces. Review identifies bounded/local/disputed conditions, not an exhaustive native call graph; accept only temporarily under C1-C7.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-6238",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-6368",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Low"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Low"
+        }
+      ],
+      "rationale": "Core native runtime remains present, including resolver/locale interfaces. Review identifies bounded/local/disputed conditions, not an exhaustive native call graph; accept only temporarily under C1-C7.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-6368",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-6791",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "Core native runtime remains present, including resolver/locale interfaces. Review identifies bounded/local/disputed conditions, not an exhaustive native call graph; accept only temporarily under C1-C7.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-6791",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-7010",
+      "bucket": "E",
+      "recommendation": "approve_exact_image_precondition_exclusion",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Medium"
+        }
+      ],
+      "rationale": "Required HTTP::Tiny module is not loadable in the exact inspected API runtime; no other image or installed-package exclusion is implied.",
+      "exit_criteria": "Recheck the exact precondition for any changed image/module/tool/path/platform; retain raw scanner matches and dated source record.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-7010",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-7017",
+      "bucket": "E",
+      "recommendation": "approve_exact_image_precondition_exclusion",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "High"
+        }
+      ],
+      "rationale": "Required HTTP::Tiny module is not loadable in the exact inspected API runtime; no other image or installed-package exclusion is implied.",
+      "exit_criteria": "Recheck the exact precondition for any changed image/module/tool/path/platform; retain raw scanner matches and dated source record.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-7017",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-76642",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "util-linux"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libblkid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libmount1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libuuid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "mount",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "util-linux",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "rationale": "Startup actively uses setpriv and now empties daemon capabilities. No untrusted mount/nsenter/login command path identified; operator recovery retains its separate six-capability policy.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-76642",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-77117",
+      "bucket": "H",
+      "recommendation": "hold_not_recommended_for_acceptance",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Unknown"
+        }
+      ],
+      "rationale": "Installed glibc still affected in Debian; description insufficient, current CNA retrieval 404 and upstream detail unavailable through this review.",
+      "exit_criteria": "Obtain authoritative preconditions or a supported installed fix; do not infer safety from missing text.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-77117",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-78408",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "util-linux"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libblkid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libmount1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libuuid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "mount",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "util-linux",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "rationale": "Startup actively uses setpriv and now empties daemon capabilities. No untrusted mount/nsenter/login command path identified; operator recovery retains its separate six-capability policy.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-78408",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-78409",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "util-linux"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libblkid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libmount1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libuuid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "mount",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "util-linux",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "rationale": "Startup actively uses setpriv and now empties daemon capabilities. No untrusted mount/nsenter/login command path identified; operator recovery retains its separate six-capability policy.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-78409",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-78410",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "util-linux"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libblkid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libmount1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libuuid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "mount",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "util-linux",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "rationale": "Startup actively uses setpriv and now empties daemon capabilities. No untrusted mount/nsenter/login command path identified; operator recovery retains its separate six-capability policy.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-78410",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-80489",
+      "bucket": "H",
+      "recommendation": "hold_not_recommended_for_acceptance",
+      "source_families": [
+        "glibc"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u3",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u3",
+          "severity": "Unknown"
+        }
+      ],
+      "rationale": "Installed glibc still affected in Debian; description insufficient, current CNA retrieval 404 and upstream detail unavailable through this review.",
+      "exit_criteria": "Obtain authoritative preconditions or a supported installed fix; do not infer safety from missing text.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-80489",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-8376",
+      "bucket": "E",
+      "recommendation": "approve_exact_image_precondition_exclusion",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "Critical"
+        }
+      ],
+      "rationale": "The described defect requires a 32-bit Perl build; inspected Perl has 8-byte pointers on linux/amd64.",
+      "exit_criteria": "Recheck the exact precondition for any changed image/module/tool/path/platform; retain raw scanner matches and dated source record.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-8376",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-85091",
+      "bucket": "H",
+      "recommendation": "hold_not_recommended_for_acceptance",
+      "source_families": [
+        "zlib"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "zlib1g",
+          "version": "1:1.3.dfsg+really1.3.1-1+b1",
+          "severity": "High"
+        }
+      ],
+      "rationale": "Upstream description names a nonblocking gzwrite/gzprintf path and a newer range than inspected zlib 1.3.1; Debian still marks its installed source affected.",
+      "exit_criteria": "Resolve distribution source/backport and native gzwrite/gzprintf call applicability; do not treat generic Python decompression or a headline version comparison as proof.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-85091",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-86145",
+      "bucket": "R",
+      "recommendation": "approve_time_limited_local_qualification_exception",
+      "source_families": [
+        "pcre2"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "libpcre2-8-0",
+          "version": "10.46-1~deb13u1",
+          "severity": "High"
+        }
+      ],
+      "rationale": "No application-controlled native DFA-regex caller identified. Installed PCRE2 is not proven absent or patched, and dependency/operator callers remain a boundary.",
+      "exit_criteria": "Refresh supported vendor fixes and exact image/call/input evidence before expiry or candidate freeze; requalify a fix or obtain a new explicit disposition, never auto-renew.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-86145",
+      "vendor_review": "Inherited dated 2026-09-10 review; not a fresh vendor reread",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    },
+    {
+      "id": "CVE-2026-9538",
+      "bucket": "E",
+      "recommendation": "approve_exact_image_precondition_exclusion",
+      "source_families": [
+        "perl"
+      ],
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6",
+          "severity": "High"
+        }
+      ],
+      "rationale": "Required Archive::Tar module is not loadable in the exact inspected API runtime; no other image or installed-package exclusion is implied.",
+      "exit_criteria": "Recheck the exact precondition for any changed image/module/tool/path/platform; retain raw scanner matches and dated source record.",
+      "conditions": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7"
+      ],
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-9538",
+      "vendor_review": "Targeted Debian page reread 2026-09-11 UTC; see report limits",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "accepted_at": null,
+      "review_due": null
+    }
+  ]
+}

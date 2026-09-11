@@ -55,6 +55,13 @@ Failed attempts are retained and new raw evidence is durable/private. The final
 audit matches the exact lifecycle images, retaining 181 API / 3 web findings with
 unchanged reduced records. S04 exceptions and Gate 13C remain unaccepted.
 
+**S04 owner package:** the [current proposal](SECURITY_DISPOSITION_PROPOSAL.md)
+recommends E11 exact-image exclusions, R59 time-limited local-qualification
+exceptions (including two critical Perl CVEs), and H10 holds. All 80 decisions are
+still pending, with explicit C1–C7 conditions, owner and expiry proposed. Even E/R
+approval would leave H10/G13-04 and Gate 13C open. The new benign exact-image CLI /
+SQLite-symbol probe is durable evidence, not another full-gate or advisory scan.
+
 ## Bounded execution
 
 1. Refresh stale browser assertions to the accepted current UI, retaining explicit
