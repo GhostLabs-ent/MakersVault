@@ -50,6 +50,12 @@ vault into a slicer, printer controller, or multi-user cloud service.
 
 ## Upgrade requirements
 
+Current local Docker hardening enables no-new-privileges and explicit capability
+allowlists. The API drops all capability sets before serving requests; web runs
+without capabilities. Startup ownership and trusted offline recovery remain
+supported, without new upload/library or container resource limits. Custom
+deployments must retain equivalent controls; native findings are not waived.
+
 Upgrade API, web, and bridge as one matched release. Do not use `latest`. Before
 pulling images, follow the tested
 [v5.1 upgrade procedure](https://github.com/VincentCinque/MakersVault/blob/v5.1.0/makervault/docs/UPGRADE_V5.1.md)

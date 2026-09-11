@@ -1,6 +1,19 @@
 services:
   api:
     build: ./api
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Account/ownership setup and trusted offline recovery only. The entrypoint
+    # clears every capability set before starting the application.
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+      - SETPCAP
     ports:
       - "${API_PORT:-8000}:8000"
     environment:
@@ -52,6 +65,10 @@ services:
       - ./api:/app
   web:
     build: ./web
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     ports:
       - "${WEB_PORT:-5173}:5173"
     environment:

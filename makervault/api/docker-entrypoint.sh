@@ -32,4 +32,8 @@ else
   chown "$PUID":"$PGID" /app/storage /app/data 2>/dev/null || true
 fi
 
-exec setpriv --reuid="$PUID" --regid="$PGID" --init-groups -- "$@"
+# Account/volume initialization needs a small startup capability set. None of it
+# belongs to the application or its children, including the bounding set.
+# Fail closed if the runtime cannot apply the requested privilege transition.
+exec setpriv --reuid="$PUID" --regid="$PGID" --init-groups \
+  --inh-caps=-all --ambient-caps=-all --bounding-set=-all --no-new-privs -- "$@"

@@ -59,6 +59,12 @@ if [ "$api_uid" = "0" ] || [ "$web_uid" = "0" ]; then
   exit 1
 fi
 
+for service in api web; do
+  # Check PID 1 itself; docker exec runs with separate container credentials.
+  process_status=$(compose exec -T "$service" cat /proc/1/status)
+  printf '%s\n' "$process_status" | python3 "$script_dir/container_privileges.py"
+done
+
 schema_output=$(compose exec -T api python -m migrations)
 case "$schema_output" in
   *"schema version: 17"*) ;;

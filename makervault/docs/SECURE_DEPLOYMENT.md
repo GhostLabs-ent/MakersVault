@@ -9,6 +9,34 @@ accounts, fixed Administrator/Member/Viewer roles, revocable browser sessions, a
 optional password-plus-passkey MFA. It does not include public registration,
 passwordless login, TOTP, recovery codes, API keys, OIDC/SSO, or hosted identity.
 
+## Container privilege boundary
+
+The current local Compose manifests enable `no-new-privileges` and drop Docker's
+default capability set. The API allowlist is limited to `CHOWN`, `DAC_OVERRIDE`,
+`FOWNER`, `SETGID`, `SETUID` and `SETPCAP` for account/volume initialization and
+trusted offline recovery. After initialization, the entrypoint uses `setpriv` to
+clear inheritable, ambient and bounding capabilities and enable no-new-privileges
+before executing the application. Under the non-root configuration, effective and
+permitted sets are also empty. Web runs as UID 101 with no capabilities.
+
+Keep a nonzero API `PUID`/`PGID` (defaults 1000/1000) and retain the shipped
+entrypoint. Fresh/existing volume setup and the opt-in recursive ownership mode
+remain available; no new memory, CPU, PID, upload or library limit is introduced.
+The root filesystem remains writable for startup account/runtime configuration.
+The historical `docker-deploy.yml` alias inherits the canonical policy.
+
+These are deployment defaults, not Administrator UI settings. Custom Compose
+overrides or non-Compose launches must preserve equivalent controls; an entrypoint
+override or `docker exec` is a separate operator process, not proof of the API's
+post-initialization capability state. Offline restore deliberately retains the
+small operator capability set. Do not grant `privileged`, extra capabilities or
+Docker-socket access to work around an error. Stop and diagnose ownership or
+runtime compatibility instead.
+
+This reduces privilege exposure; it does not patch native image findings, sandbox
+malicious raw snapshots, or protect all vault bytes from a compromised application.
+Trusted-backup, HTTPS and separate release-qualification requirements still apply.
+
 ## New production installation
 
 From the `makervault` directory:

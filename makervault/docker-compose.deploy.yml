@@ -2,6 +2,19 @@ services:
   api:
     image: ${API_IMAGE:-shotgunwilly555/makersvault-api:v5.1.0}
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Account/ownership setup and trusted offline recovery only. The entrypoint
+    # clears every capability set before starting the application.
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+      - SETPCAP
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
@@ -60,6 +73,10 @@ services:
   web:
     image: ${WEB_IMAGE:-shotgunwilly555/makersvault-web:v5.1.0}
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     environment:
       - PUBLIC_URL=${PUBLIC_URL:-}
       - VITE_API_URL=${VITE_API_URL:-}

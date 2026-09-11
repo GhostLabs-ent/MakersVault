@@ -11,10 +11,13 @@ import ssl
 import socket
 import signal
 import subprocess
+import struct
 import time
+import zlib
 import urllib.error
 import urllib.request
 from uuid import uuid4
+from container_privileges import process_privileges
 
 APP = Path(__file__).resolve().parents[1]
 REPO = APP.parent
@@ -283,14 +286,38 @@ def smoke(stack, version, revision):
                    headers={"Origin": "https://untrusted.invalid"}, expected=403)
     payload = b"solid persistence\nendsolid persistence\n"
     asset = client.upload("/upload", "persistence.stl", payload)
+    # Stand in for the browser-generated preview bytes (not a manual-image UI).
+    # Exercise native image decode/JPEG persistence under the running API policy.
+    def png_chunk(kind, data):
+        return struct.pack("!I", len(data)) + kind + data + struct.pack("!I", zlib.crc32(kind + data))
+    png = (b"\x89PNG\r\n\x1a\n" + png_chunk(b"IHDR", struct.pack("!2I5B", 2, 2, 8, 2, 0, 0, 0))
+           + png_chunk(b"IDAT", zlib.compress(b"\x00\x20\x60\xa0\x20\x60\xa0" * 2)) + png_chunk(b"IEND", b""))
+    preview = client.upload(f"/asset/{asset['id']}/thumbnail-generated", "generated.png", png, "image/png")
+    assert preview["preview_status"] == "ready" and preview["thumb_url"]
+    thumbnail = client.request(preview["thumb_url"])
+    assert thumbnail.startswith(b"\xff\xd8"), "Persisted generated preview is not JPEG"
     stack.compose("restart", "api", "web")
     stack.wait()
     assert client.request(asset["url"]) == payload
+    assert client.request(preview["thumb_url"]) == thumbnail
     schema = stack.compose("exec", "-T", "api", "python", "-m", "migrations").stdout.decode()
     assert f"schema version: {SCHEMA}" in schema
+    privileges = {}
     for service in ("api", "web"):
         assert stack.compose("exec", "-T", service, "stat", "-c", "%u", "/proc/1").stdout.strip() != b"0"
+        status = stack.compose("exec", "-T", service, "cat", "/proc/1/status").stdout.decode()
+        privileges[service] = process_privileges(status)
+        # Nginx worker processes must inherit the same boundary as the master.
+        if service == "web":
+            children = stack.compose("exec", "-T", service, "cat", "/proc/1/task/1/children").stdout.decode().split()
+            assert children, "Nginx worker evidence missing"
+            statuses = stack.compose("exec", "-T", service, "cat",
+                                     *[f"/proc/{int(pid)}/status" for pid in children]).stdout.decode()
+            records = statuses.split("\nName:")
+            assert len(records) == len(children), "Nginx worker status count mismatch"
+            privileges[service]["workers"] = [process_privileges(record) for record in records]
     client.request("/logout", method="POST", expected=204)
     client.request("/session", expected=401)
     return {"schema": SCHEMA, "https_secure_cookie_csrf": True, "restart_bytes": hashlib.sha256(payload).hexdigest(),
-            "logout_revocation": True, "non_root_api_web": True}
+            "logout_revocation": True, "non_root_api_web": True, "process_privileges": privileges,
+            "generated_preview_restart_sha256": hashlib.sha256(thumbnail).hexdigest()}

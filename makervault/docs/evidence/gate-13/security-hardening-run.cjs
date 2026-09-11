@@ -1,16 +1,25 @@
 // Capture a named verification command into a new private directory.
 const fs = require('node:fs');
 const path = require('node:path');
+const os = require('node:os');
 const crypto = require('node:crypto');
 const {spawn, execFileSync} = require('node:child_process');
 const assert = require('node:assert/strict');
 const [output, command, ...args] = process.argv.slice(2);
-assert(/^\/tmp\/makersvault-security-hardening-[a-z0-9-]+$/.test(output));
+const durable = path.join(os.homedir(), '.local/state/makersvault/verification');
+const durableOutput = output && path.dirname(output) === durable && /^containment-[a-z0-9-]+$/.test(path.basename(output));
+assert(durableOutput || /^\/tmp\/makersvault-security-hardening-[a-z0-9-]+$/.test(output));
+if (durableOutput) {
+  fs.mkdirSync(durable, {recursive:true, mode:0o700});
+  assert(!fs.lstatSync(durable).isSymbolicLink(), 'Evidence root must not be a symlink');
+  assert.equal(fs.statSync(durable).mode & 0o077, 0, 'Evidence root must be private');
+}
 assert(command && args.length);
 const repository = path.resolve(__dirname, '../../../..');
 fs.mkdirSync(output, {mode:0o700}); // Refuse an existing output, never overwrite.
 const git = (...args) => execFileSync('git', ['-C',repository,...args], {encoding:'utf8'}).trim();
-const sources = ['makervault/api','makervault/web','makervault/scripts','makervault/benchmarks','makervault/slicer-bridge'];
+const sources = ['Makefile','makervault/api','makervault/web','makervault/scripts','makervault/benchmarks',
+  'makervault/slicer-bridge','makervault/docker-compose.yml','makervault/docker-compose.deploy.yml','makervault/docker-deploy.yml'];
 const started = new Date();
 const metadata = {command:[command,...args],started_at:started.toISOString(),source_revision:git('rev-parse','HEAD'),
   verification_source_status:git('status','--porcelain','--',...sources)};
