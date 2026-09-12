@@ -129,8 +129,11 @@ verifies all 20 targeted and six new PCRE2 IDs as fixed in the already-installed
 packages. Current Debian fixed rows and authenticated archives match the exact
 runtime (931 regular files); no further upgrade is needed for that group. Raw
 scanner counts are unchanged. Native87 now comprises fixed26, proposed E2,
-pending new-image R52 and unresolved H7. No new waivers: prepare the exact-image
-E/R decision and handle H7 separately. Security and public release stay open.
+pending new-image R52 and unresolved H7. The [exact-image E2/R52 package](../evidence/gate-13/SECURITY_CURRENT_IMAGE_DECISION.md)
+is prepared with a fresh unchanged known-Debian/CNA review and matched component
+probes. Explicit owner acknowledgment is required for BusyBox's unverified current
+Alpine fix status. No new waivers; await the C1–C7 decision and leave H7 unaccepted.
+Security and public release stay open.
 
 ## Finding-by-finding disposition
 

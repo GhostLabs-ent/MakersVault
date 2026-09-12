@@ -5,6 +5,10 @@
 **Review entry:** `a62bc11bf08742026cd469aec364fc043c1fb277`.
 **Status: 26 VENDOR FIXES VERIFIED; REMAINING DISPOSITIONS AND SECURITY ACCEPTANCE OPEN.**
 
+**Follow-up:** the [current-image owner package](SECURITY_CURRENT_IMAGE_DECISION.md)
+now prepares E2/R52 with a fresh C6 review and explicit BusyBox evidence limitation.
+No new acceptance is implied; this reconciliation and its JSON remain historical evidence.
+
 The owner's “go ahead” authorizes the read-only application review proposed in the
 [native-update checkpoint](SECURITY_NATIVE_UPDATE_RESULTS.md). This review resolves
 the applicability disagreement for all **20 targeted CVEs plus six newly seen

@@ -70,8 +70,11 @@ verifies 26 fixes already installed: all 20 targeted and six newly seen PCRE2 CV
 Authenticated package archives match 931 runtime regular files; no further update
 is needed for this group. Raw scans remain unchanged, not clean. The native87
 register now holds fixed26, proposed E2, pending new-image R52 and unresolved H7,
-with no new acceptance. Prepare the image-specific E/R decision and treat H7
-separately; do not transfer old waivers or infer security closeout.
+with no new acceptance. The [image-specific E2/R52 decision package](evidence/gate-13/SECURITY_CURRENT_IMAGE_DECISION.md)
+is now prepared, with fresh unchanged known Debian records and matched component
+probes. It requires explicit acknowledgment of unverified current Alpine fix
+status for BusyBox. Await the owner decision under C1–C7, leave H7 unaccepted, and
+do not transfer old waivers or infer security closeout.
 Browser/platform and release-readiness
 evidence remain unfinished, followed by 13D owner acceptance of the end state and next
 roadmap. The [traceability/carry-forward register](evidence/gate-13/TRACEABILITY.md)

@@ -2,19 +2,23 @@
 
 **Status:** Governing working document
 
-**Baseline date:** 2026-09-10
+**Baseline date:** 2026-09-12
 
-**Committed baseline:** `main` approved runtime containment at `ea17494`, following S01/S02 hardening at `ac4a051` (schema 17; Gate 13B accepted at `2f61b37`, 13C qualification open and not accepted)
+**Committed baseline:** `main` approved six-package native update at `6306ccf`, following runtime containment at `ea17494` and S01/S02 hardening at `ac4a051` (schema 17; Gate 13B accepted at `2f61b37`, 13C qualification open and not accepted)
 
-**Latest verification checkpoint:** full gate on clean committed `ea17494`;
-[runtime containment evidence](evidence/gate-13/SECURITY_CONTAINMENT_RESULTS.md).
-422 API tests, 58 reexecuted web tests, 25 Python / 28 Node harness tests,
-current smoke/passkeys and HTTPS lifecycle pass. API, Nginx master and 16 workers
-have empty capability sets and no-new-privileges. Fresh language audits are clean;
-the exact lifecycle-image audit retains 181 API / 3 web matches with full reduced-record
-equality and no waiver. Durable private evidence checks pass. Earlier functional
-browser evidence and its WebKit synthetic-drop limits remain separately dated;
-G13-01 performance tuning stays deferred. Nothing is pushed or release-qualified.
+**Latest full verification:** clean committed `6306ccf`;
+[native-update evidence](evidence/gate-13/SECURITY_NATIVE_UPDATE_RESULTS.md).
+424 API tests, 58 reexecuted web tests, 25 Python / 28 Node harness tests,
+HTTPS upgrade/recovery/rollback and exact-image containment pass. Actual API/Nginx
+processes have empty capability sets and no-new-privileges. Dated language audits
+are clean; the exact-image scan retains 189 API / 3 web matches. Subsequent
+[vendor/byte reconciliation](evidence/gate-13/SECURITY_RECONCILIATION_RESULTS.md)
+verifies 26 fixes without suppressing raw matches. The
+[current E2/R52 proposal](evidence/gate-13/SECURITY_CURRENT_IMAGE_DECISION.md) remains
+owner-pending, with an explicit BusyBox evidence gap and seven unaccepted holds.
+These read-only reviews recheck durable evidence, not rerun the full gate. Earlier
+browser results and WebKit synthetic-drop limits remain separately dated; G13-01
+performance tuning stays deferred. Nothing is pushed or release-qualified.
 
 **Bounded follow-up:** the owner authorized one final performance pass on 2026-09-10
 and is content to carry remaining stalls/latency rather than prolong tuning.
@@ -292,6 +296,7 @@ row's future-tense wording.
 | T-071 | `DECIDED` / `VERIFIED` / `PROPOSED` | September 12 owner VincentCinque approves E11/R59 for exact-image local qualification under C1–C7; ten H remain unaccepted. New vendor review retains 79 Debian bodies (Alpine collector 406 retained), identifies stable fixes, and reopens seven R exceptions under C6. Fresh component/CLI probes reaffirm E11; 52 exceptions remain active and 17 residual CVEs open | `docs/evidence/gate-13/SECURITY_OWNER_ACCEPTANCE.md`, immutable approval event, dated review, durable captures and checker | Deadline October 12 00:00 America/New_York or earlier candidate freeze/13D/C6 trigger; no automatic renewal. All 181 API / 3 web matches remain; fixes are not installed. Six-package stable API refresh is proposed, not authorized. Preserve parser/collector limitations, exact-image scope, trusted raw recovery, remaining seven H evidence gaps, performance/desktop deferrals and release gates. |
 | T-072 | `DECIDED` / `VERIFIED` / `OPEN` | Owner-approved six-package stable API refresh at clean `6306ccf` installs exactly the approved signed binary pins; no other package additions/removals/version changes. Full gate passes 424 API / 58 reexecuted web / 25 Python / 28 Node tests, HTTPS upgrade/recovery/rollback and exact-image 8-case/6-negative containment matrix | `docs/evidence/gate-13/SECURITY_NATIVE_UPDATE_RESULTS.md`, joined exact-image inventory/audit/per-CVE record, 167 private hash checks | Fresh September 12 scanner data retains all prior pairs: API 189 / web 3 matches, seven newly seen CVEs. Twenty vendor-fixed-version claims conflict with scanner unknown ranges; no suppression or clean-scan claim. New images inherit no E/R waivers. Retain seven original H plus four new PCRE2 holds; three new exclusions only proposed. Reconcile evidence before additional remediation/owner dispositions. Interrupted wrapper attempt retained; no push, publication, schema, language-lock or frozen-release change. |
 | T-073 | `VERIFIED` / `OPEN` | Read-only application reconciliation on unchanged `6306ccf` images verifies 26 vendor fixes: original 20 plus all six newly seen PCRE2 IDs. Current Debian feed fixed versions equal the pins; six archives match authenticated APT metadata and 931 runtime regular files match archive bytes. No further package update needed for this group | `docs/evidence/gate-13/SECURITY_RECONCILIATION_RESULTS.md`, new per-CVE register, 15 new plus 167 prior private hash checks | All 189 API / 3 web raw matches retained, including 28 for the 26 verified fixes; precise upstream scanner-ingestion cause unproven. Native87 now comprises fixed26, proposed E2, pending new-image R52 and unresolved H7. No new acceptance, waiver transfer, rescan, full-suite rerun, application change or push. Prepare the image-specific E/R decision and handle H7 separately; security and release gates remain open. |
+| T-074 | `VERIFIED` / `PROPOSED` | Current-image E2/R52 owner package refreshes all 86 known Debian-native records: no scoped change, 26 fixes retained, 51 Debian R still open without a recorded Trixie fix. BusyBox CNA bytes unchanged; fresh exact-image component checks agree. Individual R rationales distinguish actual utilities/call preconditions | `docs/evidence/gate-13/SECURITY_CURRENT_IMAGE_DECISION.md`, pending 87-ID proposal, 15 new plus 182 prior private hashes | No new acceptance or old-image waiver transfer. R52 includes 44 High package matches and requires explicit acknowledgment that current Alpine fix status is unverified. Keep H7 unaccepted, October 12/earlier C6 deadline, raw 189 API / 3 web matches and first failed APK-output probe. Await E/R owner decision; no application change, rescan, full-gate repeat, push or security/release closure. |
 
 ### 5.4 Current storage invariants
 
@@ -1387,9 +1392,14 @@ comparisons. No further package update is needed for that group. Its 28 historic
 scanner matches remain visible; the precise upstream metadata cause is unproven.
 The 87 native IDs now comprise **26 fixed, two proposed exclusions, 52 pending
 new-image exceptions and seven unresolved holds**. No new waiver was granted.
-**Next checkpoint: prepare the image-specific E2/R52 owner decision, rechecking
-relevant C6 changes; handle the seven holds separately with authoritative evidence
-or a separately informed owner decision.** Do not repeatedly rebuild to chase a
+The [current-image decision package](evidence/gate-13/SECURITY_CURRENT_IMAGE_DECISION.md)
+is prepared: fresh known Debian records are unchanged, exact-image components
+reconfirmed, and all 52 residual rationales individually reviewed. The BusyBox CNA
+is unchanged, but current Alpine fix status could not be confirmed and needs
+explicit acknowledgment. **Next checkpoint: owner decision on E2/R52 under C1–C7,
+including that evidence gap; keep H7 unaccepted.** Only after approval record a new
+exact-image event, then continue the bounded H review. No automatic waiver transfer
+or authority for unreviewed remediation. Do not repeatedly rebuild to chase a
 clean count. Preserve
 the earlier October 12 00:00 America/New_York deadline, or earlier freeze/13D/C6
 trigger; no renewal, extension or distribution migration is authorized here.

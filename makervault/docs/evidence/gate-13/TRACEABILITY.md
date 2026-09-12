@@ -127,8 +127,11 @@ already installed (20 targeted plus six new PCRE2 IDs): current Debian fixed row
 six authenticated archives and 931 runtime regular-file comparisons agree. No
 further package update is needed for that group. Native87 now comprises fixed26,
 proposed E2, pending new-image R52 and unresolved H7, with no new acceptance.
-Prepare the image-specific E/R decision and handle H7 separately; the 28 historical
-scanner matches for verified fixes remain visible, not suppressed or subtracted.
+The [image-specific E2/R52 package](SECURITY_CURRENT_IMAGE_DECISION.md) is now
+prepared: known Debian records unchanged, components reconfirmed, and BusyBox's
+unverified current Alpine fix status explicitly requires owner acknowledgment.
+Await the C1–C7 decision; keep H7 unaccepted. The 28 historical scanner matches for
+verified fixes remain visible, not suppressed or subtracted.
 All raw matches and the interrupted first attempt remain; S04/G13-04 and candidate
 acceptance stay open.
 

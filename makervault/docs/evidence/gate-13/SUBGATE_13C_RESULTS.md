@@ -86,6 +86,12 @@ proposed E2, pending new-image R52 and unresolved H7; no new acceptance. Prepare
 image-specific E/R decision and handle H7 separately. No rescan, application change,
 full-suite repeat, waiver transfer or security/release clearance in this review.
 
+**Current owner checkpoint:** [E2/R52 package prepared](SECURITY_CURRENT_IMAGE_DECISION.md),
+with all 86 known Debian-native records freshly unchanged and component probes
+matched. BusyBox CNA is unchanged, but its current Alpine fix status is unverified
+and requires explicit acknowledgment. No new acceptance: await the scoped C1–C7
+owner decision, keep H7 unaccepted and retain every raw match and failed attempt.
+
 ## Bounded execution
 
 1. Refresh stale browser assertions to the accepted current UI, retaining explicit
