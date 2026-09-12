@@ -117,9 +117,16 @@ On September 12 the owner [approved E11/R59 under C1–C7](../evidence/gate-13/S
 The same-turn vendor review identifies stable fixes and reopens seven exceptions,
 leaving 52 active local exceptions, E11 preconditions freshly reconfirmed and H10
 unaccepted (17 open residual CVEs). Approval expires by October 12 00:00
-America/New_York or earlier candidate freeze/13D/C6 trigger. A six-package API
-refresh is proposed for implementation approval, not installed. All 184 scanner
-matches remain; this does not close security or qualify a public release.
+America/New_York or earlier candidate freeze/13D/C6 trigger. This describes the
+old-image checkpoint. The subsequently approved
+[six-package update](../evidence/gate-13/SECURITY_NATIVE_UPDATE_RESULTS.md) at `6306ccf`
+passes full verification (424 API / 58 reexecuted web tests), current HTTPS
+lifecycle and exact-image containment. Only the six signed package versions change.
+Current scans retain 189 API / 3 web matches: 20 vendor-fixed-version claims conflict
+with scanner unknown ranges; seven new CVEs are explicitly reviewed. No old E/R
+approval transfers. Seven original H and four new PCRE2 holds remain unaccepted;
+three new precondition exclusions are proposed, not granted. Reconcile evidence
+before further packages or renewed dispositions. Security and public release stay open.
 
 ## Finding-by-finding disposition
 

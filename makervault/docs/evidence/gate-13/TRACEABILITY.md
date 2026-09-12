@@ -117,8 +117,15 @@ VincentCinque's E11/R59 approval and seven R reopenings for newly identified sta
 fixes, including both critical Perl exceptions. E11 preconditions are reconfirmed;
 52 local exceptions remain active and H10 remain unaccepted, for 17 open residual
 CVEs. Deadline is October 12 00:00 America/New_York or earlier freeze/13D/C6 trigger.
-The bounded six-package API refresh is proposed, not implemented. All scanner
-matches remain visible; S04/G13-04 and candidate acceptance stay open.
+That historical checkpoint is followed by the owner-approved
+[six-package update](SECURITY_NATIVE_UPDATE_RESULTS.md), fully verified at `6306ccf`
+(424 API / 58 web tests, HTTPS lifecycle and exact-image containment). The current
+inventory is 189 API / 3 web matches, with 20 vendor-fixed-version/scanner conflicts
+and seven newly seen CVEs. Old E/R approvals do not transfer. Seven original H and
+four new PCRE2 holds remain unaccepted; three new exclusions are proposed only.
+Reconcile evidence before additional packages or renewed image-specific decisions.
+All raw matches and the interrupted first attempt remain; S04/G13-04 and candidate
+acceptance stay open.
 
 P07/P11/P12 now also have G13-02's joined current lifecycle proof, supplementing
 their focused API tests. Raw restore preserves the complete content/security graph

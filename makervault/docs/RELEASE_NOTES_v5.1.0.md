@@ -47,6 +47,10 @@ vault into a slicer, printer controller, or multi-user cloud service.
   and one canonical destination across DNS, HTTP Host, TLS and redirects. Vitest
   and HTTPX2 development dependencies receive targeted security updates; native
   container findings still require explicit dispositions before release clearance.
+- The API test/runtime base now pins six Debian stable security updates for gzip,
+  libc, PCRE2, SQLite and Perl. This keeps Python, schema and user workflows
+  unchanged; it is not a distribution migration or blanket security clearance.
+  See the [local native-update checkpoint](evidence/gate-13/SECURITY_NATIVE_UPDATE_RESULTS.md).
 
 ## Upgrade requirements
 

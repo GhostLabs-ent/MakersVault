@@ -59,8 +59,14 @@ E11/R59 under C1–C7, including the two critical Perl exceptions. Newly identif
 stable fixes reopen seven R entries; 52 local exceptions remain active, E11
 preconditions are reconfirmed, and H10 remain unaccepted (17 open residual CVEs).
 Deadline: October 12 00:00 America/New_York or earlier candidate freeze/13D/C6
-trigger. The proposed six-package API stable refresh requires implementation
-approval; no fix is yet installed and all 184 scanner matches remain visible.
+trigger. That is the old-image checkpoint. The subsequent owner-approved
+[six-package API update](evidence/gate-13/SECURITY_NATIVE_UPDATE_RESULTS.md) is
+implemented at `6306ccf` and fully verified: 424 API / 58 web tests, HTTPS recovery/
+rollback and exact-image containment pass. Fresh scans retain 189 API / 3 web
+matches; 20 vendor-fixed-version claims disagree with scanner unknown ranges and
+seven newly seen CVEs are separately triaged. No old waiver transfers to these
+images. Reconcile the evidence before new remediation or exact-image acceptance;
+seven original H and four new PCRE2 holds remain open, three new exclusions proposed.
 Browser/platform and release-readiness
 evidence remain unfinished, followed by 13D owner acceptance of the end state and next
 roadmap. The [traceability/carry-forward register](evidence/gate-13/TRACEABILITY.md)

@@ -1,5 +1,12 @@
 # Gate 13C — owner acceptance and C6 follow-up
 
+**Historical checkpoint:** the subsequent owner approval authorizes the six-package
+implementation at `6306ccf`. This document and its immutable JSON describe the
+earlier images; their approvals do not transfer to rebuilt images. The historical
+checker binds the old Dockerfile and must be run against that checkpoint, not used
+to clear changed source. See the subsequent
+[native-update evidence](SECURITY_NATIVE_UPDATE_RESULTS.md) for current status.
+
 **Date:** September 12, 2026, America/New_York.
 **Owner:** VincentCinque, repository maintainer.
 **Status: APPROVAL RECORDED; SEVEN EXCEPTIONS REOPENED; SECURITY CLOSEOUT OPEN.**

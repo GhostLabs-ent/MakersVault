@@ -290,6 +290,7 @@ row's future-tense wording.
 | T-069 | `VERIFIED` | Owner-approved runtime containment at clean `ea17494` sets canonical Compose no-new-privileges / capability allowlists and empties API capability sets after setup. Full gate passes 422 API tests, 58 reexecuted web tests, 25 Python / 28 Node harness tests and HTTPS lifecycle with generated-preview persistence. Actual API/Nginx master/16 workers have five empty capability sets. Eight startup/ownership cases and six capability-removal controls pass on exact lifecycle API; old image fails the bounding-set assertion | `docs/evidence/gate-13/SECURITY_CONTAINMENT_RESULTS.md`, durable private captures and exact-image evidence | Preserve failed parser and initial image-audit attempts. Final audits match exact lifecycle IDs and retain identical reduced records for 181 API / 3 web matches; fresh language scopes clean, locks unchanged. Durable evidence passes 86 hash checks. Stronger containment is not a native patch, risk acceptance, hostile raw-snapshot sandbox or release qualification. No quota/resource limit, schema, model-byte or frozen-release change. |
 | T-070 | `VERIFIED` / `PROPOSED` | S04 owner package joins all 80 native CVEs / 167 matches to the exact `ea17494` lifecycle images. Recommends E11 exact-image exclusions, R59 time-limited local-qualification exceptions and H10 holds. Targeted vendor review corrects the zipdetails CLI rationale; new exact-image probe confirms command absence and narrows SQLite symbol evidence without clearing SESSION | `docs/evidence/gate-13/SECURITY_DISPOSITION_PROPOSAL.md`, per-CVE proposal, four new durable probe captures and evidence checker | No owner acceptances recorded. R59 explicitly includes two critical Perl CVEs; all 184 image matches remain visible. Proposed named owner/C1–C7 conditions expire by 30 days or candidate freeze, whichever first. H10 and security/Gate 13C stay open even if E/R approved. No application changes, broad rescan, full-suite repeat, push or release. |
 | T-071 | `DECIDED` / `VERIFIED` / `PROPOSED` | September 12 owner VincentCinque approves E11/R59 for exact-image local qualification under C1–C7; ten H remain unaccepted. New vendor review retains 79 Debian bodies (Alpine collector 406 retained), identifies stable fixes, and reopens seven R exceptions under C6. Fresh component/CLI probes reaffirm E11; 52 exceptions remain active and 17 residual CVEs open | `docs/evidence/gate-13/SECURITY_OWNER_ACCEPTANCE.md`, immutable approval event, dated review, durable captures and checker | Deadline October 12 00:00 America/New_York or earlier candidate freeze/13D/C6 trigger; no automatic renewal. All 181 API / 3 web matches remain; fixes are not installed. Six-package stable API refresh is proposed, not authorized. Preserve parser/collector limitations, exact-image scope, trusted raw recovery, remaining seven H evidence gaps, performance/desktop deferrals and release gates. |
+| T-072 | `DECIDED` / `VERIFIED` / `OPEN` | Owner-approved six-package stable API refresh at clean `6306ccf` installs exactly the approved signed binary pins; no other package additions/removals/version changes. Full gate passes 424 API / 58 reexecuted web / 25 Python / 28 Node tests, HTTPS upgrade/recovery/rollback and exact-image 8-case/6-negative containment matrix | `docs/evidence/gate-13/SECURITY_NATIVE_UPDATE_RESULTS.md`, joined exact-image inventory/audit/per-CVE record, 167 private hash checks | Fresh September 12 scanner data retains all prior pairs: API 189 / web 3 matches, seven newly seen CVEs. Twenty vendor-fixed-version claims conflict with scanner unknown ranges; no suppression or clean-scan claim. New images inherit no E/R waivers. Retain seven original H plus four new PCRE2 holds; three new exclusions only proposed. Reconcile evidence before additional remediation/owner dispositions. Interrupted wrapper attempt retained; no push, publication, schema, language-lock or frozen-release change. |
 
 ### 5.4 Current storage invariants
 
@@ -1368,17 +1369,22 @@ its S01/S02 proposal was explicitly approved and is now
 The [S04 decision checkpoint](evidence/gate-13/SECURITY_RESIDUAL_DECISIONS.md)
 now covers every native CVE. The owner approved its bounded containment slice,
 [implemented and verified](evidence/gate-13/SECURITY_CONTAINMENT_RESULTS.md) at `ea17494`,
-preserving ownership, uploads and trusted recovery. On September 12 VincentCinque
-[approved E11/R59 under C1–C7](evidence/gate-13/SECURITY_OWNER_ACCEPTANCE.md), with H10
-unaccepted. New stable vendor fixes trigger C6: seven R exceptions are reopened,
-52 remain active, and E11 preconditions are freshly reconfirmed on the unchanged
-images. Seventeen residual CVEs remain open. The deadline is October 12 at 00:00
-America/New_York, or earlier candidate freeze/13D/C6 trigger.
-**Next checkpoint: approve or revise the bounded six-package API stable refresh**
-documented in that record, then verify configured-repository availability and the
-transaction before implementing. No package update or distribution migration is
-authorized by risk acceptance alone. Requalify actual resulting images with full
-gate, HTTPS lifecycle and fresh audits; do not transfer old-image exceptions blindly.
+preserving ownership, uploads and trusted recovery. The September 12
+[E11/R59 owner event and C6 reopenings](evidence/gate-13/SECURITY_OWNER_ACCEPTANCE.md)
+remain immutable historical decisions for the old images. The owner subsequently
+approved the six-package stable refresh, now
+[implemented and fully verified](evidence/gate-13/SECURITY_NATIVE_UPDATE_RESULTS.md)
+at `6306ccf`: exactly six signed package changes, 424 API tests, 58 reexecuted web
+tests, current HTTPS lifecycle and exact-image containment. Fresh scans retain
+**189 API / 3 web matches**: the newer database adds seven CVEs, while 20 targeted
+vendor-fixed-version records still conflict with scanner unknown ranges. No
+finding is suppressed and old-image E/R approvals do not transfer automatically.
+**Next checkpoint: accept the implementation, then reconcile the scanner/vendor
+disagreement and new PCRE2 caller/backport evidence before further package changes
+or renewed exact-image dispositions.** Seven original H and four new PCRE2 holds
+remain unaccepted; three new precondition exclusions are proposed only. Preserve
+the earlier October 12 00:00 America/New_York deadline, or earlier freeze/13D/C6
+trigger; no renewal, extension or distribution migration is authorized here.
 Current raw evidence is durable/private; historical temporary artifacts are not
 recovered. Remaining H source/build gaps, physical/native-platform and operator/
 release readiness follow. S04/G13-04 and Gate 13C closeout remain open.

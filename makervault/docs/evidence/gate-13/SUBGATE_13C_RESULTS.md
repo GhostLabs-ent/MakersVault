@@ -67,8 +67,17 @@ with H10 unaccepted. Fresh vendor fixes reopen seven R exceptions, including bot
 critical Perl entries; E11 preconditions are reconfirmed and 52 local exceptions
 remain active. Seventeen residual CVEs remain open. The October 12 00:00
 America/New_York deadline is subject to earlier freeze/13D/C6 triggers. The
-proposed six-package stable API refresh still requires implementation approval;
-no fixed package, new image scan or Gate 13C acceptance is claimed.
+six-package proposal at that checkpoint was subsequently approved for implementation.
+
+**Current native update:** [verified at clean `6306ccf`](SECURITY_NATIVE_UPDATE_RESULTS.md)
+with exactly six signed package-version changes, 424 API / 58 reexecuted web tests,
+full HTTPS lifecycle and exact-image containment. Fresh scans retain 189 API / 3 web
+matches: 20 vendor-fixed-version records conflict with scanner unknown ranges,
+and seven newly seen CVEs are separately triaged. No old-image E/R acceptance
+transfers. Seven original H plus four new PCRE2 holds remain unaccepted; three new
+precondition exclusions are proposed only. Reconcile the evidence before additional
+remediation or renewed dispositions. The wrapper-interrupted attempt is preserved;
+the subsequent full run passed. Security/Gate 13C acceptance remains open.
 
 ## Bounded execution
 
