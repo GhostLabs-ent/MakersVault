@@ -4,6 +4,10 @@
 **Owner:** VincentCinque, repository maintainer.
 **Status: E4 / R52 / F26 / H5; SECURITY CLOSEOUT REMAINS OPEN.**
 
+**Subsequent investigation:** the [five-hold package](SECURITY_REMAINING_DECISION.md)
+now proposes temporary local risk exceptions. That proposal accepts none of H5
+and does not change this two-exclusion event or its conditions.
+
 The owner's **“approved”** answers the explicit request to accept only
 **CVE-2026-39113** and **CVE-2026-85091** under the existing conditions and unchanged
 October 12-or-earlier deadline. The [append-only decision event](security-hold-owner-acceptance-2026-09-12.json)

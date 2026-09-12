@@ -1,0 +1,928 @@
+{
+  "schema": 1,
+  "status": "five_temporary_local_risk_exceptions_proposed_none_accepted",
+  "reviewed_date": "2026-09-12",
+  "entry_revision": "5985cef77a043c361e5775d44f85f5ca4348e6ec",
+  "application_revision": "6306ccff289d475530a6cacf4cb2e28db456ce08",
+  "images": {
+    "api": "sha256:dba3d2a7305b494d4d9a894d35fdee9743adbbf51f13c51678e98a2fcaf50b96",
+    "web": "sha256:0fcaf5a3e77873767b1359f468568eee514e6341267a17a32db339f3cc281c67"
+  },
+  "platform": "linux/amd64",
+  "input_sha256": {
+    "security-hold-owner-acceptance-2026-09-12.json": "c373803b94341e289cc88c6d827fa0ae549b287c8ca9fda3d518c574695ffd35",
+    "security-hold-review.json": "e7c42976529632cd65c986821867f14d4c37bba35bb5d077c7c03edae2785ba9",
+    "security-current-decision-proposal.json": "00ddf6501acb6d863d0b8debc5ca4bd278369415a4879a14f331ecee84678335"
+  },
+  "vendor": {
+    "started_at": "2026-09-12T20:46:35.066Z",
+    "finished_at": "2026-09-12T20:46:39.951Z",
+    "captures": {
+      "debian-CVE-2026-19499": {
+        "key": "debian-CVE-2026-19499",
+        "id": "CVE-2026-19499",
+        "url": "https://security-tracker.debian.org/tracker/CVE-2026-19499",
+        "started_at": "2026-09-12T20:46:35.072Z",
+        "http_status": 200,
+        "file": "debian-CVE-2026-19499.html",
+        "sha256": "4c33175047f6284f62829b84333e3f410b8ac97e70bc8c8b1bba2256526a773d",
+        "bytes": 4212,
+        "trixie_rows": [
+          "trixie 2.41-12+deb13u4 vulnerable"
+        ],
+        "status": "captured",
+        "finished_at": "2026-09-12T20:46:35.375Z"
+      },
+      "debian-CVE-2026-19542": {
+        "key": "debian-CVE-2026-19542",
+        "id": "CVE-2026-19542",
+        "url": "https://security-tracker.debian.org/tracker/CVE-2026-19542",
+        "started_at": "2026-09-12T20:46:35.147Z",
+        "http_status": 200,
+        "file": "debian-CVE-2026-19542.html",
+        "sha256": "62318e05ab3040b4a7f16027a1fe258f13d777e76ba6301dd2f1358fe0062c01",
+        "bytes": 4132,
+        "trixie_rows": [
+          "trixie 2.41-12+deb13u4 vulnerable"
+        ],
+        "status": "captured",
+        "finished_at": "2026-09-12T20:46:35.372Z"
+      },
+      "debian-CVE-2026-50812": {
+        "key": "debian-CVE-2026-50812",
+        "id": "CVE-2026-50812",
+        "url": "https://security-tracker.debian.org/tracker/CVE-2026-50812",
+        "started_at": "2026-09-12T20:46:35.372Z",
+        "http_status": 200,
+        "file": "debian-CVE-2026-50812.html",
+        "sha256": "cdb5b4675f45adfb8bf1de3ac0388ac052368ec2cf75ebed80a0f60413f10016",
+        "bytes": 4136,
+        "trixie_rows": [
+          "trixie 3.46.1-7+deb13u2 vulnerable"
+        ],
+        "status": "captured",
+        "finished_at": "2026-09-12T20:46:35.498Z"
+      },
+      "debian-CVE-2026-77117": {
+        "key": "debian-CVE-2026-77117",
+        "id": "CVE-2026-77117",
+        "url": "https://security-tracker.debian.org/tracker/CVE-2026-77117",
+        "started_at": "2026-09-12T20:46:35.375Z",
+        "http_status": 200,
+        "file": "debian-CVE-2026-77117.html",
+        "sha256": "45300a3f23b6d9738dcbdf2223b2cf0ae8709aefb13635ce9f5c66635570e7bc",
+        "bytes": 4212,
+        "trixie_rows": [
+          "trixie 2.41-12+deb13u4 vulnerable"
+        ],
+        "status": "captured",
+        "finished_at": "2026-09-12T20:46:35.705Z"
+      },
+      "debian-CVE-2026-80489": {
+        "key": "debian-CVE-2026-80489",
+        "id": "CVE-2026-80489",
+        "url": "https://security-tracker.debian.org/tracker/CVE-2026-80489",
+        "started_at": "2026-09-12T20:46:35.498Z",
+        "http_status": 200,
+        "file": "debian-CVE-2026-80489.html",
+        "sha256": "12ec45b081754b5e5d0b742b35621ff74a55f4522d2426da59e55bb8a9040e30",
+        "bytes": 4212,
+        "trixie_rows": [
+          "trixie 2.41-12+deb13u4 vulnerable"
+        ],
+        "status": "captured",
+        "finished_at": "2026-09-12T20:46:35.616Z"
+      },
+      "redhat-CVE-2026-19499": {
+        "key": "redhat-CVE-2026-19499",
+        "id": "CVE-2026-19499",
+        "url": "https://access.redhat.com/security/cve/cve-2026-19499",
+        "started_at": "2026-09-12T20:46:35.616Z",
+        "http_status": 200,
+        "file": "redhat-CVE-2026-19499.html",
+        "sha256": "cc758a0aa957cf9f8d782cfc146a299804ee60004c9d7a3daf5d0613e7808c07",
+        "bytes": 237181,
+        "status": "captured",
+        "finished_at": "2026-09-12T20:46:37.123Z"
+      },
+      "redhat-CVE-2026-19542": {
+        "key": "redhat-CVE-2026-19542",
+        "id": "CVE-2026-19542",
+        "url": "https://access.redhat.com/security/cve/cve-2026-19542",
+        "started_at": "2026-09-12T20:46:35.705Z",
+        "http_status": 200,
+        "file": "redhat-CVE-2026-19542.html",
+        "sha256": "e6158d60f311def850e73e1916e196c8ae027b2f217d27774f69285d0efb8e08",
+        "bytes": 236392,
+        "status": "captured",
+        "finished_at": "2026-09-12T20:46:37.104Z"
+      },
+      "redhat-CVE-2026-77117": {
+        "key": "redhat-CVE-2026-77117",
+        "id": "CVE-2026-77117",
+        "url": "https://access.redhat.com/security/cve/cve-2026-77117",
+        "started_at": "2026-09-12T20:46:37.104Z",
+        "http_status": 200,
+        "file": "redhat-CVE-2026-77117.html",
+        "sha256": "d7634259291f174a4731d008d09794e6ac962e18741cdee18aa57d0c6b0fbf95",
+        "bytes": 214417,
+        "status": "captured",
+        "finished_at": "2026-09-12T20:46:38.624Z"
+      },
+      "redhat-CVE-2026-80489": {
+        "key": "redhat-CVE-2026-80489",
+        "id": "CVE-2026-80489",
+        "url": "https://access.redhat.com/security/cve/cve-2026-80489",
+        "started_at": "2026-09-12T20:46:37.123Z",
+        "http_status": 200,
+        "file": "redhat-CVE-2026-80489.html",
+        "sha256": "fa46cf93b5589e14b6550da8a469988623aeff84dc30694f08b11819790b6a66",
+        "bytes": 213029,
+        "status": "captured",
+        "finished_at": "2026-09-12T20:46:38.719Z"
+      },
+      "ubuntu-CVE-2026-80489": {
+        "key": "ubuntu-CVE-2026-80489",
+        "id": "CVE-2026-80489",
+        "url": "https://ubuntu.com/security/CVE-2026-80489",
+        "started_at": "2026-09-12T20:46:38.624Z",
+        "http_status": 200,
+        "file": "ubuntu-CVE-2026-80489.html",
+        "sha256": "84610327b924457c71c921e28a1c5168304e4e96acef1c853e1f754ae3b80767",
+        "bytes": 85374,
+        "status": "captured",
+        "finished_at": "2026-09-12T20:46:39.470Z"
+      },
+      "ubuntu-CVE-2026-50812": {
+        "key": "ubuntu-CVE-2026-50812",
+        "id": "CVE-2026-50812",
+        "url": "https://ubuntu.com/security/CVE-2026-50812",
+        "started_at": "2026-09-12T20:46:38.719Z",
+        "http_status": 200,
+        "file": "ubuntu-CVE-2026-50812.html",
+        "sha256": "d059dc3dbe9f4eea841ab3a235062d5cbd8a2e0897e2dc43089b49bcdc78fa6b",
+        "bytes": 94147,
+        "status": "captured",
+        "finished_at": "2026-09-12T20:46:39.447Z"
+      },
+      "sqlite-fix": {
+        "key": "sqlite-fix",
+        "id": "b869ed6",
+        "url": "https://github.com/sqlite/sqlite/commit/b869ed6b067d623cb1383549f2a18aa35508385d",
+        "started_at": "2026-09-12T20:46:39.447Z",
+        "http_status": 200,
+        "file": "sqlite-fix.html",
+        "sha256": "8e6599d73b1d4d65d18dab0470dabc20919c821b3c62f83aa6e7a29d7fa17953",
+        "bytes": 434923,
+        "status": "captured",
+        "finished_at": "2026-09-12T20:46:39.908Z"
+      }
+    },
+    "private_sha256": {
+      "summary.json": "ac83adad2a747d8ba6c0986c1004a7349d9dbb63d6942b712a50aab75a70d3db",
+      "debian-CVE-2026-19499.html": "4c33175047f6284f62829b84333e3f410b8ac97e70bc8c8b1bba2256526a773d",
+      "debian-CVE-2026-19542.html": "62318e05ab3040b4a7f16027a1fe258f13d777e76ba6301dd2f1358fe0062c01",
+      "debian-CVE-2026-50812.html": "cdb5b4675f45adfb8bf1de3ac0388ac052368ec2cf75ebed80a0f60413f10016",
+      "debian-CVE-2026-77117.html": "45300a3f23b6d9738dcbdf2223b2cf0ae8709aefb13635ce9f5c66635570e7bc",
+      "debian-CVE-2026-80489.html": "12ec45b081754b5e5d0b742b35621ff74a55f4522d2426da59e55bb8a9040e30",
+      "redhat-CVE-2026-19499.html": "cc758a0aa957cf9f8d782cfc146a299804ee60004c9d7a3daf5d0613e7808c07",
+      "redhat-CVE-2026-19542.html": "e6158d60f311def850e73e1916e196c8ae027b2f217d27774f69285d0efb8e08",
+      "redhat-CVE-2026-77117.html": "d7634259291f174a4731d008d09794e6ac962e18741cdee18aa57d0c6b0fbf95",
+      "redhat-CVE-2026-80489.html": "fa46cf93b5589e14b6550da8a469988623aeff84dc30694f08b11819790b6a66",
+      "ubuntu-CVE-2026-80489.html": "84610327b924457c71c921e28a1c5168304e4e96acef1c853e1f754ae3b80767",
+      "ubuntu-CVE-2026-50812.html": "d059dc3dbe9f4eea841ab3a235062d5cbd8a2e0897e2dc43089b49bcdc78fa6b",
+      "sqlite-fix.html": "8e6599d73b1d4d65d18dab0470dabc20919c821b3c62f83aa6e7a29d7fa17953"
+    }
+  },
+  "runtime": {
+    "run": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--user",
+        "0:0",
+        "--security-opt",
+        "no-new-privileges",
+        "--memory",
+        "512m",
+        "--cpus",
+        "2",
+        "--entrypoint",
+        "python",
+        "-v",
+        "/home/vinnyc/Documents/GitHub/MakersVault/makervault/docs/evidence/gate-13/security-remaining-runtime.py:/probe.py:ro",
+        "sha256:dba3d2a7305b494d4d9a894d35fdee9743adbbf51f13c51678e98a2fcaf50b96",
+        "/probe.py"
+      ],
+      "started_at": "2026-09-12T20:45:26.593Z",
+      "source_revision": "5985cef77a043c361e5775d44f85f5ca4348e6ec",
+      "verification_source_status": "",
+      "finished_at": "2026-09-12T20:45:38.063Z",
+      "duration_seconds": 11.47,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "5985cef77a043c361e5775d44f85f5ca4348e6ec",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 20407,
+          "sha256": "590f4c53355262176215b19b20e00f544fae92961a9dbf898f888cf9df1a03e5"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    "private_sha256": {
+      "started.json": "7f07e5486401d16b7e3fd4e976206d43eb756c28b123883647be583a27331b53",
+      "result.json": "351c30a13ba1de60b9a1039980b42b580807beaee81990fdf3332a6f22b01caa",
+      "stdout.log": "590f4c53355262176215b19b20e00f544fae92961a9dbf898f888cf9df1a03e5",
+      "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "observations": {
+      "apt_policy": "libc6:\n  Installed: 2.41-12+deb13u4\n  Candidate: 2.41-12+deb13u4\n  Version table:\n *** 2.41-12+deb13u4 500\n        500 http://deb.debian.org/debian trixie/main amd64 Packages\n        100 /var/lib/dpkg/status\nlibc-bin:\n  Installed: 2.41-12+deb13u4\n  Candidate: 2.41-12+deb13u4\n  Version table:\n *** 2.41-12+deb13u4 500\n        500 http://deb.debian.org/debian trixie/main amd64 Packages\n        100 /var/lib/dpkg/status\nlibsqlite3-0:\n  Installed: 3.46.1-7+deb13u2\n  Candidate: 3.46.1-7+deb13u2\n  Version table:\n *** 3.46.1-7+deb13u2 500\n        500 http://deb.debian.org/debian trixie/main amd64 Packages\n        100 /var/lib/dpkg/status\n",
+      "apt_sources": {
+        "/etc/apt/sources.list.d/debian.sources": "Types: deb\n# http://snapshot.debian.org/archive/debian/20260824T000000Z\nURIs: http://deb.debian.org/debian\nSuites: trixie trixie-updates\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.pgp\n\nTypes: deb\n# http://snapshot.debian.org/archive/debian-security/20260824T000000Z\nURIs: http://deb.debian.org/debian-security\nSuites: trixie-security\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.pgp\n"
+      },
+      "commands": [
+        {
+          "command": [
+            "apt-get",
+            "-o",
+            "APT::Update::Error-Mode=any",
+            "-o",
+            "Acquire::AllowInsecureRepositories=false",
+            "-o",
+            "APT::Get::AllowUnauthenticated=false",
+            "update"
+          ],
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "Get:1 http://deb.debian.org/debian trixie InRelease [140 kB]\nGet:2 http://deb.debian.org/debian trixie-updates InRelease [47.3 kB]\nGet:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]\nGet:4 http://deb.debian.org/debian trixie/main amd64 Packages [9678 kB]\nGet:5 http://deb.debian.org/debian trixie-updates/main amd64 Packages [4412 B]\nGet:6 http://deb.debian.org/debian-security trixie-security/main amd64 Packages [261 kB]\nFetched 10.2 MB in 10s (1059 kB/s)\nReading package lists...\n"
+        },
+        {
+          "command": [
+            "dpkg-query",
+            "-W",
+            "-f=${Package}\t${Version}\t${source:Package}\t${source:Version}\n",
+            "libc6",
+            "libc-bin",
+            "libsqlite3-0"
+          ],
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "libc-bin\t2.41-12+deb13u4\tglibc\t2.41-12+deb13u4\nlibc6\t2.41-12+deb13u4\tglibc\t2.41-12+deb13u4\nlibsqlite3-0\t3.46.1-7+deb13u2\tsqlite3\t3.46.1-7+deb13u2\n"
+        },
+        {
+          "command": [
+            "apt-cache",
+            "policy",
+            "libc6",
+            "libc-bin",
+            "libsqlite3-0"
+          ],
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "libc6:\n  Installed: 2.41-12+deb13u4\n  Candidate: 2.41-12+deb13u4\n  Version table:\n *** 2.41-12+deb13u4 500\n        500 http://deb.debian.org/debian trixie/main amd64 Packages\n        100 /var/lib/dpkg/status\nlibc-bin:\n  Installed: 2.41-12+deb13u4\n  Candidate: 2.41-12+deb13u4\n  Version table:\n *** 2.41-12+deb13u4 500\n        500 http://deb.debian.org/debian trixie/main amd64 Packages\n        100 /var/lib/dpkg/status\nlibsqlite3-0:\n  Installed: 3.46.1-7+deb13u2\n  Candidate: 3.46.1-7+deb13u2\n  Version table:\n *** 3.46.1-7+deb13u2 500\n        500 http://deb.debian.org/debian trixie/main amd64 Packages\n        100 /var/lib/dpkg/status\n"
+        },
+        {
+          "command": [
+            "iconv",
+            "-l"
+          ],
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "437//\n500//\n500V1//\n850//\n851//\n852//\n855//\n856//\n857//\n858//\n860//\n861//\n862//\n863//\n864//\n865//\n866//\n866NAV//\n869//\n874//\n904//\n1026//\n1046//\n1047//\n8859_1//\n8859_2//\n8859_3//\n8859_4//\n8859_5//\n8859_6//\n8859_7//\n8859_8//\n8859_9//\n10646-1:1993//\n10646-1:1993/UCS4/\nANSI_X3.4-1968//\nANSI_X3.4-1986//\nANSI_X3.4//\nANSI_X3.110-1983//\nANSI_X3.110//\nARABIC//\nARABIC7//\nARMSCII-8//\nARMSCII8//\nASCII//\nASMO-708//\nASMO_449//\nBALTIC//\nBIG-5//\nBIG-FIVE//\nBIG5-HKSCS//\nBIG5//\nBIG5HKSCS//\nBIGFIVE//\nBRF//\nBS_4730//\nCA//\nCN-BIG5//\nCN-GB//\nCN//\nCP-AR//\nCP-GR//\nCP-HU//\nCP037//\nCP038//\nCP273//\nCP274//\nCP275//\nCP278//\nCP280//\nCP281//\nCP282//\nCP284//\nCP285//\nCP290//\nCP297//\nCP367//\nCP420//\nCP423//\nCP424//\nCP437//\nCP500//\nCP737//\nCP770//\nCP771//\nCP772//\nCP773//\nCP774//\nCP775//\nCP803//\nCP813//\nCP819//\nCP850//\nCP851//\nCP852//\nCP855//\nCP856//\nCP857//\nCP858//\nCP860//\nCP861//\nCP862//\nCP863//\nCP864//\nCP865//\nCP866//\nCP866NAV//\nCP868//\nCP869//\nCP870//\nCP871//\nCP874//\nCP875//\nCP880//\nCP891//\nCP901//\nCP902//\nCP903//\nCP904//\nCP905//\nCP912//\nCP915//\nCP916//\nCP918//\nCP920//\nCP921//\nCP922//\nCP930//\nCP932//\nCP933//\nCP935//\nCP936//\nCP937//\nCP939//\nCP949//\nCP950//\nCP1004//\nCP1008//\nCP1025//\nCP1026//\nCP1046//\nCP1047//\nCP1070//\nCP1079//\nCP1081//\nCP1084//\nCP1089//\nCP1097//\nCP1112//\nCP1122//\nCP1123//\nCP1124//\nCP1125//\nCP1129//\nCP1130//\nCP1132//\nCP1133//\nCP1137//\nCP1140//\nCP1141//\nCP1142//\nCP1143//\nCP1144//\nCP1145//\nCP1146//\nCP1147//\nCP1148//\nCP1149//\nCP1153//\nCP1154//\nCP1155//\nCP1156//\nCP1157//\nCP1158//\nCP1160//\nCP1161//\nCP1162//\nCP1163//\nCP1164//\nCP1166//\nCP1167//\nCP1250//\nCP1251//\nCP1252//\nCP1253//\nCP1254//\nCP1255//\nCP1256//\nCP1257//\nCP1258//\nCP1282//\nCP1361//\nCP1364//\nCP1371//\nCP1388//\nCP1390//\nCP1399//\nCP4517//\nCP4899//\nCP4909//\nCP4971//\nCP5347//\nCP9030//\nCP9066//\nCP9448//\nCP10007//\nCP12712//\nCP16804//\nCPIBM861//\nCSA7-1//\nCSA7-2//\nCSASCII//\nCSA_T500-1983//\nCSA_T500//\nCSA_Z243.4-1985-1//\nCSA_Z243.4-1985-2//\nCSA_Z243.419851//\nCSA_Z243.419852//\nCSDECMCS//\nCSEBCDICATDE//\nCSEBCDICATDEA//\nCSEBCDICCAFR//\nCSEBCDICDKNO//\nCSEBCDICDKNOA//\nCSEBCDICES//\nCSEBCDICESA//\nCSEBCDICESS//\nCSEBCDICFISE//\nCSEBCDICFISEA//\nCSEBCDICFR//\nCSEBCDICIT//\nCSEBCDICPT//\nCSEBCDICUK//\nCSEBCDICUS//\nCSEUCKR//\nCSEUCPKDFMTJAPANESE//\nCSGB2312//\nCSHPROMAN8//\nCSIBM037//\nCSIBM038//\nCSIBM273//\nCSIBM274//\nCSIBM275//\nCSIBM277//\nCSIBM278//\nCSIBM280//\nCSIBM281//\nCSIBM284//\nCSIBM285//\nCSIBM290//\nCSIBM297//\nCSIBM420//\nCSIBM423//\nCSIBM424//\nCSIBM500//\nCSIBM803//\nCSIBM851//\nCSIBM855//\nCSIBM856//\nCSIBM857//\nCSIBM860//\nCSIBM863//\nCSIBM864//\nCSIBM865//\nCSIBM866//\nCSIBM868//\nCSIBM869//\nCSIBM870//\nCSIBM871//\nCSIBM880//\nCSIBM891//\nCSIBM901//\nCSIBM902//\nCSIBM903//\nCSIBM904//\nCSIBM905//\nCSIBM918//\nCSIBM921//\nCSIBM922//\nCSIBM930//\nCSIBM932//\nCSIBM933//\nCSIBM935//\nCSIBM937//\nCSIBM939//\nCSIBM943//\nCSIBM1008//\nCSIBM1025//\nCSIBM1026//\nCSIBM1097//\nCSIBM1112//\nCSIBM1122//\nCSIBM1123//\nCSIBM1124//\nCSIBM1129//\nCSIBM1130//\nCSIBM1132//\nCSIBM1133//\nCSIBM1137//\nCSIBM1140//\nCSIBM1141//\nCSIBM1142//\nCSIBM1143//\nCSIBM1144//\nCSIBM1145//\nCSIBM1146//\nCSIBM1147//\nCSIBM1148//\nCSIBM1149//\nCSIBM1153//\nCSIBM1154//\nCSIBM1155//\nCSIBM1156//\nCSIBM1157//\nCSIBM1158//\nCSIBM1160//\nCSIBM1161//\nCSIBM1163//\nCSIBM1164//\nCSIBM1166//\nCSIBM1167//\nCSIBM1364//\nCSIBM1371//\nCSIBM1388//\nCSIBM1390//\nCSIBM1399//\nCSIBM4517//\nCSIBM4899//\nCSIBM4909//\nCSIBM4971//\nCSIBM5347//\nCSIBM9030//\nCSIBM9066//\nCSIBM9448//\nCSIBM12712//\nCSIBM16804//\nCSIBM11621162//\nCSISO4UNITEDKINGDOM//\nCSISO10SWEDISH//\nCSISO11SWEDISHFORNAMES//\nCSISO14JISC6220RO//\nCSISO15ITALIAN//\nCSISO16PORTUGESE//\nCSISO17SPANISH//\nCSISO18GREEK7OLD//\nCSISO19LATINGREEK//\nCSISO21GERMAN//\nCSISO25FRENCH//\nCSISO27LATINGREEK1//\nCSISO49INIS//\nCSISO50INIS8//\nCSISO51INISCYRILLIC//\nCSISO58GB1988//\nCSISO60DANISHNORWEGIAN//\nCSISO60NORWEGIAN1//\nCSISO61NORWEGIAN2//\nCSISO69FRENCH//\nCSISO84PORTUGUESE2//\nCSISO85SPANISH2//\nCSISO86HUNGARIAN//\nCSISO88GREEK7//\nCSISO89ASMO449//\nCSISO90//\nCSISO92JISC62991984B//\nCSISO99NAPLPS//\nCSISO103T618BIT//\nCSISO111ECMACYRILLIC//\nCSISO121CANADIAN1//\nCSISO122CANADIAN2//\nCSISO139CSN369103//\nCSISO141JUSIB1002//\nCSISO143IECP271//\nCSISO150//\nCSISO150GREEKCCITT//\nCSISO151CUBA//\nCSISO153GOST1976874//\nCSISO646DANISH//\nCSISO2022CN//\nCSISO2022JP//\nCSISO2022JP2//\nCSISO2022KR//\nCSISO2033//\nCSISO5427CYRILLIC//\nCSISO5427CYRILLIC1981//\nCSISO5428GREEK//\nCSISO10367BOX//\nCSISOLATIN1//\nCSISOLATIN2//\nCSISOLATIN3//\nCSISOLATIN4//\nCSISOLATIN5//\nCSISOLATIN6//\nCSISOLATINARABIC//\nCSISOLATINCYRILLIC//\nCSISOLATINGREEK//\nCSISOLATINHEBREW//\nCSKOI8R//\nCSKSC5636//\nCSMACINTOSH//\nCSNATSDANO//\nCSNATSSEFI//\nCSN_369103//\nCSPC8CODEPAGE437//\nCSPC775BALTIC//\nCSPC850MULTILINGUAL//\nCSPC858MULTILINGUAL//\nCSPC862LATINHEBREW//\nCSPCP852//\nCSSHIFTJIS//\nCSUCS4//\nCSUNICODE//\nCSWINDOWS31J//\nCUBA//\nCWI-2//\nCWI//\nCYRILLIC//\nDE//\nDEC-MCS//\nDEC//\nDECMCS//\nDIN_66003//\nDK//\nDS2089//\nDS_2089//\nE13B//\nEBCDIC-AT-DE-A//\nEBCDIC-AT-DE//\nEBCDIC-BE//\nEBCDIC-BR//\nEBCDIC-CA-FR//\nEBCDIC-CP-AR1//\nEBCDIC-CP-AR2//\nEBCDIC-CP-BE//\nEBCDIC-CP-CA//\nEBCDIC-CP-CH//\nEBCDIC-CP-DK//\nEBCDIC-CP-ES//\nEBCDIC-CP-FI//\nEBCDIC-CP-FR//\nEBCDIC-CP-GB//\nEBCDIC-CP-GR//\nEBCDIC-CP-HE//\nEBCDIC-CP-IS//\nEBCDIC-CP-IT//\nEBCDIC-CP-NL//\nEBCDIC-CP-NO//\nEBCDIC-CP-ROECE//\nEBCDIC-CP-SE//\nEBCDIC-CP-TR//\nEBCDIC-CP-US//\nEBCDIC-CP-WT//\nEBCDIC-CP-YU//\nEBCDIC-CYRILLIC//\nEBCDIC-DK-NO-A//\nEBCDIC-DK-NO//\nEBCDIC-ES-A//\nEBCDIC-ES-S//\nEBCDIC-ES//\nEBCDIC-FI-SE-A//\nEBCDIC-FI-SE//\nEBCDIC-FR//\nEBCDIC-GREEK//\nEBCDIC-INT//\nEBCDIC-INT1//\nEBCDIC-IS-FRISS//\nEBCDIC-IT//\nEBCDIC-JP-E//\nEBCDIC-JP-KANA//\nEBCDIC-PT//\nEBCDIC-UK//\nEBCDIC-US//\nEBCDICATDE//\nEBCDICATDEA//\nEBCDICCAFR//\nEBCDICDKNO//\nEBCDICDKNOA//\nEBCDICES//\nEBCDICESA//\nEBCDICESS//\nEBCDICFISE//\nEBCDICFISEA//\nEBCDICFR//\nEBCDICISFRISS//\nEBCDICIT//\nEBCDICPT//\nEBCDICUK//\nEBCDICUS//\nECMA-114//\nECMA-118//\nECMA-128//\nECMA-CYRILLIC//\nECMACYRILLIC//\nELOT_928//\nES//\nES2//\nEUC-CN//\nEUC-JISX0213//\nEUC-JP-MS//\nEUC-JP//\nEUC-KR//\nEUC-TW//\nEUCCN//\nEUCJP-MS//\nEUCJP-OPEN//\nEUCJP-WIN//\nEUCJP//\nEUCKR//\nEUCTW//\nFI//\nFR//\nGB//\nGB2312//\nGB13000//\nGB18030//\nGBK//\nGB_1988-80//\nGB_198880//\nGEORGIAN-ACADEMY//\nGEORGIAN-PS//\nGOST_19768-74//\nGOST_19768//\nGOST_1976874//\nGREEK-CCITT//\nGREEK//\nGREEK7-OLD//\nGREEK7//\nGREEK7OLD//\nGREEK8//\nGREEKCCITT//\nHEBREW//\nHP-GREEK8//\nHP-ROMAN8//\nHP-ROMAN9//\nHP-THAI8//\nHP-TURKISH8//\nHPGREEK8//\nHPROMAN8//\nHPROMAN9//\nHPTHAI8//\nHPTURKISH8//\nHU//\nIBM-803//\nIBM-856//\nIBM-901//\nIBM-902//\nIBM-921//\nIBM-922//\nIBM-930//\nIBM-932//\nIBM-933//\nIBM-935//\nIBM-937//\nIBM-939//\nIBM-943//\nIBM-1008//\nIBM-1025//\nIBM-1046//\nIBM-1047//\nIBM-1097//\nIBM-1112//\nIBM-1122//\nIBM-1123//\nIBM-1124//\nIBM-1129//\nIBM-1130//\nIBM-1132//\nIBM-1133//\nIBM-1137//\nIBM-1140//\nIBM-1141//\nIBM-1142//\nIBM-1143//\nIBM-1144//\nIBM-1145//\nIBM-1146//\nIBM-1147//\nIBM-1148//\nIBM-1149//\nIBM-1153//\nIBM-1154//\nIBM-1155//\nIBM-1156//\nIBM-1157//\nIBM-1158//\nIBM-1160//\nIBM-1161//\nIBM-1162//\nIBM-1163//\nIBM-1164//\nIBM-1166//\nIBM-1167//\nIBM-1364//\nIBM-1371//\nIBM-1388//\nIBM-1390//\nIBM-1399//\nIBM-4517//\nIBM-4899//\nIBM-4909//\nIBM-4971//\nIBM-5347//\nIBM-9030//\nIBM-9066//\nIBM-9448//\nIBM-12712//\nIBM-16804//\nIBM037//\nIBM038//\nIBM256//\nIBM273//\nIBM274//\nIBM275//\nIBM277//\nIBM278//\nIBM280//\nIBM281//\nIBM284//\nIBM285//\nIBM290//\nIBM297//\nIBM367//\nIBM420//\nIBM423//\nIBM424//\nIBM437//\nIBM500//\nIBM775//\nIBM803//\nIBM813//\nIBM819//\nIBM848//\nIBM850//\nIBM851//\nIBM852//\nIBM855//\nIBM856//\nIBM857//\nIBM858//\nIBM860//\nIBM861//\nIBM862//\nIBM863//\nIBM864//\nIBM865//\nIBM866//\nIBM866NAV//\nIBM868//\nIBM869//\nIBM870//\nIBM871//\nIBM874//\nIBM875//\nIBM880//\nIBM891//\nIBM901//\nIBM902//\nIBM903//\nIBM904//\nIBM905//\nIBM912//\nIBM915//\nIBM916//\nIBM918//\nIBM920//\nIBM921//\nIBM922//\nIBM930//\nIBM932//\nIBM933//\nIBM935//\nIBM937//\nIBM939//\nIBM943//\nIBM1004//\nIBM1008//\nIBM1025//\nIBM1026//\nIBM1046//\nIBM1047//\nIBM1089//\nIBM1097//\nIBM1112//\nIBM1122//\nIBM1123//\nIBM1124//\nIBM1129//\nIBM1130//\nIBM1132//\nIBM1133//\nIBM1137//\nIBM1140//\nIBM1141//\nIBM1142//\nIBM1143//\nIBM1144//\nIBM1145//\nIBM1146//\nIBM1147//\nIBM1148//\nIBM1149//\nIBM1153//\nIBM1154//\nIBM1155//\nIBM1156//\nIBM1157//\nIBM1158//\nIBM1160//\nIBM1161//\nIBM1162//\nIBM1163//\nIBM1164//\nIBM1166//\nIBM1167//\nIBM1364//\nIBM1371//\nIBM1388//\nIBM1390//\nIBM1399//\nIBM4517//\nIBM4899//\nIBM4909//\nIBM4971//\nIBM5347//\nIBM9030//\nIBM9066//\nIBM9448//\nIBM12712//\nIBM16804//\nIEC_P27-1//\nIEC_P271//\nINIS-8//\nINIS-CYRILLIC//\nINIS//\nINIS8//\nINISCYRILLIC//\nISIRI-3342//\nISIRI3342//\nISO-2022-CN-EXT//\nISO-2022-CN//\nISO-2022-JP-2//\nISO-2022-JP-3//\nISO-2022-JP//\nISO-2022-KR//\nISO-8859-1//\nISO-8859-2//\nISO-8859-3//\nISO-8859-4//\nISO-8859-5//\nISO-8859-6//\nISO-8859-7//\nISO-8859-8//\nISO-8859-9//\nISO-8859-9E//\nISO-8859-10//\nISO-8859-11//\nISO-8859-13//\nISO-8859-14//\nISO-8859-15//\nISO-8859-16//\nISO-10646//\nISO-10646/UCS2/\nISO-10646/UCS4/\nISO-10646/UTF-8/\nISO-10646/UTF8/\nISO-CELTIC//\nISO-IR-4//\nISO-IR-6//\nISO-IR-8-1//\nISO-IR-9-1//\nISO-IR-10//\nISO-IR-11//\nISO-IR-14//\nISO-IR-15//\nISO-IR-16//\nISO-IR-17//\nISO-IR-18//\nISO-IR-19//\nISO-IR-21//\nISO-IR-25//\nISO-IR-27//\nISO-IR-37//\nISO-IR-49//\nISO-IR-50//\nISO-IR-51//\nISO-IR-54//\nISO-IR-55//\nISO-IR-57//\nISO-IR-60//\nISO-IR-61//\nISO-IR-69//\nISO-IR-84//\nISO-IR-85//\nISO-IR-86//\nISO-IR-88//\nISO-IR-89//\nISO-IR-90//\nISO-IR-92//\nISO-IR-98//\nISO-IR-99//\nISO-IR-100//\nISO-IR-101//\nISO-IR-103//\nISO-IR-109//\nISO-IR-110//\nISO-IR-111//\nISO-IR-121//\nISO-IR-122//\nISO-IR-126//\nISO-IR-127//\nISO-IR-138//\nISO-IR-139//\nISO-IR-141//\nISO-IR-143//\nISO-IR-144//\nISO-IR-148//\nISO-IR-150//\nISO-IR-151//\nISO-IR-153//\nISO-IR-155//\nISO-IR-156//\nISO-IR-157//\nISO-IR-166//\nISO-IR-179//\nISO-IR-193//\nISO-IR-197//\nISO-IR-199//\nISO-IR-203//\nISO-IR-209//\nISO-IR-226//\nISO/TR_11548-1/\nISO646-CA//\nISO646-CA2//\nISO646-CN//\nISO646-CU//\nISO646-DE//\nISO646-DK//\nISO646-ES//\nISO646-ES2//\nISO646-FI//\nISO646-FR//\nISO646-FR1//\nISO646-GB//\nISO646-HU//\nISO646-IT//\nISO646-JP-OCR-B//\nISO646-JP//\nISO646-KR//\nISO646-NO//\nISO646-NO2//\nISO646-PT//\nISO646-PT2//\nISO646-SE//\nISO646-SE2//\nISO646-US//\nISO646-YU//\nISO2022CN//\nISO2022CNEXT//\nISO2022JP//\nISO2022JP2//\nISO2022KR//\nISO6937//\nISO8859-1//\nISO8859-2//\nISO8859-3//\nISO8859-4//\nISO8859-5//\nISO8859-6//\nISO8859-7//\nISO8859-8//\nISO8859-9//\nISO8859-9E//\nISO8859-10//\nISO8859-11//\nISO8859-13//\nISO8859-14//\nISO8859-15//\nISO8859-16//\nISO11548-1//\nISO88591//\nISO88592//\nISO88593//\nISO88594//\nISO88595//\nISO88596//\nISO88597//\nISO88598//\nISO88599//\nISO88599E//\nISO885910//\nISO885911//\nISO885913//\nISO885914//\nISO885915//\nISO885916//\nISO_646.IRV:1991//\nISO_2033-1983//\nISO_2033//\nISO_5427-EXT//\nISO_5427//\nISO_5427:1981//\nISO_5427EXT//\nISO_5428//\nISO_5428:1980//\nISO_6937-2//\nISO_6937-2:1983//\nISO_6937//\nISO_6937:1992//\nISO_8859-1//\nISO_8859-1:1987//\nISO_8859-2//\nISO_8859-2:1987//\nISO_8859-3//\nISO_8859-3:1988//\nISO_8859-4//\nISO_8859-4:1988//\nISO_8859-5//\nISO_8859-5:1988//\nISO_8859-6//\nISO_8859-6:1987//\nISO_8859-7//\nISO_8859-7:1987//\nISO_8859-7:2003//\nISO_8859-8//\nISO_8859-8:1988//\nISO_8859-9//\nISO_8859-9:1989//\nISO_8859-9E//\nISO_8859-10//\nISO_8859-10:1992//\nISO_8859-14//\nISO_8859-14:1998//\nISO_8859-15//\nISO_8859-15:1998//\nISO_8859-16//\nISO_8859-16:2001//\nISO_9036//\nISO_10367-BOX//\nISO_10367BOX//\nISO_11548-1//\nISO_69372//\nIT//\nJIS_C6220-1969-RO//\nJIS_C6229-1984-B//\nJIS_C62201969RO//\nJIS_C62291984B//\nJOHAB//\nJP-OCR-B//\nJP//\nJS//\nJUS_I.B1.002//\nKOI-7//\nKOI-8//\nKOI8-R//\nKOI8-RU//\nKOI8-T//\nKOI8-U//\nKOI8//\nKOI8R//\nKOI8U//\nKSC5636//\nL1//\nL2//\nL3//\nL4//\nL5//\nL6//\nL7//\nL8//\nL10//\nLATIN-9//\nLATIN-GREEK-1//\nLATIN-GREEK//\nLATIN1//\nLATIN2//\nLATIN3//\nLATIN4//\nLATIN5//\nLATIN6//\nLATIN7//\nLATIN8//\nLATIN9//\nLATIN10//\nLATINGREEK//\nLATINGREEK1//\nMAC-CENTRALEUROPE//\nMAC-CYRILLIC//\nMAC-IS//\nMAC-SAMI//\nMAC-UK//\nMAC//\nMACCYRILLIC//\nMACINTOSH//\nMACIS//\nMACUK//\nMACUKRAINIAN//\nMIK//\nMS-ANSI//\nMS-ARAB//\nMS-CYRL//\nMS-EE//\nMS-GREEK//\nMS-HEBR//\nMS-MAC-CYRILLIC//\nMS-TURK//\nMS932//\nMS936//\nMSCP949//\nMSCP1361//\nMSMACCYRILLIC//\nMSZ_7795.3//\nMS_KANJI//\nNAPLPS//\nNATS-DANO//\nNATS-SEFI//\nNATSDANO//\nNATSSEFI//\nNC_NC0010//\nNC_NC00-10//\nNC_NC00-10:81//\nNF_Z_62-010//\nNF_Z_62-010_(1973)//\nNF_Z_62-010_1973//\nNF_Z_62010//\nNF_Z_62010_1973//\nNO//\nNO2//\nNS_4551-1//\nNS_4551-2//\nNS_45511//\nNS_45512//\nOS2LATIN1//\nOSF00010001//\nOSF00010002//\nOSF00010003//\nOSF00010004//\nOSF00010005//\nOSF00010006//\nOSF00010007//\nOSF00010008//\nOSF00010009//\nOSF0001000A//\nOSF00010020//\nOSF00010100//\nOSF00010101//\nOSF00010102//\nOSF00010104//\nOSF00010105//\nOSF00010106//\nOSF00030010//\nOSF0004000A//\nOSF0005000A//\nOSF05010001//\nOSF100201A4//\nOSF100201A8//\nOSF100201B5//\nOSF100201F4//\nOSF100203B5//\nOSF1002011C//\nOSF1002011D//\nOSF1002035D//\nOSF1002035E//\nOSF1002035F//\nOSF1002036B//\nOSF1002037B//\nOSF10010001//\nOSF10010004//\nOSF10010006//\nOSF10020025//\nOSF10020111//\nOSF10020115//\nOSF10020116//\nOSF10020118//\nOSF10020122//\nOSF10020129//\nOSF10020352//\nOSF10020354//\nOSF10020357//\nOSF10020359//\nOSF10020360//\nOSF10020364//\nOSF10020365//\nOSF10020366//\nOSF10020367//\nOSF10020370//\nOSF10020387//\nOSF10020388//\nOSF10020396//\nOSF10020402//\nOSF10020417//\nPT//\nPT2//\nPT154//\nR8//\nR9//\nRK1048//\nROMAN8//\nROMAN9//\nRUSCII//\nSE//\nSE2//\nSEN_850200_B//\nSEN_850200_C//\nSHIFT-JIS//\nSHIFTJISX0213//\nSHIFT_JIS//\nSHIFT_JISX0213//\nSJIS-OPEN//\nSJIS-WIN//\nSJIS//\nSS636127//\nSTRK1048-2002//\nST_SEV_358-88//\nT.61-8BIT//\nT.61//\nT.618BIT//\nTCVN-5712//\nTCVN//\nTCVN5712-1//\nTCVN5712-1:1993//\nTHAI8//\nTIS-620//\nTIS620-0//\nTIS620.2529-1//\nTIS620.2533-0//\nTIS620//\nTS-5881//\nTSCII//\nTURKISH8//\nUCS-2//\nUCS-2BE//\nUCS-2LE//\nUCS-4//\nUCS-4BE//\nUCS-4LE//\nUCS2//\nUCS4//\nUHC//\nUJIS//\nUK//\nUNICODE//\nUNICODEBIG//\nUNICODELITTLE//\nUS-ASCII//\nUS//\nUTF-7-IMAP//\nUTF-7//\nUTF-8//\nUTF-16//\nUTF-16BE//\nUTF-16LE//\nUTF-32//\nUTF-32BE//\nUTF-32LE//\nUTF7//\nUTF8//\nUTF16//\nUTF16BE//\nUTF16LE//\nUTF32//\nUTF32BE//\nUTF32LE//\nVISCII//\nWCHAR_T//\nWIN-SAMI-2//\nWINBALTRIM//\nWINDOWS-31J//\nWINDOWS-874//\nWINDOWS-936//\nWINDOWS-1250//\nWINDOWS-1251//\nWINDOWS-1252//\nWINDOWS-1253//\nWINDOWS-1254//\nWINDOWS-1255//\nWINDOWS-1256//\nWINDOWS-1257//\nWINDOWS-1258//\nWINSAMI2//\nWS2//\nYU//\n"
+        }
+      ],
+      "gconv_modules": {
+        "EUC-JISX0213.so": {
+          "exists": true,
+          "sha256": "e5fc7cc8db10482f2c53e7a7287e88b10f070d41dea488a9d9473b525dc98166"
+        },
+        "SHIFT_JISX0213.so": {
+          "exists": true,
+          "sha256": "b365d330945888688970188f33a3fa34ff9eb2303110d31ab354dca8dd56714d"
+        }
+      },
+      "iconv_aliases": [
+        "EUC-JISX0213//",
+        "SHIFTJISX0213//",
+        "SHIFT_JISX0213//"
+      ],
+      "installed": "libc-bin\t2.41-12+deb13u4\tglibc\t2.41-12+deb13u4\nlibc6\t2.41-12+deb13u4\tglibc\t2.41-12+deb13u4\nlibsqlite3-0\t3.46.1-7+deb13u2\tsqlite3\t3.46.1-7+deb13u2\n",
+      "libc_symbols": {
+        "iconv": true,
+        "iconv_open": true,
+        "strfmon": true,
+        "strfmon_l": true,
+        "tdelete": true
+      },
+      "library_sha256": {
+        "/usr/lib/x86_64-linux-gnu/libc.so.6": "9792e3cbb541c8f44c7acf5f14f4022ea62998ecc787d326bed4d8b6547dfd92",
+        "/usr/lib/x86_64-linux-gnu/libsqlite3.so.0.8.6": "317d80bf5d592f98a71e14d2330591d6a339f631f37c5977835af748a1f26715"
+      },
+      "python_connection_changeset_members": [],
+      "script_sha256": "6c73d0b10d8539d14e83696badde383c97410a3ea600459c6df8a93be0b5cf34",
+      "sqlite_compile_options": [
+        "ALLOW_ROWID_IN_VIEW",
+        "ATOMIC_INTRINSICS=1",
+        "COMPILER=gcc-14.2.0",
+        "DEFAULT_AUTOVACUUM",
+        "DEFAULT_CACHE_SIZE=-2000",
+        "DEFAULT_FILE_FORMAT=4",
+        "DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+        "DEFAULT_MMAP_SIZE=0",
+        "DEFAULT_PAGE_SIZE=4096",
+        "DEFAULT_PCACHE_INITSZ=20",
+        "DEFAULT_RECURSIVE_TRIGGERS",
+        "DEFAULT_SECTOR_SIZE=4096",
+        "DEFAULT_SYNCHRONOUS=2",
+        "DEFAULT_WAL_AUTOCHECKPOINT=1000",
+        "DEFAULT_WAL_SYNCHRONOUS=2",
+        "DEFAULT_WORKER_THREADS=0",
+        "DIRECT_OVERFLOW_READ",
+        "ENABLE_COLUMN_METADATA",
+        "ENABLE_DBPAGE_VTAB",
+        "ENABLE_DBSTAT_VTAB",
+        "ENABLE_FTS3",
+        "ENABLE_FTS3_PARENTHESIS",
+        "ENABLE_FTS3_TOKENIZER",
+        "ENABLE_FTS4",
+        "ENABLE_FTS5",
+        "ENABLE_LOAD_EXTENSION",
+        "ENABLE_MATH_FUNCTIONS",
+        "ENABLE_PREUPDATE_HOOK",
+        "ENABLE_RTREE",
+        "ENABLE_SESSION",
+        "ENABLE_STMTVTAB",
+        "ENABLE_UNLOCK_NOTIFY",
+        "ENABLE_UPDATE_DELETE_LIMIT",
+        "HAVE_ISNAN",
+        "LIKE_DOESNT_MATCH_BLOBS",
+        "MALLOC_SOFT_LIMIT=1024",
+        "MAX_ATTACHED=10",
+        "MAX_COLUMN=2000",
+        "MAX_COMPOUND_SELECT=500",
+        "MAX_DEFAULT_PAGE_SIZE=32768",
+        "MAX_EXPR_DEPTH=1000",
+        "MAX_FUNCTION_ARG=127",
+        "MAX_LENGTH=1000000000",
+        "MAX_LIKE_PATTERN_LENGTH=50000",
+        "MAX_MMAP_SIZE=0x7fff0000",
+        "MAX_PAGE_COUNT=0xfffffffe",
+        "MAX_PAGE_SIZE=65536",
+        "MAX_SCHEMA_RETRY=25",
+        "MAX_SQL_LENGTH=1000000000",
+        "MAX_TRIGGER_DEPTH=1000",
+        "MAX_VARIABLE_NUMBER=250000",
+        "MAX_VDBE_OP=250000000",
+        "MAX_WORKER_THREADS=8",
+        "MUTEX_PTHREADS",
+        "SECURE_DELETE",
+        "SOUNDEX",
+        "SYSTEM_MALLOC",
+        "TEMP_STORE=1",
+        "THREADSAFE=1",
+        "USE_URI"
+      ],
+      "sqlite_version": "3.46.1",
+      "status": "passed_observations_not_disposition"
+    }
+  },
+  "source": {
+    "sqlite_session_file_sha256": "0a7996f44e01fb5540eaa7d524d0972e29b82f1c04b24042019b58b1fd461197",
+    "vulnerable_shared_guard_present": true,
+    "direct_api_source_review": {
+      "pattern": "strfmon|tdelete|iconv|sqlite3changeset|enable_load_extension|load_extension|ctypes|cffi",
+      "flags": "i",
+      "files": [
+        {
+          "file": "makervault/api/account_service.py",
+          "sha256": "1192275c979bc90bb08c5aaa97ec6d4394c199771179242ab9e58556a1b797d7",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/archive_limits.py",
+          "sha256": "3e97d8edfee225e853be17e7c954de7037a4e783c1d3c2e537cc141bf1302044",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/asset_file_service.py",
+          "sha256": "2bec1a8348dec28c067f7723815b8586bec56227993fa85cf6fc16f0f36546e8",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/asset_service.py",
+          "sha256": "24824fa4b80aec0417c922f983e8eeb8b2f23b9d93404fd94ac300df366dad8a",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/audit_middleware.py",
+          "sha256": "3aad3bb5dea21649c6ca9eaefe0d5246aa426954f90b413211da1840d1776fd3",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/audit_service.py",
+          "sha256": "2be98f77ebd8833f065f28db5c7e08d8fa00097cfe7fbff7644860c46d070c77",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/auth.py",
+          "sha256": "24c1d6354fcb2db154f12039e0edac2fe1c7b618d706356ba9094cc9bb6f842b",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/authorization.py",
+          "sha256": "807024966df5cb06711dbffcae0b29da085e8ddd49bb1dcc1787bb7384f6987c",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/config.py",
+          "sha256": "92e905b8aad8e09eb6d88e27bb42e787ea001b3f6ef7534d74923a513d07f461",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/content_identity.py",
+          "sha256": "169ae7f2dffba097cf31b2a1595948f5bf377e2036616f70273689ffabe4063e",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/content_store.py",
+          "sha256": "41b7123479db5542f6b66d73aa7f69b3526ce06d27c339dc8ce1aab82ee27cc3",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/db.py",
+          "sha256": "7f4aacc3f90787b913fbdd00d8cab9044b8577913f9c39834bb2aa7732e60e1c",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/file_utils.py",
+          "sha256": "9692952be4210bea5478e3ad4b12b802636130921d365a02fc35a3a63a8b86f7",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/folder_service.py",
+          "sha256": "f7f77ba3c34bce51668b9a444157d83111dea125697ebfcf0214c1823f96303b",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/http_security.py",
+          "sha256": "7f961d7d804916c0169bf3213b2d63683b0bff0a8ecbfc41af9fd340fba1e033",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/identity_service.py",
+          "sha256": "42e115fc8e8d2910aa136a68b3d78960e8c0f02b521ef56a856cf9e670a97158",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/import_resolvers.py",
+          "sha256": "3c2dcfd21d220b74c3eebe72b957ab483b18c8a610ff90c9748ba4c446d55454",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/import_service.py",
+          "sha256": "2d24d39a9a3d79216d7652fa882294935ed8c262a24759abc68ba51b5852d564",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/login_security.py",
+          "sha256": "14207335e547f6d432b2cf425cd47ca6e64b8d824388ec8f5fe095ca7e524dad",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/machine_context_service.py",
+          "sha256": "4d564c2a6605cd197fb864be50c10ccaad1e9a243c151abdcb142f1c5de17a1e",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/machine_service.py",
+          "sha256": "45de27c2457bc2856771edfefbf71e30043678f70f185c408f57037af22907b2",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/main.py",
+          "sha256": "c73a4ef95baf855d046973660b9d78b98b3a8c0ae9d91549577ab92ff3d6c785",
+          "hits": [
+            {
+              "line": 285,
+              "text": "MachinePermanentDeleteOut,"
+            },
+            {
+              "line": 286,
+              "text": "MachinePermanentDeleteRequest,"
+            },
+            {
+              "line": 298,
+              "text": "TrashPermanentDeleteRequest,"
+            },
+            {
+              "line": 308,
+              "text": "ProjectPermanentDeleteOut,"
+            },
+            {
+              "line": 309,
+              "text": "ProjectPermanentDeleteRequest,"
+            },
+            {
+              "line": 2480,
+              "text": "body: TrashPermanentDeleteRequest,"
+            },
+            {
+              "line": 2492,
+              "text": "body: TrashPermanentDeleteRequest,"
+            },
+            {
+              "line": 2679,
+              "text": "response_model=MachinePermanentDeleteOut,"
+            },
+            {
+              "line": 2683,
+              "text": "body: MachinePermanentDeleteRequest,"
+            },
+            {
+              "line": 2687,
+              "text": "return MachinePermanentDeleteOut(**permanently_delete_machine("
+            },
+            {
+              "line": 2796,
+              "text": "response_model=ProjectPermanentDeleteOut,"
+            },
+            {
+              "line": 2800,
+              "text": "body: ProjectPermanentDeleteRequest,"
+            },
+            {
+              "line": 2804,
+              "text": "return ProjectPermanentDeleteOut(**permanently_delete_project("
+            }
+          ]
+        },
+        {
+          "file": "makervault/api/migrations.py",
+          "sha256": "3d0b52a91768e230667cf790442f171bafe0b8a879019ca400450ccab9cfaf85",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/models.py",
+          "sha256": "c20598144ef8e0f997f83e0e5acda7fd623dc9496cdbc5ed0a0c9dd80ef598f2",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/mount_import.py",
+          "sha256": "3e51db4e68db9015dd1e981d199be698ad49d2870f379b67e87b574e05575d13",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/mvault_export.py",
+          "sha256": "24d4566e758ab34a01e0283bf2dd545e9453ce5ccd3bf9a8b48c0bc41d2d6588",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/mvault_import.py",
+          "sha256": "d994442b983697376caae14ec84f5f42c4dfe5f03af50d2de2ce659a07b4c57a",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/mvault_verify.py",
+          "sha256": "aa7af3403212f0e8bcfd9d192b8074745c3e9ebc587890e3448e898e059c4f1b",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/offline_recovery.py",
+          "sha256": "00c222bb2d86d82130f9c0ec0e13f1ca2be7527d19d4653a2906d8d0926d10ea",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/passkey_config.py",
+          "sha256": "65910a416f65c495229dff92fdd17853bf9510f2a751fb2d11f26cbc9951074b",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/passkey_service.py",
+          "sha256": "02d409e3c997cfdf3c876c1aefd0095e38feee5e3445b20b1c7d8212c492319f",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/prepared_print.py",
+          "sha256": "f04422b21871df1c191f68c687fa2e077958b31fc89773b7cb2de0b9acb5d309",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/preview_policy.py",
+          "sha256": "28cefd762911deffb8f88c12f2606c8d6437fa9033f0194de781042892e091cb",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/project_export.py",
+          "sha256": "1b1c66785dfa5893715a3041e0fd46a461b1b21a3788ad69d3b207cb6c1e8139",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/project_service.py",
+          "sha256": "7d3b59f9c220d042fee3187deee15cf9dbbd1a8b0260d68008e07e273c24f5b0",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/recovery.py",
+          "sha256": "7e4477532fc7b27034be18e072f2758c4794e6e4752ffdb7c8e9f83222d2ac17",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/recovery_marker_service.py",
+          "sha256": "7e7196f292ef5f13658060c66499542e75c8812b5cdc2b3b8cada8bc525ca99b",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/recovery_mutation.py",
+          "sha256": "1984a90fe7d97669a759d8858e186d83365a3ebaf724e249d68c131ff9ad7074",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/relationship_service.py",
+          "sha256": "79f7af6ac03dae9b851593afc1b679ead1c7efaefeee99a197fb9677cc3334bf",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/resource_limits.py",
+          "sha256": "d3b4702701e4602e578fe1ff856f7adc3183ccec7324b22bc97387e3abbe474b",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/revision_export.py",
+          "sha256": "b3ffa190f0d1feccd08fa63286318a32661a2c3a15314bf06b53d0dffd8650f8",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/revision_service.py",
+          "sha256": "ba675ac121d2772c7acfe13172468920968e486a0f7e3feee06bea8a2e9703bd",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/revision_workflow.py",
+          "sha256": "4142b728df0e95cead9fe874a4534305518b092b8bda5fc92039d8ea0415704b",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/safe_http.py",
+          "sha256": "35bc13c902792639a6fd20d561a1e16dc34259876579f00af7e231c6c00eae39",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/schemas.py",
+          "sha256": "5526a9d7bfcea423aa3239419d242352b171e8d3b544d6888737d96de3604cfa",
+          "hits": [
+            {
+              "line": 143,
+              "text": "class ProjectPermanentDeleteRequest(BaseModel):"
+            },
+            {
+              "line": 147,
+              "text": "class ProjectPermanentDeleteOut(BaseModel):"
+            },
+            {
+              "line": 201,
+              "text": "class MachinePermanentDeleteRequest(BaseModel):"
+            },
+            {
+              "line": 207,
+              "text": "class MachinePermanentDeleteOut(BaseModel):"
+            },
+            {
+              "line": 671,
+              "text": "class TrashPermanentDeleteRequest(BaseModel):"
+            }
+          ]
+        },
+        {
+          "file": "makervault/api/security_config.py",
+          "sha256": "838a98bb3d029f4952f9636a29f2457c27a5c03518dcb1a7b358760b59bdb583",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/session_service.py",
+          "sha256": "f393833b69490c8dc2a3d24d5701eff2c70b1603649c68179ca333d11b3ba2b7",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/settings_service.py",
+          "sha256": "93bec22bd0fe12434e4cfa9e66a9e8bdf4763fd5a4d9216f32042a3ec2788eda",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/trash_service.py",
+          "sha256": "0975fb89a8fdd4287c7b697f2fdec6afebfcc5fabb28ff05dc1fb166a388eb02",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/url_utils.py",
+          "sha256": "0fc44d3de65371dc745a26a934a7a4decf98f0025d6f71d52335ede8a0b02530",
+          "hits": []
+        },
+        {
+          "file": "makervault/api/zip_service.py",
+          "sha256": "e34518b504251d5f49639e22f200ecd494385b1f7f16df1aa753da4dd169ea08",
+          "hits": []
+        }
+      ],
+      "limitation": "Direct API Python source tokens only; not a complete native, dynamic, dependency or operator-recovery call graph."
+    },
+    "broad_identifier_hits": 18,
+    "exact_named_call_hits": 0
+  },
+  "counts": {
+    "accepted_exclusions": 4,
+    "accepted_residuals": 52,
+    "verified_fixes": 26,
+    "unaccepted_holds": 5,
+    "proposed_additional_residuals": 5,
+    "new_acceptances": 0
+  },
+  "conditions": {
+    "C1": "Exact named linux/amd64 development images only. No transfer to a rebuild, another architecture, desktop or a public candidate.",
+    "C2": "Canonical Compose and entrypoint; nonzero API PUID/PGID; no privileged/capability overrides. Actual API/Nginx processes retain five empty capability sets and no-new-privileges.",
+    "C3": "Production-style HTTPS, authentication/authorization, outbound-hostname checks and existing file/preview guards remain enabled; do not expose development servers to untrusted networks.",
+    "C4": "Raw snapshots come only from trusted operator-controlled installations with protected provenance and private staging. GNU tar, chown and SQLite processing are not a hostile-input sandbox; checksums do not authenticate origin.",
+    "C5": "Keep writable vault access, native memory-corruption/data-loss and denial-of-service residuals explicit. No read-only-root or memory/CPU/PID cap is claimed; daemon containment does not cover separate privileged operator recovery.",
+    "C6": "No later than October 12, 2026 00:00 America/New_York, or 30 days after actual acceptance, or candidate freeze/13D, whichever is earliest. Reopen immediately for a relevant vendor fix, changed advisory/caller/input/image/platform, missing evidence or weaker controls. No automatic renewal or extension.",
+    "C7": "Approval is local-qualification risk acceptance only, not publication, deployment, a support-policy change, S04/G13-04 closure or Gate 13C/13D acceptance. Hold entries remain unwaived."
+  },
+  "review_deadline": {
+    "not_after": "2026-10-12T00:00:00-04:00",
+    "earlier_events": [
+      "30 days after actual acceptance",
+      "candidate freeze",
+      "Gate 13D",
+      "any C6 reopen trigger"
+    ]
+  },
+  "records": [
+    {
+      "id": "CVE-2026-19499",
+      "path": "glibc strfmon/strfmon_l right-justified monetary formatting",
+      "impact": "Buffer overwrite; potential native memory corruption, data loss or code execution if a susceptible formatting path receives the required input.",
+      "finding": "CNA details now identify the function and formatting preconditions. Both symbols are present; no exact-image exclusion is established.",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        }
+      ],
+      "current_bucket": "H",
+      "proposed_bucket": "R",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "rationale": "Temporary local qualification only under unchanged C1-C7; no direct named API call identified in the bounded Python review, with native/dependency and operator-recovery uncertainty explicitly retained. Latest configured signed APT candidate equals installed, and Debian still marks it vulnerable.",
+      "not_claimed": "Not fixed, excluded, unreachable, vendor-mitigated or safe for public deployment. Authentication and empty capabilities do not remove native or denial-of-service risk.",
+      "review_due_if_accepted": "2026-10-12T00:00:00-04:00"
+    },
+    {
+      "id": "CVE-2026-19542",
+      "path": "glibc tdelete tree removal and stack array management",
+      "impact": "Out-of-bounds stack write; native memory corruption, denial of service or information disclosure.",
+      "finding": "CNA details identify the tree-deletion defect. tdelete is present; direct API token search does not resolve native internal callers.",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        }
+      ],
+      "current_bucket": "H",
+      "proposed_bucket": "R",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "rationale": "Temporary local qualification only under unchanged C1-C7; no direct named API call identified in the bounded Python review, with native/dependency and operator-recovery uncertainty explicitly retained. Latest configured signed APT candidate equals installed, and Debian still marks it vulnerable.",
+      "not_claimed": "Not fixed, excluded, unreachable, vendor-mitigated or safe for public deployment. Authentication and empty capabilities do not remove native or denial-of-service risk.",
+      "review_due_if_accepted": "2026-10-12T00:00:00-04:00"
+    },
+    {
+      "id": "CVE-2026-50812",
+      "path": "SQLite Session Extension corrupt changeset application",
+      "impact": "NULL pointer dereference and process denial of service when a malformed changeset reaches the affected shared apply code.",
+      "finding": "Authenticated 3.46.1 source contains the exact pre-fix guard and unchecked value-type call. Upstream regression uses apply_v2; absent apply_v3 is not an exclusion. Python connection lacks a changeset API, not the native library.",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u2",
+          "severity": "Medium"
+        }
+      ],
+      "current_bucket": "H",
+      "proposed_bucket": "R",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "rationale": "Temporary local qualification only under unchanged C1-C7; no direct named API call identified in the bounded Python review, with native/dependency and operator-recovery uncertainty explicitly retained. Latest configured signed APT candidate equals installed, and Debian still marks it vulnerable.",
+      "not_claimed": "Not fixed, excluded, unreachable, vendor-mitigated or safe for public deployment. Authentication and empty capabilities do not remove native or denial-of-service risk.",
+      "review_due_if_accepted": "2026-10-12T00:00:00-04:00"
+    },
+    {
+      "id": "CVE-2026-77117",
+      "path": "glibc SHIFT_JISX0213 conversion retry state",
+      "impact": "Non-progress loop/resource consumption when untrusted text reaches the converter and its caller repeatedly retries E2BIG with insufficient output space.",
+      "finding": "SHIFT_JISX0213 converter and alias are installed. No complete native retry-path exclusion is proved.",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        }
+      ],
+      "current_bucket": "H",
+      "proposed_bucket": "R",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "rationale": "Temporary local qualification only under unchanged C1-C7; no direct named API call identified in the bounded Python review, with native/dependency and operator-recovery uncertainty explicitly retained. Latest configured signed APT candidate equals installed, and Debian still marks it vulnerable.",
+      "not_claimed": "Not fixed, excluded, unreachable, vendor-mitigated or safe for public deployment. Authentication and empty capabilities do not remove native or denial-of-service risk.",
+      "review_due_if_accepted": "2026-10-12T00:00:00-04:00"
+    },
+    {
+      "id": "CVE-2026-80489",
+      "path": "glibc JISX0213 conversion retry state; retain SHIFT/EUC mapping disagreement",
+      "impact": "Non-progress loop and process/resource denial of service under the described limited-output conversion/retry conditions.",
+      "finding": "Red Hat prose names SHIFT_JISX0213 while its bug title and Ubuntu identify EUC_JISX0213. Both converters are installed; neither interpretation supports a missing-component exclusion.",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        }
+      ],
+      "current_bucket": "H",
+      "proposed_bucket": "R",
+      "owner_decision": "pending",
+      "accepted_by": null,
+      "rationale": "Temporary local qualification only under unchanged C1-C7; no direct named API call identified in the bounded Python review, with native/dependency and operator-recovery uncertainty explicitly retained. Latest configured signed APT candidate equals installed, and Debian still marks it vulnerable.",
+      "not_claimed": "Not fixed, excluded, unreachable, vendor-mitigated or safe for public deployment. Authentication and empty capabilities do not remove native or denial-of-service risk.",
+      "review_due_if_accepted": "2026-10-12T00:00:00-04:00"
+    }
+  ],
+  "proposed_if_approved": {
+    "E": 4,
+    "R": 57,
+    "F": 26,
+    "H": 0
+  },
+  "required_acknowledgments": [
+    "All five remain potentially applicable; this accepts risk, not a source-precondition exclusion.",
+    "Memory corruption, writable-vault/data-loss, information disclosure and process/resource denial of service remain possible; no exploitability or whole-call-graph proof was performed.",
+    "The converter naming disagreement and direct-source-review limitation remain explicit.",
+    "Exact development images/local qualification only; unchanged October 12-or-earlier deadline. Freeze/rebuild/advisory changes reopen; public release requires its own qualification and decisions."
+  ],
+  "alternatives": [
+    "Keep H5 open while waiting for applicable supported Debian backports.",
+    "Separately approve and qualify a supported patched base or maintained backport plan; no foreign-distribution package mixing, ad-hoc patching or silent migration."
+  ],
+  "unchanged_scanner": {
+    "api_matches": 189,
+    "web_matches": 3,
+    "total_matches": 192,
+    "total_cves": 104,
+    "separate_interpreter_cves": 17,
+    "statement": "Retained dated scans, no rescan/filter/suppression. F26 technical resolution does not remove its 28 historical matches."
+  },
+  "limits": [
+    "The go-ahead authorized investigation, not these newly proposed five risk exceptions.",
+    "Previously unavailable endpoints were not retried; new readable CNA/Ubuntu/upstream endpoints supplied additional evidence.",
+    "No package/image/schema/model-byte change, full-suite repeat, new scanner run, exploit execution, source build, push, publication or deployment.",
+    "The disposable root/resource probe settings are not product defaults; there was no host-vault mount or application startup.",
+    "Earlier E/R events and proposal JSON remain unchanged. This bounded review is not a fresh review of every accepted CVE.",
+    "Even approval would only complete local native dispositions, not close S04/G13-04 or Gate 13C/13D or grant public-release clearance."
+  ]
+}

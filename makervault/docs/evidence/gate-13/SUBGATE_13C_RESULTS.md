@@ -104,6 +104,13 @@ five holds remain unresolved and unaccepted. Earlier proposal/approval JSON stay
 unchanged. Evidence checks are not a new scan, full-suite run or installed fix;
 S04/G13-04 and Gate 13C/13D remain open, with no release or publication authority.
 
+**Remaining-five review:** [temporary local R5 proposed](SECURITY_REMAINING_DECISION.md),
+with twelve captured primary pages and fresh exact-image component/available-version
+checks. The SQLite shared pre-fix guard remains; glibc symbols/converters are present,
+and signed APT candidates equal installed. Preserve native-memory/DoS, native-call
+and SHIFT/EUC mapping uncertainties. Current E4/R52/F26/H5 is unchanged pending
+the separate owner decision; no installed fix, new exclusion or security closeout.
+
 ## Bounded execution
 
 1. Refresh stale browser assertions to the accepted current UI, retaining explicit

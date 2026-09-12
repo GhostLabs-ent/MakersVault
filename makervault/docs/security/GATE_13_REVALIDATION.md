@@ -140,6 +140,13 @@ under unchanged C1–C7/deadline. Current native87 is E4/R52/F26/H5; the other f
 remain unresolved and unaccepted. No additional patch or scanner suppression;
 security and public release stay open.
 
+The subsequent [five-hold decision package](../evidence/gate-13/SECURITY_REMAINING_DECISION.md)
+captures fresh primary descriptions and exact-image components/available versions.
+SQLite's shared pre-fix guard is present; glibc symbols/converters are installed,
+with a retained SHIFT/EUC mapping disagreement. No supported configured-repository
+update is available at this observation. Propose R5 for local qualification only,
+with native-memory/DoS and call-path uncertainty explicit; all five remain owner-pending.
+
 ## Finding-by-finding disposition
 
 Test filenames refer to `api/tests/` unless otherwise stated. Each resolution is

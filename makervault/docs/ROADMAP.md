@@ -78,6 +78,10 @@ The subsequent [H source review](evidence/gate-13/SECURITY_HOLD_REVIEW.md) suppo
 two additional exact-image exclusions, now [separately approved](evidence/gate-13/SECURITY_HOLD_OWNER_ACCEPTANCE.md)
 under unchanged conditions/deadline. Current totals are E4/R52/F26/H5; five holds
 remain unresolved and unaccepted. No package change or security closeout.
+The [five-hold follow-up](evidence/gate-13/SECURITY_REMAINING_DECISION.md) proposes
+temporary local risk exceptions under unchanged C1–C7/deadline. Exact components
+remain present and configured signed APT candidates equal installed; none is
+claimed fixed or excluded. Await the separate informed owner decision on H5.
 Browser/platform and release-readiness
 evidence remain unfinished, followed by 13D owner acceptance of the end state and next
 roadmap. The [traceability/carry-forward register](evidence/gate-13/TRACEABILITY.md)
