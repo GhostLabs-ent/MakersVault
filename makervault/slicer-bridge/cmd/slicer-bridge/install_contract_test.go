@@ -1,9 +1,34 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestManualInstallersRegisterEverySupportedProtocol(t *testing.T) {
+	for _, script := range []string{"install-linux.sh", "install-windows.ps1"} {
+		t.Run(script, func(t *testing.T) {
+			data, err := os.ReadFile(filepath.Join("..", "..", "scripts", script))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, scheme := range registeredProtocolSchemes {
+				registration := `Register-Protocol -Protocol "` + scheme + `"`
+				if script == "install-linux.sh" {
+					registration = "xdg-mime default makersvault-slicer.desktop x-scheme-handler/" + scheme
+					if !strings.Contains(string(data), "x-scheme-handler/"+scheme+";") {
+						t.Errorf("desktop descriptor missing %s", scheme)
+					}
+				}
+				if !strings.Contains(string(data), registration) {
+					t.Errorf("manual installer missing %s registration", scheme)
+				}
+			}
+		})
+	}
+}
 
 func TestInstallersRegisterEverySupportedProtocol(t *testing.T) {
 	want := []string{slicerScheme, engraveScheme, generalScheme}

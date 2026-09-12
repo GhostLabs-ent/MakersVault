@@ -33,5 +33,6 @@ function Register-Protocol {
 
 Register-Protocol -Protocol "makersvault-slicer" -Label "MakerVault Slicer Bridge" -TargetExe $targetExe
 Register-Protocol -Protocol "makersvault-engrave" -Label "MakerVault Engraving Bridge" -TargetExe $targetExe
+Register-Protocol -Protocol "makersvault-open" -Label "MakerVault Local Application Bridge" -TargetExe $targetExe
 
 Write-Host "Installed protocol handler at $targetExe"

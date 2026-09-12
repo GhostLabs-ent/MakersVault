@@ -26,10 +26,11 @@ Name=MakerVault Bridge
 Exec=$BIN_TARGET %u
 Type=Application
 Terminal=false
-MimeType=x-scheme-handler/makersvault-slicer;x-scheme-handler/makersvault-engrave;
+MimeType=x-scheme-handler/makersvault-slicer;x-scheme-handler/makersvault-engrave;x-scheme-handler/makersvault-open;
 EOF
 
 xdg-mime default makersvault-slicer.desktop x-scheme-handler/makersvault-slicer >/dev/null 2>&1 || true
 xdg-mime default makersvault-slicer.desktop x-scheme-handler/makersvault-engrave >/dev/null 2>&1 || true
+xdg-mime default makersvault-slicer.desktop x-scheme-handler/makersvault-open >/dev/null 2>&1 || true
 
 echo "Installed protocol handler at $BIN_TARGET"

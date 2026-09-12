@@ -10,10 +10,11 @@ default, and never falls back to the operating-system default file opener.
 
 ## Install
 
-Download the v5.1 bridge binary for your OS from the
-[MakerVault releases](https://github.com/VincentCinque/MakersVault/releases/latest)
-page and run it once. The installer copies the binary to a stable location and
-registers all protocol handlers:
+v5.1 is currently local development, not a published release. Use a privately built
+bridge from the matching application revision; a binary from `releases/latest` is
+not evidence that it matches this worktree. Build instructions are below. Running
+the binary with no arguments or `--install` copies it to a stable location and
+registers all three protocol handlers (this changes the current workstation):
 
 - Windows: `%LOCALAPPDATA%\MakersVault\SlicerBridge\makersvault-slicer.exe`
 - Linux: `~/.local/bin/makersvault-slicer`
@@ -24,13 +25,18 @@ once.
 
 ## First handoff from an origin
 
-The first Open in Slicer or Open in Engraving Software request from a
+The first Open in Slicer, Open in Engraving Software or general local-tool request from a
 MakersVault API origin opens a local confirmation page in your browser. Confirm
 only the exact MakersVault address you intended to use. The bridge stores that
 origin in its local config; later handoffs from it remain one click.
 
-An HTTP origin is labeled as unencrypted and should be trusted only on a network
-you control. Remote MakersVault deployments should use HTTPS.
+Production MakersVault requires trusted HTTPS, including LAN/VPN deployments; see
+the [secure deployment guide](../docs/SECURE_DEPLOYMENT.md). The bridge retains HTTP
+URL parsing for development compatibility, not as a production recommendation.
+The short-lived `http://127.0.0.1:<port>/confirm/<nonce>` consent page is local to the
+workstation and separate from the production origin. macOS uses `/usr/bin/open`
+for this browser page; downloaded model files still use the selected adapter,
+never the system default file opener.
 
 Each handoff grant:
 
@@ -41,7 +47,7 @@ Each handoff grant:
 - cannot sign in to MakersVault or authorize another API route.
 
 If confirmation takes long enough for the first grant to expire, the origin is
-still paired; click Open in Slicer/Engraving again to receive a fresh grant.
+still paired; repeat the selected local-tool action to receive a fresh grant.
 
 ## Build
 
@@ -69,10 +75,24 @@ GOOS=darwin GOARCH=arm64 go build -o dist/slicer-bridge-darwin-arm64 ./cmd/slice
 ```
 
 Manual install remains available through `slicer-bridge --install` or the
-scripts in `scripts/`.
+scripts in `scripts/`. Both manual scripts register the same three schemes as the
+compiled installer. Linux registration still depends on the desktop environment's
+`xdg-mime` support; a written descriptor alone does not prove browser dispatch.
 
 The macOS bundle is user-local and can be unregistered and removed with
 `slicer-bridge --uninstall`. No administrator privileges are required.
+
+Native Windows/macOS application launch, macOS signing/notarization and physical
+device qualification remain separate release checks. Cross-compilation and Linux
+container tests are not substitutes for them.
+
+## Planned Make Plate integration
+
+Printer-preset discovery/import and editable plate handoff are approved for later
+implementation gates, but are **not available in this bridge yet**. They will use
+explicit user actions and narrow metadata-transfer authority, not existing
+download grants, slicer account credentials or background printer control.
+See the [Make Plate runbook](../docs/MAKE_PLATE_RUNBOOK.md). CNC/CAM additions are deferred.
 
 ## Configuration
 

@@ -153,12 +153,22 @@ func saveConfig(cfg Config, cfgDir string) error {
 }
 
 func openBrowserURL(target string) error {
-	switch runtime.GOOS {
+	command, err := pairingBrowserCommand(runtime.GOOS, target)
+	if err != nil {
+		return err
+	}
+	return command.Start()
+}
+
+func pairingBrowserCommand(platform, target string) (*exec.Cmd, error) {
+	switch platform {
 	case "windows":
-		return exec.Command("cmd", "/c", "start", "", target).Start()
+		return exec.Command("cmd", "/c", "start", "", target), nil
 	case "linux":
-		return exec.Command("xdg-open", target).Start()
+		return exec.Command("xdg-open", target), nil
+	case "darwin":
+		return exec.Command("/usr/bin/open", target), nil
 	default:
-		return fmt.Errorf("unsupported OS for pairing: %s", runtime.GOOS)
+		return nil, fmt.Errorf("unsupported OS for pairing: %s", platform)
 	}
 }
