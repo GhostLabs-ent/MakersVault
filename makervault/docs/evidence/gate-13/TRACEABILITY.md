@@ -160,8 +160,9 @@ boundaries; no broad catalog or payload comparison was removed.
 
 **September 12 scope amendment:** The owner explicitly authorizes the bounded
 [upload progress/Make Plate gates](../../MAKE_PLATE_RUNBOOK.md); CNC/CAM integration
-is deferred to a later release. UP-1 is in implementation/qualification; MP-0–MP-4
-remain undelivered and must rejoin Gate 13C. Existing descriptive CNC profiles and
+is deferred to a later release. [UP-1](UPLOAD_PROGRESS_RESULTS.md) passes 84 web tests
+and three-engine upload checks; awaiting owner acceptance. MP-0–MP-4 remain
+undelivered and must rejoin Gate 13C. Existing descriptive CNC profiles and
 file-open behavior remain; CNC toolpaths, control and new CNC-specific adapters
 are not part of this release. The future hardware-relay vision is not blanket
 authorization for synchronization, device discovery or machine control.

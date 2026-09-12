@@ -1,7 +1,8 @@
 # Upload progress and Make Plate — release-scope amendment
 
 **Decision date:** 2026-09-12. **Entry:** `4858147` (schema 17).
-**Status:** Owner-authorized scope; implementation and qualification not complete.
+**Status:** Owner-authorized scope; UP-1 verified locally, awaiting acceptance.
+Make Plate/bridge implementation and qualification are not complete.
 
 The owner requested review of the working ROADMAP notes from line 349, then
 approved the proposed bounded direction: “lets defer CNC for a later release …
@@ -75,7 +76,7 @@ and ask the owner to trim support rather than silently promising or removing it.
 
 | Gate | Scope / exit evidence | State |
 |---|---|---|
-| UP-1 | Shared transfer progress plus accessible UI; truthful finalizing/error states, nested folders/Project membership, mixed file sizes, empty files, unknown progress and session failure. Unit/type/build plus browser transport/workflow checks | OPEN — first implementation slice |
+| UP-1 | Shared transfer progress plus accessible UI; truthful finalizing/error states, nested folders/Project membership, mixed file sizes, empty files, unknown progress and session failure. Unit/type/build plus browser transport/workflow checks | VERIFIED locally — [84 tests and three-engine results](evidence/gate-13/UPLOAD_PROGRESS_RESULTS.md); awaiting owner acceptance |
 | MP-0 | Final preset/recipe/import contracts, authority and migration/recovery decisions; existing manual-installer parity/macOS pairing repairs with failing-old-source regressions; fixture inventories for named slicer versions | READY after UP-1 review |
 | MP-1 | Bambu preset discovery/import/explicit refresh, inheritance/geometry/secret filtering and authorization negative controls; saved snapshots usable without relay. Then Orca and Prusa conformance recorded independently | NOT STARTED |
 | MP-2 | STL instances, saved recipe lifecycle, deterministic conservative packing/manual editing, source preservation, boundary/height checks, cancellation and memory/time limits, tablet interaction | NOT STARTED |

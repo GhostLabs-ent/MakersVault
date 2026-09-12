@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "gate": "UP-1",
+  "status": "locally_verified_pending_owner_acceptance",
+  "application_revision": "b059dd70569e923230fed18b949db1bb27e3af53",
+  "browser_harness_revision": "558f59c4903f7a05eb38f7561470fcc588330706",
+  "web_image": "sha256:99ed7fc30013a9077609ba0bf430a270ac8520ec63678657b62404ad4a9c4274",
+  "api_image": "sha256:dba3d2a7305b494d4d9a894d35fdee9743adbbf51f13c51678e98a2fcaf50b96",
+  "browser_image": "sha256:1e23cb1539a3e04d9b5db3fb6da8cc89694a8d1358f8e5ac726157a32536caaa",
+  "private_evidence_root": "/home/vinnyc/.local/state/makersvault/verification",
+  "captures": [
+    {
+      "directory": "containment-upload-web-c",
+      "exit_code": 0,
+      "source_revision": "b059dd70569e923230fed18b949db1bb27e3af53",
+      "log": "stderr.log",
+      "sha256": "d36c02da434fcc80e507fc70a76eff4798e911a0214474bcbe336dcb6cd4c0c1",
+      "result": "TypeScript, 84 web tests in 19 files and production build pass"
+    },
+    {
+      "directory": "containment-upload-runtime-c",
+      "exit_code": 0,
+      "source_revision": "b059dd70569e923230fed18b949db1bb27e3af53",
+      "log": "stderr.log",
+      "sha256": "f44ff3aedbe426633cfa3ca881a6aae8d3812c244da1e71e4ae9d12350bef965",
+      "result": "Local runtime web image build passes"
+    },
+    {
+      "directory": "containment-upload-browser-run-d",
+      "exit_code": 0,
+      "source_revision": "558f59c4903f7a05eb38f7561470fcc588330706",
+      "log": "stdout.log",
+      "sha256": "a64e72a2e8e0958c31e59d0f4bbe8f93a5933ee66e7b42a37e1590ecd1578f0b",
+      "result": "Chromium, Firefox and WebKit each pass five upload workflow checks"
+    }
+  ],
+  "failed_browser_captures_retained": [
+    "containment-upload-browser-run-a",
+    "containment-upload-browser-run-b",
+    "containment-upload-browser-run-c"
+  ],
+  "limits": [
+    "Not full-gate, performance, physical-device or security qualification",
+    "Browser fixture holds pending request, not server response; finalizing events covered by unit tests",
+    "Make Plate and printer preset import are not implemented",
+    "No inherited image waiver, push, publication or live deployment"
+  ]
+}

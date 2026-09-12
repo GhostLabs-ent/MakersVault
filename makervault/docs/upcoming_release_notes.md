@@ -19,7 +19,8 @@ printer controller, or multi-user cloud service.
   separate server-finalizing state to the shared browser upload path. Folder,
   drag-and-drop and confirmed ZIP-selection batches use the same reporting.
   Existing limits, folder placement and Project membership are unchanged.
-- Local preflight passes 83 web tests; browser qualification is in progress.
+- Local verification passes **84 web tests** and Chromium/Firefox/WebKit upload
+  workflow checks; see [UP-1 results](evidence/gate-13/UPLOAD_PROGRESS_RESULTS.md).
   “100% transferred” does not mean the server has saved the last file. Summaries
   are dismissible, and logout/session failure clears old-account progress/queues.
 - The owner also approved [Make Plate and workstation preset import](MAKE_PLATE_RUNBOOK.md).
