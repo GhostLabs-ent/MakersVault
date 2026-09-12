@@ -142,8 +142,11 @@ acceptance stay open.
 The [remaining-five package](SECURITY_REMAINING_DECISION.md) now proposes temporary
 local R5 under unchanged C1–C7/deadline, based on fresh primary/runtime/source
 evidence, not missing-component exclusions or installed fixes. Native-memory/DoS,
-call-path and converter-mapping uncertainty remain explicit. H5 is still unaccepted;
-even approval would not grant candidate/public-release or Gate 13C/13D clearance.
+call-path and converter-mapping uncertainty remain explicit. The owner has now
+[approved these five risks](SECURITY_REMAINING_OWNER_ACCEPTANCE.md): current local
+native87 is E4/R57/F26/H0 under unchanged conditions/deadline. This completes local
+native dispositions only; platform/operator and candidate/public-release evidence
+and Gate 13C/13D acceptance remain open.
 
 P07/P11/P12 now also have G13-02's joined current lifecycle proof, supplementing
 their focused API tests. Raw restore preserves the complete content/security graph

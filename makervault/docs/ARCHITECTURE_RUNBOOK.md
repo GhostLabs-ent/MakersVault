@@ -19,11 +19,11 @@ verifies 26 fixes without suppressing raw matches. The
 the BusyBox evidence gap. The [bounded H review](evidence/gate-13/SECURITY_HOLD_REVIEW.md)
 supports two additional source-precondition exclusions, now
 [explicitly approved](evidence/gate-13/SECURITY_HOLD_OWNER_ACCEPTANCE.md).
-Current totals are E4/R52/F26/H5; the five remaining holds are unaccepted.
-Their [follow-up decision package](evidence/gate-13/SECURITY_REMAINING_DECISION.md)
-proposes five temporary local risk exceptions, not fixes or exclusions: exact
-components remain present, SQLite's shared guard is affected, and signed APT
-candidates equal installed. Await the scoped owner decision.
+The [five-risk package](evidence/gate-13/SECURITY_REMAINING_DECISION.md) is now
+[explicitly approved](evidence/gate-13/SECURITY_REMAINING_OWNER_ACCEPTANCE.md).
+Current native totals are **E4/R57/F26/H0**: all local native dispositions recorded,
+not all vulnerabilities fixed. C1–C7/deadline and native-memory/DoS uncertainties
+remain unchanged. Next: remaining local platform/operator qualification.
 These read-only reviews recheck durable evidence, not rerun the full gate. Earlier
 browser results and WebKit synthetic-drop limits remain separately dated; G13-01
 performance tuning stays deferred. Nothing is pushed or release-qualified.
@@ -308,6 +308,7 @@ row's future-tense wording.
 | T-075 | `DECIDED` / `VERIFIED` / `PROPOSED` | Owner VincentCinque explicitly approves current-image E2/R52 under C1–C7, including the BusyBox gap; new event binds exact images and proposal hash. Bounded H source review authenticates seven SQLite/zlib source archives and two runtime libraries; absent later SQLar/zlib code supports two additional exclusion proposals | `docs/evidence/gate-13/SECURITY_CURRENT_OWNER_ACCEPTANCE.md`, `docs/evidence/gate-13/SECURITY_HOLD_REVIEW.md`, immutable event and source review, eight new plus 197 prior private hashes | H7 remains unaccepted: two exclusions newly proposed, five unresolved. No vendor affected-row correction, scanner suppression, new patch, H waiver or security/Gate 13C closeout. Keep October 12/earlier C6 deadline, first binary/source-version probe failure and public-source limitations. Await the two-exclusion decision; no app change, full-suite repeat, push or release. |
 | T-076 | `DECIDED` / `OPEN` | Owner explicitly approves only CVE-2026-39113 and CVE-2026-85091 as exact-image source-precondition exclusions under unchanged C1–C7/deadline. New append-only event binds the prior committed review and preserves all earlier JSON records | `docs/evidence/gate-13/SECURITY_HOLD_OWNER_ACCEPTANCE.md`, two-ID event and read-only combined-register checker | Current native87 is E4/R52/F26/H5. The five remaining holds are unaccepted; no vendor correction, installed fix, expiry extension, scanner suppression or security/Gate 13C/13D closure. Evidence revalidation only: no fresh advisory fetch, runtime probe, full suite, scan, package change or push. Resolve the five gaps or separately propose an informed owner disposition before release. |
 | T-077 | `VERIFIED` / `PROPOSED` / `OPEN` | Bounded H5 follow-up captures 12 primary pages and exact-image component/available-version observations. Signed APT candidates equal installed; relevant glibc symbols/converters are present. Authenticated SQLite source contains the upstream pre-fix shared guard, so missing apply_v3 is not an exclusion. Fifty-one API source files have no exact named calls; 18 broad PermanentDelete hits retained | `docs/evidence/gate-13/SECURITY_REMAINING_DECISION.md`, pending five-ID risk proposal, 17 new plus 205 prior private hashes | Current E4/R52/F26/H5 unchanged. Propose only temporary local R5 under existing C1–C7/deadline, explicitly retaining memory/data-loss/DoS risks, native-call uncertainty and SHIFT/EUC mapping disagreement. H5 remains unaccepted pending owner decision; no patch, exclusion, rescan, full-suite repeat, public-source denial retry, push or security/release closeout. |
+| T-078 | `DECIDED` / `OPEN` | Owner explicitly approves the five named temporary local-risk exceptions under unchanged C1–C7/deadline. Append-only event binds the committed proposal and prior approvals; all 87 local native IDs now reconcile as E4/R57/F26/H0 | `docs/evidence/gate-13/SECURITY_REMAINING_OWNER_ACCEPTANCE.md`, immutable event, combined-register checker and 222 retained private hashes | Local native disposition accounting complete, not zero vulnerabilities or a clean scan. Native-memory/code-execution/data-loss/DoS, applicability/mapping and earlier BusyBox caveats remain. No expiry extension, rebuild/candidate transfer, package change, new scan/full suite, push or S04/G13-04/Gate 13C/13D closure. Next: remaining local platform/operator qualification, then separately gated candidate and release decisions. |
 
 ### 5.4 Current storage invariants
 
@@ -1412,19 +1413,21 @@ the separate exact-image event is recorded without changing the historical propo
 The [bounded H source review](evidence/gate-13/SECURITY_HOLD_REVIEW.md) supports two
 additional exclusions (CVE-2026-39113 and CVE-2026-85091), with five unresolved.
 The owner has now [approved exactly those two exclusions](evidence/gate-13/SECURITY_HOLD_OWNER_ACCEPTANCE.md)
-under unchanged C1–C7: **current native87 is E4/R52/F26/H5**.
+under unchanged C1–C7, bringing that checkpoint to **E4/R52/F26/H5**.
 The [five-hold follow-up](evidence/gate-13/SECURITY_REMAINING_DECISION.md) now identifies
 the relevant CNA paths, proves SQLite's pre-fix shared guard is present, and finds
-no newer candidate in the configured signed Debian indexes. **Next checkpoint:
-owner decision on the five proposed temporary local risk exceptions, including
-memory-corruption/DoS and applicability/mapping uncertainties; H5 remains unaccepted.**
-Do not infer new exceptions from the investigative go-ahead. No unreviewed remediation
-or release is authorized; preserve
+no newer candidate in the configured signed Debian indexes. The owner has now
+[explicitly approved those five temporary local risks](evidence/gate-13/SECURITY_REMAINING_OWNER_ACCEPTANCE.md),
+including memory-corruption/DoS and applicability/mapping uncertainties.
+**Current native87 is E4/R57/F26/H0. Next checkpoint: remaining local platform/operator
+qualification; identify real-workstation evidence and owner input still required.**
+This completes local native disposition accounting, not security or release
+acceptance. No unreviewed remediation or release is authorized; preserve
 the earlier October 12 00:00 America/New_York deadline, or earlier freeze/13D/C6
 trigger; no renewal, extension or distribution migration is authorized here.
 Current raw evidence is durable/private; historical temporary artifacts are not
-recovered. Remaining H source/build gaps, physical/native-platform and operator/
-release readiness follow. S04/G13-04 and Gate 13C closeout remain open.
+recovered. Accepted source/build uncertainties reopen under C6; physical/native-platform
+and operator/release readiness still need evidence. S04/G13-04 and Gate 13C closeout remain open.
 Gate 12 remains deferred to desktop. End-state acceptance and the next roadmap remain 13D owner
 decisions; the frozen Gate 5 release baseline is unchanged. Push, tag, image
 publication, deployment, and release remain separately gated. Keep the

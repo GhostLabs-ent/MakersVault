@@ -1,0 +1,204 @@
+{
+  "schema": 1,
+  "kind": "owner_approval_event",
+  "approval_date": "2026-09-12",
+  "approval_timezone": "America/New_York",
+  "recorded_at": "2026-09-12T22:32:12Z",
+  "timestamp_basis": "First observation clock for this approval turn, not an invented message-click timestamp.",
+  "approved_by": "VincentCinque",
+  "role": "Repository maintainer",
+  "authorization": {
+    "user_response": "Yes approved",
+    "responds_to": "Do you approve these five temporary local-risk exceptions under those conditions?",
+    "proposal_commit": "acaa4f6a46fedaebb48187c04366e53ee795c2ec",
+    "artifacts": [
+      {
+        "file": "security-remaining-proposal.json",
+        "sha256": "7b23ce8788aabeacb375466679436bb50c6ec4b9db510fddd29f5a9c2f9cc4dd"
+      },
+      {
+        "file": "security-hold-owner-acceptance-2026-09-12.json",
+        "sha256": "c373803b94341e289cc88c6d827fa0ae549b287c8ca9fda3d518c574695ffd35"
+      },
+      {
+        "file": "security-current-owner-acceptance-2026-09-12.json",
+        "sha256": "be046e2e3229142962a8e560820e5a91f3992c4e3792363ba38c9f3b1db3eb6b"
+      },
+      {
+        "file": "SECURITY_REMAINING_DECISION.md",
+        "sha256": "29eca85d6ff47ebe96985492ac56fbdf181ef074f54b25275df6cb9ba8b35819"
+      }
+    ]
+  },
+  "application_revision": "6306ccff289d475530a6cacf4cb2e28db456ce08",
+  "images": {
+    "api": "sha256:dba3d2a7305b494d4d9a894d35fdee9743adbbf51f13c51678e98a2fcaf50b96",
+    "web": "sha256:0fcaf5a3e77873767b1359f468568eee514e6341267a17a32db339f3cc281c67"
+  },
+  "platform": "linux/amd64",
+  "conditions": {
+    "C1": "Exact named linux/amd64 development images only. No transfer to a rebuild, another architecture, desktop or a public candidate.",
+    "C2": "Canonical Compose and entrypoint; nonzero API PUID/PGID; no privileged/capability overrides. Actual API/Nginx processes retain five empty capability sets and no-new-privileges.",
+    "C3": "Production-style HTTPS, authentication/authorization, outbound-hostname checks and existing file/preview guards remain enabled; do not expose development servers to untrusted networks.",
+    "C4": "Raw snapshots come only from trusted operator-controlled installations with protected provenance and private staging. GNU tar, chown and SQLite processing are not a hostile-input sandbox; checksums do not authenticate origin.",
+    "C5": "Keep writable vault access, native memory-corruption/data-loss and denial-of-service residuals explicit. No read-only-root or memory/CPU/PID cap is claimed; daemon containment does not cover separate privileged operator recovery.",
+    "C6": "No later than October 12, 2026 00:00 America/New_York, or 30 days after actual acceptance, or candidate freeze/13D, whichever is earliest. Reopen immediately for a relevant vendor fix, changed advisory/caller/input/image/platform, missing evidence or weaker controls. No automatic renewal or extension.",
+    "C7": "Approval is local-qualification risk acceptance only, not publication, deployment, a support-policy change, S04/G13-04 closure or Gate 13C/13D acceptance. Hold entries remain unwaived."
+  },
+  "review_deadline": {
+    "not_after": "2026-10-12T00:00:00-04:00",
+    "earlier_events": [
+      "30 days after actual acceptance",
+      "candidate freeze",
+      "Gate 13D",
+      "any C6 reopen trigger"
+    ]
+  },
+  "explicit_acknowledgments": [
+    "All five remain potentially applicable; this accepts risk, not a source-precondition exclusion.",
+    "Memory corruption, writable-vault/data-loss, information disclosure and process/resource denial of service remain possible; no exploitability or whole-call-graph proof was performed.",
+    "The converter naming disagreement and direct-source-review limitation remain explicit.",
+    "Exact development images/local qualification only; unchanged October 12-or-earlier deadline. Freeze/rebuild/advisory changes reopen; public release requires its own qualification and decisions.",
+    "The accepted impacts include potential native code execution, data loss and disclosure; this is not proof of application exploitability or safety."
+  ],
+  "decisions": [
+    {
+      "id": "CVE-2026-19499",
+      "previous_bucket": "H",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-19499",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-19542",
+      "previous_bucket": "H",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-19542",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-50812",
+      "previous_bucket": "H",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-50812",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u2",
+          "severity": "Medium"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-77117",
+      "previous_bucket": "H",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-77117",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-80489",
+      "previous_bucket": "H",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-80489",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        }
+      ]
+    }
+  ],
+  "aggregate_counts": {
+    "accepted_exclusions": 4,
+    "accepted_residuals": 57,
+    "verified_fixes": 26,
+    "unaccepted_holds": 0
+  },
+  "unaccepted_holds": [],
+  "scanner_inventory_retained": {
+    "api_matches": 189,
+    "web_matches": 3,
+    "total_matches": 192,
+    "total_cves": 104,
+    "separate_interpreter_cves": 17,
+    "statement": "Retained dated scans, no rescan/filter/suppression. F26 technical resolution does not remove its 28 historical matches."
+  },
+  "limits": [
+    "Only the five named holds move to R, not E or F. Existing exclusion/fix decisions are unchanged.",
+    "Local native disposition accounting is complete for these exact development images; vulnerable packages and residual risks remain.",
+    "C1-C7, BusyBox and other earlier caveats, and the October 12-or-earlier deadline remain unchanged; no extension or automatic renewal.",
+    "No transfer to a rebuild, architecture, desktop or public candidate. Candidate freeze/13D and C6 triggers reopen decisions.",
+    "Earlier proposal/approval JSON is immutable. No new vendor fetch, runtime probe, full suite or image scan accompanies this event.",
+    "No application, dependency, image, schema, release-pin or model-byte change; no push, publication or deployment.",
+    "S04/G13-04 and Gate 13C/13D are still open. Remaining platform/operator and matched release-candidate qualification require their own evidence and decisions."
+  ]
+}

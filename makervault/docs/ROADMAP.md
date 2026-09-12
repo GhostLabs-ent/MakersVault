@@ -76,12 +76,15 @@ probes. It requires explicit acknowledgment of unverified current Alpine fix
 status for BusyBox. The owner has [approved E2/R52 with that caveat](evidence/gate-13/SECURITY_CURRENT_OWNER_ACCEPTANCE.md).
 The subsequent [H source review](evidence/gate-13/SECURITY_HOLD_REVIEW.md) supports
 two additional exact-image exclusions, now [separately approved](evidence/gate-13/SECURITY_HOLD_OWNER_ACCEPTANCE.md)
-under unchanged conditions/deadline. Current totals are E4/R52/F26/H5; five holds
-remain unresolved and unaccepted. No package change or security closeout.
+under unchanged conditions/deadline. That checkpoint was E4/R52/F26/H5, with five
+unaccepted holds and no package change or security closeout.
 The [five-hold follow-up](evidence/gate-13/SECURITY_REMAINING_DECISION.md) proposes
 temporary local risk exceptions under unchanged C1–C7/deadline. Exact components
 remain present and configured signed APT candidates equal installed; none is
-claimed fixed or excluded. Await the separate informed owner decision on H5.
+claimed fixed or excluded. The owner has now [approved those five temporary risks](evidence/gate-13/SECURITY_REMAINING_OWNER_ACCEPTANCE.md)
+under unchanged C1–C7/deadline: current native87 is E4/R57/F26/H0. Local native
+dispositions are complete, not security or release acceptance; all raw findings
+and risk caveats remain. Next is the remaining local platform/operator qualification.
 Browser/platform and release-readiness
 evidence remain unfinished, followed by 13D owner acceptance of the end state and next
 roadmap. The [traceability/carry-forward register](evidence/gate-13/TRACEABILITY.md)

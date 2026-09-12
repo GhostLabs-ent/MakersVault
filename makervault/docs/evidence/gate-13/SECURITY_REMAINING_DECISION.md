@@ -4,6 +4,11 @@
 **Entry:** `5985cef77a043c361e5775d44f85f5ca4348e6ec`; application remains `6306ccf`.
 **Status: REVIEW COMPLETE; FIVE TEMPORARY LOCAL EXCEPTIONS PROPOSED, NONE ACCEPTED.**
 
+**Subsequent decision:** the owner [explicitly approved these five local-risk exceptions](SECURITY_REMAINING_OWNER_ACCEPTANCE.md).
+The current native register is E4/R57/F26/H0 under unchanged conditions/deadline.
+This proposal and its pending JSON remain historical evidence; the separate event
+records acceptance. Security and release-gate closeout remain open.
+
 The owner's “go ahead approved” authorized investigation of the five holds after
 the [two-exclusion approval](SECURITY_HOLD_OWNER_ACCEPTANCE.md). It did **not** accept
 the new risk proposal below. Current native dispositions remain **E4/R52/F26/H5**.

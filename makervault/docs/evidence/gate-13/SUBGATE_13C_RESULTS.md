@@ -111,6 +111,13 @@ and signed APT candidates equal installed. Preserve native-memory/DoS, native-ca
 and SHIFT/EUC mapping uncertainties. Current E4/R52/F26/H5 is unchanged pending
 the separate owner decision; no installed fix, new exclusion or security closeout.
 
+**Remaining-five approval:** [explicit owner event](SECURITY_REMAINING_OWNER_ACCEPTANCE.md)
+accepts exactly those five temporary local risks under unchanged C1–C7/deadline.
+Current native87 is E4/R57/F26/H0; all local native dispositions are recorded,
+not all vulnerabilities fixed. Retain native-memory/DoS, applicability/mapping and
+earlier BusyBox caveats. Next: remaining local platform/operator qualification;
+S04/G13-04, release-candidate proof and Gate 13C/13D acceptance remain open.
+
 ## Bounded execution
 
 1. Refresh stale browser assertions to the accepted current UI, retaining explicit

@@ -144,8 +144,11 @@ The subsequent [five-hold decision package](../evidence/gate-13/SECURITY_REMAINI
 captures fresh primary descriptions and exact-image components/available versions.
 SQLite's shared pre-fix guard is present; glibc symbols/converters are installed,
 with a retained SHIFT/EUC mapping disagreement. No supported configured-repository
-update is available at this observation. Propose R5 for local qualification only,
-with native-memory/DoS and call-path uncertainty explicit; all five remain owner-pending.
+update is available at this observation. The owner has now [approved R5 for local qualification only](../evidence/gate-13/SECURITY_REMAINING_OWNER_ACCEPTANCE.md),
+with native-memory/DoS and call-path/mapping uncertainty explicit. Current native87
+is E4/R57/F26/H0: local disposition accounting complete under unchanged C1–C7/deadline,
+not a clean scan, installed fix or S04/G13-04/Gate 13C/13D closeout. Platform/operator
+and release-candidate evidence and decisions remain outstanding.
 
 ## Finding-by-finding disposition
 
