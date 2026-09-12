@@ -121,9 +121,14 @@ That historical checkpoint is followed by the owner-approved
 [six-package update](SECURITY_NATIVE_UPDATE_RESULTS.md), fully verified at `6306ccf`
 (424 API / 58 web tests, HTTPS lifecycle and exact-image containment). The current
 inventory is 189 API / 3 web matches, with 20 vendor-fixed-version/scanner conflicts
-and seven newly seen CVEs. Old E/R approvals do not transfer. Seven original H and
-four new PCRE2 holds remain unaccepted; three new exclusions are proposed only.
-Reconcile evidence before additional packages or renewed image-specific decisions.
+and seven newly seen CVEs. Old E/R approvals do not transfer. The subsequent
+[vendor/byte reconciliation](SECURITY_RECONCILIATION_RESULTS.md) verifies 26 fixes
+already installed (20 targeted plus six new PCRE2 IDs): current Debian fixed rows,
+six authenticated archives and 931 runtime regular-file comparisons agree. No
+further package update is needed for that group. Native87 now comprises fixed26,
+proposed E2, pending new-image R52 and unresolved H7, with no new acceptance.
+Prepare the image-specific E/R decision and handle H7 separately; the 28 historical
+scanner matches for verified fixes remain visible, not suppressed or subtracted.
 All raw matches and the interrupted first attempt remain; S04/G13-04 and candidate
 acceptance stay open.
 

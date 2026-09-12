@@ -1,0 +1,2820 @@
+{
+  "schema": 1,
+  "status": "reconciled_vendor_fixes_not_risk_acceptance_or_security_closeout",
+  "reviewed_date": "2026-09-12",
+  "entry_revision": "a62bc11bf08742026cd469aec364fc043c1fb277",
+  "application_revision": "6306ccff289d475530a6cacf4cb2e28db456ce08",
+  "images": {
+    "api": "sha256:dba3d2a7305b494d4d9a894d35fdee9743adbbf51f13c51678e98a2fcaf50b96",
+    "web": "sha256:0fcaf5a3e77873767b1359f468568eee514e6341267a17a32db339f3cc281c67"
+  },
+  "platform": "linux/amd64",
+  "input_sha256": {
+    "security-native-verification.json": "b810852400b24a6d6ecf5638daac1dcfb47d92c3f6040fa3af41b745dd2cf73c",
+    "security-disposition-proposal.json": "663d18ae1d0e92eb731feba6ae736e8dae819aa368ec6f77ae0de882ed21914e",
+    "security-owner-acceptance-2026-09-12.json": "14f363e80ef4af1169e553dc829a2b7bc44476e2aecf924789e9a6909a6ff40d"
+  },
+  "runs": {
+    "vendor-run": {
+      "run": {
+        "command": [
+          "node",
+          "makervault/docs/evidence/gate-13/security-reconciliation-collect.cjs"
+        ],
+        "started_at": "2026-09-12T17:10:47.024Z",
+        "source_revision": "a62bc11bf08742026cd469aec364fc043c1fb277",
+        "verification_source_status": "",
+        "finished_at": "2026-09-12T17:10:51.632Z",
+        "duration_seconds": 4.608,
+        "exit_code": 1,
+        "signal": null,
+        "end_source_revision": "a62bc11bf08742026cd469aec364fc043c1fb277",
+        "end_verification_source_status": "",
+        "artifacts": [
+          {
+            "file": "stdout.log",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "file": "stderr.log",
+            "bytes": 286,
+            "sha256": "5563f07e2afe0b278dfc11da35cb971e870330c886546b7c5d1ae030d4b0c071"
+          }
+        ]
+      },
+      "raw_sha256": {
+        "started.json": "74c2d98c44baaab76a980f8c7707b00c5761ea641b7148fa44bbd3555ce01098",
+        "result.json": "36e0926552464ae25a8aa9ab48c624fa9fc10bb876121c06e99422b7105258ee",
+        "stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr.log": "5563f07e2afe0b278dfc11da35cb971e870330c886546b7c5d1ae030d4b0c071"
+      }
+    },
+    "vendor-b-run": {
+      "run": {
+        "command": [
+          "node",
+          "makervault/docs/evidence/gate-13/security-reconciliation-collect.cjs",
+          "b"
+        ],
+        "started_at": "2026-09-12T17:12:34.540Z",
+        "source_revision": "a62bc11bf08742026cd469aec364fc043c1fb277",
+        "verification_source_status": "",
+        "finished_at": "2026-09-12T17:12:54.015Z",
+        "duration_seconds": 19.475,
+        "exit_code": 0,
+        "signal": null,
+        "end_source_revision": "a62bc11bf08742026cd469aec364fc043c1fb277",
+        "end_verification_source_status": "",
+        "artifacts": [
+          {
+            "file": "stdout.log",
+            "bytes": 5998,
+            "sha256": "d98dd2d96bb7b9ff38beb05a03be3f3e3a9c146b83eee4dd0812d992edb23141"
+          },
+          {
+            "file": "stderr.log",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ]
+      },
+      "raw_sha256": {
+        "started.json": "3a45d5ed2dad5e510a3b3a9c3b95b4e5715659023d0d274d3ae9c801c67c03f9",
+        "result.json": "2c41ac086244ae855c9a07cdc22371486de89eeac117dd9229c1ac88818cdb7e",
+        "stdout.log": "d98dd2d96bb7b9ff38beb05a03be3f3e3a9c146b83eee4dd0812d992edb23141",
+        "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "packages": {
+      "run": {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--user",
+          "0:0",
+          "--security-opt",
+          "no-new-privileges",
+          "--memory",
+          "1g",
+          "--cpus",
+          "2",
+          "--entrypoint",
+          "python",
+          "-v",
+          "/home/vinnyc/Documents/GitHub/MakersVault/makervault/docs/evidence/gate-13/security-reconciliation-packages.py:/probe.py:ro",
+          "sha256:dba3d2a7305b494d4d9a894d35fdee9743adbbf51f13c51678e98a2fcaf50b96",
+          "/probe.py"
+        ],
+        "started_at": "2026-09-12T17:12:35.805Z",
+        "source_revision": "a62bc11bf08742026cd469aec364fc043c1fb277",
+        "verification_source_status": "",
+        "finished_at": "2026-09-12T17:13:10.732Z",
+        "duration_seconds": 34.927,
+        "exit_code": 0,
+        "signal": null,
+        "end_source_revision": "a62bc11bf08742026cd469aec364fc043c1fb277",
+        "end_verification_source_status": "",
+        "artifacts": [
+          {
+            "file": "stdout.log",
+            "bytes": 152779,
+            "sha256": "2f9b7b4778a297131fc95e539f82d175e07a85e44ef29bca9cd0405bcac10fb5"
+          },
+          {
+            "file": "stderr.log",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ]
+      },
+      "raw_sha256": {
+        "started.json": "1d457226b4c134bd55af2fa0294d16df64d321075e2962b04068447e9fb314cb",
+        "result.json": "0d9380535c136208b4147624c7547acd5e124e836df7491f60e9212ab250366a",
+        "stdout.log": "2f9b7b4778a297131fc95e539f82d175e07a85e44ef29bca9cd0405bcac10fb5",
+        "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "vendor": {
+    "url": "https://security-tracker.debian.org/tracker/data/json",
+    "started_at": "2026-09-12T17:12:34.599Z",
+    "finished_at": "2026-09-12T17:12:53.842Z",
+    "headers": {
+      "date": "Sat, 12 Sep 2026 17:12:34 GMT",
+      "last_modified": "Sat, 12 Sep 2026 16:23:59 GMT",
+      "etag": null
+    },
+    "raw": {
+      "file": "debian-feed.json",
+      "bytes": 74114962,
+      "sha256": "28c767a2942cabefcccf043e671d37e1f9692754e667b10d290db8eca88dc525"
+    },
+    "summary_sha256": "41267cbcf1060f46f3a6c2823be6a41c2f7b4b403a6f41cf241a07a77435495d",
+    "response_sha256": "059420e7950e1d123ffba067ebd253cd37392236b60d2db8524fa904bf22fc70"
+  },
+  "package_proof": {
+    "gzip": {
+      "version": "1.13-1+deb13u1",
+      "source": "gzip",
+      "archive": "pool/main/g/gzip/gzip_1.13-1+deb13u1_amd64.deb",
+      "archive_sha256": "74cf12212beee4ab8d473bdc0107abf9e8cef737492198e2f4944a19f142b0ac",
+      "archive_bytes": 138608,
+      "regular_files_compared": 13,
+      "changelog_sha256": {
+        "usr/share/doc/gzip/changelog.Debian.gz": "318a061a8644b17c409058a67ae42c7d3183c74d8fdbc679340f7f7b2590605f"
+      }
+    },
+    "libc-bin": {
+      "version": "2.41-12+deb13u4",
+      "source": "glibc",
+      "archive": "pool/main/g/glibc/libc-bin_2.41-12+deb13u4_amd64.deb",
+      "archive_sha256": "dc8c79647fe3a5f37f72a400414f70263d0212f010ff2c09f990e30d91e38d1c",
+      "archive_bytes": 638452,
+      "regular_files_compared": 24,
+      "changelog_sha256": {
+        "usr/share/doc/libc-bin/changelog.Debian.gz": "8ef77d451db72472e929a557c3cac21e14433471bd2c95b0c85a118bdf90cb19"
+      }
+    },
+    "libc6": {
+      "version": "2.41-12+deb13u4",
+      "source": "glibc",
+      "archive": "pool/main/g/glibc/libc6_2.41-12+deb13u4_amd64.deb",
+      "archive_sha256": "967aa62605721081c3eb2a17650611a792aa802d76a6511d1840242623d204c9",
+      "archive_bytes": 2846580,
+      "regular_files_compared": 276,
+      "changelog_sha256": {
+        "usr/share/doc/libc6/changelog.Debian.gz": "43140ce14f0f0e11162cbc5d498e129cd1bc1c87870cf6eabecd3c83e91b0c63"
+      }
+    },
+    "libpcre2-8-0": {
+      "version": "10.46-1~deb13u2",
+      "source": "pcre2",
+      "archive": "pool/main/p/pcre2/libpcre2-8-0_10.46-1~deb13u2_amd64.deb",
+      "archive_sha256": "1252b96a5bc44bb5db982bef8eb18e54f5047cede2aff641bce4f8e1edb91c3e",
+      "archive_bytes": 298872,
+      "regular_files_compared": 1,
+      "changelog_sha256": {
+        "usr/share/doc/libpcre2-8-0/changelog.Debian.gz": "f11d183af41870367d26dc776fa1a335a3d170353d7e5975ba49a139a5d70be3"
+      }
+    },
+    "libsqlite3-0": {
+      "version": "3.46.1-7+deb13u2",
+      "source": "sqlite3",
+      "archive": "pool/main/s/sqlite3/libsqlite3-0_3.46.1-7+deb13u2_amd64.deb",
+      "archive_sha256": "0a459adaffd901109f7811ab65f58e7a957b4907d05539cf3d1184efdcde0468",
+      "archive_bytes": 914584,
+      "regular_files_compared": 1,
+      "changelog_sha256": {
+        "usr/share/doc/libsqlite3-0/changelog.Debian.gz": "e0c101980288f870248a50f19c65c0dd456c290634f6ee9894acd5cf943de501"
+      }
+    },
+    "perl-base": {
+      "version": "5.40.1-6+deb13u1",
+      "source": "perl",
+      "archive": "pool/main/p/perl/perl-base_5.40.1-6+deb13u1_amd64.deb",
+      "archive_sha256": "b795464137a0f4d443fc9284f4b93e883fb83883cb533adf300ac660807a352a",
+      "archive_bytes": 1666320,
+      "regular_files_compared": 616,
+      "changelog_sha256": {
+        "usr/share/doc/perl-base/changelog.Debian.gz": "70860b1511aebd748a2305ff67be0be99263be4e1ddf85afa47e3d2820a03941"
+      }
+    }
+  },
+  "fixed": [
+    {
+      "id": "CVE-2025-15649",
+      "family": "perl",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "5.40.1-6+deb13u1",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2025-15649",
+      "packages": [
+        "perl-base"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-11822",
+      "family": "sqlite3",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "3.46.1-7+deb13u2",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-11822",
+      "packages": [
+        "libsqlite3-0"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-11824",
+      "family": "sqlite3",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "3.46.1-7+deb13u2",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-11824",
+      "packages": [
+        "libsqlite3-0"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-12087",
+      "family": "perl",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "5.40.1-6+deb13u1",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-12087",
+      "packages": [
+        "perl-base"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-13221",
+      "family": "perl",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "5.40.1-6+deb13u1",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-13221",
+      "packages": [
+        "perl-base"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-41991",
+      "family": "gzip",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "1.13-1+deb13u1",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-41991",
+      "packages": [
+        "gzip"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-41992",
+      "family": "gzip",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "1.13-1+deb13u1",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-41992",
+      "packages": [
+        "gzip"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-42496",
+      "family": "perl",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "5.40.1-6+deb13u1",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-42496",
+      "packages": [
+        "perl-base"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-42497",
+      "family": "perl",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "5.40.1-6+deb13u1",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-42497",
+      "packages": [
+        "perl-base"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-48959",
+      "family": "perl",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "5.40.1-6+deb13u1",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-48959",
+      "packages": [
+        "perl-base"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-48961",
+      "family": "perl",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "5.40.1-6+deb13u1",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-48961",
+      "packages": [
+        "perl-base"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-48962",
+      "family": "perl",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "5.40.1-6+deb13u1",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-48962",
+      "packages": [
+        "perl-base"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-5450",
+      "family": "glibc",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "2.41-12+deb13u4",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-5450",
+      "packages": [
+        "libc-bin",
+        "libc6"
+      ],
+      "retained_scanner_matches": 2,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-57432",
+      "family": "perl",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "5.40.1-6+deb13u1",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-57432",
+      "packages": [
+        "perl-base"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-57433",
+      "family": "perl",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "5.40.1-6+deb13u1",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-57433",
+      "packages": [
+        "perl-base"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-5928",
+      "family": "glibc",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "2.41-12+deb13u4",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-5928",
+      "packages": [
+        "libc-bin",
+        "libc6"
+      ],
+      "retained_scanner_matches": 2,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-7010",
+      "family": "perl",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "5.40.1-6+deb13u1",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-7010",
+      "packages": [
+        "perl-base"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-7017",
+      "family": "perl",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "5.40.1-6+deb13u1",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-7017",
+      "packages": [
+        "perl-base"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-8376",
+      "family": "perl",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "5.40.1-6+deb13u1",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-8376",
+      "packages": [
+        "perl-base"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-86145",
+      "family": "pcre2",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "10.46-1~deb13u2",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-86145",
+      "packages": [
+        "libpcre2-8-0"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "vendor_fix_installed_scanner_still_reports",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-89156",
+      "family": "pcre2",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "10.46-1~deb13u2",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-89156",
+      "packages": [
+        "libpcre2-8-0"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "new_native_caller_and_backport_review_held",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-89157",
+      "family": "pcre2",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "10.46-1~deb13u2",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-89157",
+      "packages": [
+        "libpcre2-8-0"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "absent_precondition_exclusion_proposed_not_accepted",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-89158",
+      "family": "pcre2",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "10.46-1~deb13u2",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-89158",
+      "packages": [
+        "libpcre2-8-0"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "absent_precondition_exclusion_proposed_not_accepted",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-89160",
+      "family": "pcre2",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "10.46-1~deb13u2",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-89160",
+      "packages": [
+        "libpcre2-8-0"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "new_native_caller_and_backport_review_held",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-89161",
+      "family": "pcre2",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "10.46-1~deb13u2",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-89161",
+      "packages": [
+        "libpcre2-8-0"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "new_native_caller_and_backport_review_held",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    },
+    {
+      "id": "CVE-2026-89162",
+      "family": "pcre2",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "fixed_version": "10.46-1~deb13u2",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-89162",
+      "packages": [
+        "libpcre2-8-0"
+      ],
+      "retained_scanner_matches": 1,
+      "prior_status": "new_native_caller_and_backport_review_held",
+      "owner_risk_waiver": "not_required_for_verified_fix",
+      "proof": "Current Debian per-release fixed version + authenticated APT archive hash + exact runtime regular-file byte comparison + packaged changelog. Not a source-level exploit test."
+    }
+  ],
+  "retained_scanner_disagreements": [
+    {
+      "id": "CVE-2026-5450",
+      "package": "libc-bin",
+      "version": "2.41-12+deb13u4",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-5450",
+      "package": "libc6",
+      "version": "2.41-12+deb13u4",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-8376",
+      "package": "perl-base",
+      "version": "5.40.1-6+deb13u1",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-13221",
+      "package": "perl-base",
+      "version": "5.40.1-6+deb13u1",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-42496",
+      "package": "perl-base",
+      "version": "5.40.1-6+deb13u1",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-12087",
+      "package": "perl-base",
+      "version": "5.40.1-6+deb13u1",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-57433",
+      "package": "perl-base",
+      "version": "5.40.1-6+deb13u1",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-42497",
+      "package": "perl-base",
+      "version": "5.40.1-6+deb13u1",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-41992",
+      "package": "gzip",
+      "version": "1.13-1+deb13u1",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-86145",
+      "package": "libpcre2-8-0",
+      "version": "10.46-1~deb13u2",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-48959",
+      "package": "perl-base",
+      "version": "5.40.1-6+deb13u1",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-5928",
+      "package": "libc-bin",
+      "version": "2.41-12+deb13u4",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-5928",
+      "package": "libc6",
+      "version": "2.41-12+deb13u4",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-48962",
+      "package": "perl-base",
+      "version": "5.40.1-6+deb13u1",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-48961",
+      "package": "perl-base",
+      "version": "5.40.1-6+deb13u1",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-7017",
+      "package": "perl-base",
+      "version": "5.40.1-6+deb13u1",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-57432",
+      "package": "perl-base",
+      "version": "5.40.1-6+deb13u1",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-11822",
+      "package": "libsqlite3-0",
+      "version": "3.46.1-7+deb13u2",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-11824",
+      "package": "libsqlite3-0",
+      "version": "3.46.1-7+deb13u2",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-7010",
+      "package": "perl-base",
+      "version": "5.40.1-6+deb13u1",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-89158",
+      "package": "libpcre2-8-0",
+      "version": "10.46-1~deb13u2",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-41991",
+      "package": "gzip",
+      "version": "1.13-1+deb13u1",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-89161",
+      "package": "libpcre2-8-0",
+      "version": "10.46-1~deb13u2",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-89160",
+      "package": "libpcre2-8-0",
+      "version": "10.46-1~deb13u2",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2025-15649",
+      "package": "perl-base",
+      "version": "5.40.1-6+deb13u1",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-89157",
+      "package": "libpcre2-8-0",
+      "version": "10.46-1~deb13u2",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-89162",
+      "package": "libpcre2-8-0",
+      "version": "10.46-1~deb13u2",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    },
+    {
+      "id": "CVE-2026-89156",
+      "package": "libpcre2-8-0",
+      "version": "10.46-1~deb13u2",
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "constraints": [
+        "none (unknown)"
+      ]
+    }
+  ],
+  "scanner": {
+    "baseline": "security-native-verification.json",
+    "api_matches": 189,
+    "web_matches": 3,
+    "status": "Historical raw scan retained unchanged; not rerun or filtered",
+    "debian_capture": "2026-09-12T00:30:55Z",
+    "db_built": "2026-09-12T06:27:25Z",
+    "explanation": "The retained scanner snapshot lacks vendor fixed-version ranges now supplied by the primary feed and authenticated binaries. Package applicability is reconciled; the precise upstream ingestion/refresh cause is not independently proven."
+  },
+  "counts": {
+    "native_cves": 87,
+    "vendor_fixed": 26,
+    "fixed_scanner_matches_retained": 28,
+    "proposed_exclusions": 2,
+    "pending_owner_exceptions": 52,
+    "unresolved_holds": 7,
+    "new_owner_acceptances": 0
+  },
+  "exclusions": [
+    {
+      "id": "CVE-2026-9538",
+      "component": "Archive::Tar",
+      "evidence": "Required module not loadable in exact runtime; source remains open.",
+      "status": "proposed_exact_image_exclusion_not_accepted",
+      "accepted_by": null
+    },
+    {
+      "id": "CVE-2026-89092",
+      "component": "nscd",
+      "evidence": "Required service has no package-manifest or named executable in exact runtime; source remains open.",
+      "status": "proposed_exact_image_exclusion_not_accepted",
+      "accepted_by": null
+    }
+  ],
+  "pending_exception_ids": [
+    "CVE-2005-2541",
+    "CVE-2007-5686",
+    "CVE-2010-4756",
+    "CVE-2011-3374",
+    "CVE-2011-4116",
+    "CVE-2013-4392",
+    "CVE-2017-18018",
+    "CVE-2018-20796",
+    "CVE-2019-1010022",
+    "CVE-2019-1010023",
+    "CVE-2019-1010024",
+    "CVE-2019-1010025",
+    "CVE-2019-9192",
+    "CVE-2021-45346",
+    "CVE-2022-0563",
+    "CVE-2023-31437",
+    "CVE-2023-31438",
+    "CVE-2023-31439",
+    "CVE-2024-56433",
+    "CVE-2025-5278",
+    "CVE-2025-60876",
+    "CVE-2025-6141",
+    "CVE-2025-69720",
+    "CVE-2025-70873",
+    "CVE-2026-15059",
+    "CVE-2026-15534",
+    "CVE-2026-16742",
+    "CVE-2026-18374",
+    "CVE-2026-18477",
+    "CVE-2026-18508",
+    "CVE-2026-19487",
+    "CVE-2026-27171",
+    "CVE-2026-3184",
+    "CVE-2026-40228",
+    "CVE-2026-42250",
+    "CVE-2026-50813",
+    "CVE-2026-53910",
+    "CVE-2026-5435",
+    "CVE-2026-54369",
+    "CVE-2026-54370",
+    "CVE-2026-54371",
+    "CVE-2026-54411",
+    "CVE-2026-56391",
+    "CVE-2026-56392",
+    "CVE-2026-5704",
+    "CVE-2026-6238",
+    "CVE-2026-6368",
+    "CVE-2026-6791",
+    "CVE-2026-76642",
+    "CVE-2026-78408",
+    "CVE-2026-78409",
+    "CVE-2026-78410"
+  ],
+  "holds": [
+    {
+      "id": "CVE-2026-19499",
+      "status": "held_unresolved_not_accepted",
+      "family": "glibc",
+      "trixie": {
+        "status": "open",
+        "repositories": {
+          "trixie": "2.41-12+deb13u4"
+        },
+        "urgency": "not yet assigned",
+        "nodsa": "Minor issue",
+        "nodsa_reason": ""
+      },
+      "rationale": "Installed glibc still affected in Debian; description insufficient, current CNA retrieval 404 and upstream detail unavailable through this review.",
+      "exit_criteria": "Obtain authoritative preconditions or a supported installed fix; do not infer safety from missing text."
+    },
+    {
+      "id": "CVE-2026-19542",
+      "status": "held_unresolved_not_accepted",
+      "family": "glibc",
+      "trixie": {
+        "status": "open",
+        "repositories": {
+          "trixie": "2.41-12+deb13u4"
+        },
+        "urgency": "not yet assigned",
+        "nodsa": "Minor issue",
+        "nodsa_reason": ""
+      },
+      "rationale": "Debian identifies a tdelete stack-access issue and still marks installed glibc affected; current CNA retrieval 404 and upstream detail unavailable.",
+      "exit_criteria": "Establish native tdelete call/input applicability or install an applicable supported fix; unavailable detail is not an exclusion."
+    },
+    {
+      "id": "CVE-2026-39113",
+      "status": "held_unresolved_not_accepted",
+      "family": "sqlite3",
+      "trixie": {
+        "status": "open",
+        "repositories": {
+          "trixie": "3.46.1-7+deb13u2"
+        },
+        "urgency": "not yet assigned",
+        "nodsa": "Minor issue",
+        "nodsa_reason": ""
+      },
+      "rationale": "sqlar_uncompress is absent from the default connection, but upstream introduction details conflict with Debian affected-version mapping; no whole-extension exclusion established.",
+      "exit_criteria": "Reconcile the shipped Debian source/build and sqlar component with the upstream defect, or install an applicable supported fix."
+    },
+    {
+      "id": "CVE-2026-50812",
+      "status": "held_unresolved_not_accepted",
+      "family": "sqlite3",
+      "trixie": {
+        "status": "open",
+        "repositories": {
+          "trixie": "3.46.1-7+deb13u2"
+        },
+        "urgency": "not yet assigned",
+        "nodsa": "Minor issue",
+        "nodsa_reason": ""
+      },
+      "rationale": "Described changeset_apply_v3 symbol is absent in the inspected library, while older apply/apply_v2 and SESSION are present. Debian still marks the installed source affected.",
+      "exit_criteria": "Reconcile the vendor mapping and actual affected source implementation; absent v3 symbol alone does not clear all shared SESSION code."
+    },
+    {
+      "id": "CVE-2026-77117",
+      "status": "held_unresolved_not_accepted",
+      "family": "glibc",
+      "trixie": {
+        "status": "open",
+        "repositories": {
+          "trixie": "2.41-12+deb13u4"
+        },
+        "urgency": "not yet assigned",
+        "nodsa": "Minor issue",
+        "nodsa_reason": ""
+      },
+      "rationale": "Installed glibc still affected in Debian; description insufficient, current CNA retrieval 404 and upstream detail unavailable through this review.",
+      "exit_criteria": "Obtain authoritative preconditions or a supported installed fix; do not infer safety from missing text."
+    },
+    {
+      "id": "CVE-2026-80489",
+      "status": "held_unresolved_not_accepted",
+      "family": "glibc",
+      "trixie": {
+        "status": "open",
+        "repositories": {
+          "trixie": "2.41-12+deb13u4"
+        },
+        "urgency": "not yet assigned",
+        "nodsa": "Minor issue",
+        "nodsa_reason": ""
+      },
+      "rationale": "Installed glibc still affected in Debian; description insufficient, current CNA retrieval 404 and upstream detail unavailable through this review.",
+      "exit_criteria": "Obtain authoritative preconditions or a supported installed fix; do not infer safety from missing text."
+    },
+    {
+      "id": "CVE-2026-85091",
+      "status": "held_unresolved_not_accepted",
+      "family": "zlib",
+      "trixie": {
+        "status": "open",
+        "repositories": {
+          "trixie": "1:1.3.dfsg+really1.3.1-1"
+        },
+        "urgency": "not yet assigned"
+      },
+      "rationale": "Upstream description names a nonblocking gzwrite/gzprintf path and a newer range than inspected zlib 1.3.1; Debian still marks its installed source affected.",
+      "exit_criteria": "Resolve distribution source/backport and native gzwrite/gzprintf call applicability; do not treat generic Python decompression or a headline version comparison as proof."
+    }
+  ],
+  "dispositions": [
+    {
+      "id": "CVE-2005-2541",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "tar",
+          "version": "1.35+dfsg-3.1",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2007-5686",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "login.defs",
+          "version": "1:4.17.4-2",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "passwd",
+          "version": "1:4.17.4-2",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2010-4756",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2011-3374",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "apt",
+          "version": "3.0.3",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libapt-pkg7.0",
+          "version": "3.0.3",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2011-4116",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6+deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2013-4392",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2017-18018",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "coreutils",
+          "version": "9.7-3",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2018-20796",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2019-1010022",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2019-1010023",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2019-1010024",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2019-1010025",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2019-9192",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2021-45346",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u2",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2022-0563",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libblkid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libmount1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libuuid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "mount",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "util-linux",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2023-31437",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2023-31438",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2023-31439",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2024-56433",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "login.defs",
+          "version": "1:4.17.4-2",
+          "severity": "Low"
+        },
+        {
+          "image": "api",
+          "package": "passwd",
+          "version": "1:4.17.4-2",
+          "severity": "Low"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2025-15649",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6+deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2025-5278",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "coreutils",
+          "version": "9.7-3",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2025-60876",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "web",
+          "package": "busybox",
+          "version": "1.37.0-r31",
+          "severity": "Medium"
+        },
+        {
+          "image": "web",
+          "package": "busybox-binsh",
+          "version": "1.37.0-r31",
+          "severity": "Medium"
+        },
+        {
+          "image": "web",
+          "package": "ssl_client",
+          "version": "1.37.0-r31",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2025-6141",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libncursesw6",
+          "version": "6.5+20250216-2",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libtinfo6",
+          "version": "6.5+20250216-2",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "ncurses-base",
+          "version": "6.5+20250216-2",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "ncurses-bin",
+          "version": "6.5+20250216-2",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2025-69720",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libncursesw6",
+          "version": "6.5+20250216-2",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libtinfo6",
+          "version": "6.5+20250216-2",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "ncurses-base",
+          "version": "6.5+20250216-2",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "ncurses-bin",
+          "version": "6.5+20250216-2",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2025-70873",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u2",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-11822",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u2",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-11824",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u2",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-12087",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6+deb13u1",
+          "severity": "Critical"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-13221",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6+deb13u1",
+          "severity": "Critical"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-15059",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-15534",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6+deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-16742",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-18374",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-18477",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "tar",
+          "version": "1.35+dfsg-3.1",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-18508",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "tar",
+          "version": "1.35+dfsg-3.1",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-19487",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6+deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-19499",
+      "status": "held_unresolved_not_accepted",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-19542",
+      "status": "held_unresolved_not_accepted",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-27171",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "zlib1g",
+          "version": "1:1.3.dfsg+really1.3.1-1+b1",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-3184",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libblkid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libmount1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libuuid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "mount",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "util-linux",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-39113",
+      "status": "held_unresolved_not_accepted",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u2",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-40228",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsystemd0",
+          "version": "257.13-1~deb13u1",
+          "severity": "Low"
+        },
+        {
+          "image": "api",
+          "package": "libudev1",
+          "version": "257.13-1~deb13u1",
+          "severity": "Low"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-41991",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "gzip",
+          "version": "1.13-1+deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-41992",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "gzip",
+          "version": "1.13-1+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-42250",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libbz2-1.0",
+          "version": "1.0.8-6",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-42496",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6+deb13u1",
+          "severity": "Critical"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-42497",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-48959",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-48961",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-48962",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-50812",
+      "status": "held_unresolved_not_accepted",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u2",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-50813",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libsqlite3-0",
+          "version": "3.46.1-7+deb13u2",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-53910",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "diffutils",
+          "version": "1:3.10-4",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-5435",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-54369",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libacl1",
+          "version": "2.3.2-2+b1",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-54370",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libacl1",
+          "version": "2.3.2-2+b1",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-54371",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libattr1",
+          "version": "1:2.5.2-3",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-54411",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libpam-modules",
+          "version": "1.7.0-5",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libpam-modules-bin",
+          "version": "1.7.0-5",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libpam-runtime",
+          "version": "1.7.0-5",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libpam0g",
+          "version": "1.7.0-5",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-5450",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Critical"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Critical"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-56391",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "coreutils",
+          "version": "9.7-3",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-56392",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "coreutils",
+          "version": "9.7-3",
+          "severity": "Negligible"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-5704",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "tar",
+          "version": "1.35+dfsg-3.1",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-57432",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-57433",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6+deb13u1",
+          "severity": "Critical"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-5928",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-6238",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-6368",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Low"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Low"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-6791",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-7010",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6+deb13u1",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-7017",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-76642",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libblkid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libmount1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libuuid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "mount",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "util-linux",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-77117",
+      "status": "held_unresolved_not_accepted",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-78408",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libblkid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libmount1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libuuid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "mount",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "util-linux",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-78409",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libblkid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libmount1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libuuid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "mount",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "util-linux",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-78410",
+      "status": "new_image_owner_exception_pending",
+      "matches": [
+        {
+          "image": "api",
+          "package": "bsdutils",
+          "version": "1:2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libblkid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "liblastlog2-2",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libmount1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libsmartcols1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "libuuid1",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "login",
+          "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "mount",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        },
+        {
+          "image": "api",
+          "package": "util-linux",
+          "version": "2.41.5-0+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-80489",
+      "status": "held_unresolved_not_accepted",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Unknown"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-8376",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6+deb13u1",
+          "severity": "Critical"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-85091",
+      "status": "held_unresolved_not_accepted",
+      "matches": [
+        {
+          "image": "api",
+          "package": "zlib1g",
+          "version": "1:1.3.dfsg+really1.3.1-1+b1",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-86145",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libpcre2-8-0",
+          "version": "10.46-1~deb13u2",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-9538",
+      "status": "proposed_exact_image_exclusion_not_accepted",
+      "matches": [
+        {
+          "image": "api",
+          "package": "perl-base",
+          "version": "5.40.1-6+deb13u1",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-89092",
+      "status": "proposed_exact_image_exclusion_not_accepted",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libc-bin",
+          "version": "2.41-12+deb13u4",
+          "severity": "Medium"
+        },
+        {
+          "image": "api",
+          "package": "libc6",
+          "version": "2.41-12+deb13u4",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-89156",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libpcre2-8-0",
+          "version": "10.46-1~deb13u2",
+          "severity": "Low"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-89157",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libpcre2-8-0",
+          "version": "10.46-1~deb13u2",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-89158",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libpcre2-8-0",
+          "version": "10.46-1~deb13u2",
+          "severity": "Medium"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-89160",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libpcre2-8-0",
+          "version": "10.46-1~deb13u2",
+          "severity": "Low"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-89161",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libpcre2-8-0",
+          "version": "10.46-1~deb13u2",
+          "severity": "High"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    },
+    {
+      "id": "CVE-2026-89162",
+      "status": "vendor_fixed_and_installed_bytes_verified",
+      "matches": [
+        {
+          "image": "api",
+          "package": "libpcre2-8-0",
+          "version": "10.46-1~deb13u2",
+          "severity": "Low"
+        }
+      ],
+      "owner_acceptance": "none_granted_by_this_review"
+    }
+  ],
+  "owner_boundary": {
+    "conditions": {
+      "C1": "Exact named linux/amd64 development images only. No transfer to a rebuild, another architecture, desktop or a public candidate.",
+      "C2": "Canonical Compose and entrypoint; nonzero API PUID/PGID; no privileged/capability overrides. Actual API/Nginx processes retain five empty capability sets and no-new-privileges.",
+      "C3": "Production-style HTTPS, authentication/authorization, outbound-hostname checks and existing file/preview guards remain enabled; do not expose development servers to untrusted networks.",
+      "C4": "Raw snapshots come only from trusted operator-controlled installations with protected provenance and private staging. GNU tar, chown and SQLite processing are not a hostile-input sandbox; checksums do not authenticate origin.",
+      "C5": "Keep writable vault access, native memory-corruption/data-loss and denial-of-service residuals explicit. No read-only-root or memory/CPU/PID cap is claimed; daemon containment does not cover separate privileged operator recovery.",
+      "C6": "Expiry is the earlier of acceptance plus 30 days or candidate freeze/13D. Reopen immediately for a relevant vendor fix, new caller/input path, changed image/platform, changed advisory, missing evidence or weaker controls. No automatic renewal.",
+      "C7": "Approval is local-qualification risk acceptance only, not publication, deployment, a support-policy change, S04/G13-04 closure or Gate 13C/13D acceptance. Hold entries remain unwaived."
+    },
+    "previous_deadline": {
+      "not_after": "2026-10-12T00:00:00-04:00",
+      "basis": "Conservative midnight at start of October 12 in America/New_York; within 30 days of September 12 approval. Earlier candidate freeze/13D or any C6 trigger takes precedence.",
+      "earlier_events": [
+        "candidate freeze",
+        "Gate 13D",
+        "any C6 reopen condition"
+      ]
+    },
+    "statement": "No waiver transfer/renewal, release authority or gate acceptance. Original E/R event remains tied to its original image IDs."
+  },
+  "limitations": [
+    "Initial 32 MiB feed capture refused oversized decompressed content; failure retained, diagnostic bound increased to 128 MiB for one fresh capture.",
+    "Signed binary archives and indexes were fetched only in a disposable exact-image container. No package was installed; downloads disappeared with it. Raw archive hashes, metadata, changelog extracts and 931 file comparisons are retained, not full .deb bodies.",
+    "Only the 27 targeted/new CVEs and seven old holds plus the remaining Perl exclusion are refreshed from the captured feed. The 52 pending exception rationales are historical, not a newly granted or wholesale renewed review.",
+    "No application tests, image scan, hostile-input exercise, patch-level source audit, full native call graph or new deployment qualification repeated in this diagnostic slice.",
+    "The seven original holds remain; minor/no-dsa designations are not fixed versions or accepted risk."
+  ]
+}

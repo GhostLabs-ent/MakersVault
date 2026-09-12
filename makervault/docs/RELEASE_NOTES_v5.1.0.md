@@ -50,7 +50,10 @@ vault into a slicer, printer controller, or multi-user cloud service.
 - The API test/runtime base now pins six Debian stable security updates for gzip,
   libc, PCRE2, SQLite and Perl. This keeps Python, schema and user workflows
   unchanged; it is not a distribution migration or blanket security clearance.
-  See the [local native-update checkpoint](evidence/gate-13/SECURITY_NATIVE_UPDATE_RESULTS.md).
+  See the [local native-update checkpoint](evidence/gate-13/SECURITY_NATIVE_UPDATE_RESULTS.md)
+  and [vendor/byte reconciliation](evidence/gate-13/SECURITY_RECONCILIATION_RESULTS.md):
+  26 fixes are verified in the installed packages, while remaining native decisions
+  and raw scanner findings stay explicit.
 
 ## Upgrade requirements
 

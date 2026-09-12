@@ -291,6 +291,7 @@ row's future-tense wording.
 | T-070 | `VERIFIED` / `PROPOSED` | S04 owner package joins all 80 native CVEs / 167 matches to the exact `ea17494` lifecycle images. Recommends E11 exact-image exclusions, R59 time-limited local-qualification exceptions and H10 holds. Targeted vendor review corrects the zipdetails CLI rationale; new exact-image probe confirms command absence and narrows SQLite symbol evidence without clearing SESSION | `docs/evidence/gate-13/SECURITY_DISPOSITION_PROPOSAL.md`, per-CVE proposal, four new durable probe captures and evidence checker | No owner acceptances recorded. R59 explicitly includes two critical Perl CVEs; all 184 image matches remain visible. Proposed named owner/C1–C7 conditions expire by 30 days or candidate freeze, whichever first. H10 and security/Gate 13C stay open even if E/R approved. No application changes, broad rescan, full-suite repeat, push or release. |
 | T-071 | `DECIDED` / `VERIFIED` / `PROPOSED` | September 12 owner VincentCinque approves E11/R59 for exact-image local qualification under C1–C7; ten H remain unaccepted. New vendor review retains 79 Debian bodies (Alpine collector 406 retained), identifies stable fixes, and reopens seven R exceptions under C6. Fresh component/CLI probes reaffirm E11; 52 exceptions remain active and 17 residual CVEs open | `docs/evidence/gate-13/SECURITY_OWNER_ACCEPTANCE.md`, immutable approval event, dated review, durable captures and checker | Deadline October 12 00:00 America/New_York or earlier candidate freeze/13D/C6 trigger; no automatic renewal. All 181 API / 3 web matches remain; fixes are not installed. Six-package stable API refresh is proposed, not authorized. Preserve parser/collector limitations, exact-image scope, trusted raw recovery, remaining seven H evidence gaps, performance/desktop deferrals and release gates. |
 | T-072 | `DECIDED` / `VERIFIED` / `OPEN` | Owner-approved six-package stable API refresh at clean `6306ccf` installs exactly the approved signed binary pins; no other package additions/removals/version changes. Full gate passes 424 API / 58 reexecuted web / 25 Python / 28 Node tests, HTTPS upgrade/recovery/rollback and exact-image 8-case/6-negative containment matrix | `docs/evidence/gate-13/SECURITY_NATIVE_UPDATE_RESULTS.md`, joined exact-image inventory/audit/per-CVE record, 167 private hash checks | Fresh September 12 scanner data retains all prior pairs: API 189 / web 3 matches, seven newly seen CVEs. Twenty vendor-fixed-version claims conflict with scanner unknown ranges; no suppression or clean-scan claim. New images inherit no E/R waivers. Retain seven original H plus four new PCRE2 holds; three new exclusions only proposed. Reconcile evidence before additional remediation/owner dispositions. Interrupted wrapper attempt retained; no push, publication, schema, language-lock or frozen-release change. |
+| T-073 | `VERIFIED` / `OPEN` | Read-only application reconciliation on unchanged `6306ccf` images verifies 26 vendor fixes: original 20 plus all six newly seen PCRE2 IDs. Current Debian feed fixed versions equal the pins; six archives match authenticated APT metadata and 931 runtime regular files match archive bytes. No further package update needed for this group | `docs/evidence/gate-13/SECURITY_RECONCILIATION_RESULTS.md`, new per-CVE register, 15 new plus 167 prior private hash checks | All 189 API / 3 web raw matches retained, including 28 for the 26 verified fixes; precise upstream scanner-ingestion cause unproven. Native87 now comprises fixed26, proposed E2, pending new-image R52 and unresolved H7. No new acceptance, waiver transfer, rescan, full-suite rerun, application change or push. Prepare the image-specific E/R decision and handle H7 separately; security and release gates remain open. |
 
 ### 5.4 Current storage invariants
 
@@ -1379,10 +1380,17 @@ tests, current HTTPS lifecycle and exact-image containment. Fresh scans retain
 **189 API / 3 web matches**: the newer database adds seven CVEs, while 20 targeted
 vendor-fixed-version records still conflict with scanner unknown ranges. No
 finding is suppressed and old-image E/R approvals do not transfer automatically.
-**Next checkpoint: accept the implementation, then reconcile the scanner/vendor
-disagreement and new PCRE2 caller/backport evidence before further package changes
-or renewed exact-image dispositions.** Seven original H and four new PCRE2 holds
-remain unaccepted; three new precondition exclusions are proposed only. Preserve
+The subsequent [vendor/byte reconciliation](evidence/gate-13/SECURITY_RECONCILIATION_RESULTS.md)
+verifies **26 fixes already installed** (20 targeted plus six new PCRE2 IDs), using
+the current primary feed, authenticated package archives and 931 runtime file
+comparisons. No further package update is needed for that group. Its 28 historical
+scanner matches remain visible; the precise upstream metadata cause is unproven.
+The 87 native IDs now comprise **26 fixed, two proposed exclusions, 52 pending
+new-image exceptions and seven unresolved holds**. No new waiver was granted.
+**Next checkpoint: prepare the image-specific E2/R52 owner decision, rechecking
+relevant C6 changes; handle the seven holds separately with authoritative evidence
+or a separately informed owner decision.** Do not repeatedly rebuild to chase a
+clean count. Preserve
 the earlier October 12 00:00 America/New_York deadline, or earlier freeze/13D/C6
 trigger; no renewal, extension or distribution migration is authorized here.
 Current raw evidence is durable/private; historical temporary artifacts are not

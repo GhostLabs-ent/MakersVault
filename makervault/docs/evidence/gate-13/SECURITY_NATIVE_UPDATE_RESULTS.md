@@ -4,6 +4,11 @@
 **Implementation:** local commit `6306ccff289d475530a6cacf4cb2e28db456ce08`.
 **Status: IMPLEMENTATION VERIFIED; SCANNER/VENDOR DISAGREEMENT AND NEW ADVISORIES OPEN.**
 
+**Historical checkpoint:** the subsequent [vendor/byte reconciliation](SECURITY_RECONCILIATION_RESULTS.md)
+verifies all 20 targeted and six newly seen PCRE2 CVEs as fixed in these same
+installed packages. Its current dispositions supersede the pending conflict/PCRE2
+recommendations below; this record and its raw scan remain unchanged evidence.
+
 The owner's “approved” authorizes the bounded implementation proposed at
 `1b83d43` in [the preceding checkpoint](SECURITY_OWNER_ACCEPTANCE.md). It does not
 authorize transfer of old-image risk approvals, a distribution migration, additional

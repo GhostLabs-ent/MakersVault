@@ -124,9 +124,13 @@ passes full verification (424 API / 58 reexecuted web tests), current HTTPS
 lifecycle and exact-image containment. Only the six signed package versions change.
 Current scans retain 189 API / 3 web matches: 20 vendor-fixed-version claims conflict
 with scanner unknown ranges; seven new CVEs are explicitly reviewed. No old E/R
-approval transfers. Seven original H and four new PCRE2 holds remain unaccepted;
-three new precondition exclusions are proposed, not granted. Reconcile evidence
-before further packages or renewed dispositions. Security and public release stay open.
+approval transfers. The subsequent [vendor/byte reconciliation](../evidence/gate-13/SECURITY_RECONCILIATION_RESULTS.md)
+verifies all 20 targeted and six new PCRE2 IDs as fixed in the already-installed
+packages. Current Debian fixed rows and authenticated archives match the exact
+runtime (931 regular files); no further upgrade is needed for that group. Raw
+scanner counts are unchanged. Native87 now comprises fixed26, proposed E2,
+pending new-image R52 and unresolved H7. No new waivers: prepare the exact-image
+E/R decision and handle H7 separately. Security and public release stay open.
 
 ## Finding-by-finding disposition
 

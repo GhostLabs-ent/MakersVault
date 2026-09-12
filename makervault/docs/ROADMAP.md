@@ -65,8 +65,13 @@ implemented at `6306ccf` and fully verified: 424 API / 58 web tests, HTTPS recov
 rollback and exact-image containment pass. Fresh scans retain 189 API / 3 web
 matches; 20 vendor-fixed-version claims disagree with scanner unknown ranges and
 seven newly seen CVEs are separately triaged. No old waiver transfers to these
-images. Reconcile the evidence before new remediation or exact-image acceptance;
-seven original H and four new PCRE2 holds remain open, three new exclusions proposed.
+images. The subsequent [vendor/byte reconciliation](evidence/gate-13/SECURITY_RECONCILIATION_RESULTS.md)
+verifies 26 fixes already installed: all 20 targeted and six newly seen PCRE2 CVEs.
+Authenticated package archives match 931 runtime regular files; no further update
+is needed for this group. Raw scans remain unchanged, not clean. The native87
+register now holds fixed26, proposed E2, pending new-image R52 and unresolved H7,
+with no new acceptance. Prepare the image-specific E/R decision and treat H7
+separately; do not transfer old waivers or infer security closeout.
 Browser/platform and release-readiness
 evidence remain unfinished, followed by 13D owner acceptance of the end state and next
 roadmap. The [traceability/carry-forward register](evidence/gate-13/TRACEABILITY.md)

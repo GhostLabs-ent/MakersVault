@@ -74,10 +74,17 @@ with exactly six signed package-version changes, 424 API / 58 reexecuted web tes
 full HTTPS lifecycle and exact-image containment. Fresh scans retain 189 API / 3 web
 matches: 20 vendor-fixed-version records conflict with scanner unknown ranges,
 and seven newly seen CVEs are separately triaged. No old-image E/R acceptance
-transfers. Seven original H plus four new PCRE2 holds remain unaccepted; three new
-precondition exclusions are proposed only. Reconcile the evidence before additional
-remediation or renewed dispositions. The wrapper-interrupted attempt is preserved;
+transfers. The wrapper-interrupted attempt is preserved;
 the subsequent full run passed. Security/Gate 13C acceptance remains open.
+
+**Current reconciliation:** [vendor and exact-byte evidence](SECURITY_RECONCILIATION_RESULTS.md)
+verifies all 20 targeted plus six newly seen PCRE2 CVEs as fixed in the existing
+pins. Six authenticated archives match 931 runtime regular files; no further
+package update is needed for this group. The prior 189 API / 3 web raw matches
+remain, including 28 for the verified fixes. Native87 now comprises fixed26,
+proposed E2, pending new-image R52 and unresolved H7; no new acceptance. Prepare the
+image-specific E/R decision and handle H7 separately. No rescan, application change,
+full-suite repeat, waiver transfer or security/release clearance in this review.
 
 ## Bounded execution
 
