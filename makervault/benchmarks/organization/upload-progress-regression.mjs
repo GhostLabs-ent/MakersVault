@@ -42,6 +42,8 @@ try {
   for (const [name, bytes] of Object.entries(files)) await writeFile(join(folder, "parts", name), bytes);
   await page.goto(origin, { waitUntil: "domcontentloaded" });
   await signIn();
+  const cookies = await page.context().cookies(origin);
+  assert(cookies.some(cookie => cookie.name === "__Host-makersvault_session" && cookie.secure && cookie.httpOnly));
   let resolveReceived;
   const received = new Promise(resolve => { resolveReceived = resolve; });
   const hold = new Promise(resolve => { releaseResponse = resolve; });
@@ -49,7 +51,10 @@ try {
   await page.route("**/api/upload", async route => {
     uploadCalls++;
     const headers = await route.request().allHeaders();
-    assert(headers.cookie?.includes("__Host-makersvault_session="));
+    // WebKit's intercepted request does not expose Cookie consistently. Native
+    // continuation below must still succeed against the authentication-enforcing API.
+    report.interceptedCookieVisible = Boolean(headers.cookie?.includes("__Host-makersvault_session="));
+    if (engine !== "webkit") assert(report.interceptedCookieVisible);
     assert(headers["x-csrf-token"]);
     assert(!headers.authorization);
     if (uploadCalls === 1) {
@@ -68,6 +73,7 @@ try {
   })]);
   const panel = page.getByRole("complementary", { name: "Upload progress", exact: true });
   await panel.getByText("0 / 2 files saved", { exact: true }).waitFor();
+  report.selectedFiles = await selection.evaluate(input => Array.from(input.files, file => ({ name: file.name, path: file.webkitRelativePath })));
   assert.equal(await panel.locator('[data-upload-phase="complete"]').count(), 0);
   report.heldResponsePhase = await panel.locator("section").getAttribute("data-upload-phase");
   await check("secure-cookie/CSRF XHR reaches real API; held response is not called saved or complete");
@@ -81,6 +87,8 @@ try {
   const parent = folders.find(item => item.name === `UP1-${engine}`);
   const child = folders.find(item => item.name === "parts" && item.parent_id === parent?.id);
   assert(child, "Nested destination missing");
+  report.storedFixtures = allAssets.map(asset => ({ id: asset.id, name: asset.name, filename: asset.filename, folder: asset.folder_id }));
+  report.targetFolder = child.id;
   for (const [name, bytes] of Object.entries(files)) {
     const asset = allAssets.find(item => item.filename === name && item.folder_id === child.id);
     assert(asset, name);
