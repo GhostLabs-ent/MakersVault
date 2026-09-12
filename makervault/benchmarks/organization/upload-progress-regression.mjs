@@ -9,11 +9,11 @@ const origin = process.env.MAKERSVAULT_BENCHMARK_WEB_URL;
 const engine = process.env.MAKERSVAULT_BENCHMARK_BROWSER;
 const output = process.env.MAKERSVAULT_BENCHMARK_OUTPUT;
 const report = { engine, status: "in_progress", checks: [],
-  scope: "Real browser/HTTPS upload; delayed response and 413/401 errors explicitly injected, not performance/device qualification" };
+  scope: "Real browser/HTTPS upload; pending request and 413/401 errors explicitly injected, not performance/device qualification" };
 const save = () => writeFile(output, JSON.stringify(report, null, 2) + "\n");
 const browser = await ({ chromium, firefox, webkit }[engine]).launch({ headless: true });
 const directory = await mkdtemp(join(tmpdir(), "makersvault-upload-fixture-"));
-let releaseResponse = () => {};
+let releaseRequest = () => {};
 try {
   const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
   page.setDefaultTimeout(10000);
@@ -46,7 +46,7 @@ try {
   assert(cookies.some(cookie => cookie.name === "__Host-makersvault_session" && cookie.secure && cookie.httpOnly));
   let resolveReceived;
   const received = new Promise(resolve => { resolveReceived = resolve; });
-  const hold = new Promise(resolve => { releaseResponse = resolve; });
+  const hold = new Promise(resolve => { releaseRequest = resolve; });
   let uploadCalls = 0;
   await page.route("**/api/upload", async route => {
     uploadCalls++;
@@ -57,38 +57,32 @@ try {
     if (engine !== "webkit") assert(report.interceptedCookieVisible);
     assert(headers["x-csrf-token"]);
     assert(!headers.authorization);
-    if (uploadCalls === 1 && engine !== "webkit") {
-      const response = await route.fetch();
-      assert.equal(response.status(), 200);
+    if (uploadCalls === 1) {
       resolveReceived();
       await hold;
-      await route.fulfill({ response });
-    } else await route.continue();
+    }
+    // Preserve the browser's native multipart payload. route.fetch() can drop
+    // directory File bytes when it reserializes the intercepted request.
+    await route.continue();
   });
   const selection = page.locator('input[type="file"][webkitdirectory]');
   await selection.setInputFiles(folder);
-  if (engine !== "webkit") await Promise.race([received, new Promise((_, reject) => {
-    const timer = setTimeout(() => reject(new Error("Upload did not reach fixture API")), 10000);
+  await Promise.race([received, new Promise((_, reject) => {
+    const timer = setTimeout(() => reject(new Error("Upload request was not observed")), 10000);
     timer.unref();
   })]);
   const panel = page.getByRole("region", { name: "Upload progress", exact: true });
-  if (engine !== "webkit") {
-    await panel.getByText("0 / 2 files saved", { exact: true }).waitFor();
-    report.selectedFiles = await selection.evaluate(input => Array.from(input.files, file => ({ name: file.name, path: file.webkitRelativePath })));
-    assert.equal(await panel.locator('[data-upload-phase="complete"]').count(), 0);
-    report.heldResponsePhase = await panel.locator("section").getAttribute("data-upload-phase");
-    await check("secure-cookie/CSRF XHR reaches real API; held response is not called saved or complete");
-  } else {
-    // Playwright's WebKit route.fetch loses directory File payload bytes. Keep
-    // this engine's multipart request native; do not relax the stored-byte checks.
-    report.heldResponsePhase = "not-tested: WebKit multipart interception limitation";
-  }
-  releaseResponse();
+  await panel.getByText("0 / 2 files saved", { exact: true }).waitFor();
+  report.selectedFiles = await selection.evaluate(input => Array.from(input.files, file => ({ name: file.name, path: file.webkitRelativePath })));
+  assert.equal(await panel.locator('[data-upload-phase="complete"]').count(), 0);
+  report.heldRequestPhase = await panel.locator("section").getAttribute("data-upload-phase");
+  await check("pending native upload request is not called saved or complete");
+  releaseRequest();
   await panel.locator('[data-upload-phase="complete"]').waitFor();
   await panel.getByText("2 / 2 files saved", { exact: true }).waitFor();
   assert.equal(await panel.getByRole("progressbar").getAttribute("value"), "100");
   assert.equal(uploadCalls, 2);
-  if (engine === "webkit") await check("native cookie-authenticated/CSRF XHR succeeds without multipart re-forwarding");
+  await check("native cookie-authenticated/CSRF XHR succeeds without multipart re-forwarding");
   const allAssets = await (await page.request.get(origin + "/api/assets?limit=100")).json();
   const folders = await (await page.request.get(origin + "/api/folders")).json();
   const parent = folders.find(item => item.name === `UP1-${engine}`);
@@ -111,9 +105,12 @@ try {
     if (uploadCalls === 1) await route.fulfill({ status: 413, contentType: "application/json", body: '{"detail":"Injected upload ceiling"}' });
     else await route.continue();
   });
-  const pickedFiles = Object.entries(files).map(([name, buffer]) => ({ name, mimeType: "model/stl", buffer }));
+  const pickedFiles = Object.entries(files).map(([name, buffer]) => ({ name: `${engine}-error-${name}`, mimeType: "model/stl", buffer }));
   await page.locator('header input[type="file"]').first().setInputFiles(pickedFiles);
   await panel.locator('[data-upload-phase="partial"]').waitFor();
+  report.partialSummary = await panel.innerText();
+  report.partialUploadCalls = uploadCalls;
+  await save();
   await panel.getByText("1 / 2 files saved · 1 failed", { exact: true }).waitFor();
   assert.equal(await panel.locator('[data-upload-phase="complete"]').count(), 0);
   await check("injected 413 remains a failure while the next selected file uploads successfully");
@@ -139,7 +136,7 @@ try {
   report.error = error.message;
   throw error;
 } finally {
-  releaseResponse();
+  releaseRequest();
   await save();
   await browser.close();
   await rm(directory, { recursive: true }); // Only this generated mkdtemp fixture.
