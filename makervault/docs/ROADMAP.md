@@ -73,8 +73,10 @@ register now holds fixed26, proposed E2, pending new-image R52 and unresolved H7
 with no new acceptance. The [image-specific E2/R52 decision package](evidence/gate-13/SECURITY_CURRENT_IMAGE_DECISION.md)
 is now prepared, with fresh unchanged known Debian records and matched component
 probes. It requires explicit acknowledgment of unverified current Alpine fix
-status for BusyBox. Await the owner decision under C1–C7, leave H7 unaccepted, and
-do not transfer old waivers or infer security closeout.
+status for BusyBox. The owner has [approved E2/R52 with that caveat](evidence/gate-13/SECURITY_CURRENT_OWNER_ACCEPTANCE.md).
+The subsequent [H source review](evidence/gate-13/SECURITY_HOLD_REVIEW.md) supports
+two additional exact-image exclusion proposals, with five unresolved. All H7
+remain unaccepted until a separate decision; no package change or security closeout.
 Browser/platform and release-readiness
 evidence remain unfinished, followed by 13D owner acceptance of the end state and next
 roadmap. The [traceability/carry-forward register](evidence/gate-13/TRACEABILITY.md)

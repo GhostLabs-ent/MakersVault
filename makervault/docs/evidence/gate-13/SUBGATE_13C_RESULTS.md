@@ -92,6 +92,12 @@ matched. BusyBox CNA is unchanged, but its current Alpine fix status is unverifi
 and requires explicit acknowledgment. No new acceptance: await the scoped C1–C7
 owner decision, keep H7 unaccepted and retain every raw match and failed attempt.
 
+**Current approval and H follow-up:** [E2/R52 explicitly approved](SECURITY_CURRENT_OWNER_ACCEPTANCE.md)
+with the BusyBox caveat and unchanged C1–C7/deadline. The [source review](SECURITY_HOLD_REVIEW.md)
+authenticates SQLite/zlib source packages and exact runtime libraries, supporting
+two additional exclusion proposals (39113/85091) with five unresolved. No H7
+acceptance or package change follows automatically; security/Gate 13C stays open.
+
 ## Bounded execution
 
 1. Refresh stale browser assertions to the accepted current UI, retaining explicit

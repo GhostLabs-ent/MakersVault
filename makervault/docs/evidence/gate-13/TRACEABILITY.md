@@ -130,8 +130,11 @@ proposed E2, pending new-image R52 and unresolved H7, with no new acceptance.
 The [image-specific E2/R52 package](SECURITY_CURRENT_IMAGE_DECISION.md) is now
 prepared: known Debian records unchanged, components reconfirmed, and BusyBox's
 unverified current Alpine fix status explicitly requires owner acknowledgment.
-Await the C1–C7 decision; keep H7 unaccepted. The 28 historical scanner matches for
-verified fixes remain visible, not suppressed or subtracted.
+The owner has [approved E2/R52 and that caveat](SECURITY_CURRENT_OWNER_ACCEPTANCE.md)
+under C1–C7. A separate [H source review](SECURITY_HOLD_REVIEW.md) proposes two
+additional source-precondition exclusions, with five unresolved; none of H7 is
+yet accepted. The 28 historical scanner matches for verified fixes remain visible,
+not suppressed or subtracted.
 All raw matches and the interrupted first attempt remain; S04/G13-04 and candidate
 acceptance stay open.
 

@@ -5,6 +5,10 @@
 **Entry checkpoint:** `7349f93f2223fce325eaa14131bfdcc262a20fec`.
 **Status: READY FOR THE SCOPED OWNER DECISION; ZERO NEW ACCEPTANCES.**
 
+**Historical proposal:** the owner subsequently [approved E2/R52 and the BusyBox caveat](SECURITY_CURRENT_OWNER_ACCEPTANCE.md).
+This document and its pending-proposal JSON remain the evidence that was approved;
+the separate event records the actual decision. H7 was not accepted.
+
 The owner's “go ahead” authorizes preparing this package after the
 [vendor/byte reconciliation](SECURITY_RECONCILIATION_RESULTS.md), not accepting its
 risks. This is a new proposal for the rebuilt images, not a transfer or extension

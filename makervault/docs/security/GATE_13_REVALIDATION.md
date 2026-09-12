@@ -132,8 +132,11 @@ scanner counts are unchanged. Native87 now comprises fixed26, proposed E2,
 pending new-image R52 and unresolved H7. The [exact-image E2/R52 package](../evidence/gate-13/SECURITY_CURRENT_IMAGE_DECISION.md)
 is prepared with a fresh unchanged known-Debian/CNA review and matched component
 probes. Explicit owner acknowledgment is required for BusyBox's unverified current
-Alpine fix status. No new waivers; await the C1–C7 decision and leave H7 unaccepted.
-Security and public release stay open.
+Alpine fix status. The owner [approved E2/R52 and that caveat](../evidence/gate-13/SECURITY_CURRENT_OWNER_ACCEPTANCE.md)
+in a new exact-image event. The [bounded H source review](../evidence/gate-13/SECURITY_HOLD_REVIEW.md)
+proposes source-precondition exclusions for CVE-2026-39113 and CVE-2026-85091; the
+other five remain unresolved. H7 is not accepted by that review. No additional
+patch or scanner suppression; security and public release stay open.
 
 ## Finding-by-finding disposition
 

@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "reviewed_date": "2026-09-12",
+  "scope": "Bounded primary-source browser review; dated observations, not separately archived page bodies or an image scan.",
+  "debian_pages": [
+    {"id":"CVE-2026-19499","url":"https://security-tracker.debian.org/tracker/CVE-2026-19499","result":"read","trixie":"2.41-12+deb13u4 vulnerable","observation":"No advisory description; sid fix does not establish an installed Trixie fix."},
+    {"id":"CVE-2026-19542","url":"https://security-tracker.debian.org/tracker/CVE-2026-19542","result":"read","trixie":"2.41-12+deb13u4 vulnerable","observation":"tdelete stack-access defect; upstream fix commit named, affected source/input mapping not established."},
+    {"id":"CVE-2026-77117","url":"https://security-tracker.debian.org/tracker/CVE-2026-77117","result":"read","trixie":"2.41-12+deb13u4 vulnerable","observation":"No advisory description; sid fix does not establish an installed Trixie fix."},
+    {"id":"CVE-2026-80489","url":"https://security-tracker.debian.org/tracker/CVE-2026-80489","result":"read","trixie":"2.41-12+deb13u4 vulnerable","observation":"No advisory description; sid fix does not establish an installed Trixie fix."},
+    {"id":"CVE-2026-39113","url":"https://security-tracker.debian.org/tracker/CVE-2026-39113","result":"read","trixie":"3.46.1-7+deb13u2 vulnerable","observation":"Description ties the defect to March 11, 2026 SQLar size-conversion change; reconcile exact Debian source, not headline version alone."},
+    {"id":"CVE-2026-50812","url":"https://security-tracker.debian.org/tracker/CVE-2026-50812","result":"read","trixie":"3.46.1-7+deb13u2 vulnerable","observation":"Description names changeset_apply_v3 and a NULL value pointer; absent v3 alone cannot exclude older shared SESSION code."},
+    {"id":"CVE-2026-85091","url":"https://security-tracker.debian.org/tracker/CVE-2026-85091","result":"read","trixie":"1:1.3.dfsg+really1.3.1-1 vulnerable","observation":"Description requires later nonblocking gzwrite/gz_vacate state handling; verify exact source/backports against the older installed package."}
+  ],
+  "upstream_reads": [
+    {"url":"https://github.com/sqlite/sqlite/commit/169f68ed88b34cb68f720191c64c058f2ccec508","result":"read","observation":"SQLar size input changes from sqlite3_value_int to sqlite3_value_int64; Fossil-origin identifier matches the CVE description. No supplied payload executed."},
+    {"url":"https://github.com/madler/zlib/issues/1310","result":"read","observation":"Open issue reports the CVE to upstream; retrieved page does not supply a maintainer-confirmed fix or affected-version adjudication."}
+  ],
+  "unavailable_reads": [
+    "https://sqlite.org/src/info/e807d4e3798efd53",
+    "https://bugzilla.redhat.com/show_bug.cgi?id=2523258",
+    "https://bugzilla.redhat.com/show_bug.cgi?id=2523274",
+    "https://bugzilla.redhat.com/show_bug.cgi?id=2524870",
+    "https://sourceware.org/git/?p=glibc.git;a=commit;h=e2789c46e3bfdcd67a82bea9946b315c179e83d3",
+    "https://bugs.debian.org/1145891",
+    "https://bugs.debian.org/1145880",
+    "https://bugs.debian.org/1145987"
+  ],
+  "unavailable_result": "Browser non-retryable open errors. No denial bypass or retry of those endpoints; earlier unavailable CNA and Sourceware bug pages were not retried.",
+  "authority": "Technical source review only. None of H7 is accepted by the E2/R52 approval or this review."
+}
