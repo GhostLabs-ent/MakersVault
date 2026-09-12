@@ -53,12 +53,14 @@ tests, current HTTPS lifecycle, actual API/Nginx privilege checks and preview pe
 Ownership/recovery remain supported; no upload/resource limit was added. Final
 audits match the successful lifecycle images and retain identical reduced records
 for all 181 API / 3 web matches. The incomplete first scan is preserved, final raw
-evidence is durable/private, and residual acceptance remains open. The
-[S04 owner package](evidence/gate-13/SECURITY_DISPOSITION_PROPOSAL.md) now recommends
-11 exact-image exclusions and 59 time-limited local-qualification exceptions,
-explicitly including two critical Perl findings, while holding ten unresolved
-cases. Named approval and C1–C7 conditions are pending; this would not clear a
-public candidate or close S04/G13-04. No scanner match is removed.
+evidence is durable/private, and security closeout remains open. The
+[September 12 owner decision](evidence/gate-13/SECURITY_OWNER_ACCEPTANCE.md) approves
+E11/R59 under C1–C7, including the two critical Perl exceptions. Newly identified
+stable fixes reopen seven R entries; 52 local exceptions remain active, E11
+preconditions are reconfirmed, and H10 remain unaccepted (17 open residual CVEs).
+Deadline: October 12 00:00 America/New_York or earlier candidate freeze/13D/C6
+trigger. The proposed six-package API stable refresh requires implementation
+approval; no fix is yet installed and all 184 scanner matches remain visible.
 Browser/platform and release-readiness
 evidence remain unfinished, followed by 13D owner acceptance of the end state and next
 roadmap. The [traceability/carry-forward register](evidence/gate-13/TRACEABILITY.md)

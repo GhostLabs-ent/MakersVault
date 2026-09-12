@@ -1,0 +1,779 @@
+{
+  "schema": 1,
+  "kind": "owner_approval_event",
+  "approval_date": "2026-09-12",
+  "approval_timezone": "America/New_York",
+  "recorded_at": "2026-09-12T16:20:40Z",
+  "timestamp_basis": "First observation clock for this approval turn; original message has no second-resolution timestamp. Approval date is recorded without inventing a click time.",
+  "approved_by": "VincentCinque",
+  "role": "Repository maintainer",
+  "authorization": {
+    "user_response": "yes approved",
+    "responds_to": "Approve the scoped S04 package with VincentCinque accountable: E11 exact-image exclusions, R59 temporary local-qualification exceptions, H10 holds.",
+    "proposal_commit": "f93109f38134e2d492400660566db88386887e1c",
+    "proposal_file": "security-disposition-proposal.json",
+    "proposal_sha256": "663d18ae1d0e92eb731feba6ae736e8dae819aa368ec6f77ae0de882ed21914e"
+  },
+  "images": {
+    "api": {
+      "id": "sha256:40aef54d6acf598ce49197d1aac966c96cc38ddd887ca10feff6a3ef4a74edec",
+      "platform": "linux/amd64"
+    },
+    "web": {
+      "id": "sha256:390b8dbb18c868f72366fe4353c2d8a944b3b0b412ad6fd46455dc2e5debcf82",
+      "platform": "linux/amd64"
+    }
+  },
+  "application_revision": "ea17494b610f399b3e9d240748c2aab20e0d8aa5",
+  "conditions": {
+    "C1": "Exact named linux/amd64 development images only. No transfer to a rebuild, another architecture, desktop or a public candidate.",
+    "C2": "Canonical Compose and entrypoint; nonzero API PUID/PGID; no privileged/capability overrides. Actual API/Nginx processes retain five empty capability sets and no-new-privileges.",
+    "C3": "Production-style HTTPS, authentication/authorization, outbound-hostname checks and existing file/preview guards remain enabled; do not expose development servers to untrusted networks.",
+    "C4": "Raw snapshots come only from trusted operator-controlled installations with protected provenance and private staging. GNU tar, chown and SQLite processing are not a hostile-input sandbox; checksums do not authenticate origin.",
+    "C5": "Keep writable vault access, native memory-corruption/data-loss and denial-of-service residuals explicit. No read-only-root or memory/CPU/PID cap is claimed; daemon containment does not cover separate privileged operator recovery.",
+    "C6": "Expiry is the earlier of acceptance plus 30 days or candidate freeze/13D. Reopen immediately for a relevant vendor fix, new caller/input path, changed image/platform, changed advisory, missing evidence or weaker controls. No automatic renewal.",
+    "C7": "Approval is local-qualification risk acceptance only, not publication, deployment, a support-policy change, S04/G13-04 closure or Gate 13C/13D acceptance. Hold entries remain unwaived."
+  },
+  "review_deadline": {
+    "not_after": "2026-10-12T00:00:00-04:00",
+    "basis": "Conservative midnight at start of October 12 in America/New_York; within 30 days of September 12 approval. Earlier candidate freeze/13D or any C6 trigger takes precedence.",
+    "earlier_events": [
+      "candidate freeze",
+      "Gate 13D",
+      "any C6 reopen condition"
+    ]
+  },
+  "decisions": [
+    {
+      "id": "CVE-2005-2541",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2005-2541"
+    },
+    {
+      "id": "CVE-2007-5686",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2007-5686"
+    },
+    {
+      "id": "CVE-2010-4756",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2010-4756"
+    },
+    {
+      "id": "CVE-2011-3374",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2011-3374"
+    },
+    {
+      "id": "CVE-2011-4116",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2011-4116"
+    },
+    {
+      "id": "CVE-2013-4392",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2013-4392"
+    },
+    {
+      "id": "CVE-2017-18018",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2017-18018"
+    },
+    {
+      "id": "CVE-2018-20796",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2018-20796"
+    },
+    {
+      "id": "CVE-2019-1010022",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2019-1010022"
+    },
+    {
+      "id": "CVE-2019-1010023",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2019-1010023"
+    },
+    {
+      "id": "CVE-2019-1010024",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2019-1010024"
+    },
+    {
+      "id": "CVE-2019-1010025",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2019-1010025"
+    },
+    {
+      "id": "CVE-2019-9192",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2019-9192"
+    },
+    {
+      "id": "CVE-2021-45346",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2021-45346"
+    },
+    {
+      "id": "CVE-2022-0563",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2022-0563"
+    },
+    {
+      "id": "CVE-2023-31437",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2023-31437"
+    },
+    {
+      "id": "CVE-2023-31438",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2023-31438"
+    },
+    {
+      "id": "CVE-2023-31439",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2023-31439"
+    },
+    {
+      "id": "CVE-2024-56433",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2024-56433"
+    },
+    {
+      "id": "CVE-2025-15649",
+      "bucket": "E",
+      "decision": "approved_exact_image_exclusion",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2025-15649"
+    },
+    {
+      "id": "CVE-2025-5278",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2025-5278"
+    },
+    {
+      "id": "CVE-2025-60876",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2025-60876"
+    },
+    {
+      "id": "CVE-2025-6141",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2025-6141"
+    },
+    {
+      "id": "CVE-2025-69720",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2025-69720"
+    },
+    {
+      "id": "CVE-2025-70873",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2025-70873"
+    },
+    {
+      "id": "CVE-2026-11822",
+      "bucket": "H",
+      "decision": "hold_not_accepted",
+      "approved_by": null,
+      "approval_date": null,
+      "review_due": null,
+      "proposal_entry": "CVE-2026-11822"
+    },
+    {
+      "id": "CVE-2026-11824",
+      "bucket": "H",
+      "decision": "hold_not_accepted",
+      "approved_by": null,
+      "approval_date": null,
+      "review_due": null,
+      "proposal_entry": "CVE-2026-11824"
+    },
+    {
+      "id": "CVE-2026-12087",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-12087"
+    },
+    {
+      "id": "CVE-2026-13221",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-13221"
+    },
+    {
+      "id": "CVE-2026-15059",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-15059"
+    },
+    {
+      "id": "CVE-2026-15534",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-15534"
+    },
+    {
+      "id": "CVE-2026-16742",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-16742"
+    },
+    {
+      "id": "CVE-2026-18374",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-18374"
+    },
+    {
+      "id": "CVE-2026-18477",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-18477"
+    },
+    {
+      "id": "CVE-2026-18508",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-18508"
+    },
+    {
+      "id": "CVE-2026-19487",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-19487"
+    },
+    {
+      "id": "CVE-2026-19499",
+      "bucket": "H",
+      "decision": "hold_not_accepted",
+      "approved_by": null,
+      "approval_date": null,
+      "review_due": null,
+      "proposal_entry": "CVE-2026-19499"
+    },
+    {
+      "id": "CVE-2026-19542",
+      "bucket": "H",
+      "decision": "hold_not_accepted",
+      "approved_by": null,
+      "approval_date": null,
+      "review_due": null,
+      "proposal_entry": "CVE-2026-19542"
+    },
+    {
+      "id": "CVE-2026-27171",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-27171"
+    },
+    {
+      "id": "CVE-2026-3184",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-3184"
+    },
+    {
+      "id": "CVE-2026-39113",
+      "bucket": "H",
+      "decision": "hold_not_accepted",
+      "approved_by": null,
+      "approval_date": null,
+      "review_due": null,
+      "proposal_entry": "CVE-2026-39113"
+    },
+    {
+      "id": "CVE-2026-40228",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-40228"
+    },
+    {
+      "id": "CVE-2026-41991",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-41991"
+    },
+    {
+      "id": "CVE-2026-41992",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-41992"
+    },
+    {
+      "id": "CVE-2026-42250",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-42250"
+    },
+    {
+      "id": "CVE-2026-42496",
+      "bucket": "E",
+      "decision": "approved_exact_image_exclusion",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-42496"
+    },
+    {
+      "id": "CVE-2026-42497",
+      "bucket": "E",
+      "decision": "approved_exact_image_exclusion",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-42497"
+    },
+    {
+      "id": "CVE-2026-48959",
+      "bucket": "E",
+      "decision": "approved_exact_image_exclusion",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-48959"
+    },
+    {
+      "id": "CVE-2026-48961",
+      "bucket": "E",
+      "decision": "approved_exact_image_exclusion",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-48961"
+    },
+    {
+      "id": "CVE-2026-48962",
+      "bucket": "E",
+      "decision": "approved_exact_image_exclusion",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-48962"
+    },
+    {
+      "id": "CVE-2026-50812",
+      "bucket": "H",
+      "decision": "hold_not_accepted",
+      "approved_by": null,
+      "approval_date": null,
+      "review_due": null,
+      "proposal_entry": "CVE-2026-50812"
+    },
+    {
+      "id": "CVE-2026-50813",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-50813"
+    },
+    {
+      "id": "CVE-2026-53910",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-53910"
+    },
+    {
+      "id": "CVE-2026-5435",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-5435"
+    },
+    {
+      "id": "CVE-2026-54369",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-54369"
+    },
+    {
+      "id": "CVE-2026-54370",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-54370"
+    },
+    {
+      "id": "CVE-2026-54371",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-54371"
+    },
+    {
+      "id": "CVE-2026-54411",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-54411"
+    },
+    {
+      "id": "CVE-2026-5450",
+      "bucket": "H",
+      "decision": "hold_not_accepted",
+      "approved_by": null,
+      "approval_date": null,
+      "review_due": null,
+      "proposal_entry": "CVE-2026-5450"
+    },
+    {
+      "id": "CVE-2026-56391",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-56391"
+    },
+    {
+      "id": "CVE-2026-56392",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-56392"
+    },
+    {
+      "id": "CVE-2026-5704",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-5704"
+    },
+    {
+      "id": "CVE-2026-57432",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-57432"
+    },
+    {
+      "id": "CVE-2026-57433",
+      "bucket": "E",
+      "decision": "approved_exact_image_exclusion",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-57433"
+    },
+    {
+      "id": "CVE-2026-5928",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-5928"
+    },
+    {
+      "id": "CVE-2026-6238",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-6238"
+    },
+    {
+      "id": "CVE-2026-6368",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-6368"
+    },
+    {
+      "id": "CVE-2026-6791",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-6791"
+    },
+    {
+      "id": "CVE-2026-7010",
+      "bucket": "E",
+      "decision": "approved_exact_image_exclusion",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-7010"
+    },
+    {
+      "id": "CVE-2026-7017",
+      "bucket": "E",
+      "decision": "approved_exact_image_exclusion",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-7017"
+    },
+    {
+      "id": "CVE-2026-76642",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-76642"
+    },
+    {
+      "id": "CVE-2026-77117",
+      "bucket": "H",
+      "decision": "hold_not_accepted",
+      "approved_by": null,
+      "approval_date": null,
+      "review_due": null,
+      "proposal_entry": "CVE-2026-77117"
+    },
+    {
+      "id": "CVE-2026-78408",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-78408"
+    },
+    {
+      "id": "CVE-2026-78409",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-78409"
+    },
+    {
+      "id": "CVE-2026-78410",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-78410"
+    },
+    {
+      "id": "CVE-2026-80489",
+      "bucket": "H",
+      "decision": "hold_not_accepted",
+      "approved_by": null,
+      "approval_date": null,
+      "review_due": null,
+      "proposal_entry": "CVE-2026-80489"
+    },
+    {
+      "id": "CVE-2026-8376",
+      "bucket": "E",
+      "decision": "approved_exact_image_exclusion",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-8376"
+    },
+    {
+      "id": "CVE-2026-85091",
+      "bucket": "H",
+      "decision": "hold_not_accepted",
+      "approved_by": null,
+      "approval_date": null,
+      "review_due": null,
+      "proposal_entry": "CVE-2026-85091"
+    },
+    {
+      "id": "CVE-2026-86145",
+      "bucket": "R",
+      "decision": "accepted_temporary_local_qualification_risk",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-86145"
+    },
+    {
+      "id": "CVE-2026-9538",
+      "bucket": "E",
+      "decision": "approved_exact_image_exclusion",
+      "approved_by": "VincentCinque",
+      "approval_date": "2026-09-12",
+      "review_due": "2026-10-12T00:00:00-04:00",
+      "proposal_entry": "CVE-2026-9538"
+    }
+  ],
+  "explicit_critical_risk_acceptances": [
+    "CVE-2026-12087",
+    "CVE-2026-13221"
+  ],
+  "effect": "Historical approval event, not a claim that every decision remains active after a C6 trigger. Consult the subsequent verification/status record.",
+  "release_authority": "none",
+  "gate_closure": "none",
+  "retained_scanner_matches": {
+    "api": 181,
+    "web": 3
+  }
+}

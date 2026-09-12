@@ -1,7 +1,13 @@
 # Gate 13C — S04 owner disposition proposal
 
 **Prepared:** September 10, 2026 (America/New_York); September 11 UTC.
-**Status: READY FOR OWNER DECISION — NO ACCEPTANCES RECORDED.**
+**Preparation status (historical): READY FOR OWNER DECISION — NO ACCEPTANCES RECORDED.**
+
+**September 12 owner decision:** E11/R59 approved under C1–C7 by VincentCinque;
+H10 remain unaccepted. The [approval and follow-up](SECURITY_OWNER_ACCEPTANCE.md)
+records seven R exceptions subsequently reopened for newly identified stable fixes,
+leaving 52 active local exceptions. This proposal and its JSON remain historical;
+use the dated acceptance/review ledger for current decisions and deadline.
 
 The requested follow-up reviews residual risks against the
 [verified containment](SECURITY_CONTAINMENT_RESULTS.md). It does not interpret

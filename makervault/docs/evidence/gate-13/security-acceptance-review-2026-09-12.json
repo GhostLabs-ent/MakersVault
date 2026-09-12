@@ -1,0 +1,1832 @@
+{
+  "schema": 1,
+  "status": "approval_recorded_c6_reopen_applied_not_security_closeout",
+  "reviewed_date": "2026-09-12",
+  "approval_event": "security-owner-acceptance-2026-09-12.json",
+  "approval_event_sha256": "14f363e80ef4af1169e553dc829a2b7bc44476e2aecf924789e9a6909a6ff40d",
+  "proposal_sha256": "663d18ae1d0e92eb731feba6ae736e8dae819aa368ec6f77ae0de882ed21914e",
+  "images": {
+    "api": {
+      "id": "sha256:40aef54d6acf598ce49197d1aac966c96cc38ddd887ca10feff6a3ef4a74edec",
+      "platform": "linux/amd64"
+    },
+    "web": {
+      "id": "sha256:390b8dbb18c868f72366fe4353c2d8a944b3b0b412ad6fd46455dc2e5debcf82",
+      "platform": "linux/amd64"
+    }
+  },
+  "review_deadline": {
+    "not_after": "2026-10-12T00:00:00-04:00",
+    "basis": "Conservative midnight at start of October 12 in America/New_York; within 30 days of September 12 approval. Earlier candidate freeze/13D or any C6 trigger takes precedence.",
+    "earlier_events": [
+      "candidate freeze",
+      "Gate 13D",
+      "any C6 reopen condition"
+    ]
+  },
+  "counts": {
+    "approved_exclusions": 11,
+    "approved_exception_events": 59,
+    "active_local_exceptions": 52,
+    "reopened_exceptions": 7,
+    "original_holds": 10,
+    "open_residual_cves": 17,
+    "retained_api_matches": 181,
+    "retained_web_matches": 3
+  },
+  "runs": {
+    "vendor-run": {
+      "run": {
+        "command": [
+          "node",
+          "makervault/docs/evidence/gate-13/security-acceptance-vendor.cjs"
+        ],
+        "started_at": "2026-09-12T16:23:55.161Z",
+        "source_revision": "f93109f38134e2d492400660566db88386887e1c",
+        "verification_source_status": "",
+        "finished_at": "2026-09-12T16:23:58.930Z",
+        "duration_seconds": 3.769,
+        "exit_code": 0,
+        "signal": null,
+        "end_source_revision": "f93109f38134e2d492400660566db88386887e1c",
+        "end_verification_source_status": "",
+        "artifacts": [
+          {
+            "file": "stdout.log",
+            "bytes": 7325,
+            "sha256": "1a9e4b39dab64eaf4b0ca909887634e6796564c78c8278705e05fa25209cc765"
+          },
+          {
+            "file": "stderr.log",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ]
+      },
+      "raw_sha256": {
+        "started.json": "826223570e4987b152c856f68de502038a69868ea66f474f5cc340c4bc3370cb",
+        "result.json": "cffa9f57e7c5cc67b20f3f443651b49e804ef67491bd44f7a6d9c018f12fd7d1",
+        "stdout.log": "1a9e4b39dab64eaf4b0ca909887634e6796564c78c8278705e05fa25209cc765",
+        "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "components": {
+      "run": {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--read-only",
+          "--cap-drop",
+          "ALL",
+          "--security-opt",
+          "no-new-privileges",
+          "--user",
+          "65534:65534",
+          "--memory",
+          "256m",
+          "--cpus",
+          "1",
+          "--env",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "--mount",
+          "type=bind,src=/home/vinnyc/Documents/GitHub/MakersVault/makervault/docs/evidence/gate-13/security-closeout-runtime.py,dst=/probe.py,readonly",
+          "--entrypoint",
+          "python",
+          "sha256:40aef54d6acf598ce49197d1aac966c96cc38ddd887ca10feff6a3ef4a74edec",
+          "/probe.py"
+        ],
+        "started_at": "2026-09-12T16:25:54.505Z",
+        "source_revision": "f93109f38134e2d492400660566db88386887e1c",
+        "verification_source_status": "",
+        "finished_at": "2026-09-12T16:25:55.166Z",
+        "duration_seconds": 0.661,
+        "exit_code": 0,
+        "signal": null,
+        "end_source_revision": "f93109f38134e2d492400660566db88386887e1c",
+        "end_verification_source_status": "",
+        "artifacts": [
+          {
+            "file": "stdout.log",
+            "bytes": 2343,
+            "sha256": "74c8c64677326d9a68b36e179f4b9a45761a2dccd80a85bd69454c254825d75a"
+          },
+          {
+            "file": "stderr.log",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ]
+      },
+      "raw_sha256": {
+        "started.json": "d8c6a83a4de1619da095863afadb0556fc9a0556b32dd858b3ffd8da5c52e058",
+        "result.json": "3b06000423f4cc5d6154b3a0618e84ba4c873e984fe573a39037a504a1df1d3a",
+        "stdout.log": "74c8c64677326d9a68b36e179f4b9a45761a2dccd80a85bd69454c254825d75a",
+        "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "cli": {
+      "run": {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--network",
+          "none",
+          "--read-only",
+          "--cap-drop",
+          "ALL",
+          "--security-opt",
+          "no-new-privileges",
+          "--user",
+          "65534:65534",
+          "--memory",
+          "256m",
+          "--cpus",
+          "1",
+          "--env",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "--mount",
+          "type=bind,src=/home/vinnyc/Documents/GitHub/MakersVault/makervault/docs/evidence/gate-13/security-disposition-components.py,dst=/probe.py,readonly",
+          "--entrypoint",
+          "python",
+          "sha256:40aef54d6acf598ce49197d1aac966c96cc38ddd887ca10feff6a3ef4a74edec",
+          "/probe.py"
+        ],
+        "started_at": "2026-09-12T16:25:55.497Z",
+        "source_revision": "f93109f38134e2d492400660566db88386887e1c",
+        "verification_source_status": "",
+        "finished_at": "2026-09-12T16:25:56.030Z",
+        "duration_seconds": 0.533,
+        "exit_code": 0,
+        "signal": null,
+        "end_source_revision": "f93109f38134e2d492400660566db88386887e1c",
+        "end_verification_source_status": "",
+        "artifacts": [
+          {
+            "file": "stdout.log",
+            "bytes": 725,
+            "sha256": "2db6119329fd38e8546a75e3e07ef51a0eb596f256a97d46b05a5143c101840d"
+          },
+          {
+            "file": "stderr.log",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ]
+      },
+      "raw_sha256": {
+        "started.json": "e2959a7f8cb0d4c755c4d8b83e3d3fd303a8baf99d1e143f1802b9ac56906971",
+        "result.json": "2d8758c55905fdd89a61c28c960d1f97ee8ef4cfa07a258bdba3ade744f67294",
+        "stdout.log": "2db6119329fd38e8546a75e3e07ef51a0eb596f256a97d46b05a5143c101840d",
+        "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "components": {
+    "benign_idna_observation": {
+      "input": "ẞ.example",
+      "scope": "Offline normalization only; no DNS/network request or demonstrated security bypass",
+      "stdlib_result": "ss.example"
+    },
+    "expat": "expat_2.8.3",
+    "machine": "x86_64",
+    "packages": {
+      "fastapi": "0.141.1",
+      "httpcore2": null,
+      "httpx2": null,
+      "idna": "3.18",
+      "pillow": "12.3.0",
+      "pytest": null,
+      "webauthn": "3.0.0"
+    },
+    "perl": {
+      "config": [
+        "x86_64-linux-gnu-thread-multi",
+        "8"
+      ],
+      "exit_code": 0,
+      "modules_loadable": {
+        "Archive::Tar": false,
+        "Encode": false,
+        "File::Find": false,
+        "File::GlobMapper": false,
+        "File::Temp": true,
+        "HTTP::Tiny": false,
+        "IO::Compress": false,
+        "IO::Uncompress::Unzip": false,
+        "Locale::Maketext": false,
+        "Socket": true,
+        "Storable": false
+      }
+    },
+    "pointer_bits": 64,
+    "python": "3.11.16 (main, Sep  1 2026, 00:12:26) [GCC 14.2.0]",
+    "sqlite": "3.46.1",
+    "sqlite_archive_functions": [],
+    "sqlite_compile_options": [
+      "ALLOW_ROWID_IN_VIEW",
+      "ATOMIC_INTRINSICS=1",
+      "COMPILER=gcc-14.2.0",
+      "DEFAULT_AUTOVACUUM",
+      "DEFAULT_CACHE_SIZE=-2000",
+      "DEFAULT_FILE_FORMAT=4",
+      "DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+      "DEFAULT_MMAP_SIZE=0",
+      "DEFAULT_PAGE_SIZE=4096",
+      "DEFAULT_PCACHE_INITSZ=20",
+      "DEFAULT_RECURSIVE_TRIGGERS",
+      "DEFAULT_SECTOR_SIZE=4096",
+      "DEFAULT_SYNCHRONOUS=2",
+      "DEFAULT_WAL_AUTOCHECKPOINT=1000",
+      "DEFAULT_WAL_SYNCHRONOUS=2",
+      "DEFAULT_WORKER_THREADS=0",
+      "DIRECT_OVERFLOW_READ",
+      "ENABLE_COLUMN_METADATA",
+      "ENABLE_DBPAGE_VTAB",
+      "ENABLE_DBSTAT_VTAB",
+      "ENABLE_FTS3",
+      "ENABLE_FTS3_PARENTHESIS",
+      "ENABLE_FTS3_TOKENIZER",
+      "ENABLE_FTS4",
+      "ENABLE_FTS5",
+      "ENABLE_LOAD_EXTENSION",
+      "ENABLE_MATH_FUNCTIONS",
+      "ENABLE_PREUPDATE_HOOK",
+      "ENABLE_RTREE",
+      "ENABLE_SESSION",
+      "ENABLE_STMTVTAB",
+      "ENABLE_UNLOCK_NOTIFY",
+      "ENABLE_UPDATE_DELETE_LIMIT",
+      "HAVE_ISNAN",
+      "LIKE_DOESNT_MATCH_BLOBS",
+      "MALLOC_SOFT_LIMIT=1024",
+      "MAX_ATTACHED=10",
+      "MAX_COLUMN=2000",
+      "MAX_COMPOUND_SELECT=500",
+      "MAX_DEFAULT_PAGE_SIZE=32768",
+      "MAX_EXPR_DEPTH=1000",
+      "MAX_FUNCTION_ARG=127",
+      "MAX_LENGTH=1000000000",
+      "MAX_LIKE_PATTERN_LENGTH=50000",
+      "MAX_MMAP_SIZE=0x7fff0000",
+      "MAX_PAGE_COUNT=0xfffffffe",
+      "MAX_PAGE_SIZE=65536",
+      "MAX_SCHEMA_RETRY=25",
+      "MAX_SQL_LENGTH=1000000000",
+      "MAX_TRIGGER_DEPTH=1000",
+      "MAX_VARIABLE_NUMBER=250000",
+      "MAX_VDBE_OP=250000000",
+      "MAX_WORKER_THREADS=8",
+      "MUTEX_PTHREADS",
+      "SECURE_DELETE",
+      "SOUNDEX",
+      "SYSTEM_MALLOC",
+      "TEMP_STORE=1",
+      "THREADSAFE=1",
+      "USE_URI"
+    ],
+    "zlib_compile": "1.3.1",
+    "zlib_runtime": "1.3.1"
+  },
+  "cli": {
+    "scope": "Installed package manifests and named executable paths; dynamic symbol presence only, no vulnerable function invoked",
+    "sqlite": {
+      "library": "libsqlite3.so.0",
+      "limit": "Absence of one symbol is not exclusion of all SESSION code or resolution of Debian version applicability",
+      "python_runtime": "3.46.1",
+      "symbols": {
+        "sqlite3changeset_apply": true,
+        "sqlite3changeset_apply_v2": true,
+        "sqlite3changeset_apply_v3": false
+      }
+    },
+    "zipdetails": {
+      "package_search_exit": 1,
+      "package_search_stderr": "dpkg-query: no path found matching pattern *zipdetails*\n",
+      "package_search_stdout": "",
+      "present_paths": [],
+      "searched_paths": [
+        "/bin",
+        "/sbin",
+        "/usr/bin",
+        "/usr/local/bin",
+        "/usr/local/sbin",
+        "/usr/sbin"
+      ],
+      "which": null
+    }
+  },
+  "vendor": {
+    "directory": "/home/vinnyc/.local/state/makersvault/verification/containment-acceptance-vendor",
+    "summary_sha256": "12582044696e1a1967ffd624ed5042256ecae168c50bd4b92e0851fd4af0b8a3",
+    "started_at": "2026-09-12T16:23:55.215Z",
+    "finished_at": "2026-09-12T16:23:58.903Z",
+    "captured_pages": 79,
+    "unavailable_pages": 1,
+    "extraction_note": "Collector diagnostic shortlist also contained acl/attr prose about future fixes. Strict table-row reducer rejects those three; not new fixed packages, suppressions or discarded raw evidence."
+  },
+  "checked_application_sha256": {
+    "api/Dockerfile": "bf5f961fbb5cf8b64f0a92f775ae698c6a81dfcd8859fa3202edb693c7c2e986",
+    "api/db.py": "7f4aacc3f90787b913fbdd00d8cab9044b8577913f9c39834bb2aa7732e60e1c",
+    "api/recovery.py": "7e4477532fc7b27034be18e072f2758c4794e6e4752ffdb7c8e9f83222d2ac17",
+    "api/recovery_mutation.py": "1984a90fe7d97669a759d8858e186d83365a3ebaf724e249d68c131ff9ad7074"
+  },
+  "fixed_ids": [
+    "CVE-2025-15649",
+    "CVE-2026-11822",
+    "CVE-2026-11824",
+    "CVE-2026-12087",
+    "CVE-2026-13221",
+    "CVE-2026-41991",
+    "CVE-2026-41992",
+    "CVE-2026-42496",
+    "CVE-2026-42497",
+    "CVE-2026-48959",
+    "CVE-2026-48961",
+    "CVE-2026-48962",
+    "CVE-2026-5450",
+    "CVE-2026-57432",
+    "CVE-2026-57433",
+    "CVE-2026-5928",
+    "CVE-2026-7010",
+    "CVE-2026-7017",
+    "CVE-2026-8376",
+    "CVE-2026-86145"
+  ],
+  "reopened_exception_ids": [
+    "CVE-2026-12087",
+    "CVE-2026-13221",
+    "CVE-2026-41991",
+    "CVE-2026-41992",
+    "CVE-2026-57432",
+    "CVE-2026-5928",
+    "CVE-2026-86145"
+  ],
+  "records": [
+    {
+      "id": "CVE-2005-2541",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2005-2541",
+      "raw_sha256": "69d13e5570d0c3e3c2b0b658b0bd26414887c886d24b02f3fdddfb6274457a51",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 1.35+dfsg-3.1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 1.35+dfsg-3.1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2005-2541",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2007-5686",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2007-5686",
+      "raw_sha256": "c807f99431f4304f8608ef7f703acdcfe080cac4e66b030a49e86e830ba5e9da",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 1:4.17.4-2 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 1:4.17.4-2 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2007-5686",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2010-4756",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2010-4756",
+      "raw_sha256": "d25d75d8c78b6033455d94b89b60d05463ade4a8b8e99a3391a39ce4115e340d",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-12+deb13u3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.41-12+deb13u4 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2010-4756",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2011-3374",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2011-3374",
+      "raw_sha256": "9aef1c5706aadc31b353833511036481b22fcd2579fe2763c53c6a1cacbbe460",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 3.0.3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 3.0.3 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2011-3374",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2011-4116",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2011-4116",
+      "raw_sha256": "8306950288bb683a0869f1af510dbd847d2c5e432df69318fa3d70a2a81d2f63",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 5.40.1-6 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 5.40.1-6+deb13u1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2011-4116",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2013-4392",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2013-4392",
+      "raw_sha256": "64a2e77edaeac61e2c0e366b88ea3d9113da74bd283b9426d2bf280989a33584",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 257.13-1~deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 257.13-1~deb13u1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2013-4392",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2017-18018",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2017-18018",
+      "raw_sha256": "53d3f9ec8f5e37e1ddca2beb332adf35b12bc36edb93fc970aa6288bb984eb00",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 9.7-3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 9.7-3 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2017-18018",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2018-20796",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2018-20796",
+      "raw_sha256": "0cb8c8a63e2476f6ebe4c61c944a48323bb66d49f8338d3bb292bdf9897c0f22",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-12+deb13u3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.41-12+deb13u4 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2018-20796",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2019-1010022",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2019-1010022",
+      "raw_sha256": "c22d43dbfd9fdd966d7a5d8ee91e4c9abfcf6d1357c70dd871f3a5b0b651b6b1",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-12+deb13u3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.41-12+deb13u4 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2019-1010022",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2019-1010023",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2019-1010023",
+      "raw_sha256": "ef680a51c4c65d70d4de2d07d255a04dbcc376ad5211c3a5f8a2df5f9f2d404c",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-12+deb13u3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.41-12+deb13u4 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2019-1010023",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2019-1010024",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2019-1010024",
+      "raw_sha256": "5a0eadfac339a812952d8d6101547491c763a24d9b8f74428d819fc10f4e2440",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-12+deb13u3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.41-12+deb13u4 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2019-1010024",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2019-1010025",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2019-1010025",
+      "raw_sha256": "d048ad857e887bbaa0417d66b99db22ae858721c3daca5d965dc09d4454d0a19",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-12+deb13u3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.41-12+deb13u4 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2019-1010025",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2019-9192",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2019-9192",
+      "raw_sha256": "4c22b583c62f461dec87a062eb8061ef47f50a77cb6cb37df8e3e20e544f894d",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-12+deb13u3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.41-12+deb13u4 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2019-9192",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2021-45346",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2021-45346",
+      "raw_sha256": "8013738ba497b0ef5fb0b774ac9323d5459eebb640ee33215c51cd065ca4cd95",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 3.46.1-7+deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 3.46.1-7+deb13u2 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2021-45346",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2022-0563",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2022-0563",
+      "raw_sha256": "5499e07b5e28b8a58f54d6e9a3d3fc30fbb9e9987fd51f4e8c59d80e6f823305",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-5 vulnerable",
+        "trixie (security) 2.41.5-0+deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie (security), trixie 2.41.5-0+deb13u1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2022-0563",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2023-31437",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2023-31437",
+      "raw_sha256": "30a5783713661717afc824b7d9467c63362233931abbcdb2a2d9c559af8f2698",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 257.13-1~deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 257.13-1~deb13u1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2023-31437",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2023-31438",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2023-31438",
+      "raw_sha256": "5d411f35362ebb4ded9644f19e990de0c2a3a55603ed0ecafe0264f574df2362",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 257.13-1~deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 257.13-1~deb13u1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2023-31438",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2023-31439",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2023-31439",
+      "raw_sha256": "ff2abf05d231c5e47daa4496a3ef5e2c214a0d0b52d700e5911da32a3c129752",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 257.13-1~deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 257.13-1~deb13u1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2023-31439",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2024-56433",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2024-56433",
+      "raw_sha256": "32600377091d230a7d7519d9e17b9e685bd039016c3b4909269d7bf886ae9f4d",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 1:4.17.4-2 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 1:4.17.4-2 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2024-56433",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2025-15649",
+      "bucket": "E",
+      "current_status": "approved_exclusion_revalidated_after_vendor_fix_review",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2025-15649",
+      "raw_sha256": "1a7e7e1fed3eeedf48468175a70c8fe86009918bdf1433c751d4bdadc50d1323",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.213-1 vulnerable",
+        "trixie 5.40.1-6 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.213-1+deb13u1 fixed",
+        "trixie 5.40.1-6+deb13u1 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2025-15649",
+      "rationale": "Owner-approved exact-image precondition still absent in fresh component/CLI observations; vendor fix review completed without expanding exclusion or altering bytes."
+    },
+    {
+      "id": "CVE-2025-5278",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2025-5278",
+      "raw_sha256": "e89db87d050000901752c5b67556822ee1cbd2e60be54fbca6fac8008fe95d9a",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 9.7-3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 9.7-3 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2025-5278",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2025-60876",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security.alpinelinux.org/vuln/CVE-2025-60876",
+      "raw_sha256": null,
+      "source_status": "unavailable",
+      "prior_trixie_rows": [],
+      "trixie_rows": [],
+      "vendor_note": "Collector HTTP 406 retained. Separate browser reread succeeded; no archived fresh Alpine body. Prior dated disposition retained, not cleared.",
+      "acceptance_event_id": "CVE-2025-60876",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2025-6141",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2025-6141",
+      "raw_sha256": "d44dc6cc2ebd927c3a56d0ccc9b98c5e6fe637c40e8bb862116d5713e05470d9",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 6.5+20250216-2 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 6.5+20250216-2 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2025-6141",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2025-69720",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2025-69720",
+      "raw_sha256": "3542be519daaef8f60a0fd662f4a6129a238f59ef9b86155869d49cfd2b3af78",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 6.5+20250216-2 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 6.5+20250216-2 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2025-69720",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2025-70873",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2025-70873",
+      "raw_sha256": "a755476974ee116a8a2232053b19f46ef9a95b953bf62459b60ac16b5e87d002",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 3.46.1-7+deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 3.46.1-7+deb13u2 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2025-70873",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-11822",
+      "bucket": "H",
+      "current_status": "held_supported_fix_identified_not_installed",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-11822",
+      "raw_sha256": "edcd6ac74c1e02da328854acd4b978e2573d8f42efdd388eb87e13f01fc8273a",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 3.46.1-7+deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 3.46.1-7+deb13u2 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-11822",
+      "rationale": "C6 requires renewed disposition when a relevant supported fix exists; old images remain unpatched."
+    },
+    {
+      "id": "CVE-2026-11824",
+      "bucket": "H",
+      "current_status": "held_supported_fix_identified_not_installed",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-11824",
+      "raw_sha256": "1406679140a1916d3a17df6389f4c068a6939bcd5cbee4b459ff89c72a07b4ab",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 3.46.1-7+deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 3.46.1-7+deb13u2 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-11824",
+      "rationale": "C6 requires renewed disposition when a relevant supported fix exists; old images remain unpatched."
+    },
+    {
+      "id": "CVE-2026-12087",
+      "bucket": "R",
+      "current_status": "reopened_vendor_fix_no_active_exception",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-12087",
+      "raw_sha256": "3ead60bbe81ac3a42c3e2622cbe21860855df479250e74c869b9600f85405be0",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.038-1 vulnerable",
+        "trixie 5.40.1-6 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.038-1+deb13u1 fixed",
+        "trixie 5.40.1-6+deb13u1 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-12087",
+      "rationale": "C6 requires renewed disposition when a relevant supported fix exists; old images remain unpatched."
+    },
+    {
+      "id": "CVE-2026-13221",
+      "bucket": "R",
+      "current_status": "reopened_vendor_fix_no_active_exception",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-13221",
+      "raw_sha256": "8780b5dd3189ed5a228e1ee2fd25bbdc9e7791471f5ae2ca71aebd7694054d89",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 5.40.1-6 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 5.40.1-6+deb13u1 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-13221",
+      "rationale": "C6 requires renewed disposition when a relevant supported fix exists; old images remain unpatched."
+    },
+    {
+      "id": "CVE-2026-15059",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-15059",
+      "raw_sha256": "89c8851fe7b79a7ca64ac9bef32214bd0953ec36877eccbb515cf845f82b083c",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 257.13-1~deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 257.13-1~deb13u1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-15059",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-15534",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-15534",
+      "raw_sha256": "b42960a7cba8da6f02b869cfc3b6e5999b78b581e0ffc4e5c9a4897505b5b184",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 5.40.1-6 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 5.40.1-6+deb13u1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-15534",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-16742",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-16742",
+      "raw_sha256": "c114081bf10bba61ca028f5fcaa30cba04a0c56053706b616de2f6ce94c815f6",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 257.13-1~deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 257.13-1~deb13u1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-16742",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-18374",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-18374",
+      "raw_sha256": "d1080f3b7aaa3f56f9c94aeb72f149ef5172afdf7a317f91bcd9a5b8d77ffb44",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-12+deb13u3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.41-12+deb13u4 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-18374",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-18477",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-18477",
+      "raw_sha256": "72431e7348ae2610cbaf4bb404561bc23d5e674163ea66eb60137f2c05ba06d1",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 1.35+dfsg-3.1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 1.35+dfsg-3.1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-18477",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-18508",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-18508",
+      "raw_sha256": "90cf93ba567b4c9d41fb6e169933c14f70c0d13f4d7705c81affbfe7d1bd09b6",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 1.35+dfsg-3.1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 1.35+dfsg-3.1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-18508",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-19487",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-19487",
+      "raw_sha256": "cb1a478f4987a0cf86d9f649469829bec94f4f476a50c8ffffe493d0b9c042bd",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 5.40.1-6 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 5.40.1-6+deb13u1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-19487",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-19499",
+      "bucket": "H",
+      "current_status": "held_unresolved",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-19499",
+      "raw_sha256": "4c33175047f6284f62829b84333e3f410b8ac97e70bc8c8b1bba2256526a773d",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-12+deb13u3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.41-12+deb13u4 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-19499",
+      "rationale": "Obtain authoritative preconditions or a supported installed fix; do not infer safety from missing text."
+    },
+    {
+      "id": "CVE-2026-19542",
+      "bucket": "H",
+      "current_status": "held_unresolved",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-19542",
+      "raw_sha256": "62318e05ab3040b4a7f16027a1fe258f13d777e76ba6301dd2f1358fe0062c01",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-12+deb13u3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.41-12+deb13u4 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-19542",
+      "rationale": "Establish native tdelete call/input applicability or install an applicable supported fix; unavailable detail is not an exclusion."
+    },
+    {
+      "id": "CVE-2026-27171",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-27171",
+      "raw_sha256": "b4ea3a807f0bb35621efbb982160130bbfc0983c72c2619e740d0781bdc6c9f1",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 1:1.3.dfsg+really1.3.1-1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 1:1.3.dfsg+really1.3.1-1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-27171",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-3184",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-3184",
+      "raw_sha256": "1aa337b62b5f383c7ef5468579825692c0c471f11e1218aef38858fdd5bf5202",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-5 vulnerable",
+        "trixie (security) 2.41.5-0+deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie (security), trixie 2.41.5-0+deb13u1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-3184",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-39113",
+      "bucket": "H",
+      "current_status": "held_unresolved",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-39113",
+      "raw_sha256": "d89ce53bd3b0c8551dfa0483938e35baee4d9f1d9430bef1587e79bdb2e6eac5",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 3.46.1-7+deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 3.46.1-7+deb13u2 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-39113",
+      "rationale": "Reconcile the shipped Debian source/build and sqlar component with the upstream defect, or install an applicable supported fix."
+    },
+    {
+      "id": "CVE-2026-40228",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-40228",
+      "raw_sha256": "797341cd095a8f5ce09b0aa484386bdc39bd5e88d8b37ab067afdda1a3f0e00c",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 257.13-1~deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 257.13-1~deb13u1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-40228",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-41991",
+      "bucket": "R",
+      "current_status": "reopened_vendor_fix_no_active_exception",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-41991",
+      "raw_sha256": "144832122bfaf5712c0780f5724fc2e854f18cf31912844b4bff0b07e9c20a08",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 1.13-1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 1.13-1+deb13u1 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-41991",
+      "rationale": "C6 requires renewed disposition when a relevant supported fix exists; old images remain unpatched."
+    },
+    {
+      "id": "CVE-2026-41992",
+      "bucket": "R",
+      "current_status": "reopened_vendor_fix_no_active_exception",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-41992",
+      "raw_sha256": "23c64845212bf6eafcc398c596b4cbeed977de4ce5acfbb0afa6bbae07016132",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 1.13-1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 1.13-1+deb13u1 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-41992",
+      "rationale": "C6 requires renewed disposition when a relevant supported fix exists; old images remain unpatched."
+    },
+    {
+      "id": "CVE-2026-42250",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-42250",
+      "raw_sha256": "498b572f4d30aaefd631fc9d4e313b45e223149d1a21b5ff9056771bb7c96fdb",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "forky, sid, trixie 1.0.8-6 vulnerable"
+      ],
+      "trixie_rows": [
+        "forky, sid, trixie 1.0.8-6 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-42250",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-42496",
+      "bucket": "E",
+      "current_status": "approved_exclusion_revalidated_after_vendor_fix_review",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-42496",
+      "raw_sha256": "5d3e1e026c88098168434628eb1579f7843805acaa69637588d40dcb2acab0da",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 5.40.1-6 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 5.40.1-6+deb13u1 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-42496",
+      "rationale": "Owner-approved exact-image precondition still absent in fresh component/CLI observations; vendor fix review completed without expanding exclusion or altering bytes."
+    },
+    {
+      "id": "CVE-2026-42497",
+      "bucket": "E",
+      "current_status": "approved_exclusion_revalidated_after_vendor_fix_review",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-42497",
+      "raw_sha256": "fd9d314890735a0e70ac63c672c5512553e0e481d58b7ab17fd5fc11b1847e5c",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 5.40.1-6 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 5.40.1-6+deb13u1 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-42497",
+      "rationale": "Owner-approved exact-image precondition still absent in fresh component/CLI observations; vendor fix review completed without expanding exclusion or altering bytes."
+    },
+    {
+      "id": "CVE-2026-48959",
+      "bucket": "E",
+      "current_status": "approved_exclusion_revalidated_after_vendor_fix_review",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-48959",
+      "raw_sha256": "fc3edaf616aa45ec9a9890afa78c74af77269f9ece3712ea688b84bba7e1547b",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.213-1 vulnerable",
+        "trixie 5.40.1-6 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.213-1+deb13u1 fixed",
+        "trixie 5.40.1-6+deb13u1 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-48959",
+      "rationale": "Owner-approved exact-image precondition still absent in fresh component/CLI observations; vendor fix review completed without expanding exclusion or altering bytes."
+    },
+    {
+      "id": "CVE-2026-48961",
+      "bucket": "E",
+      "current_status": "approved_exclusion_revalidated_after_vendor_fix_review",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-48961",
+      "raw_sha256": "d511fed8df01400674b9a45fcb8423519e1e482971e3526ac8f281c5e4c01c0f",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.213-1 vulnerable",
+        "trixie 5.40.1-6 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.213-1+deb13u1 fixed",
+        "trixie 5.40.1-6+deb13u1 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-48961",
+      "rationale": "Owner-approved exact-image precondition still absent in fresh component/CLI observations; vendor fix review completed without expanding exclusion or altering bytes."
+    },
+    {
+      "id": "CVE-2026-48962",
+      "bucket": "E",
+      "current_status": "approved_exclusion_revalidated_after_vendor_fix_review",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-48962",
+      "raw_sha256": "9ece1ac5a7841598c3b05009b5e40ba982920164c67e5a19fe7f4dc1cdf9dfb2",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.213-1 vulnerable",
+        "trixie 5.40.1-6 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.213-1+deb13u1 fixed",
+        "trixie 5.40.1-6+deb13u1 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-48962",
+      "rationale": "Owner-approved exact-image precondition still absent in fresh component/CLI observations; vendor fix review completed without expanding exclusion or altering bytes."
+    },
+    {
+      "id": "CVE-2026-50812",
+      "bucket": "H",
+      "current_status": "held_unresolved",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-50812",
+      "raw_sha256": "cdb5b4675f45adfb8bf1de3ac0388ac052368ec2cf75ebed80a0f60413f10016",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 3.46.1-7+deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 3.46.1-7+deb13u2 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-50812",
+      "rationale": "Reconcile the vendor mapping and actual affected source implementation; absent v3 symbol alone does not clear all shared SESSION code."
+    },
+    {
+      "id": "CVE-2026-50813",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-50813",
+      "raw_sha256": "245ae024f8e37e95aa504643607253bc2b67f848abb05e829030c17df147f57c",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 3.46.1-7+deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 3.46.1-7+deb13u2 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-50813",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-53910",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-53910",
+      "raw_sha256": "009545bf64b158c2248f736c6ea2fb67f566d09904891681f94a324012161425",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 1:3.10-4 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 1:3.10-4 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-53910",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-5435",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-5435",
+      "raw_sha256": "4d5bde72011b65da9f96aec02a959f7d05f6870795b31c11da0dd2e026713d01",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-12+deb13u3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.41-12+deb13u4 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-5435",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-54369",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-54369",
+      "raw_sha256": "4677cdb2b848eca7bc76f57dd54e5d01e309f438bba58d892550db432fbde5ca",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.3.2-2 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.3.2-2 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-54369",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-54370",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-54370",
+      "raw_sha256": "36c932e9051decbe74a402bbe4df1e60f52a17c39cab2785b83901467b36758e",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.3.2-2 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.3.2-2 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-54370",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-54371",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-54371",
+      "raw_sha256": "8ef9888ae918a3a3ed6a43c64ad3b1cae6aea82c4bae6c7c6af873af17d8a265",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 1:2.5.2-3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 1:2.5.2-3 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-54371",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-54411",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-54411",
+      "raw_sha256": "aeb51ee7335304f014968bdb5440ba98503a24a34c93b6b67c890b9741cd11a2",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 1.7.0-5 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 1.7.0-5 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-54411",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-5450",
+      "bucket": "H",
+      "current_status": "held_supported_fix_identified_not_installed",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-5450",
+      "raw_sha256": "662f87b31569dc4edf878da1c060f02ec9a8be0041230986fabf3b4bafba0a51",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-12+deb13u3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.41-12+deb13u4 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-5450",
+      "rationale": "C6 requires renewed disposition when a relevant supported fix exists; old images remain unpatched."
+    },
+    {
+      "id": "CVE-2026-56391",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-56391",
+      "raw_sha256": "a5dbae87b0cb9b4f3299fc4770b07c5acdde363bb3d1ec6ddfa7276984177cfb",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 9.7-3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 9.7-3 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-56391",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-56392",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-56392",
+      "raw_sha256": "83fc93306b7439f6ccf00c267dac24cc42303d39e84f5a2987c2b6a8a14ff9a2",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 9.7-3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 9.7-3 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-56392",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-5704",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-5704",
+      "raw_sha256": "032f760b527fa1c27d93bc8e7d01a6089296493f4b3667fc6e4138c348454423",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 1.35+dfsg-3.1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 1.35+dfsg-3.1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-5704",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-57432",
+      "bucket": "R",
+      "current_status": "reopened_vendor_fix_no_active_exception",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-57432",
+      "raw_sha256": "8c9527cadcb7d4e9f0c2f2a5a1320acb9e334be1deaa5b8281d269d480b20127",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 5.40.1-6 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 5.40.1-6+deb13u1 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-57432",
+      "rationale": "C6 requires renewed disposition when a relevant supported fix exists; old images remain unpatched."
+    },
+    {
+      "id": "CVE-2026-57433",
+      "bucket": "E",
+      "current_status": "approved_exclusion_revalidated_after_vendor_fix_review",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-57433",
+      "raw_sha256": "1a8ca4de30c9aac7e2a2e5fa8a9132a0c38ced2041456a9d9cae7c6f6a72d134",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 5.40.1-6 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 5.40.1-6+deb13u1 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-57433",
+      "rationale": "Owner-approved exact-image precondition still absent in fresh component/CLI observations; vendor fix review completed without expanding exclusion or altering bytes."
+    },
+    {
+      "id": "CVE-2026-5928",
+      "bucket": "R",
+      "current_status": "reopened_vendor_fix_no_active_exception",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-5928",
+      "raw_sha256": "33cc014ee0fd9d2d6f2523b9e733164d4916c17d8ced7cdcdbd2e83933f9965b",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-12+deb13u3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.41-12+deb13u4 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-5928",
+      "rationale": "C6 requires renewed disposition when a relevant supported fix exists; old images remain unpatched."
+    },
+    {
+      "id": "CVE-2026-6238",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-6238",
+      "raw_sha256": "0716681e3e9e95285d65f21f4eadca9c43ea9d077599ebff5f6ef5f140c3d7ad",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-12+deb13u3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.41-12+deb13u4 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-6238",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-6368",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-6368",
+      "raw_sha256": "4e76ef558ddd1b7b9e6172140b43e7cedeaccc8ee7933c1fd713bccdc3462dd1",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-12+deb13u3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.41-12+deb13u4 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-6368",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-6791",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-6791",
+      "raw_sha256": "a21cfa878bfe2ca231da14507790093e24169f665c07a8433100a63ca28f3f10",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-12+deb13u3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.41-12+deb13u4 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-6791",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-7010",
+      "bucket": "E",
+      "current_status": "approved_exclusion_revalidated_after_vendor_fix_review",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-7010",
+      "raw_sha256": "b172ecb9e322e34f180c0f8220b9043812339a3bea35aa29ff2d5b59208a9f7d",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 0.090-1 vulnerable",
+        "trixie 5.40.1-6 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 0.090-1+deb13u1 fixed",
+        "trixie 5.40.1-6+deb13u1 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-7010",
+      "rationale": "Owner-approved exact-image precondition still absent in fresh component/CLI observations; vendor fix review completed without expanding exclusion or altering bytes."
+    },
+    {
+      "id": "CVE-2026-7017",
+      "bucket": "E",
+      "current_status": "approved_exclusion_revalidated_after_vendor_fix_review",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-7017",
+      "raw_sha256": "11c3c27c555a5bef6b23f1908c1a23beeb0120c8659728a43c758ecff6471605",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 0.090-1 vulnerable",
+        "trixie 5.40.1-6 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 0.090-1+deb13u1 fixed",
+        "trixie 5.40.1-6+deb13u1 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-7017",
+      "rationale": "Owner-approved exact-image precondition still absent in fresh component/CLI observations; vendor fix review completed without expanding exclusion or altering bytes."
+    },
+    {
+      "id": "CVE-2026-76642",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-76642",
+      "raw_sha256": "e8ba75517ab42b1ab2cd253a19ffaf750325951b5b33c7a2dc2dde02e23f0d60",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-5 vulnerable",
+        "trixie (security) 2.41.5-0+deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie (security), trixie 2.41.5-0+deb13u1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-76642",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-77117",
+      "bucket": "H",
+      "current_status": "held_unresolved",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-77117",
+      "raw_sha256": "45300a3f23b6d9738dcbdf2223b2cf0ae8709aefb13635ce9f5c66635570e7bc",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-12+deb13u3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.41-12+deb13u4 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-77117",
+      "rationale": "Obtain authoritative preconditions or a supported installed fix; do not infer safety from missing text."
+    },
+    {
+      "id": "CVE-2026-78408",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-78408",
+      "raw_sha256": "7e60e60c836b8474facedb4837a791746e48dbc79169dc487195ff53f717d46f",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-5 vulnerable",
+        "trixie (security) 2.41.5-0+deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie (security), trixie 2.41.5-0+deb13u1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-78408",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-78409",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-78409",
+      "raw_sha256": "c35095807bd7e3e342f85d1e2679e123ca72b799431754efb5a2a57d5b7d9cb7",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-5 vulnerable",
+        "trixie (security) 2.41.5-0+deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie (security), trixie 2.41.5-0+deb13u1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-78409",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-78410",
+      "bucket": "R",
+      "current_status": "accepted_temporary_local_qualification_risk",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-78410",
+      "raw_sha256": "81eb19c238996cdcbae32e38ee2d490b6fbd81c8d0223aeaf649292c74b2179e",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-5 vulnerable",
+        "trixie (security) 2.41.5-0+deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie (security), trixie 2.41.5-0+deb13u1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-78410",
+      "rationale": "Unchanged image/call boundary and approved C1-C7; no new fixed Trixie table row identified in this bounded refresh."
+    },
+    {
+      "id": "CVE-2026-80489",
+      "bucket": "H",
+      "current_status": "held_unresolved",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-80489",
+      "raw_sha256": "12ec45b081754b5e5d0b742b35621ff74a55f4522d2426da59e55bb8a9040e30",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 2.41-12+deb13u3 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 2.41-12+deb13u4 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-80489",
+      "rationale": "Obtain authoritative preconditions or a supported installed fix; do not infer safety from missing text."
+    },
+    {
+      "id": "CVE-2026-8376",
+      "bucket": "E",
+      "current_status": "approved_exclusion_revalidated_after_vendor_fix_review",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-8376",
+      "raw_sha256": "2f463007b0d0b0522958fe977a8f00b05cac33fefa6d8c32d2b56cb3e4ee867a",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 5.40.1-6 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 5.40.1-6+deb13u1 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-8376",
+      "rationale": "Owner-approved exact-image precondition still absent in fresh component/CLI observations; vendor fix review completed without expanding exclusion or altering bytes."
+    },
+    {
+      "id": "CVE-2026-85091",
+      "bucket": "H",
+      "current_status": "held_unresolved",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-85091",
+      "raw_sha256": "8b8edcc4b092a24472edf46c04ec6f58f58e324eee2db7976f80a0e3a089c07c",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 1:1.3.dfsg+really1.3.1-1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 1:1.3.dfsg+really1.3.1-1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-85091",
+      "rationale": "Resolve distribution source/backport and native gzwrite/gzprintf call applicability; do not treat generic Python decompression or a headline version comparison as proof."
+    },
+    {
+      "id": "CVE-2026-86145",
+      "bucket": "R",
+      "current_status": "reopened_vendor_fix_no_active_exception",
+      "supported_fix_identified": true,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-86145",
+      "raw_sha256": "2dc0e3f2c9cdf1610c5886ba6b3329d2a02bc8f31645753bd6fc4de5bd4275db",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 10.46-1~deb13u1 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 10.46-1~deb13u2 fixed"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-86145",
+      "rationale": "C6 requires renewed disposition when a relevant supported fix exists; old images remain unpatched."
+    },
+    {
+      "id": "CVE-2026-9538",
+      "bucket": "E",
+      "current_status": "approved_exact_image_exclusion",
+      "supported_fix_identified": false,
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-9538",
+      "raw_sha256": "3af61be9cd073433d2c4d6e6b1b074769f18d3529a9f5531e5e5c72eeaddf48a",
+      "source_status": "captured",
+      "prior_trixie_rows": [
+        "trixie 5.40.1-6 vulnerable"
+      ],
+      "trixie_rows": [
+        "trixie 5.40.1-6+deb13u1 vulnerable"
+      ],
+      "vendor_note": "Strict package table extraction; distro fix availability is not an installed fix",
+      "acceptance_event_id": "CVE-2026-9538",
+      "rationale": "Owner-approved exact-image precondition still absent in fresh component/CLI observations; vendor fix review completed without expanding exclusion or altering bytes."
+    }
+  ],
+  "limitations": [
+    "No new full application suite, image/language scan, installed fix or release clearance",
+    "Sourceware was not retried; Debian bug/SQLite source endpoints unavailable through browser review remain evidence gaps",
+    "Existing source evidence is not an exhaustive native call graph; raw SQLite remains trusted operator input",
+    "No scheduled monitor installed; recheck vendor/conditions at the next checkpoint or deadline"
+  ]
+}

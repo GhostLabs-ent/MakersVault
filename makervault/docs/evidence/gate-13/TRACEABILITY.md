@@ -1,6 +1,6 @@
 # Gate 13 strategy and invariant traceability
 
-**Date:** 2026-09-10
+**Date:** 2026-09-12
 
 **Baseline:** audit entry `236c0fd` / application `1a209aa`; current verification
 `ea17494` approved runtime containment and full verification after `ac4a051` S01/S02 hardening; folder-list optimization
@@ -8,7 +8,8 @@
 
 **Status:** 13A–13B accepted; approved 13C picker/sidebar optimizations implemented;
 remaining performance tuning deferred by owner after one bounded pass;
-approved S01/S02 patches and runtime containment verified; S04 residual acceptance pending;
+approved S01/S02 patches and containment verified; S04 E11/R59 approved under conditions,
+seven exceptions reopened for vendor fixes, ten original holds unaccepted;
 browser/platform evidence and final Gate 13 acceptance remain open
 
 ## Reading this ledger
@@ -111,11 +112,13 @@ are not recovered. Accept this bounded implementation separately from the remain
 CVEs and candidate/platform qualification. The final audit matches lifecycle IDs
 and retains identical reduced records for 181 API / 3 web matches; the first
 incomplete image attempt is separately recorded, never promoted to a complete scan.
-The [current owner package](SECURITY_DISPOSITION_PROPOSAL.md) proposes E11 exact-image
-exclusions, R59 exceptions under named C1–C7 local-qualification conditions and H10
-holds. R59 includes two critical Perl CVEs; no decision is yet accepted. A new
-durable CLI/symbol probe refines evidence without removing any scanner matches.
-Approval of E/R would still leave S04/G13-04 open; candidate acceptance remains separate.
+The [September 12 approval and C6 review](SECURITY_OWNER_ACCEPTANCE.md) now records
+VincentCinque's E11/R59 approval and seven R reopenings for newly identified stable
+fixes, including both critical Perl exceptions. E11 preconditions are reconfirmed;
+52 local exceptions remain active and H10 remain unaccepted, for 17 open residual
+CVEs. Deadline is October 12 00:00 America/New_York or earlier freeze/13D/C6 trigger.
+The bounded six-package API refresh is proposed, not implemented. All scanner
+matches remain visible; S04/G13-04 and candidate acceptance stay open.
 
 P07/P11/P12 now also have G13-02's joined current lifecycle proof, supplementing
 their focused API tests. Raw restore preserves the complete content/security graph

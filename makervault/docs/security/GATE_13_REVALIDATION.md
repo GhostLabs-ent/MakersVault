@@ -1,6 +1,6 @@
 # Gate 13 security finding revalidation
 
-**Date:** 2026-09-10
+**Date:** 2026-09-12
 
 **Status:** 13A–13B accepted; approved 13C maintenance/archive/browser/picker corrections verified;
 browser qualification and advisory dispositions open, not release clearance
@@ -110,8 +110,16 @@ maps every native CVE to these exact images and proposes E11 exclusions, R59
 time-limited local-qualification exceptions and H10 holds. The R set explicitly
 includes critical-rated CVE-2026-12087/13221. A new private, benign component probe
 corrects the zipdetails exclusion rationale and narrows one SQLite symbol question
-without claiming a SESSION exclusion. All decisions remain owner-pending; no
+without claiming a SESSION exclusion. At that checkpoint all decisions were owner-pending; no
 scanner suppression, application change, release clearance or security closure.
+
+On September 12 the owner [approved E11/R59 under C1–C7](../evidence/gate-13/SECURITY_OWNER_ACCEPTANCE.md).
+The same-turn vendor review identifies stable fixes and reopens seven exceptions,
+leaving 52 active local exceptions, E11 preconditions freshly reconfirmed and H10
+unaccepted (17 open residual CVEs). Approval expires by October 12 00:00
+America/New_York or earlier candidate freeze/13D/C6 trigger. A six-package API
+refresh is proposed for implementation approval, not installed. All 184 scanner
+matches remain; this does not close security or qualify a public release.
 
 ## Finding-by-finding disposition
 

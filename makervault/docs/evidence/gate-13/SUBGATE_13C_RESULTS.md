@@ -62,6 +62,14 @@ still pending, with explicit C1–C7 conditions, owner and expiry proposed. Even
 approval would leave H10/G13-04 and Gate 13C open. The new benign exact-image CLI /
 SQLite-symbol probe is durable evidence, not another full-gate or advisory scan.
 
+**September 12 owner decision:** [E11/R59 approved under C1–C7](SECURITY_OWNER_ACCEPTANCE.md),
+with H10 unaccepted. Fresh vendor fixes reopen seven R exceptions, including both
+critical Perl entries; E11 preconditions are reconfirmed and 52 local exceptions
+remain active. Seventeen residual CVEs remain open. The October 12 00:00
+America/New_York deadline is subject to earlier freeze/13D/C6 triggers. The
+proposed six-package stable API refresh still requires implementation approval;
+no fixed package, new image scan or Gate 13C acceptance is claimed.
+
 ## Bounded execution
 
 1. Refresh stale browser assertions to the accepted current UI, retaining explicit
