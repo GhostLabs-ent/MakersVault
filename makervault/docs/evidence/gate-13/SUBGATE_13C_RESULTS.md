@@ -98,6 +98,12 @@ authenticates SQLite/zlib source packages and exact runtime libraries, supportin
 two additional exclusion proposals (39113/85091) with five unresolved. No H7
 acceptance or package change follows automatically; security/Gate 13C stays open.
 
+**Two-exclusion owner decision:** [39113/85091 explicitly approved](SECURITY_HOLD_OWNER_ACCEPTANCE.md)
+under unchanged C1–C7/deadline. The append-only event yields current E4/R52/F26/H5;
+five holds remain unresolved and unaccepted. Earlier proposal/approval JSON stays
+unchanged. Evidence checks are not a new scan, full-suite run or installed fix;
+S04/G13-04 and Gate 13C/13D remain open, with no release or publication authority.
+
 ## Bounded execution
 
 1. Refresh stale browser assertions to the accepted current UI, retaining explicit

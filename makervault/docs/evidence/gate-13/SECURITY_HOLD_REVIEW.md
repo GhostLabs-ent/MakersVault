@@ -4,6 +4,11 @@
 **Application:** unchanged `6306ccff289d475530a6cacf4cb2e28db456ce08`.
 **Status: TWO ADDITIONAL EXCLUSIONS PROPOSED; FIVE UNRESOLVED; NO H ACCEPTANCES.**
 
+**Subsequent decision:** the owner [approved only these two exclusions](SECURITY_HOLD_OWNER_ACCEPTANCE.md)
+under unchanged C1–C7/deadline. The current combined register is E4/R52/F26/H5.
+The proposal and pending machine review below remain historical evidence, not the
+current approval ledger. The five other holds and security closeout remain open.
+
 The owner [approved E2/R52](SECURITY_CURRENT_OWNER_ACCEPTANCE.md), explicitly
 including the BusyBox evidence gap, and authorized the package's bounded H review.
 That approval does not accept any of H7. This review now supports two narrowly

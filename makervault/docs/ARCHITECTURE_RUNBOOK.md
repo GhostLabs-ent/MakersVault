@@ -17,7 +17,9 @@ verifies 26 fixes without suppressing raw matches. The
 [current E2/R52 proposal](evidence/gate-13/SECURITY_CURRENT_IMAGE_DECISION.md) was
 [explicitly approved](evidence/gate-13/SECURITY_CURRENT_OWNER_ACCEPTANCE.md), including
 the BusyBox evidence gap. The [bounded H review](evidence/gate-13/SECURITY_HOLD_REVIEW.md)
-proposes two additional source-precondition exclusions; none of H7 is yet accepted.
+supports two additional source-precondition exclusions, now
+[explicitly approved](evidence/gate-13/SECURITY_HOLD_OWNER_ACCEPTANCE.md).
+Current totals are E4/R52/F26/H5; the five remaining holds are unaccepted.
 These read-only reviews recheck durable evidence, not rerun the full gate. Earlier
 browser results and WebKit synthetic-drop limits remain separately dated; G13-01
 performance tuning stays deferred. Nothing is pushed or release-qualified.
@@ -300,6 +302,7 @@ row's future-tense wording.
 | T-073 | `VERIFIED` / `OPEN` | Read-only application reconciliation on unchanged `6306ccf` images verifies 26 vendor fixes: original 20 plus all six newly seen PCRE2 IDs. Current Debian feed fixed versions equal the pins; six archives match authenticated APT metadata and 931 runtime regular files match archive bytes. No further package update needed for this group | `docs/evidence/gate-13/SECURITY_RECONCILIATION_RESULTS.md`, new per-CVE register, 15 new plus 167 prior private hash checks | All 189 API / 3 web raw matches retained, including 28 for the 26 verified fixes; precise upstream scanner-ingestion cause unproven. Native87 now comprises fixed26, proposed E2, pending new-image R52 and unresolved H7. No new acceptance, waiver transfer, rescan, full-suite rerun, application change or push. Prepare the image-specific E/R decision and handle H7 separately; security and release gates remain open. |
 | T-074 | `VERIFIED` / `PROPOSED` | Current-image E2/R52 owner package refreshes all 86 known Debian-native records: no scoped change, 26 fixes retained, 51 Debian R still open without a recorded Trixie fix. BusyBox CNA bytes unchanged; fresh exact-image component checks agree. Individual R rationales distinguish actual utilities/call preconditions | `docs/evidence/gate-13/SECURITY_CURRENT_IMAGE_DECISION.md`, pending 87-ID proposal, 15 new plus 182 prior private hashes | No new acceptance or old-image waiver transfer. R52 includes 44 High package matches and requires explicit acknowledgment that current Alpine fix status is unverified. Keep H7 unaccepted, October 12/earlier C6 deadline, raw 189 API / 3 web matches and first failed APK-output probe. Await E/R owner decision; no application change, rescan, full-gate repeat, push or security/release closure. |
 | T-075 | `DECIDED` / `VERIFIED` / `PROPOSED` | Owner VincentCinque explicitly approves current-image E2/R52 under C1–C7, including the BusyBox gap; new event binds exact images and proposal hash. Bounded H source review authenticates seven SQLite/zlib source archives and two runtime libraries; absent later SQLar/zlib code supports two additional exclusion proposals | `docs/evidence/gate-13/SECURITY_CURRENT_OWNER_ACCEPTANCE.md`, `docs/evidence/gate-13/SECURITY_HOLD_REVIEW.md`, immutable event and source review, eight new plus 197 prior private hashes | H7 remains unaccepted: two exclusions newly proposed, five unresolved. No vendor affected-row correction, scanner suppression, new patch, H waiver or security/Gate 13C closeout. Keep October 12/earlier C6 deadline, first binary/source-version probe failure and public-source limitations. Await the two-exclusion decision; no app change, full-suite repeat, push or release. |
+| T-076 | `DECIDED` / `OPEN` | Owner explicitly approves only CVE-2026-39113 and CVE-2026-85091 as exact-image source-precondition exclusions under unchanged C1–C7/deadline. New append-only event binds the prior committed review and preserves all earlier JSON records | `docs/evidence/gate-13/SECURITY_HOLD_OWNER_ACCEPTANCE.md`, two-ID event and read-only combined-register checker | Current native87 is E4/R52/F26/H5. The five remaining holds are unaccepted; no vendor correction, installed fix, expiry extension, scanner suppression or security/Gate 13C/13D closure. Evidence revalidation only: no fresh advisory fetch, runtime probe, full suite, scan, package change or push. Resolve the five gaps or separately propose an informed owner disposition before release. |
 
 ### 5.4 Current storage invariants
 
@@ -1403,11 +1406,12 @@ explicit acknowledgment. The owner has now [approved E2/R52 and that caveat](evi
 the separate exact-image event is recorded without changing the historical proposal.
 The [bounded H source review](evidence/gate-13/SECURITY_HOLD_REVIEW.md) supports two
 additional exclusions (CVE-2026-39113 and CVE-2026-85091), with five unresolved.
-**Next checkpoint: owner decision on those two exact-image source-precondition
-exclusions under C1–C7; keep the other five holds unaccepted.** None of H7 is
-automatically accepted by the review or prior E/R approval. No waiver transfer or
-authority for unreviewed remediation. Do not repeatedly rebuild to chase a
-clean count. Preserve
+The owner has now [approved exactly those two exclusions](evidence/gate-13/SECURITY_HOLD_OWNER_ACCEPTANCE.md)
+under unchanged C1–C7: **current native87 is E4/R52/F26/H5**.
+**Next checkpoint: resolve the five remaining source/advisory gaps, or separately
+propose an informed owner disposition; all five remain unaccepted.** This decision
+does not authorize unreviewed remediation or a release. Do not repeatedly rebuild
+to chase a clean count. Preserve
 the earlier October 12 00:00 America/New_York deadline, or earlier freeze/13D/C6
 trigger; no renewal, extension or distribution migration is authorized here.
 Current raw evidence is durable/private; historical temporary artifacts are not

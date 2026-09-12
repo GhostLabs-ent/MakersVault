@@ -4,6 +4,10 @@
 **Owner:** VincentCinque, repository maintainer.
 **Status: E2/R52 APPROVED FOR LOCAL QUALIFICATION; H7 AND SECURITY CLOSEOUT OPEN.**
 
+**Subsequent decision:** a [separate two-exclusion approval](SECURITY_HOLD_OWNER_ACCEPTANCE.md)
+moves only CVE-2026-39113 and CVE-2026-85091 from H to E. Current totals are
+E4/R52/F26/H5; this original E2/R52 event and its conditions remain unchanged.
+
 The owner's **“yes approved”** answers the explicit approval request for the
 [current-image package](SECURITY_CURRENT_IMAGE_DECISION.md), including its BusyBox
 evidence caveat. The new [immutable event](security-current-owner-acceptance-2026-09-12.json)

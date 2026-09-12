@@ -135,8 +135,10 @@ probes. Explicit owner acknowledgment is required for BusyBox's unverified curre
 Alpine fix status. The owner [approved E2/R52 and that caveat](../evidence/gate-13/SECURITY_CURRENT_OWNER_ACCEPTANCE.md)
 in a new exact-image event. The [bounded H source review](../evidence/gate-13/SECURITY_HOLD_REVIEW.md)
 proposes source-precondition exclusions for CVE-2026-39113 and CVE-2026-85091; the
-other five remain unresolved. H7 is not accepted by that review. No additional
-patch or scanner suppression; security and public release stay open.
+owner has now [separately approved those two](../evidence/gate-13/SECURITY_HOLD_OWNER_ACCEPTANCE.md)
+under unchanged C1–C7/deadline. Current native87 is E4/R52/F26/H5; the other five
+remain unresolved and unaccepted. No additional patch or scanner suppression;
+security and public release stay open.
 
 ## Finding-by-finding disposition
 

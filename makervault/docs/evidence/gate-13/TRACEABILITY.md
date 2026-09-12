@@ -132,8 +132,9 @@ prepared: known Debian records unchanged, components reconfirmed, and BusyBox's
 unverified current Alpine fix status explicitly requires owner acknowledgment.
 The owner has [approved E2/R52 and that caveat](SECURITY_CURRENT_OWNER_ACCEPTANCE.md)
 under C1–C7. A separate [H source review](SECURITY_HOLD_REVIEW.md) proposes two
-additional source-precondition exclusions, with five unresolved; none of H7 is
-yet accepted. The 28 historical scanner matches for verified fixes remain visible,
+additional source-precondition exclusions, now [explicitly approved](SECURITY_HOLD_OWNER_ACCEPTANCE.md)
+under unchanged conditions/deadline. Current native87 is E4/R52/F26/H5; five holds
+remain unaccepted. The 28 historical scanner matches for verified fixes remain visible,
 not suppressed or subtracted.
 All raw matches and the interrupted first attempt remain; S04/G13-04 and candidate
 acceptance stay open.
