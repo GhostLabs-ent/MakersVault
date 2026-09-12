@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setSessionCsrfToken } from "./auth";
 import { uploadRequest } from "./uploadRequest";
+import { uploadAsset } from "./api";
 
 class FakeXHR {
   static latest: FakeXHR;
@@ -28,6 +29,17 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); setSessionCsrfToken(null); });
 
 describe("cookie-authenticated progress transport", () => {
+  it("explicitly sends the original basename for a directory-picked File", async () => {
+    const set = vi.spyOn(FormData.prototype, "set");
+    const file = new File(["mesh"], "part.stl");
+    Object.defineProperty(file, "webkitRelativePath", { value: "assembly/parts/part.stl" });
+    const promise = uploadAsset(file, { folder_id: "parts-id" }, { onProgress: vi.fn() });
+    expect(set).toHaveBeenCalledWith("file", file, "part.stl");
+    expect(set).toHaveBeenCalledWith("folder_id", "parts-id");
+    FakeXHR.latest.onload?.(); await promise;
+    set.mockRestore();
+  });
+
   it("keeps credentials/CSRF and the browser multipart boundary; awaits the response", async () => {
     const onProgress = vi.fn();
     const body = new FormData();

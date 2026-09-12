@@ -527,7 +527,9 @@ export async function uploadAsset(
   transfer?: UploadRequestOptions,
 ) {
   const fd = new FormData();
-  fd.set("file", file);
+  // Directory-picked Files can serialize their relative path unless named
+  // explicitly. Folder placement is already carried separately in folder_id.
+  fd.set("file", file, file.name);
   if (opts.title) fd.set("title", opts.title);
   if (opts.notes) fd.set("notes", opts.notes);
   if (opts.tags && opts.tags.length) fd.set("tags", opts.tags.join(","));

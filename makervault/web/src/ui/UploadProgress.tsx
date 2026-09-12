@@ -29,7 +29,7 @@ export function UploadProgressItem({ batch }: { batch: UploadBatch }) {
 export default function UploadProgress() {
   const batches = useSyncExternalStore(subscribeUploads, getUploadBatches, getUploadBatches);
   if (!batches.length) return null;
-  return <aside aria-label="Upload progress" className="fixed bottom-4 right-4 z-[60] max-h-[50vh] w-80 max-w-[calc(100vw-2rem)] space-y-2 overflow-y-auto pointer-events-none">
+  return <section aria-label="Upload progress" className="fixed bottom-4 right-4 z-[60] max-h-[50vh] w-80 max-w-[calc(100vw-2rem)] space-y-2 overflow-y-auto pointer-events-none">
     {batches.map(batch => <UploadProgressItem key={batch.id} batch={batch} />)}
-  </aside>;
+  </section>;
 }
