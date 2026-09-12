@@ -3,6 +3,16 @@ ARG SOURCE_DATE_EPOCH=0
 ENV SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH"
 WORKDIR /app
 
+COPY native-packages.lock ./
+# Gate 13 stable security refresh: exact existing packages, shared by tests/runtime.
+# Signed repository verification stays enabled; never remove packages or run a broad upgrade.
+RUN test -s native-packages.lock \
+  && apt-get -o APT::Update::Error-Mode=any -o Acquire::AllowInsecureRepositories=false update \
+  && DEBIAN_FRONTEND=noninteractive xargs -r apt-get \
+       -o APT::Get::AllowUnauthenticated=false install --yes \
+       --no-install-recommends --only-upgrade --no-remove < native-packages.lock \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY requirements-build.lock ./
 # The base image's installer/vendor packages are outside the application lock.
 RUN python -m pip install --no-cache-dir --require-hashes -r requirements-build.lock
