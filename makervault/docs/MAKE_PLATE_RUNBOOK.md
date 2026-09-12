@@ -1,8 +1,9 @@
 # Upload progress and Make Plate — release-scope amendment
 
 **Decision date:** 2026-09-12. **Entry:** `4858147` (schema 17).
-**Status:** Owner-authorized scope; UP-1 verified locally, awaiting acceptance.
-Make Plate/bridge implementation and qualification are not complete.
+**Status:** Owner directed continuation after UP-1; MP-0 bridge repairs verified
+locally and [ADR 0020](adr/0020-printer-presets-and-plate-recipes.md) ready for acceptance.
+Preset import and Make Plate are not implemented.
 
 The owner requested review of the working ROADMAP notes from line 349, then
 approved the proposed bounded direction: “lets defer CNC for a later release …
@@ -76,8 +77,8 @@ and ask the owner to trim support rather than silently promising or removing it.
 
 | Gate | Scope / exit evidence | State |
 |---|---|---|
-| UP-1 | Shared transfer progress plus accessible UI; truthful finalizing/error states, nested folders/Project membership, mixed file sizes, empty files, unknown progress and session failure. Unit/type/build plus browser transport/workflow checks | VERIFIED locally — [84 tests and three-engine results](evidence/gate-13/UPLOAD_PROGRESS_RESULTS.md); awaiting owner acceptance |
-| MP-0 | Final preset/recipe/import contracts, authority and migration/recovery decisions; existing manual-installer parity/macOS pairing repairs with failing-old-source regressions; fixture inventories for named slicer versions | READY after UP-1 review |
+| UP-1 | Shared transfer progress plus accessible UI; truthful finalizing/error states, nested folders/Project membership, mixed file sizes, empty files, unknown progress and session failure. Unit/type/build plus browser transport/workflow checks | VERIFIED — [84 tests and three-engine results](evidence/gate-13/UPLOAD_PROGRESS_RESULTS.md); owner directed continuation on 2026-09-12 |
+| MP-0 | Final preset/recipe/import contracts, authority and migration/recovery decisions; existing manual-installer parity/macOS pairing repairs with failing-old-source regressions; fixture inventories for named slicer versions | READY FOR ACCEPTANCE — [contracts/29 bridge tests/six cross-builds](evidence/gate-13/MAKE_PLATE_MP0_RESULTS.md); native device checks remain open |
 | MP-1 | Bambu preset discovery/import/explicit refresh, inheritance/geometry/secret filtering and authorization negative controls; saved snapshots usable without relay. Then Orca and Prusa conformance recorded independently | NOT STARTED |
 | MP-2 | STL instances, saved recipe lifecycle, deterministic conservative packing/manual editing, source preservation, boundary/height checks, cancellation and memory/time limits, tablet interaction | NOT STARTED |
 | MP-3 | Editable unsliced 3MF, scoped generated-artifact handoff and actual Bambu/Orca/Prusa round trips; no stale prepared data, silent scale changes or shell/default-opener fallback | NOT STARTED |
@@ -106,6 +107,8 @@ at `f6ff55b`; all commits remain local and publication requires separate approva
 ## References and known format constraints
 
 - [Existing local adapter contract](adr/0012-versioned-local-application-adapters.md).
+- [Proposed preset/recipe/import contract](adr/0020-printer-presets-and-plate-recipes.md).
+- [Named-source fixture inventory and owner Bambu version](evidence/gate-13/MAKE_PLATE_FIXTURES.md).
 - [Platform findings and Windows prerequisites](evidence/gate-13/PLATFORM_OPERATOR_RESULTS.md).
 - [Orca profile documentation](https://github.com/OrcaSlicer/OrcaSlicer/wiki/how_to_create_profiles)
   describes inherited printer variants; qualification must pin actual fixture versions.

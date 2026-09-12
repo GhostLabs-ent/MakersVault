@@ -161,7 +161,9 @@ boundaries; no broad catalog or payload comparison was removed.
 **September 12 scope amendment:** The owner explicitly authorizes the bounded
 [upload progress/Make Plate gates](../../MAKE_PLATE_RUNBOOK.md); CNC/CAM integration
 is deferred to a later release. [UP-1](UPLOAD_PROGRESS_RESULTS.md) passes 84 web tests
-and three-engine upload checks; awaiting owner acceptance. MP-0–MP-4 remain
+and three-engine upload checks; owner directed continuation. [MP-0](MAKE_PLATE_MP0_RESULTS.md)
+repairs the manual protocols/macOS pairing branch and proposes ADR 0020; 29 bridge
+tests/six cross-builds pass. Await contract/package acceptance; MP-1–MP-4 remain
 undelivered and must rejoin Gate 13C. Existing descriptive CNC profiles and
 file-open behavior remain; CNC toolpaths, control and new CNC-specific adapters
 are not part of this release. The future hardware-relay vision is not blanket
@@ -175,7 +177,7 @@ new prioritization below is proposed until the owner accepts the re-baselined ro
 |---|---|---|
 | C01 | API keys/OIDC/SSO, TOTP/passwordless/recovery codes, invitations/email, custom roles/private ACLs: intentionally outside accepted shared-vault/passkey scope | Separate identity ADR and owner need; migrations, grant scope/revocation, recovery, audit and abuse proof before implementation |
 | C02 | S3, managed/provider storage, synchronization, live/merge portable import and browser job orchestration: local-first/no-go provider decision and stronger mutation boundaries | Portability/provider gate reopened only with demand and atomicity/capacity/failure/exit evidence; application never takes custody of `age` keys |
-| C03 | Physical security keys/platform prompts, Firefox/WebKit passkey ceremonies, OS-specific real-app launch/signing/notarization: Docker/virtual/cross-build evidence is insufficient. Owner reports Windows Dell tablet, Bambu slicer and YubiKey; no real-device checks completed | [Tablet checklist](WINDOWS_TABLET_CHECKLIST.md) and [G13-05 findings](PLATFORM_OPERATOR_RESULTS.md): obtain exact hardware/build/origin prerequisites and owner-directed repair, then record actual results or explicitly bounded supported release claims. Do not automatically defer release blockers to desktop |
+| C03 | Physical security keys/platform prompts, Firefox/WebKit passkey ceremonies, OS-specific real-app launch/signing/notarization: Docker/virtual/cross-build evidence is insufficient. Owner reports Windows Dell tablet, Bambu Studio v2.8.0.6 and YubiKey; no real-device checks completed | [Tablet checklist](WINDOWS_TABLET_CHECKLIST.md), [original findings](PLATFORM_OPERATOR_RESULTS.md) and [MP-0 repairs](MAKE_PLATE_MP0_RESULTS.md): obtain remaining exact hardware/build/origin prerequisites, then record actual results or explicitly bounded supported release claims. Do not automatically defer release blockers to desktop |
 | C04 | Server-wide select-all, continuous NAS watching/exclusions/live progress, mobile/touch/accessibility and density polish: accepted P1/scale boundaries | Dedicated UX/API scopes with bounded jobs and representative device/assistive-tool evidence; existing loaded-ID/no-copy semantics preserved |
 | C05 | Custom metadata, dedicated KiCad support, public adapter SDK/marketplace, automatic source-site artwork and expanded format previews: strategic direction beyond delivered integrations | Demonstrated workflows, schema/adapter/source-rights and parser-isolation decisions; no manual-thumbnail requirement or unsafe STEP preview fallback |
 | C06 | **Gate 12 deferred to desktop by owner on 2026-09-05**; optional support links/donation setup and paid hosting/backup/storage services not completed by policy text | Desktop roadmap must retain all Sustainability decision tests, explicit vendor/cost/telemetry/business approval, export-after-cancellation, service-failure isolation and operational/shutdown/support evidence |

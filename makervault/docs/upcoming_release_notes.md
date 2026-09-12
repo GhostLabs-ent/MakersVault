@@ -29,6 +29,18 @@ printer controller, or multi-user cloud service.
   integration is explicitly deferred to a later release. No printing/control or
   manual-thumbnail workflow is added.
 
+### Bridge compatibility repairs (MP-0)
+
+- Manual Windows/Linux installers now register the general `makersvault-open`
+  protocol as well as both legacy schemes. macOS first-use pairing now selects
+  `/usr/bin/open` for its local browser consent page; model files still use the
+  explicitly selected adapter.
+- 29 bridge tests pass with race detection; six platform/architecture builds and
+  an isolated Linux manual-install check pass. Native Windows/macOS launch remains
+  unqualified. See [MP-0 results](evidence/gate-13/MAKE_PLATE_MP0_RESULTS.md).
+- Preset/recipe/import and recovery contracts are proposed, not delivered APIs.
+  No printer discovery, slicing, printing or background profile sync is added yet.
+
 ### Lower-overhead folder listing (Gate 13C)
 
 - Folder lists read plain database values instead of constructing tracked objects

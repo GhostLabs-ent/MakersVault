@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "gate": "MP-0",
+  "status": "bridge_verified_contracts_proposed_pending_owner_acceptance",
+  "entry_revision": "b0597890e07dec7e3ea925cca0e9afb7c01d6ac6",
+  "bridge_revision": "d11699767867f9bf05d7652f0eaafe9450e1e7df",
+  "go_image": "sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6",
+  "private_evidence_root": "/home/vinnyc/.local/state/makersvault/verification",
+  "captures": [
+    {
+      "directory": "containment-mp0-bridge-red",
+      "exit_code": 1,
+      "expected_outcome": "failure",
+      "source_status": "new tests and behavior-preserving command extraction; old missing registrations and macOS dispatch",
+      "log": "stdout.log",
+      "sha256": "30046dba17e4f2d846bb0a7843474d8fc552a85b6c5aef2f1a918bfe585f7473"
+    },
+    {
+      "directory": "containment-mp0-bridge-green",
+      "exit_code": 0,
+      "expected_outcome": "pass",
+      "source_status": "clean d116997 before and after",
+      "log": "stdout.log",
+      "sha256": "200d379aad38bd61acccfff9b2c21f174f35aa1ff7c8d8a8ea78be1c07ce3ccf",
+      "top_level_go_tests_passed": 29,
+      "inclusive_go_pass_events": 43,
+      "cross_builds": 6,
+      "native_device_tests": 0
+    }
+  ],
+  "owner_device": {
+    "platform": "Windows Dell tablet",
+    "bambu_studio_version_reported": "v2.8.0.6",
+    "version_independently_observed": false,
+    "yubikey_reported_available": true,
+    "windows_hello_used": false,
+    "test_status": "not_tested"
+  },
+  "contracts": "../../adr/0020-printer-presets-and-plate-recipes.md",
+  "fixture_inventory": "MAKE_PLATE_FIXTURES.md",
+  "limits": [
+    "No implemented preset parser, import API, migration, recipe or 3MF output",
+    "Command construction and cross-builds do not establish native OS launch",
+    "Linux manual install used disposable container home only",
+    "No full-gate rerun, fresh vulnerability scan, waiver transfer or publication"
+  ]
+}

@@ -1,8 +1,9 @@
 # Gate 13C — Dell tablet manual checkpoint
 
-Prepared 2026-09-12. **Not executed.** Owner reports Windows, Bambu slicer and a
-YubiKey; Windows Hello is not used. See the
-[local results and open defects](PLATFORM_OPERATOR_RESULTS.md).
+Prepared 2026-09-12. **Not executed.** Owner reports Windows, Bambu Studio **v2.8.0.6**
+and a YubiKey; Windows Hello is not used. The version is owner-reported, not observed
+on the device. See the [original findings](PLATFORM_OPERATOR_RESULTS.md) and
+[subsequent source repairs](MAKE_PLATE_MP0_RESULTS.md).
 
 ## 1. Read-only inventory — safe to collect now
 
@@ -12,7 +13,9 @@ cookies, passkey credential IDs, bridge grant URLs or private keys:
 - Windows edition/version/build and **Settings → System → About → System type**
   (x64 or ARM64; do not infer it from “Dell tablet”).
 - Browser name/version; use an already installed browser for the first check.
-- Bambu Studio version and whether it opens normally by itself.
+- Confirm the full Bambu Studio build/profile-bundle version and whether it opens
+  normally by itself; preserve the reported `v2.8.0.6` until observed, without
+  substituting a nearby public release tag.
 - YubiKey model if known, connection available on the tablet, and whether the
   browser offers it as a security key. Do not reset the key or guess its PIN.
 - Existing MakersVault bridge/version, if any. Do not overwrite existing handlers
@@ -34,8 +37,9 @@ The maintainer must supply/record all of the following first:
   Do not use `releases/latest` as a substitute for the local development build.
   Cross-built binaries from the local diagnostic run were discarded, not supplied.
 - Owner approval for device installation and an explicit backup/restore plan if an
-  existing bridge or protocol registration would be replaced. Use the compiled
-  installer, not the currently incomplete manual wrapper scripts.
+  existing bridge or protocol registration would be replaced. Prefer the matched
+  compiled installer. The manual registration omission is fixed at `d116997`, but
+  real Windows execution/registry dispatch is still untested.
 - A disposable Member test account and a separate working Administrator recovery
   path. First passkey enrollment enables password-plus-passkey MFA on that account.
   Do not test first enrollment on the only working Administrator.
