@@ -27,7 +27,8 @@ remain unchanged. The subsequent [platform/operator slice](evidence/gate-13/PLAT
 passes fresh exact-image HTTPS, 25 bridge race tests, six cross-builds, container-only
 Linux installation, operator preflight and 25 Python harness tests. It also finds
 unfixed manual-installer parity, macOS pairing and bridge-documentation gaps.
-Next: owner decision on the bounded compatibility fix and Windows tablet prerequisites.
+The owner subsequently authorizes the bounded [upload/Make Plate amendment](MAKE_PLATE_RUNBOOK.md),
+with CNC/CAM deferred. Current work: UP-1 upload progress; then MP-0 bridge/preset contracts.
 The security reviews recheck durable evidence, not rerun the full gate. Earlier
 browser results and WebKit synthetic-drop limits remain separately dated; G13-01
 performance tuning stays deferred. Nothing is pushed or release-qualified.
@@ -314,6 +315,7 @@ row's future-tense wording.
 | T-077 | `VERIFIED` / `PROPOSED` / `OPEN` | Bounded H5 follow-up captures 12 primary pages and exact-image component/available-version observations. Signed APT candidates equal installed; relevant glibc symbols/converters are present. Authenticated SQLite source contains the upstream pre-fix shared guard, so missing apply_v3 is not an exclusion. Fifty-one API source files have no exact named calls; 18 broad PermanentDelete hits retained | `docs/evidence/gate-13/SECURITY_REMAINING_DECISION.md`, pending five-ID risk proposal, 17 new plus 205 prior private hashes | Current E4/R52/F26/H5 unchanged. Propose only temporary local R5 under existing C1–C7/deadline, explicitly retaining memory/data-loss/DoS risks, native-call uncertainty and SHIFT/EUC mapping disagreement. H5 remains unaccepted pending owner decision; no patch, exclusion, rescan, full-suite repeat, public-source denial retry, push or security/release closeout. |
 | T-078 | `DECIDED` / `OPEN` | Owner explicitly approves the five named temporary local-risk exceptions under unchanged C1–C7/deadline. Append-only event binds the committed proposal and prior approvals; all 87 local native IDs now reconcile as E4/R57/F26/H0 | `docs/evidence/gate-13/SECURITY_REMAINING_OWNER_ACCEPTANCE.md`, immutable event, combined-register checker and 222 retained private hashes | Local native disposition accounting complete, not zero vulnerabilities or a clean scan. Native-memory/code-execution/data-loss/DoS, applicability/mapping and earlier BusyBox caveats remain. No expiry extension, rebuild/candidate transfer, package change, new scan/full suite, push or S04/G13-04/Gate 13C/13D closure. Next: remaining local platform/operator qualification, then separately gated candidate and release decisions. |
 | T-079 | `VERIFIED` / `PROPOSED` / `OPEN` | Unchanged `6306ccf` application at entry `8a7fa35`: fresh exact-image HTTPS/security/persistence/privilege smoke, generated-credential/operator preflight, 25 Python tests, 25 bridge race tests and six cross-builds pass. Linux container CLI/install descriptor passes. Source review finds missing general-scheme registration in manual wrappers and missing macOS pairing browser dispatch | `docs/evidence/gate-13/PLATFORM_OPERATOR_RESULTS.md`, four durable private runs, `platform-qualification.json`, checker and Windows tablet checklist | Real Windows/Bambu/YubiKey checks NOT TESTED; owner reports hardware only. Propose bounded bridge parity/macOS pairing/documentation repair before fresh qualification; no application fix, new full gate, image scan, support waiver or release acceptance claimed. C03/G13-05 and security/release gates remain open. No live vault/host handler changes, candidate artifacts retained, push or publication. |
+| T-080 | `DECIDED` / `IN PROGRESS` | Owner approves upload progress and bounded Make Plate/workstation relay scope, explicitly deferring CNC/CAM to a later release. UP-1 implements shared byte-weighted transfer, server-finalizing and result states; local preflight passes 83 web tests | `docs/MAKE_PLATE_RUNBOOK.md`, UP-1 source and captured local preflight; real-browser qualification pending | Make Plate is authorized but not implemented. Preserve source files, schema 17, upload limits and old protocols. New source/builds require new relevant qualification, not transferred historical waivers. MP-0–MP-4 and Gate 13C/13D remain open; no push/publication or desktop device installation authorized. |
 
 ### 5.4 Current storage invariants
 
@@ -1374,6 +1376,13 @@ The next gate begins only after this reset. A schedule may change; the product
 invariants and evidence standard do not change silently.
 
 ## 15. Immediate next action
+
+**2026-09-12 scope amendment:** The owner authorizes upload progress and the bounded
+[Make Plate + workstation relay runbook](MAKE_PLATE_RUNBOOK.md), explicitly deferring
+CNC/CAM integration to a later release. Execute UP-1 first, then MP-0 through MP-4
+with source-bound evidence and owner checkpoints. The platform findings below feed
+MP-0; older “next checkpoint” wording is historical. No existing gate is silently
+accepted, no old image waiver transfers and no publication is authorized.
 
 Gate 13B was accepted at `2f61b37` on 2026-09-06. The approved picker at `76b526d`
 and subsequent [sidebar-menu slice](evidence/gate-13/SIDEBAR_MENU_RESULTS.md) at

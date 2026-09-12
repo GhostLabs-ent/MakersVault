@@ -7,6 +7,8 @@ import Settings from "./Settings";
 import TrashView from "./TrashView";
 import ProjectWorkspace from "./ProjectWorkspace";
 import PasswordChange from "./PasswordChange";
+import UploadProgress from "./UploadProgress";
+import { clearUploads } from "../lib/uploadProgress";
 import { apiHealth, getApiBase, getSession, logout, type HealthInfo, type LoginResult } from "../lib/api";
 import { clearLegacyAuthTokens, setSessionCsrfToken } from "../lib/auth";
 import { type AppSettings, type ResolvedTheme, loadSettings, resolveTheme, saveSettings } from "../lib/settings";
@@ -62,6 +64,7 @@ export default function App() {
   React.useEffect(() => {
     let canceled = false;
     clearLegacyAuthTokens();
+    clearUploads();
     (async () => {
       const currentHealth = await apiHealth();
       if (canceled) return;
@@ -104,6 +107,7 @@ export default function App() {
 
   const handleUnauthorized = React.useCallback(() => {
     if (sessionExpired) return;
+    clearUploads();
     setSessionCsrfToken(null);
     setRole(null);
     setPasswordChangeRequired(false);
@@ -144,6 +148,7 @@ export default function App() {
   }, []);
 
   const handleLogout = async () => {
+    clearUploads();
     try {
       await logout();
     } finally {
@@ -323,6 +328,7 @@ export default function App() {
           />
         )}
       </main>
+      <UploadProgress />
     </div>
     </CapabilityProvider>
   );

@@ -363,58 +363,64 @@ export default function AssetGrid({
     dragDepth.current = 0;
     setDragActive(false);
     setDropUploading(true);
-    const entries = await entriesFromDataTransfer(e.dataTransfer);
-    if (!entries.length) {
-      setDropUploading(false);
-      return;
-    }
-    const normalEntries = entries.filter(entry => !isZipFile(entry.file.name));
-    const zipEntries = entries.filter(entry => isZipFile(entry.file.name));
-    let uploaded = 0;
-    const failed: string[] = [];
-    const applyResult = (result: { uploaded: number; failed: string[] }) => {
-      uploaded += result.uploaded;
-      failed.push(...result.failed);
-    };
-    if (normalEntries.length) {
-      const result = await uploadEntriesToFolder(normalEntries, folderId || null, onUnauthorized, projectId);
-      applyResult(result);
-    }
-    for (const entry of zipEntries) {
-      let zipData: Record<string, Uint8Array> | null = null;
-      const baseParts = entry.relativePath.split("/").filter(Boolean);
-      baseParts.pop();
-      const basePath = baseParts.join("/");
-      await zipPrompt.prompt({
-        label: entry.file.name,
-        onImportAsZip: async () => {
-          const result = await uploadEntriesToFolder([entry], folderId || null, onUnauthorized, projectId);
-          applyResult(result);
-        },
-        loadEntries: async () => {
-          const result = await readZipEntries(entry.file);
-          zipData = result.data;
-          return result.entries;
-        },
-        onImportSelected: async (selectedPaths: string[]) => {
-          if (!zipData) {
+    try {
+      const entries = await entriesFromDataTransfer(e.dataTransfer);
+      if (!entries.length) {
+        setDropUploading(false);
+        return;
+      }
+      const normalEntries = entries.filter(entry => !isZipFile(entry.file.name));
+      const zipEntries = entries.filter(entry => isZipFile(entry.file.name));
+      let uploaded = 0;
+      const failed: string[] = [];
+      const applyResult = (result: { uploaded: number; failed: string[]; aborted?: boolean }) => {
+        uploaded += result.uploaded;
+        failed.push(...result.failed);
+        if (result.aborted) throw new UnauthorizedError();
+      };
+      if (normalEntries.length) {
+        const result = await uploadEntriesToFolder(normalEntries, folderId || null, onUnauthorized, projectId);
+        applyResult(result);
+      }
+      for (const entry of zipEntries) {
+        let zipData: Record<string, Uint8Array> | null = null;
+        const baseParts = entry.relativePath.split("/").filter(Boolean);
+        baseParts.pop();
+        const basePath = baseParts.join("/");
+        await zipPrompt.prompt({
+          label: entry.file.name,
+          onImportAsZip: async () => {
+            const result = await uploadEntriesToFolder([entry], folderId || null, onUnauthorized, projectId);
+            applyResult(result);
+          },
+          loadEntries: async () => {
             const result = await readZipEntries(entry.file);
             zipData = result.data;
-          }
-          const unzipEntries = buildUploadEntriesFromZip(zipData || {}, selectedPaths, basePath);
-          const result = await uploadEntriesToFolder(unzipEntries, folderId || null, onUnauthorized, projectId);
-          applyResult(result);
-        },
-      });
+            return result.entries;
+          },
+          onImportSelected: async (selectedPaths: string[]) => {
+            if (!zipData) {
+              const result = await readZipEntries(entry.file);
+              zipData = result.data;
+            }
+            const unzipEntries = buildUploadEntriesFromZip(zipData || {}, selectedPaths, basePath);
+            const result = await uploadEntriesToFolder(unzipEntries, folderId || null, onUnauthorized, projectId);
+            applyResult(result);
+          },
+        });
+      }
+      if (uploaded) {
+        await refresh();
+        onMembershipChanged?.();
+      }
+      if (failed.length) {
+        alert(`Failed to upload: ${failed.join(", ")}`);
+      }
+    } catch (error) {
+      if (!(error instanceof UnauthorizedError)) alert(error instanceof Error ? error.message : "Upload failed");
+    } finally {
+      setDropUploading(false);
     }
-    if (uploaded) {
-      await refresh();
-      onMembershipChanged?.();
-    }
-    if (failed.length) {
-      alert(`Failed to upload: ${failed.join(", ")}`);
-    }
-    setDropUploading(false);
   };
 
   useEffect(() => {

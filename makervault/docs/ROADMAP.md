@@ -7,6 +7,17 @@ Execution is governed by [ARCHITECTURE_RUNBOOK.md](ARCHITECTURE_RUNBOOK.md). A
 roadmap item is complete only after its gate evidence is accepted and the
 architecture is re-baselined.
 
+## Approved release addition — upload progress and Make Plate
+
+**2026-09-12:** Owner approves the bounded
+[upload/Make Plate amendment and gates](MAKE_PLATE_RUNBOOK.md), with CNC/CAM
+integration deferred to a later release. Work starts with shared upload progress;
+printer-preset import, STL-based plate planning and editable 3MF handoff follow.
+The original working notes below are design input, not blanket authorization for
+background synchronization, full-format conversion or machine control. Existing
+descriptive CNC records/adapters remain unchanged. No release or gate closeout is
+implied; current scope and evidence are governed by the amendment.
+
 ## Active gate — end-state audit
 
 **2026-09-10:** Gates 13A–13B are owner-accepted. The accepted

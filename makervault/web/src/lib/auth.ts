@@ -56,18 +56,23 @@ export async function sessionFetch(
   input: RequestInfo | URL,
   init: RequestInit = {},
 ): Promise<Response> {
-  const method = (init.method || "GET").toUpperCase();
-  const headers = new Headers(init.headers || {});
+  return fetch(input, {
+    ...init,
+    headers: sessionRequestHeaders(init.method || "GET", init.headers),
+    credentials: "include",
+  });
+}
+
+
+// Both fetch and upload XHR use the same cookie-session/CSRF policy.
+export function sessionRequestHeaders(method: string, init?: HeadersInit): Headers {
+  const headers = new Headers(init || {});
   headers.delete("Authorization");
-  if (!SAFE_METHODS.has(method)) {
+  if (!SAFE_METHODS.has(method.toUpperCase())) {
     const csrf = csrfToken();
     if (csrf) headers.set("X-CSRF-Token", csrf);
   }
-  return fetch(input, {
-    ...init,
-    headers,
-    credentials: "include",
-  });
+  return headers;
 }
 
 

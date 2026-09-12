@@ -13,6 +13,21 @@ printer controller, or multi-user cloud service.
 
 ## Highlights
 
+### Upload progress and approved Make Plate scope
+
+- UP-1 adds byte-weighted transfer progress with saved/failed file counts and a
+  separate server-finalizing state to the shared browser upload path. Folder,
+  drag-and-drop and confirmed ZIP-selection batches use the same reporting.
+  Existing limits, folder placement and Project membership are unchanged.
+- Local preflight passes 83 web tests; browser qualification is in progress.
+  “100% transferred” does not mean the server has saved the last file. Summaries
+  are dismissible, and logout/session failure clears old-account progress/queues.
+- The owner also approved [Make Plate and workstation preset import](MAKE_PLATE_RUNBOOK.md).
+  These are **planned, not delivered**: STL-based planning, saved recipes and editable
+  3MF slicer handoff have separate implementation/qualification gates. CNC/CAM
+  integration is explicitly deferred to a later release. No printing/control or
+  manual-thumbnail workflow is added.
+
 ### Lower-overhead folder listing (Gate 13C)
 
 - Folder lists read plain database values instead of constructing tracked objects

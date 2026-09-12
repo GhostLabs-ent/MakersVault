@@ -158,6 +158,14 @@ boundaries; no broad catalog or payload comparison was removed.
 
 ## Carry-forward register — next-roadmap proposal, not new authorization
 
+**September 12 scope amendment:** The owner explicitly authorizes the bounded
+[upload progress/Make Plate gates](../../MAKE_PLATE_RUNBOOK.md); CNC/CAM integration
+is deferred to a later release. UP-1 is in implementation/qualification; MP-0–MP-4
+remain undelivered and must rejoin Gate 13C. Existing descriptive CNC profiles and
+file-open behavior remain; CNC toolpaths, control and new CNC-specific adapters
+are not part of this release. The future hardware-relay vision is not blanket
+authorization for synchronization, device discovery or machine control.
+
 Owner for each row is the MakersVault maintainer; the next review is **Gate 13D**
 unless an earlier checkpoint is named. Existing accepted boundaries remain binding;
 new prioritization below is proposed until the owner accepts the re-baselined roadmap.

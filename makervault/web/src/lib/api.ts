@@ -2,6 +2,7 @@ import { authHeaders, sessionFetch, setSessionCsrfToken } from "./auth";
 import { loadSettings } from "./settings";
 import { GeneralHandoffGrant, HandoffContentRole, HandoffGrant, HandoffTool } from "./handoff";
 import type { VaultRole } from "./capabilities";
+import { uploadRequest, type UploadRequestOptions } from "./uploadRequest";
 
 export class UnauthorizedError extends Error {
   constructor(message = "Unauthorized") {
@@ -522,7 +523,8 @@ export async function listTags(params: {
 export async function uploadAsset(
   file: File,
   opts: { title?: string; notes?: string; tags?: string[]; folder_id?: string; project_id?: string }
- = {}
+ = {},
+  transfer?: UploadRequestOptions,
 ) {
   const fd = new FormData();
   fd.set("file", file);
@@ -531,7 +533,7 @@ export async function uploadAsset(
   if (opts.tags && opts.tags.length) fd.set("tags", opts.tags.join(","));
   if (opts.folder_id) fd.set("folder_id", opts.folder_id);
   if (opts.project_id) fd.set("project_id", opts.project_id);
-  const res = await sessionFetch(`${apiBase()}/upload`, {
+  const res = transfer ? await uploadRequest(`${apiBase()}/upload`, fd, transfer) : await sessionFetch(`${apiBase()}/upload`, {
     method: "POST",
     body: fd,
     headers: authHeaders(),

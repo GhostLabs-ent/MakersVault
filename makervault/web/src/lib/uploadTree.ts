@@ -1,4 +1,5 @@
 import { UnauthorizedError, createFolder, uploadAsset } from "./api";
+import { startUploadBatch } from "./uploadProgress";
 
 export type UploadEntry = {
   file: File;
@@ -95,6 +96,8 @@ export async function uploadEntriesToFolder(
   const uploadedEntries: UploadEntry[] = [];
   const folderCache = new Map<string, string>();
   const baseKey = parentFolderId || "root";
+  if (!entries.length) return { uploaded, failed, uploadedEntries, aborted };
+  const progress = startUploadBatch(entries.map(entry => entry.file));
 
   const getOrCreateFolder = async (parentId: string | null, parentKey: string, name: string) => {
     const key = `${parentKey}/${name}`;
@@ -106,48 +109,60 @@ export async function uploadEntriesToFolder(
     return folderId;
   };
 
-  for (const entry of entries) {
-    const normalized = normalizeRelativePath(entry.relativePath || entry.file.name);
-    const segments = normalized.split("/").filter(Boolean);
-    if (!segments.length) continue;
-    segments.pop();
-    let targetFolderId = parentFolderId;
-    let parentKey = baseKey;
-    for (const segment of segments) {
+  try {
+    for (const entry of entries) {
+      if (progress.signal.aborted) { aborted = true; break; }
+      const normalized = normalizeRelativePath(entry.relativePath || entry.file.name);
+      progress.beginFile(normalized, entry.file.size);
+      const segments = normalized.split("/").filter(Boolean);
+      if (!segments.length) { failed.push(entry.file.name); progress.failed(); continue; }
+      segments.pop();
+      let targetFolderId = parentFolderId;
+      let parentKey = baseKey;
+      for (const segment of segments) {
+        try {
+          targetFolderId = await getOrCreateFolder(targetFolderId, parentKey, segment);
+          parentKey = `${parentKey}/${segment}`;
+          if (progress.signal.aborted) { aborted = true; break; }
+        } catch (err) {
+          if (err instanceof UnauthorizedError) {
+            onUnauthorized?.();
+            aborted = true;
+            break;
+          }
+          console.error("Folder creation failed for", segment, err);
+          failed.push(entry.file.name);
+          progress.failed();
+          targetFolderId = null;
+          break;
+        }
+      }
+      if (aborted) break;
+      if (targetFolderId === null && segments.length) continue;
       try {
-        targetFolderId = await getOrCreateFolder(targetFolderId, parentKey, segment);
-        parentKey = `${parentKey}/${segment}`;
+        progress.transfer({ fraction: 0, phase: "uploading" });
+        await uploadAsset(entry.file, {
+          folder_id: targetFolderId || undefined,
+          project_id: projectId || undefined,
+        }, { onProgress: progress.transfer, signal: progress.signal });
+        uploaded += 1;
+        uploadedEntries.push(entry);
+        progress.saved();
       } catch (err) {
+        if (progress.signal.aborted) { aborted = true; break; }
         if (err instanceof UnauthorizedError) {
           onUnauthorized?.();
           aborted = true;
           break;
         }
-        console.error("Folder creation failed for", segment, err);
-        failed.push(entry.file.name);
-        targetFolderId = null;
-        break;
+        console.error("Upload failed for", entry.file.name, err);
+        const message = err instanceof Error ? err.message.trim() : "";
+        failed.push(message && message !== "Upload failed" ? `${entry.file.name} (${message})` : entry.file.name);
+        progress.failed();
       }
     }
-    if (aborted) break;
-    if (targetFolderId === null && segments.length) continue;
-    try {
-      await uploadAsset(entry.file, {
-        folder_id: targetFolderId || undefined,
-        project_id: projectId || undefined,
-      });
-      uploaded += 1;
-      uploadedEntries.push(entry);
-    } catch (err) {
-      if (err instanceof UnauthorizedError) {
-        onUnauthorized?.();
-        aborted = true;
-        break;
-      }
-      console.error("Upload failed for", entry.file.name, err);
-      const message = err instanceof Error ? err.message.trim() : "";
-      failed.push(message && message !== "Upload failed" ? `${entry.file.name} (${message})` : entry.file.name);
-    }
+  } finally {
+    progress.finish(aborted || progress.signal.aborted);
   }
-  return { uploaded, failed, uploadedEntries };
+  return { uploaded, failed, uploadedEntries, aborted };
 }
