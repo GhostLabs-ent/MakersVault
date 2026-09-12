@@ -225,7 +225,7 @@ replace the validated destination with a proxy connection. Outbound proxy suppor
 is not part of the v5.1 trust contract. Private-network URL imports remain
 unsupported; use the read-only mounted-import workflow for local files.
 
-## Slicer and engraver bridge trust
+## Local-tool bridge trust
 
 v5.1 requires the v5.1 bridge. Older bridge binaries accept the retired
 administrator-token/arbitrary-URL protocol and are not compatible with the v5.1
@@ -238,11 +238,19 @@ HTTP bridge path is a development/transport capability, not permission to deploy
 the production browser UI without HTTPS. Confirmed origins are stored
 in the bridge's local `trusted_origins` config.
 
-Every handoff is limited to one file and slicing or engraving for 90 seconds.
-The administrator token is not shared with the bridge. The bridge does not follow
+Every handoff expires after 90 seconds and authorizes one exact current primary,
+historical primary, supporting or prepared file. It is bound to the selected legacy
+slicer/engraver tool or to an explicit local adapter and content role. MakersVault
+does not slice or start a print. The administrator token is not shared with the
+bridge. The bridge does not follow
 redirects or invoke the OS default file opener, and it removes partial downloads
 that exceed its default 512 MiB ceiling. Select an installed built-in application
 or define a trusted custom command in the local bridge config.
+
+Current private-build platform checks and known installer/pairing gaps are recorded
+in [Gate 13C platform qualification](evidence/gate-13/PLATFORM_OPERATOR_RESULTS.md).
+Use a matched bridge artifact; source availability and cross-compilation do not
+establish current public-binary availability or successful native installation.
 
 ## Login and browser sessions
 

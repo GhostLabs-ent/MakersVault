@@ -365,3 +365,26 @@ Both stress runs D/G pass browser timing and fail folders API p95 at 113.3/108.3
 All five runs have zero observed interaction tasks and 16.4–74.8 ms folder search;
 navigation tasks and every historical failure remain recorded. Next proposal is
 separate API timing and intermittent startup/detail-wait attribution before another fix.
+
+### September 12 platform/operator checkpoint
+
+The subsequent performance/security history is linked from the current runbook;
+G13-01 remains explicitly deferred and all 87 local native dispositions are now
+recorded as E4/R57/F26/H0, not fixed or release-cleared. Fresh
+[platform/operator results](PLATFORM_OPERATOR_RESULTS.md) at entry `8a7fa35`
+retain the unchanged `6306ccf` application/images: HTTPS/security/restart/privilege
+smoke, operator setup/Compose preflight, 25 Python tests, 25 Go race tests, six
+cross-builds and container-only Linux CLI/installation pass.
+
+Source review finds two unfixed bridge gaps despite passing tests: both manual
+installers omit the general `makersvault-open` scheme, and macOS first-use pairing
+has no browser-launch branch. The README also has current-artifact/HTTP guidance
+drift. A bounded compatibility fix is proposed, not implemented or waived.
+
+The owner reports a Windows Dell tablet, Bambu slicer and YubiKey; Windows Hello is
+not used. The [manual checklist](WINDOWS_TABLET_CHECKLIST.md) records all checks as
+NOT TESTED and requires exact device/build, trusted HTTPS and disposable-account
+prerequisites. No private tablet deployment or install was performed. Cross-build
+artifacts were discarded, not promoted to distribution candidates. Await owner
+direction on the fix, then arrange the private device checks. Gate 13C remains
+open; no release scope, support waiver, push or publication is implied.

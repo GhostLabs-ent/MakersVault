@@ -23,8 +23,12 @@ The [five-risk package](evidence/gate-13/SECURITY_REMAINING_DECISION.md) is now
 [explicitly approved](evidence/gate-13/SECURITY_REMAINING_OWNER_ACCEPTANCE.md).
 Current native totals are **E4/R57/F26/H0**: all local native dispositions recorded,
 not all vulnerabilities fixed. C1–C7/deadline and native-memory/DoS uncertainties
-remain unchanged. Next: remaining local platform/operator qualification.
-These read-only reviews recheck durable evidence, not rerun the full gate. Earlier
+remain unchanged. The subsequent [platform/operator slice](evidence/gate-13/PLATFORM_OPERATOR_RESULTS.md)
+passes fresh exact-image HTTPS, 25 bridge race tests, six cross-builds, container-only
+Linux installation, operator preflight and 25 Python harness tests. It also finds
+unfixed manual-installer parity, macOS pairing and bridge-documentation gaps.
+Next: owner decision on the bounded compatibility fix and Windows tablet prerequisites.
+The security reviews recheck durable evidence, not rerun the full gate. Earlier
 browser results and WebKit synthetic-drop limits remain separately dated; G13-01
 performance tuning stays deferred. Nothing is pushed or release-qualified.
 
@@ -309,6 +313,7 @@ row's future-tense wording.
 | T-076 | `DECIDED` / `OPEN` | Owner explicitly approves only CVE-2026-39113 and CVE-2026-85091 as exact-image source-precondition exclusions under unchanged C1–C7/deadline. New append-only event binds the prior committed review and preserves all earlier JSON records | `docs/evidence/gate-13/SECURITY_HOLD_OWNER_ACCEPTANCE.md`, two-ID event and read-only combined-register checker | Current native87 is E4/R52/F26/H5. The five remaining holds are unaccepted; no vendor correction, installed fix, expiry extension, scanner suppression or security/Gate 13C/13D closure. Evidence revalidation only: no fresh advisory fetch, runtime probe, full suite, scan, package change or push. Resolve the five gaps or separately propose an informed owner disposition before release. |
 | T-077 | `VERIFIED` / `PROPOSED` / `OPEN` | Bounded H5 follow-up captures 12 primary pages and exact-image component/available-version observations. Signed APT candidates equal installed; relevant glibc symbols/converters are present. Authenticated SQLite source contains the upstream pre-fix shared guard, so missing apply_v3 is not an exclusion. Fifty-one API source files have no exact named calls; 18 broad PermanentDelete hits retained | `docs/evidence/gate-13/SECURITY_REMAINING_DECISION.md`, pending five-ID risk proposal, 17 new plus 205 prior private hashes | Current E4/R52/F26/H5 unchanged. Propose only temporary local R5 under existing C1–C7/deadline, explicitly retaining memory/data-loss/DoS risks, native-call uncertainty and SHIFT/EUC mapping disagreement. H5 remains unaccepted pending owner decision; no patch, exclusion, rescan, full-suite repeat, public-source denial retry, push or security/release closeout. |
 | T-078 | `DECIDED` / `OPEN` | Owner explicitly approves the five named temporary local-risk exceptions under unchanged C1–C7/deadline. Append-only event binds the committed proposal and prior approvals; all 87 local native IDs now reconcile as E4/R57/F26/H0 | `docs/evidence/gate-13/SECURITY_REMAINING_OWNER_ACCEPTANCE.md`, immutable event, combined-register checker and 222 retained private hashes | Local native disposition accounting complete, not zero vulnerabilities or a clean scan. Native-memory/code-execution/data-loss/DoS, applicability/mapping and earlier BusyBox caveats remain. No expiry extension, rebuild/candidate transfer, package change, new scan/full suite, push or S04/G13-04/Gate 13C/13D closure. Next: remaining local platform/operator qualification, then separately gated candidate and release decisions. |
+| T-079 | `VERIFIED` / `PROPOSED` / `OPEN` | Unchanged `6306ccf` application at entry `8a7fa35`: fresh exact-image HTTPS/security/persistence/privilege smoke, generated-credential/operator preflight, 25 Python tests, 25 bridge race tests and six cross-builds pass. Linux container CLI/install descriptor passes. Source review finds missing general-scheme registration in manual wrappers and missing macOS pairing browser dispatch | `docs/evidence/gate-13/PLATFORM_OPERATOR_RESULTS.md`, four durable private runs, `platform-qualification.json`, checker and Windows tablet checklist | Real Windows/Bambu/YubiKey checks NOT TESTED; owner reports hardware only. Propose bounded bridge parity/macOS pairing/documentation repair before fresh qualification; no application fix, new full gate, image scan, support waiver or release acceptance claimed. C03/G13-05 and security/release gates remain open. No live vault/host handler changes, candidate artifacts retained, push or publication. |
 
 ### 5.4 Current storage invariants
 
@@ -1419,8 +1424,19 @@ the relevant CNA paths, proves SQLite's pre-fix shared guard is present, and fin
 no newer candidate in the configured signed Debian indexes. The owner has now
 [explicitly approved those five temporary local risks](evidence/gate-13/SECURITY_REMAINING_OWNER_ACCEPTANCE.md),
 including memory-corruption/DoS and applicability/mapping uncertainties.
-**Current native87 is E4/R57/F26/H0. Next checkpoint: remaining local platform/operator
-qualification; identify real-workstation evidence and owner input still required.**
+**Current native87 is E4/R57/F26/H0.** The subsequent
+[local platform/operator checks](evidence/gate-13/PLATFORM_OPERATOR_RESULTS.md)
+pass on unchanged application inputs, but expose unfixed manual-installer parity,
+macOS first-pairing and bridge-documentation gaps. The owner reports a Windows Dell
+tablet with Bambu slicer and a YubiKey, without Windows Hello; no device result is
+inferred. The [tablet checklist](evidence/gate-13/WINDOWS_TABLET_CHECKLIST.md) requires
+exact device/build inventory, a matched private bridge, stable trusted HTTPS and a
+disposable account before installation/enrollment.
+**Next checkpoint: approve or revise the proposed bounded bridge compatibility fix;
+then qualify the new bridge and arrange the private tablet test prerequisites.**
+Do not silently pre-trust an origin, bypass a signing/certificate warning, claim
+cross-builds as native launch passes, or defer C03 blockers to desktop. macOS/Linux
+desktop evidence or explicit owner-approved release support limits remain needed.
 This completes local native disposition accounting, not security or release
 acceptance. No unreviewed remediation or release is authorized; preserve
 the earlier October 12 00:00 America/New_York deadline, or earlier freeze/13D/C6

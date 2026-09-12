@@ -1,0 +1,451 @@
+{
+  "schema": 1,
+  "date": "2026-09-12",
+  "entry_revision": "8a7fa35271d1d9d00ac0f5c36e208e83f0a6ef02",
+  "application_revision": "6306ccff289d475530a6cacf4cb2e28db456ce08",
+  "status": "bounded_checks_passed_platform_qualification_open",
+  "runs": {
+    "https": {
+      "command": [
+        "python3",
+        "makervault/scripts/current-image-smoke.py",
+        "--api-image",
+        "sha256:dba3d2a7305b494d4d9a894d35fdee9743adbbf51f13c51678e98a2fcaf50b96",
+        "--web-image",
+        "sha256:0fcaf5a3e77873767b1359f468568eee514e6341267a17a32db339f3cc281c67",
+        "--version",
+        "development-gate13b",
+        "--revision",
+        "6306ccff289d475530a6cacf4cb2e28db456ce08"
+      ],
+      "started_at": "2026-09-12T22:43:50.239Z",
+      "source_revision": "8a7fa35271d1d9d00ac0f5c36e208e83f0a6ef02",
+      "verification_source_status": "",
+      "finished_at": "2026-09-12T22:44:02.742Z",
+      "duration_seconds": 12.503,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "8a7fa35271d1d9d00ac0f5c36e208e83f0a6ef02",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 2827,
+          "sha256": "e41224573d21264f87810b276ebae5a5a09817c8a0b1aa382b9952c4eb321a7a"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "private_directory": "containment-platform-https",
+      "result_sha256": "24aef64655574ff6243a92ea40e531114790c49b406da791e80d4078f7602264"
+    },
+    "bridge": {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--pull",
+        "never",
+        "--network",
+        "none",
+        "--mount",
+        "type=bind,source=/home/vinnyc/Documents/GitHub/MakersVault/makervault/slicer-bridge,target=/src,readonly",
+        "--mount",
+        "type=bind,source=/home/vinnyc/Documents/GitHub/MakersVault/makervault/docs/evidence/gate-13/platform-bridge-check.sh,target=/check.sh,readonly",
+        "-w",
+        "/src",
+        "sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6",
+        "sh",
+        "/check.sh"
+      ],
+      "started_at": "2026-09-12T22:44:47.767Z",
+      "source_revision": "8a7fa35271d1d9d00ac0f5c36e208e83f0a6ef02",
+      "verification_source_status": "",
+      "finished_at": "2026-09-12T22:45:52.262Z",
+      "duration_seconds": 64.495,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "8a7fa35271d1d9d00ac0f5c36e208e83f0a6ef02",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 33266,
+          "sha256": "9e87daf42b742c387d3d10f765dbc77220c63a57f469b8ecaf10597792ae7a61"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 30,
+          "sha256": "f2e80e3245f4116fd7c8d467dc6e84fce5c6d3d3f15c0de983d499dcbaf8b040"
+        }
+      ],
+      "private_directory": "containment-platform-bridge",
+      "result_sha256": "32684bd2610bc1705cce1a757ab019348288dc8bd486ee920db254d54f2aced2"
+    },
+    "operator": {
+      "command": [
+        "python3",
+        "makervault/docs/evidence/gate-13/platform-operator-check.py"
+      ],
+      "started_at": "2026-09-12T22:46:07.170Z",
+      "source_revision": "8a7fa35271d1d9d00ac0f5c36e208e83f0a6ef02",
+      "verification_source_status": "",
+      "finished_at": "2026-09-12T22:46:07.511Z",
+      "duration_seconds": 0.341,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "8a7fa35271d1d9d00ac0f5c36e208e83f0a6ef02",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 281,
+          "sha256": "5e1857deb82d847cdf050104e61a8729ca8773e794659202b87afec63a68d1e0"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "private_directory": "containment-platform-operator",
+      "result_sha256": "101b81399e38212a98477e34423b6881351ba813361bd791ebcbee3507ff6b8b"
+    },
+    "harness": {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "makervault/scripts/tests",
+        "-v"
+      ],
+      "started_at": "2026-09-12T22:46:07.591Z",
+      "source_revision": "8a7fa35271d1d9d00ac0f5c36e208e83f0a6ef02",
+      "verification_source_status": "",
+      "finished_at": "2026-09-12T22:46:09.997Z",
+      "duration_seconds": 2.406,
+      "exit_code": 0,
+      "signal": null,
+      "end_source_revision": "8a7fa35271d1d9d00ac0f5c36e208e83f0a6ef02",
+      "end_verification_source_status": "",
+      "artifacts": [
+        {
+          "file": "stdout.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 3984,
+          "sha256": "79b953ad9e6210aa35f69cc1064d2ac36f26cad21f0a403e60f8e82ad1d9f70c"
+        }
+      ],
+      "private_directory": "containment-platform-harness",
+      "result_sha256": "71f4f44cd53e2c18d130b2f7dfb22b626cbeed1c7055762dc810a16f370f9765"
+    }
+  },
+  "driver_sha256": {
+    "platform-bridge-check.sh": "eb9b6e3b934486d973055c115aa572071e1607701ea5939c632003a68efa61f8",
+    "platform-operator-check.py": "624eea405e1c438c3a2244732aa1cc0ce6666c78076ba980ebe989c54234c7e4"
+  },
+  "reviewed_source_sha256": {
+    "slicer-bridge/README.md": "b7b85f69d82dc55e4bcfb22b5ff2f4487d3c8ce0b35c6715c842afc5ad9ed84a",
+    "slicer-bridge/scripts/install-linux.sh": "c6bbdf1d0fe312c8335ea472c9381b4a759fcd9ac72572c1c88399075898df17",
+    "slicer-bridge/scripts/install-windows.ps1": "92c8da2a911b213fe0cfacef143043c638bdcd8fdec8fffd865852bfb97dea89",
+    "slicer-bridge/cmd/slicer-bridge/pairing.go": "e333c346ed585ddedd0802612a54f7a76d1375b67ea57171709576de3cafa55a",
+    "slicer-bridge/cmd/slicer-bridge/install_common.go": "4bedb209abe1af918c98cdb94a85b56be8bddcc6b5e3a95cbe409c484194da9d",
+    "slicer-bridge/cmd/slicer-bridge/install_linux.go": "0ca57f85931ad30eee71e672ee43d4b4bf75bc7d68f5e1ff4aca5808ab397d44",
+    "slicer-bridge/cmd/slicer-bridge/install_windows.go": "344600a828c8ade6af153c99bb8c3a39bcedef213ec6a81db1db2781aff11339"
+  },
+  "https": {
+    "generated_preview_restart_sha256": "81fe920eb6e9803d394e68e306d37ed3a13d9ed5d89d1649c6719ba852a97920",
+    "https_secure_cookie_csrf": true,
+    "images": {
+      "api": "sha256:dba3d2a7305b494d4d9a894d35fdee9743adbbf51f13c51678e98a2fcaf50b96",
+      "web": "sha256:0fcaf5a3e77873767b1359f468568eee514e6341267a17a32db339f3cc281c67"
+    },
+    "logout_revocation": true,
+    "non_root_api_web": true,
+    "process_privileges": {
+      "api": {
+        "capabilities": {
+          "CapAmb": 0,
+          "CapBnd": 0,
+          "CapEff": 0,
+          "CapInh": 0,
+          "CapPrm": 0
+        },
+        "no_new_privileges": true,
+        "uid": 1000
+      },
+      "web": {
+        "capabilities": {
+          "CapAmb": 0,
+          "CapBnd": 0,
+          "CapEff": 0,
+          "CapInh": 0,
+          "CapPrm": 0
+        },
+        "no_new_privileges": true,
+        "uid": 101,
+        "workers": [
+          {
+            "capabilities": {
+              "CapAmb": 0,
+              "CapBnd": 0,
+              "CapEff": 0,
+              "CapInh": 0,
+              "CapPrm": 0
+            },
+            "no_new_privileges": true,
+            "uid": 101
+          },
+          {
+            "capabilities": {
+              "CapAmb": 0,
+              "CapBnd": 0,
+              "CapEff": 0,
+              "CapInh": 0,
+              "CapPrm": 0
+            },
+            "no_new_privileges": true,
+            "uid": 101
+          },
+          {
+            "capabilities": {
+              "CapAmb": 0,
+              "CapBnd": 0,
+              "CapEff": 0,
+              "CapInh": 0,
+              "CapPrm": 0
+            },
+            "no_new_privileges": true,
+            "uid": 101
+          },
+          {
+            "capabilities": {
+              "CapAmb": 0,
+              "CapBnd": 0,
+              "CapEff": 0,
+              "CapInh": 0,
+              "CapPrm": 0
+            },
+            "no_new_privileges": true,
+            "uid": 101
+          },
+          {
+            "capabilities": {
+              "CapAmb": 0,
+              "CapBnd": 0,
+              "CapEff": 0,
+              "CapInh": 0,
+              "CapPrm": 0
+            },
+            "no_new_privileges": true,
+            "uid": 101
+          },
+          {
+            "capabilities": {
+              "CapAmb": 0,
+              "CapBnd": 0,
+              "CapEff": 0,
+              "CapInh": 0,
+              "CapPrm": 0
+            },
+            "no_new_privileges": true,
+            "uid": 101
+          },
+          {
+            "capabilities": {
+              "CapAmb": 0,
+              "CapBnd": 0,
+              "CapEff": 0,
+              "CapInh": 0,
+              "CapPrm": 0
+            },
+            "no_new_privileges": true,
+            "uid": 101
+          },
+          {
+            "capabilities": {
+              "CapAmb": 0,
+              "CapBnd": 0,
+              "CapEff": 0,
+              "CapInh": 0,
+              "CapPrm": 0
+            },
+            "no_new_privileges": true,
+            "uid": 101
+          },
+          {
+            "capabilities": {
+              "CapAmb": 0,
+              "CapBnd": 0,
+              "CapEff": 0,
+              "CapInh": 0,
+              "CapPrm": 0
+            },
+            "no_new_privileges": true,
+            "uid": 101
+          },
+          {
+            "capabilities": {
+              "CapAmb": 0,
+              "CapBnd": 0,
+              "CapEff": 0,
+              "CapInh": 0,
+              "CapPrm": 0
+            },
+            "no_new_privileges": true,
+            "uid": 101
+          },
+          {
+            "capabilities": {
+              "CapAmb": 0,
+              "CapBnd": 0,
+              "CapEff": 0,
+              "CapInh": 0,
+              "CapPrm": 0
+            },
+            "no_new_privileges": true,
+            "uid": 101
+          },
+          {
+            "capabilities": {
+              "CapAmb": 0,
+              "CapBnd": 0,
+              "CapEff": 0,
+              "CapInh": 0,
+              "CapPrm": 0
+            },
+            "no_new_privileges": true,
+            "uid": 101
+          },
+          {
+            "capabilities": {
+              "CapAmb": 0,
+              "CapBnd": 0,
+              "CapEff": 0,
+              "CapInh": 0,
+              "CapPrm": 0
+            },
+            "no_new_privileges": true,
+            "uid": 101
+          },
+          {
+            "capabilities": {
+              "CapAmb": 0,
+              "CapBnd": 0,
+              "CapEff": 0,
+              "CapInh": 0,
+              "CapPrm": 0
+            },
+            "no_new_privileges": true,
+            "uid": 101
+          },
+          {
+            "capabilities": {
+              "CapAmb": 0,
+              "CapBnd": 0,
+              "CapEff": 0,
+              "CapInh": 0,
+              "CapPrm": 0
+            },
+            "no_new_privileges": true,
+            "uid": 101
+          },
+          {
+            "capabilities": {
+              "CapAmb": 0,
+              "CapBnd": 0,
+              "CapEff": 0,
+              "CapInh": 0,
+              "CapPrm": 0
+            },
+            "no_new_privileges": true,
+            "uid": 101
+          }
+        ]
+      }
+    },
+    "restart_bytes": "1455ce259069704cf240787e3ba134426f9d6b04cdc49b7716a824ee905a65f6",
+    "revision": "6306ccff289d475530a6cacf4cb2e28db456ce08",
+    "schema": 17,
+    "status": "passed"
+  },
+  "operator": {
+    "status": "passed",
+    "credential_generations": 2,
+    "password_hex_characters": 40,
+    "secret_hex_characters": 64,
+    "credential_mode": "0600",
+    "overwrite_refusals": 2,
+    "compose_configs": 3,
+    "missing_secrets_rejected": true,
+    "started_services": false,
+    "real_env_or_vault_changed": false
+  },
+  "python_harness_tests": 25,
+  "bridge": {
+    "toolchain": "go1.26.6 linux/amd64",
+    "race_enabled": true,
+    "top_level_tests": 25,
+    "test_and_subtest_pass_events": 34,
+    "crossbuilds": [
+      "linux/amd64",
+      "linux/arm64",
+      "windows/amd64",
+      "windows/arm64",
+      "darwin/amd64",
+      "darwin/arm64"
+    ],
+    "linux_container_cli_and_descriptor": "passed",
+    "native_desktop_launch": "not_tested",
+    "crossbuilt_files_retained_or_distributed": false
+  },
+  "owner_device": {
+    "reported": [
+      "Windows Dell tablet",
+      "Bambu slicer installed",
+      "YubiKey available"
+    ],
+    "windows_hello_used": false,
+    "windows_version": null,
+    "architecture": null,
+    "browser_version": null,
+    "slicer_version": null,
+    "key_model": null,
+    "user_verification_capability": "unverified",
+    "device_results": "not_tested"
+  },
+  "findings": [
+    {
+      "id": "P01",
+      "status": "source_confirmed_unfixed",
+      "issue": "Linux and Windows manual scripts omit makersvault-open registration; compiled installers include it."
+    },
+    {
+      "id": "P02",
+      "status": "source_confirmed_unfixed",
+      "issue": "macOS first pairing reaches unsupported-OS error in openBrowserURL; Linux tests replace the browser opener."
+    },
+    {
+      "id": "P03",
+      "status": "documentation_drift_unfixed",
+      "issue": "Bridge README implies current binary is published and permits trusted-network HTTP; current production UI requires HTTPS."
+    }
+  ],
+  "limits": [
+    "No new full API/web suite, browser benchmark, advisory fetch, image rebuild or scan.",
+    "Current exact-image native decisions and deadline are unchanged; no release or rebuilt-image waiver.",
+    "No physical passkey, Windows/macOS runtime, signing/notarization or real application launch verified.",
+    "Disposable generated fixtures only; no user vault, host protocol handlers or existing deployment modified.",
+    "No public candidate selected, retained crossbuilt distribution, push, tag, publication or deployment.",
+    "Gate 13C/13D and S04/G13-04 remain open; Gate 12 desktop deferral and G13-01 performance deferral unchanged."
+  ]
+}
