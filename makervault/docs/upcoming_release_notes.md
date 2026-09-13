@@ -60,9 +60,18 @@ printer controller, or multi-user cloud service.
   container, including permissions and same-device bind-mount controls. Static
   checks, six-target builds and two short fuzz runs pass; see
   [evidence and limits](evidence/gate-13/MAKE_PLATE_MP1B1_RESULTS.md).
-- MP-1b remains open: Windows/macOS readers, hard I/O timeout, known-location and
-  manifest discovery, local selection and version observations are still pending.
-  No workstation was scanned; existing uploads and file-open behavior are unchanged.
+- The subsequent Windows/worker slice is described below. MP-1b remains open;
+  no workstation was scanned and existing uploads/file-open behavior are unchanged.
+
+### Windows preset reader and scan-worker foundation (MP-1b-2)
+
+- Internal Windows NTFS reading and a single-use scan supervisor are implemented.
+  The supervisor bounds input/output, cancels stalled work, suppresses diagnostics
+  and prevents partial results. It is **not enabled in the production bridge**.
+- 80 unit tests with race detection, six-target builds and four short fuzz runs pass
+  on Linux; see [results and limits](evidence/gate-13/MAKE_PLATE_MP1B2_RESULTS.md).
+  Windows native tests compile but have not run. macOS, actual profile discovery,
+  local consent/matched worker integration and native lifecycle checks remain open.
 
 ### Lower-overhead folder listing (Gate 13C)
 

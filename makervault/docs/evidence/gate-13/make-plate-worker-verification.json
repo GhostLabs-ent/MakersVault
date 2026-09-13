@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "gate": "MP-1b-2",
+  "status": "linux_supervisor_verified_windows_implemented_native_unverified_mp1b_open",
+  "entry_revision": "42af7d1aec278880fc9871af56d0efbf7d8a072e",
+  "implementation_revision": "60bd90c7ae58522b7b6c975c8ff2a5419f4810c3",
+  "go_image": "sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6",
+  "private_evidence_root": "/home/vinnyc/.local/state/makersvault/verification",
+  "captures": [
+    {
+      "directory": "containment-mp1b2-worker-preflight",
+      "exit_code": 0,
+      "source_status": "dirty at 42af7d1; before ASCII-key alias and null-handle guards",
+      "log": "stdout.log",
+      "sha256": "390ac734061cd78d796764a055b151870a29dc7f13fb5cf2722e6da4d012ce9b",
+      "unit_tests_passed": 80,
+      "uid_gid": "1000:1000",
+      "windows_amd64_reader_test_compilation": "passed"
+    },
+    {
+      "directory": "containment-mp1b2-worker-final",
+      "exit_code": 0,
+      "source_status": "clean 60bd90c verification sources before and after",
+      "log": "stdout.log",
+      "sha256": "b4e53490535799318270dde952f65be6af6e22e31a648a3bfd261b6330e913fa",
+      "unit_tests_passed": 80,
+      "top_level_test_and_seeded_fuzz_pass_events": 84,
+      "inclusive_pass_events": 166,
+      "fail_or_skip_events": 0,
+      "uid_gid": "1000:1000",
+      "go_vet": "passed",
+      "cross_build_target_combinations": 6,
+      "cross_build_artifacts": 24,
+      "fuzz": [
+        {"target": "FuzzBambuProjection", "requested_seconds": 5, "reported_elapsed_seconds": 6, "executions": 56686},
+        {"target": "FuzzPortableJSONName", "requested_seconds": 5, "reported_elapsed_seconds": 5, "executions": 260648},
+        {"target": "FuzzWindowsRootSyntax", "requested_seconds": 5, "reported_elapsed_seconds": 6, "executions": 154461},
+        {"target": "FuzzWorkerFrame", "requested_seconds": 5, "reported_elapsed_seconds": 6, "executions": 53671}
+      ],
+      "native_windows_tests_executed": 0,
+      "native_device_tests": 0
+    }
+  ],
+  "limits": [
+    "Worker dispatch exists only in the test executable; production bridge main/CLI unchanged",
+    "Windows NTFS implementation and five native tests compile but have not executed",
+    "macOS reader, known-root/manifest discovery, local selection and version detection remain unimplemented",
+    "Simulated stalls and blocked pipes are not actual uninterruptible kernel-I/O or parent-crash qualification",
+    "One worker slot per parent, not a cross-process lock or OS CPU/memory sandbox",
+    "OS process creation/termination/pipe-close calls themselves have no hard real-time guarantee",
+    "Private IPC validation is not consent, API authorization or independent geometry/digest authentication",
+    "No real workstation profiles, tablet installation, API/migration, full-app rerun, scan, waiver transfer or publication"
+  ]
+}

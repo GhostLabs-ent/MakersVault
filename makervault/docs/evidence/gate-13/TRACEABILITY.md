@@ -168,9 +168,12 @@ at `a88de92` verifies an isolated Bambu projection core with 47 unit tests/race,
 seeded and short mutation fuzzing, vet and six cross-build pairs. [MP-1b-1](MAKE_PLATE_MP1B1_RESULTS.md)
 at `8a9b424` adds an inactive Linux file boundary; 68 unit tests/race, permissions,
 same-device bind controls, vet, six target builds and two short fuzz runs pass.
-Windows/macOS readers, hard I/O deadline and known-root/manifest/selection/version
-discovery remain pending; MP-1b is open. Next prioritize Windows and timeout/cancel
-supervision. The user-facing MP-1 import and MP-2–MP-4 remain undelivered
+[MP-1b-2](MAKE_PLATE_MP1B2_RESULTS.md) at `60bd90c` implements Windows reading and a
+single-use scan supervisor; 80 unit tests/race, six builds and four fuzz smokes pass
+on Linux. Windows native tests only compile; production worker dispatch is absent.
+MP-1b remains open for native/lifecycle qualification, macOS, matched consent and
+known-root/manifest/selection/version discovery. Next implement macOS and Bambu
+discovery while preparing native checks. The user-facing MP-1 import and MP-2–MP-4 remain undelivered
 and must rejoin Gate 13C. Existing descriptive CNC profiles and
 file-open behavior remain; CNC toolpaths, control and new CNC-specific adapters
 are not part of this release. The future hardware-relay vision is not blanket

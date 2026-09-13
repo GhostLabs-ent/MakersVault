@@ -2,8 +2,9 @@
 
 **Decision date:** 2026-09-12. **Entry:** `4858147` (schema 17).
 **Status:** MP-0 and [ADR 0020](adr/0020-printer-presets-and-plate-recipes.md) accepted
-2026-09-12. MP-1 is in progress: isolated Bambu projection and the first Linux
-file-reader boundary are locally verified; MP-1b remains open.
+2026-09-12. MP-1 is in progress: Bambu projection, Linux file access and the
+single-use supervisor are locally verified; Windows reading is implemented but
+not natively verified. MP-1b remains open and inactive in production.
 End-user preset discovery/import and Make Plate are not implemented.
 
 The owner requested review of the working ROADMAP notes from line 349, then
@@ -80,7 +81,7 @@ and ask the owner to trim support rather than silently promising or removing it.
 |---|---|---|
 | UP-1 | Shared transfer progress plus accessible UI; truthful finalizing/error states, nested folders/Project membership, mixed file sizes, empty files, unknown progress and session failure. Unit/type/build plus browser transport/workflow checks | VERIFIED — [84 tests and three-engine results](evidence/gate-13/UPLOAD_PROGRESS_RESULTS.md); owner directed continuation on 2026-09-12 |
 | MP-0 | Final preset/recipe/import contracts, authority and migration/recovery decisions; existing manual-installer parity/macOS pairing repairs with failing-old-source regressions; fixture inventories for named slicer versions | ACCEPTED 2026-09-12 — [contracts/29 bridge tests/six cross-builds](evidence/gate-13/MAKE_PLATE_MP0_RESULTS.md); native device checks remain open |
-| MP-1 | Bambu preset discovery/import/explicit refresh, inheritance/geometry/secret filtering and authorization negative controls; saved snapshots usable without relay. Then Orca and Prusa conformance recorded independently | IN PROGRESS — MP-1a projection and MP-1b-1 Linux file boundary verified; see execution slices below |
+| MP-1 | Bambu preset discovery/import/explicit refresh, inheritance/geometry/secret filtering and authorization negative controls; saved snapshots usable without relay. Then Orca and Prusa conformance recorded independently | IN PROGRESS — through MP-1b-2 local supervisor/Windows implementation; native Windows, macOS and discovery/consent remain open |
 | MP-2 | STL instances, saved recipe lifecycle, deterministic conservative packing/manual editing, source preservation, boundary/height checks, cancellation and memory/time limits, tablet interaction | NOT STARTED |
 | MP-3 | Editable unsliced 3MF, scoped generated-artifact handoff and actual Bambu/Orca/Prusa round trips; no stale prepared data, silent scale changes or shell/default-opener fallback | NOT STARTED |
 | MP-4 | Migration/export/backup/restore/rollback, auth/audit/abuse checks, matched web/API/bridge evidence and updated release limitations; rejoin Gate 13C | NOT STARTED |
@@ -103,10 +104,14 @@ re-cock protocol. New gate numbers do not reset or falsely close Gates 0–13.
   First [MP-1b-1 slice at `8a9b424`](evidence/gate-13/MAKE_PLATE_MP1B1_RESULTS.md)
   verifies Linux held-handle listing/loading, including unprivileged permissions,
   same-device bind rejection and race controls; 68 unit tests/race, vet, six target
-  builds and two short fuzz runs pass. **MP-1b is not complete:** Windows/macOS
-  readers, hard-deadline worker isolation, known locations/manifest discovery,
-  local selection and version observations remain. Next prioritize Windows plus
-  timeout/cancel supervision; no CLI activation or support-target removal.
+  builds and two short fuzz runs pass. Subsequent [MP-1b-2 at `60bd90c`](evidence/gate-13/MAKE_PLATE_MP1B2_RESULTS.md)
+  implements the Windows NTFS reader and isolated self-worker. 80 unit tests/race,
+  six target builds and four short fuzz runs pass on Linux; Windows native reader
+  tests are only compiled. **MP-1b is not complete:** native Windows/lifecycle
+  qualification, macOS reading, matched consented worker integration, known
+  locations/manifest discovery, local selection and version observations remain.
+  Next implement macOS and Bambu discovery while preparing native qualification;
+  no CLI activation or support-target removal.
 - **MP-1c:** Scoped claim/review/commit authority plus immutable preset storage and
   its additive migration, portable v1/v2 and raw-recovery counterparts as one coherent
   persistence slice. Shared strict wire fixtures must prove API/bridge parity.
