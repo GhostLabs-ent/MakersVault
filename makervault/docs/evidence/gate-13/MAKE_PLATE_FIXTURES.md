@@ -6,6 +6,11 @@ owner's workstation. Use these immutable source revisions when preparing MP-1
 fixtures; record raw file hashes/licensing with any later retained vendor copy.
 Author minimal synthetic fixtures separately and label them synthetic.
 
+**MP-1a update:** [Authored fixtures](../../../slicer-bridge/internal/printerpreset/testdata/README.md)
+and pure projection tests now exist; see [results](MAKE_PLATE_MP1A_RESULTS.md).
+The original public-source inventory below remains separate from this synthetic
+test evidence. No real workstation/vendor file is represented as tested input.
+
 ## Named public source targets reviewed
 
 | Target | Pinned public source | Required fixture coverage / observed shape |
@@ -45,13 +50,13 @@ not a durable byte-hashed capture or proof of an installed binary's contents.
 
 | ID | Cases | Required result | Current state |
 |---|---|---|---|
-| PF01 | Bambu child/inherited bed/height, variant nozzle, user override | Exact allowed normalized fields and field provenance, no raw settings | PLANNED |
+| PF01 | Bambu child/inherited bed/height, variant nozzle, user override | Exact allowed normalized fields and field provenance, no raw settings | MP-1a synthetic projection passes; persisted user overrides and installed profiles pending |
 | PF02 | Orca equivalents, changed/missing/renamed parent | Independent expected values or explicit unsupported state | PLANNED |
 | PF03 | Prusa INI/multiple parents/hidden sections/user preset | Prove actual precedence; do not select hidden template as a user printer | PLANNED |
-| PF04 | Centered/circular/concave beds, holes/exclusions, degenerate polygon | Preserve coordinate transform; no rectangle substitution or guessed geometry | PLANNED |
-| PF05 | NaN/infinity/overflow, missing nozzle/height, unsupported multi-tool/belt/resin | Reject or mark incomplete; never silently choose a different machine | PLANNED |
-| PF06 | Cycles, ambiguous IDs, deep/large input, traversal, symlink/reparse escape, include URL | Bounded error/cancellation without external read or network request | PLANNED |
-| PF07 | Fake credentials, private paths, scripts, unknown wire fields | Local reader drops nonallowlisted settings; server rejects extra fields; logs stay redacted | PLANNED |
+| PF04 | Centered/circular/concave beds, holes/exclusions, degenerate polygon | Preserve coordinate transform; no rectangle substitution or guessed geometry | MP-1a simple polygon/rectangle projections pass; solver/other adapter cases pending |
+| PF05 | NaN/infinity/overflow, missing nozzle/height, unsupported multi-tool/belt/resin | Reject or mark incomplete; never silently choose a different machine | MP-1a synthetic rejection/completeness cases pass |
+| PF06 | Cycles, ambiguous IDs, deep/large input, traversal, symlink/reparse escape, include URL | Bounded error/cancellation without external read or network request | In-memory inheritance/JSON/budget cases pass; filesystem/native boundaries NOT IMPLEMENTED |
+| PF07 | Fake credentials, private paths, scripts, unknown wire fields | Local reader drops nonallowlisted settings; server rejects extra fields; logs stay redacted | Projection filtering/redacted errors pass; server wire/auth validation pending |
 | PF08 | Claim/replay/race/expiry/revocation/wrong principal, idempotent retry | No unauthorized staging or persistent mutation | PLANNED |
 | PF09 | Refresh while recipe pinned, override conflict, concurrent commit | Old snapshot unchanged; review/version conflict explicit | PLANNED |
 | PF10 | Portable v1/v2 and raw upgrade/restore/rollback, corrupt snapshot/FK/tombstone | Whole logical graph preserved or fail closed; pending authority invalidated | PLANNED |
@@ -59,5 +64,5 @@ not a durable byte-hashed capture or proof of an installed binary's contents.
 MP-2/MP-3 add original STL fixtures, golden instance transforms, invalid/missing
 source controls, separate object/dimension/placement checks in each named slicer,
 and the owner's actual Bambu version. No slicing or physical printing is required.
-Use [ADR 0020](../../adr/0020-printer-presets-and-plate-recipes.md) for the proposed
+Use [ADR 0020](../../adr/0020-printer-presets-and-plate-recipes.md) for the accepted
 contracts and the [tablet checklist](WINDOWS_TABLET_CHECKLIST.md) for device consent.

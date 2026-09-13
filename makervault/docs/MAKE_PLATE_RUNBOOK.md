@@ -1,9 +1,9 @@
 # Upload progress and Make Plate — release-scope amendment
 
 **Decision date:** 2026-09-12. **Entry:** `4858147` (schema 17).
-**Status:** Owner directed continuation after UP-1; MP-0 bridge repairs verified
-locally and [ADR 0020](adr/0020-printer-presets-and-plate-recipes.md) ready for acceptance.
-Preset import and Make Plate are not implemented.
+**Status:** MP-0 and [ADR 0020](adr/0020-printer-presets-and-plate-recipes.md) accepted
+2026-09-12. MP-1 is in progress, beginning with the isolated Bambu projection core.
+End-user preset discovery/import and Make Plate are not implemented.
 
 The owner requested review of the working ROADMAP notes from line 349, then
 approved the proposed bounded direction: “lets defer CNC for a later release …
@@ -78,8 +78,8 @@ and ask the owner to trim support rather than silently promising or removing it.
 | Gate | Scope / exit evidence | State |
 |---|---|---|
 | UP-1 | Shared transfer progress plus accessible UI; truthful finalizing/error states, nested folders/Project membership, mixed file sizes, empty files, unknown progress and session failure. Unit/type/build plus browser transport/workflow checks | VERIFIED — [84 tests and three-engine results](evidence/gate-13/UPLOAD_PROGRESS_RESULTS.md); owner directed continuation on 2026-09-12 |
-| MP-0 | Final preset/recipe/import contracts, authority and migration/recovery decisions; existing manual-installer parity/macOS pairing repairs with failing-old-source regressions; fixture inventories for named slicer versions | READY FOR ACCEPTANCE — [contracts/29 bridge tests/six cross-builds](evidence/gate-13/MAKE_PLATE_MP0_RESULTS.md); native device checks remain open |
-| MP-1 | Bambu preset discovery/import/explicit refresh, inheritance/geometry/secret filtering and authorization negative controls; saved snapshots usable without relay. Then Orca and Prusa conformance recorded independently | NOT STARTED |
+| MP-0 | Final preset/recipe/import contracts, authority and migration/recovery decisions; existing manual-installer parity/macOS pairing repairs with failing-old-source regressions; fixture inventories for named slicer versions | ACCEPTED 2026-09-12 — [contracts/29 bridge tests/six cross-builds](evidence/gate-13/MAKE_PLATE_MP0_RESULTS.md); native device checks remain open |
+| MP-1 | Bambu preset discovery/import/explicit refresh, inheritance/geometry/secret filtering and authorization negative controls; saved snapshots usable without relay. Then Orca and Prusa conformance recorded independently | IN PROGRESS — MP-1a projection core; see execution slices below |
 | MP-2 | STL instances, saved recipe lifecycle, deterministic conservative packing/manual editing, source preservation, boundary/height checks, cancellation and memory/time limits, tablet interaction | NOT STARTED |
 | MP-3 | Editable unsliced 3MF, scoped generated-artifact handoff and actual Bambu/Orca/Prusa round trips; no stale prepared data, silent scale changes or shell/default-opener fallback | NOT STARTED |
 | MP-4 | Migration/export/backup/restore/rollback, auth/audit/abuse checks, matched web/API/bridge evidence and updated release limitations; rejoin Gate 13C | NOT STARTED |
@@ -87,6 +87,28 @@ and ask the owner to trim support rather than silently promising or removing it.
 Each completed slice records exact source/build, commands, expected/actual results,
 failed attempts and remaining owner input, then returns to the governing runbook's
 re-cock protocol. New gate numbers do not reset or falsely close Gates 0–13.
+
+### MP-1 execution slices
+
+- **MP-1a:** Pure, bounded Bambu document projection, authored fixtures, normalization,
+  redacted failures and parser fuzzing. No filesystem/network/CLI activation or DB
+  change. [VERIFIED at `a88de92`](evidence/gate-13/MAKE_PLATE_MP1A_RESULTS.md): 47 bridge/parser
+  unit tests, seeded/short fuzz run, vet and six-target cross-builds pass. Source-format
+  evidence is separate from actual installed-profile support.
+- **MP-1b:** Bounded workstation source discovery and explicit local selection;
+  known-root/version observations, symlink/reparse/mount/special-file controls,
+  cancellable I/O and native path fixtures. Do not treat download-origin trust as
+  consent to share metadata, and do not enable incomplete remote import flows.
+- **MP-1c:** Scoped claim/review/commit authority plus immutable preset storage and
+  its additive migration, portable v1/v2 and raw-recovery counterparts as one coherent
+  persistence slice. Shared strict wire fixtures must prove API/bridge parity.
+- **MP-1d:** End-to-end browser/bridge/Bambu import/refresh, offline saved presets,
+  privacy/role/revocation controls and actual version-specific application evidence.
+  Orca and Prusa coverage remains independently required or explicitly re-scoped
+  by the owner; a Bambu parser pass does not silently qualify the other adapters.
+
+These slices sequence the accepted scope; they do not close MP-1 early or defer
+its data-recovery requirements to MP-4.
 
 ## Verification and release posture
 
@@ -107,7 +129,7 @@ at `f6ff55b`; all commits remain local and publication requires separate approva
 ## References and known format constraints
 
 - [Existing local adapter contract](adr/0012-versioned-local-application-adapters.md).
-- [Proposed preset/recipe/import contract](adr/0020-printer-presets-and-plate-recipes.md).
+- [Accepted preset/recipe/import contract](adr/0020-printer-presets-and-plate-recipes.md).
 - [Named-source fixture inventory and owner Bambu version](evidence/gate-13/MAKE_PLATE_FIXTURES.md).
 - [Platform findings and Windows prerequisites](evidence/gate-13/PLATFORM_OPERATOR_RESULTS.md).
 - [Orca profile documentation](https://github.com/OrcaSlicer/OrcaSlicer/wiki/how_to_create_profiles)

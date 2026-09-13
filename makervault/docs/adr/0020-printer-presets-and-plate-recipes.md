@@ -1,6 +1,6 @@
 # ADR 0020: Workstation printer presets and immutable plate recipes
 
-**Status:** Proposed for MP-0 acceptance; not an implemented API or schema.
+**Status:** Accepted by owner on 2026-09-12; not an implemented API or schema.
 **Date:** 2026-09-12. **Application baseline:** schema 17 / bridge `d116997`.
 
 ## Context and scope
@@ -277,7 +277,8 @@ The [fixture inventory](../evidence/gate-13/MAKE_PLATE_FIXTURES.md) distinguishe
 reviewed public formats from installed-device evidence. The owner's reported Bambu
 `v2.8.0.6` is a separate target, not assumed to match a nearby public tag.
 
-MP-0 acceptance approves these contracts and the separately verified bridge repairs.
+The owner accepted MP-0 and directed continuation on 2026-09-12, approving these
+contracts and the separately verified bridge repairs.
 MP-1 starts with Bambu parser fixtures/negative tests, then the additive schema,
 authorization and portable/recovery path. No current API, data migration, slicer
 profile scanning, install on the owner's device, signing service, CNC/CAM, network

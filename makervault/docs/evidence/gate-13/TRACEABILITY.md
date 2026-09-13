@@ -162,9 +162,12 @@ boundaries; no broad catalog or payload comparison was removed.
 [upload progress/Make Plate gates](../../MAKE_PLATE_RUNBOOK.md); CNC/CAM integration
 is deferred to a later release. [UP-1](UPLOAD_PROGRESS_RESULTS.md) passes 84 web tests
 and three-engine upload checks; owner directed continuation. [MP-0](MAKE_PLATE_MP0_RESULTS.md)
-repairs the manual protocols/macOS pairing branch and proposes ADR 0020; 29 bridge
-tests/six cross-builds pass. Await contract/package acceptance; MP-1–MP-4 remain
-undelivered and must rejoin Gate 13C. Existing descriptive CNC profiles and
+repairs the manual protocols/macOS pairing branch; 29 bridge tests/six cross-builds
+pass. The owner accepts MP-0 and ADR 0020 on September 12. [MP-1a](MAKE_PLATE_MP1A_RESULTS.md)
+at `a88de92` verifies an isolated Bambu projection core with 47 unit tests/race,
+seeded and short mutation fuzzing, vet and six cross-build pairs. Next is MP-1b's
+safe filesystem reader; the user-facing MP-1 import and MP-2–MP-4 remain undelivered
+and must rejoin Gate 13C. Existing descriptive CNC profiles and
 file-open behavior remain; CNC toolpaths, control and new CNC-specific adapters
 are not part of this release. The future hardware-relay vision is not blanket
 authorization for synchronization, device discovery or machine control.

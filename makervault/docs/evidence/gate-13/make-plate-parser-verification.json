@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "gate": "MP-1a",
+  "status": "locally_verified_mp1_remains_open",
+  "entry_revision": "3ae0199bd9d3110d2b73bee8be9215a01e946b8f",
+  "implementation_revision": "a88de9263b5e1c6c81f4638eb4c307aea1aa77aa",
+  "go_image": "sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6",
+  "private_evidence_root": "/home/vinnyc/.local/state/makersvault/verification",
+  "captures": [
+    {
+      "directory": "containment-mp1a-parser-preflight",
+      "exit_code": 0,
+      "source_status": "dirty new-package source at 3ae0199; before final schema/auxiliary-geometry guards",
+      "log": "stdout.log",
+      "sha256": "7c7d74e3d90b8b116e1c072abd3661178f1f3fae5d9c6398a2bd33eb69db62a2"
+    },
+    {
+      "directory": "containment-mp1a-parser-final",
+      "exit_code": 0,
+      "source_status": "clean a88de92 before and after",
+      "log": "stdout.log",
+      "sha256": "e74b51f13b1fed964c72eb78cf7646f70cb997b9369f6162d4cd97cb0e695fa3",
+      "unit_tests_passed": 47,
+      "top_level_test_and_seeded_fuzz_pass_events": 48,
+      "inclusive_pass_events": 102,
+      "go_vet": "passed",
+      "cross_build_target_combinations": 6,
+      "cross_build_artifacts": 12,
+      "fuzz_executions": 189429,
+      "fuzz_requested_seconds": 5,
+      "fuzz_reported_elapsed_seconds": 6,
+      "native_device_tests": 0
+    }
+  ],
+  "limits": [
+    "Pure supplied-document projection; not called by bridge executable",
+    "Synthetic fixtures, not captured vendor or installed-device profiles",
+    "No filesystem discovery, path confinement, network import, API, migration or persistence",
+    "Reader cancellation is cooperative and does not interrupt blocked I/O",
+    "Owner Bambu v2.8.0.6 and Orca/Prusa remain unqualified",
+    "No full-app rerun, vulnerability scan, runtime image build, waiver transfer or publication"
+  ]
+}

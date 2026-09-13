@@ -4,7 +4,7 @@
 
 **Baseline date:** 2026-09-12
 
-**Committed baseline:** `main` MP-0 bridge repairs at `d116997`, after UP-1 web progress at `b059dd7` and approved six-package native update at `6306ccf` (schema 17; Gate 13B accepted at `2f61b37`, 13C qualification open and not accepted)
+**Committed baseline:** `main` MP-1a isolated Bambu preset parser at `a88de92`, after MP-0 bridge repairs at `d116997`, UP-1 web progress at `b059dd7` and approved six-package native update at `6306ccf` (schema 17; Gate 13B accepted at `2f61b37`, 13C qualification open and not accepted)
 
 **Latest full verification:** clean committed `6306ccf`;
 [native-update evidence](evidence/gate-13/SECURITY_NATIVE_UPDATE_RESULTS.md).
@@ -33,8 +33,12 @@ with CNC/CAM deferred. [UP-1](evidence/gate-13/UPLOAD_PROGRESS_RESULTS.md) passe
 tests and three-engine upload checks at `b059dd7`; the owner directed continuation.
 MP-0 at `d116997` passes 29 bridge race tests, six cross-builds and a container-only
 manual install. [ADR 0020](adr/0020-printer-presets-and-plate-recipes.md) and the
-repair package await acceptance before MP-1. No native device or fresh full-gate
-qualification is implied; preset import and plate generation remain unimplemented.
+repair package are owner-accepted on September 12. [MP-1a](evidence/gate-13/MAKE_PLATE_MP1A_RESULTS.md)
+at `a88de92` verifies the isolated Bambu projection core: 47 unit tests with race
+detection, seeded and short mutation fuzzing, vet and six platform/architecture
+cross-build pairs pass. MP-1 remains open; next is MP-1b's bounded filesystem reader.
+No workstation discovery, user-facing preset import, plate generation, native-device
+qualification or fresh full-gate verification is implied.
 The security reviews recheck durable evidence, not rerun the full gate. Earlier
 browser results and WebKit synthetic-drop limits remain separately dated; G13-01
 performance tuning stays deferred. Nothing is pushed or release-qualified.
@@ -323,6 +327,7 @@ row's future-tense wording.
 | T-079 | `VERIFIED` / `PROPOSED` / `OPEN` | Unchanged `6306ccf` application at entry `8a7fa35`: fresh exact-image HTTPS/security/persistence/privilege smoke, generated-credential/operator preflight, 25 Python tests, 25 bridge race tests and six cross-builds pass. Linux container CLI/install descriptor passes. Source review finds missing general-scheme registration in manual wrappers and missing macOS pairing browser dispatch | `docs/evidence/gate-13/PLATFORM_OPERATOR_RESULTS.md`, four durable private runs, `platform-qualification.json`, checker and Windows tablet checklist | Real Windows/Bambu/YubiKey checks NOT TESTED; owner reports hardware only. Propose bounded bridge parity/macOS pairing/documentation repair before fresh qualification; no application fix, new full gate, image scan, support waiver or release acceptance claimed. C03/G13-05 and security/release gates remain open. No live vault/host handler changes, candidate artifacts retained, push or publication. |
 | T-080 | `DECIDED` / `VERIFIED` / `OPEN` | Owner approves upload progress and bounded Make Plate/workstation relay scope, explicitly deferring CNC/CAM. UP-1 at `b059dd7` implements shared byte-weighted transfer, server-finalizing/result states and directory basenames; 84 web tests, type/build and three-engine native HTTPS upload checks pass | `docs/MAKE_PLATE_RUNBOOK.md`, `docs/evidence/gate-13/UPLOAD_PROGRESS_RESULTS.md`, hash-bound private captures and evidence index; failed attempts retained | UP-1 awaits owner acceptance. Make Plate is authorized but not implemented. Schema 17, upload limits and old protocols preserved. New web image does not inherit historical waivers; no fresh full suite/scan or physical-device qualification. MP-0–MP-4 and Gate 13C/13D remain open; no push/publication or desktop device installation. |
 | T-081 | `VERIFIED` / `PROPOSED` / `OPEN` | Owner directs continuation after UP-1 and reports Bambu Studio v2.8.0.6. MP-0 at `d116997` fixes both manual installers' general scheme and macOS pairing command; red controls reproduce old behavior, then 29 bridge race tests / 43 pass events, six cross-builds and container manual install pass. ADR 0020 specifies preset/recipe/import and recovery contracts; named source inventory retained | `docs/evidence/gate-13/MAKE_PLATE_MP0_RESULTS.md`, `make-plate-verification.json`, red/green private captures, `docs/adr/0020-printer-presets-and-plate-recipes.md` | Await MP-0 contract/package acceptance before MP-1. Public profile source review is not installed-device/parser qualification. No native Windows/macOS launch, YubiKey test, preset API/migration, recipe/export implementation, fresh full gate/scan or historical-waiver transfer. CNC/CAM deferred; no push, publication or live/device installation. |
+| T-082 | `DECIDED` / `VERIFIED` / `OPEN` | Owner accepts MP-0/ADR 0020 and directs continuation. MP-1a at `a88de92` adds an isolated supplied-document Bambu projection core with bounded JSON, exact-name inheritance, geometry normalization and allowlisted output. 47 unit tests with race detection plus seeded fuzz target pass (48 top-level / 102 inclusive events); vet, six platform/architecture cross-build pairs and 189,429 short fuzz executions pass | `docs/evidence/gate-13/MAKE_PLATE_MP1A_RESULTS.md`, `make-plate-parser-verification.json`, durable private captures and accepted `docs/adr/0020-printer-presets-and-plate-recipes.md` | MP-1 remains open; next MP-1b is safe workstation filesystem discovery/selection. Pure parser is not called by the bridge CLI and proves neither native paths nor owner v2.8.0.6 compatibility. Scoped API/import, migration and portable/raw recovery must follow together. No source credentials retained in typed projection, but user labels require review. No native-device test, full gate/scan, historical-waiver transfer, push, publication or live/device installation. |
 
 ### 5.4 Current storage invariants
 
@@ -1387,10 +1392,12 @@ invariants and evidence standard do not change silently.
 **2026-09-12 scope amendment:** The owner authorizes upload progress and the bounded
 [Make Plate + workstation relay runbook](MAKE_PLATE_RUNBOOK.md), explicitly deferring
 CNC/CAM integration to a later release. The owner directed continuation after UP-1.
-MP-0's bridge repairs are locally verified; review/accept
-[ADR 0020 and the evidence package](evidence/gate-13/MAKE_PLATE_MP0_RESULTS.md), then
-begin MP-1 with Bambu parser fixtures and scoped import/portable-recovery contracts.
-MP-2–MP-4 retain separate source-bound evidence and owner checkpoints. Older platform
+MP-0's bridge repairs and [ADR 0020](adr/0020-printer-presets-and-plate-recipes.md)
+are now owner-accepted. [MP-1a's isolated parser](evidence/gate-13/MAKE_PLATE_MP1A_RESULTS.md)
+is locally verified at `a88de92`; continue with MP-1b's safe workstation filesystem
+reader, then MP-1c's scoped import and storage/portable-recovery contracts together.
+MP-1 remains open, and MP-2–MP-4 retain separate source-bound evidence and owner
+checkpoints. Older platform
 “next checkpoint” wording is historical. No existing gate is silently
 accepted, no old image waiver transfers and no publication is authorized.
 

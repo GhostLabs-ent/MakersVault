@@ -38,8 +38,18 @@ printer controller, or multi-user cloud service.
 - 29 bridge tests pass with race detection; six platform/architecture builds and
   an isolated Linux manual-install check pass. Native Windows/macOS launch remains
   unqualified. See [MP-0 results](evidence/gate-13/MAKE_PLATE_MP0_RESULTS.md).
-- Preset/recipe/import and recovery contracts are proposed, not delivered APIs.
+- Preset/recipe/import and recovery contracts are accepted, not delivered APIs.
   No printer discovery, slicing, printing or background profile sync is added yet.
+
+### Bambu preset parsing foundation (MP-1a)
+
+- Internal bounded reader core now projects inherited printer geometry and nozzle
+  metadata into review candidates, filtering credential/script fields and reporting
+  incomplete or unsupported inputs. It is **not enabled in the bridge UI/CLI yet**.
+- 47 bridge/parser unit tests, a short fuzz run, vet and six-target cross-builds pass;
+  see [results and limits](evidence/gate-13/MAKE_PLATE_MP1A_RESULTS.md). Workstation
+  discovery, scoped import, persisted presets and actual Bambu version qualification
+  remain separate pending work. Upload limits and existing workflows are unchanged.
 
 ### Lower-overhead folder listing (Gate 13C)
 
