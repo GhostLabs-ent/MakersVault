@@ -5,6 +5,8 @@
 2026-09-12. MP-1 is in progress: Bambu projection, Linux file access and the
 single-use supervisor are locally verified; Windows reading is implemented but
 not natively verified. MP-1b remains open and inactive in production.
+An owner-provided Intel Mac now passes 34 targeted native parser/policy/worker
+tests; macOS file reading is still unimplemented and correctly refuses requests.
 End-user preset discovery/import and Make Plate are not implemented.
 
 The owner requested review of the working ROADMAP notes from line 349, then
@@ -112,6 +114,14 @@ re-cock protocol. New gate numbers do not reset or falsely close Gates 0–13.
   locations/manifest discovery, local selection and version observations remain.
   Next implement macOS and Bambu discovery while preparing native qualification;
   no CLI activation or support-target removal.
+  The owner subsequently supplied a Mac for scoped tests. [Native results at
+  `79ac9a0`](evidence/gate-13/MAKE_PLATE_MAC_NATIVE_RESULTS.md) record macOS 15.7.9
+  (24G830), x86_64: 34 unit tests plus four seeded fuzz targets pass without a
+  toolchain/app install. Ordinary worker timeout/cancel/reaping and unsupported
+  reader responses are verified; the two successful-file-reader tests are explicitly
+  unrun. No native race detector, Apple Silicon, filesystem or slicer qualification.
+  Test files were removed and OpenClaw was untouched. Continue discovery and the
+  macOS boundary before considering this gate complete.
 - **MP-1c:** Scoped claim/review/commit authority plus immutable preset storage and
   its additive migration, portable v1/v2 and raw-recovery counterparts as one coherent
   persistence slice. Shared strict wire fixtures must prove API/bridge parity.

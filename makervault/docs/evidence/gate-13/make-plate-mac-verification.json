@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "gate": "MP-1b-2-mac-native",
+  "status": "intel_mac_worker_verified_reader_unimplemented_mp1b_open",
+  "entry_revision": "7f4fe3623b7fb6494008a3f3d7a66927e601c2bf",
+  "test_source_revision": "79ac9a04db63b996725bcf430973e60e1f7e5d67",
+  "runtime_implementation_revision": "60bd90c7ae58522b7b6c975c8ff2a5419f4810c3",
+  "go_image": "sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6",
+  "native": {
+    "os": "macOS", "version": "15.7.9", "build": "24G830", "architecture": "x86_64", "uid": 501,
+    "unit_tests_passed": 34, "top_level_pass_events": 38, "inclusive_pass_events": 97,
+    "fail_or_skip_events": 0, "seeded_fuzz_targets": 4,
+    "packages": {"printerpreset": 18, "presetfiles": 7, "presetworker": 9},
+    "explicitly_not_run": ["TestWorkerListAndProjectRoundTrip", "TestWorkerProjectionIsAtomic"],
+    "race_detector": false, "mutation_fuzzing": false, "macos_file_reader_implemented": false,
+    "apple_silicon_execution": false, "native_windows_execution": false,
+    "real_slicer_profiles_read": false, "production_bridge_installed": false,
+    "openclaw_changed": false, "remote_fixture_removed": true
+  },
+  "payload": {
+    "directory": "containment-mac-native-build-final", "file": "native-tests.tar.gz",
+    "bytes": 12005763, "sha256": "10ffe2421ce3910736bd50edbe2748f230262e8eaf931ae74e61c9450671f530"
+  },
+  "captures": [
+    {"directory": "containment-mac-native-build", "final_source": false, "exit_code": 0, "stdout_bytes": 157, "stdout_sha256": "387a8b97b5bebcdf181a4e416003a2bd2675fdbfc7a46cf7ca181113ac10d12c"},
+    {"directory": "containment-mac-native-build-final", "final_source": true, "exit_code": 0, "stdout_bytes": 157, "stdout_sha256": "387a8b97b5bebcdf181a4e416003a2bd2675fdbfc7a46cf7ca181113ac10d12c"},
+    {"directory": "containment-mac-native-run", "final_source": true, "exit_code": 0, "stdout_bytes": 80762, "stdout_sha256": "83ade8f4cd52e63185fcb8e94f2b2c699de1beb358df522d50bd7568f41b4590"},
+    {"directory": "containment-mac-native-cleanup", "final_source": true, "exit_code": 0, "stdout_bytes": 29, "stdout_sha256": "39019e500c871c42c73f737e12186e0b31f50444e0792b6e866bca89d01d7c7f"}
+  ]
+}

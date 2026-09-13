@@ -42,11 +42,15 @@ permission and same-device bind controls, vet, six-target builds and two short f
 runs pass. [MP-1b-2](evidence/gate-13/MAKE_PLATE_MP1B2_RESULTS.md) at `60bd90c` adds
 the Windows NTFS reader and isolated self-worker; 80 unit tests/race, six target
 builds and four short fuzz checks pass on Linux. Windows reader tests only compile.
+The owner-provided Intel Mac subsequently passes [34 targeted native tests](evidence/gate-13/MAKE_PLATE_MAC_NATIVE_RESULTS.md)
+at test revision `79ac9a0` on macOS 15.7.9 (24G830): parser/policy and ordinary
+worker timeout/cancel/reaping, plus explicit refusal by the unimplemented reader.
+Two successful-reader tests remain unrun; no native race detector or slicer launch.
 MP-1b/MP-1 remain open: native Windows/lifecycle qualification, macOS reading,
 matched consented worker integration, known-root/manifest discovery, local selection
 and version observations are pending. The production bridge has no worker dispatch.
-No workstation discovery, user-facing preset import, plate generation, native-device
-qualification or fresh full-gate verification is implied.
+No workstation discovery, user-facing preset import, plate generation, complete
+native-device qualification or fresh full-gate verification is implied.
 The security reviews recheck durable evidence, not rerun the full gate. Earlier
 browser results and WebKit synthetic-drop limits remain separately dated; G13-01
 performance tuning stays deferred. Nothing is pushed or release-qualified.
@@ -338,6 +342,7 @@ row's future-tense wording.
 | T-082 | `DECIDED` / `VERIFIED` / `OPEN` | Owner accepts MP-0/ADR 0020 and directs continuation. MP-1a at `a88de92` adds an isolated supplied-document Bambu projection core with bounded JSON, exact-name inheritance, geometry normalization and allowlisted output. 47 unit tests with race detection plus seeded fuzz target pass (48 top-level / 102 inclusive events); vet, six platform/architecture cross-build pairs and 189,429 short fuzz executions pass | `docs/evidence/gate-13/MAKE_PLATE_MP1A_RESULTS.md`, `make-plate-parser-verification.json`, durable private captures and accepted `docs/adr/0020-printer-presets-and-plate-recipes.md` | MP-1 remains open; next MP-1b is safe workstation filesystem discovery/selection. Pure parser is not called by the bridge CLI and proves neither native paths nor owner v2.8.0.6 compatibility. Scoped API/import, migration and portable/raw recovery must follow together. No source credentials retained in typed projection, but user labels require review. No native-device test, full gate/scan, historical-waiver transfer, push, publication or live/device installation. |
 | T-083 | `VERIFIED` / `OPEN` | Owner directs continuation after MP-1a. MP-1b-1 at `8a9b424` adds inactive Linux held-handle direct listing/explicit Bambu document loading. 68 unit tests/race (70 top-level / 137 inclusive pass events, no fail/skip), unprivileged permission checks, same-device bind rejection, source-replacement controls, vet, six target builds and two short fuzz runs pass | `docs/evidence/gate-13/MAKE_PLATE_MP1B1_RESULTS.md`, `make-plate-files-verification.json`, three durable captures and file-based driver | MP-1b/MP-1 remain open. Windows/macOS readers, hard I/O deadline, known roots/manifest/local selection and version detection are not implemented; next prioritize Windows and timeout/cancel supervision. No CLI activation, actual workstation scan, API/migration, full gate/scan, device qualification, waiver transfer, push or publication. Source-mutation checks are not an atomic multi-file snapshot; all support targets and recovery obligations remain. |
 | T-084 | `VERIFIED` / `OPEN` | Owner directs continuation after MP-1b-1. MP-1b-2 at `60bd90c` implements a Windows NTFS held-handle reader and private self-worker with timeout/cancel, single unreaped-worker slot, bounded framing, diagnostic redaction and atomic selected results. 80 unit tests/race (84 top-level / 166 inclusive pass events, zero fail/skip), vet, six target builds and four fuzz smokes pass on Linux | `docs/evidence/gate-13/MAKE_PLATE_MP1B2_RESULTS.md`, `make-plate-worker-verification.json`, two durable captures/four checked log hashes | Windows native tests compile but have not run; macOS, native lifecycle/startup, matched consented main integration and known-root/manifest/selection/version discovery remain open. Simulated stalls are not uninterruptible kernel-I/O or parent-crash proof; no OS sandbox or cross-process lock. Production main/protocols, API/schema and model bytes unchanged. No device test, full gate/scan, waiver transfer, push/publication or MP-1b acceptance. |
+| T-085 | `VERIFIED` / `OPEN` | Owner supplies a Mac for scoped testing. Test-only `79ac9a0` runs on macOS 15.7.9 / 24G830 / x86_64 without toolchain/app installation: 34 unit tests, four seed-fuzz targets, 38 top-level / 97 inclusive passes, zero fail/skip. Ordinary worker cancellation/timeouts/reaping and refusal by the unimplemented reader pass | `docs/evidence/gate-13/MAKE_PLATE_MAC_NATIVE_RESULTS.md`, `make-plate-mac-verification.json`, four private captures and hash-bound fixture archive | Two successful-reader tests explicitly unrun; macOS filesystem backend, native race/Apple Silicon/Windows, real slicers and matched production dispatch remain pending. Only a Darwin test and evidence drivers added, no runtime/API/schema change. Temporary remote files removed, SSH closed, OpenClaw untouched. No gate closure, install, push/publication or waiver transfer. |
 
 ### 5.4 Current storage invariants
 
@@ -1406,8 +1411,10 @@ MP-0's bridge repairs and [ADR 0020](adr/0020-printer-presets-and-plate-recipes.
 are now owner-accepted. [MP-1a's isolated parser](evidence/gate-13/MAKE_PLATE_MP1A_RESULTS.md)
 is locally verified at `a88de92`, followed by [MP-1b-1's Linux file boundary](evidence/gate-13/MAKE_PLATE_MP1B1_RESULTS.md)
 at `8a9b424` and [MP-1b-2's Windows/worker implementation](evidence/gate-13/MAKE_PLATE_MP1B2_RESULTS.md)
-at `60bd90c`. Continue with macOS and Bambu-owned known-root/manifest/local-selection/
-version discovery, while preparing native Windows and lifecycle qualification.
+at `60bd90c`. The owner's Intel Mac now provides [native worker evidence](evidence/gate-13/MAKE_PLATE_MAC_NATIVE_RESULTS.md)
+at `79ac9a0`; this does not implement or qualify macOS file access. Continue with
+that boundary and Bambu-owned known-root/manifest/local-selection/version discovery,
+while preparing native Windows and remaining lifecycle qualification.
 Keep the reader inactive until matched consented worker integration and those
 boundaries are met. MP-1c still couples
 scoped import with storage migration and portable/raw recovery.

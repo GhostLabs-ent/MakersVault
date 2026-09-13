@@ -73,6 +73,13 @@ printer controller, or multi-user cloud service.
   Windows native tests compile but have not run. macOS, actual profile discovery,
   local consent/matched worker integration and native lifecycle checks remain open.
 
+### Native Mac worker verification
+
+- [34 targeted tests now pass on an Intel Mac](evidence/gate-13/MAKE_PLATE_MAC_NATIVE_RESULTS.md)
+  running macOS 15.7.9, including ordinary worker timeout/cancellation and safe
+  refusal while macOS file reading is unimplemented. This is not yet macOS preset
+  import or slicer-launch support; no app/toolchain installation was needed.
+
 ### Lower-overhead folder listing (Gate 13C)
 
 - Folder lists read plain database values instead of constructing tracked objects

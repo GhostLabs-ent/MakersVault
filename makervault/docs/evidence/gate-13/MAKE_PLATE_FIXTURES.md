@@ -22,6 +22,13 @@ framing, redaction and partial-failure fixtures. Five authored Windows native te
 compile but have not run. macOS, actual discovery and native lifecycle checks remain
 pending; no owner Bambu version is qualified by these synthetic cases.
 
+**Native Mac update:** [Scoped execution at `79ac9a0`](MAKE_PLATE_MAC_NATIVE_RESULTS.md)
+passes 34 unit tests and four seeded fuzz targets on the owner's Intel macOS
+15.7.9 / 24G830 asset. This adds ordinary worker/pipe timeout/cancel/reaping evidence
+and an explicit unsupported-reader regression, not a macOS filesystem pass.
+Two successful-reader tests were deliberately unrun; no real profiles were read,
+applications installed or OpenClaw changed. Disposable fixtures were removed.
+
 ## Named public source targets reviewed
 
 | Target | Pinned public source | Required fixture coverage / observed shape |
