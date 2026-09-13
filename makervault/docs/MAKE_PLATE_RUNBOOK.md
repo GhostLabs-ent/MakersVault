@@ -10,9 +10,11 @@ checks; two additional counterexamples reproduce failed pre-open safety properti
 The macOS reader experiment is explicitly build-tagged and **excluded from normal
 builds**, which still refuse preset reads. An OS-enforced boundary remains unresolved.
 End-user preset discovery/import and Make Plate are not implemented.
-The [macOS safety-boundary proposal](MAKE_PLATE_MACOS_SAFETY_PROPOSAL.md) is prepared
-at owner request; its bounded MS-1 feasibility pass awaits approval. It does not
-approve native packaging, activate the experiment or defer Mac preset import.
+The owner approved [MS-1's bounded feasibility assessment](MAKE_PLATE_MACOS_SAFETY_PROPOSAL.md),
+now [completed NO-GO](evidence/gate-13/MAKE_PLATE_MACOS_MS1_RESULTS.md): no supported
+pre-open enforcement mapping was established for the candidate. MS-2 did not open.
+Proposed deferral of new Mac preset import awaits owner decision; existing Mac
+file-open support stays unchanged. No native packaging or activation is approved.
 
 The owner requested review of the working ROADMAP notes from line 349, then
 approved the proposed bounded direction: “lets defer CNC for a later release …
@@ -142,7 +144,12 @@ re-cock protocol. New gate numbers do not reset or falsely close Gates 0–13.
   only**, one supported-API/embedded-reader feasibility pass with explicit stop
   conditions. MS-2 native proof and MS-3 integration require separate checkpoints;
   no custom-SBPL shipping dependency, toolchain installation or automatic deferral.
-  Await owner review before starting that candidate assessment.
+  The owner subsequently approves MS-1. Its [NO-GO assessment](evidence/gate-13/MAKE_PLATE_MACOS_MS1_RESULTS.md)
+  identifies missing supported special-file/mount/recall enforcement and unresolved
+  XPC lifecycle equivalence. The approved early-stop rule applies; MS-2 did not open.
+  Recommend owner review of a new-Mac-preset-import-only deferral for v5.1; do not
+  apply it automatically or remove old Mac file-open support. Further research needs
+  separate direction. Native code, SDKs and the owner's Mac were not changed.
 - **MP-1c:** Scoped claim/review/commit authority plus immutable preset storage and
   its additive migration, portable v1/v2 and raw-recovery counterparts as one coherent
   persistence slice. Shared strict wire fixtures must prove API/bridge parity.

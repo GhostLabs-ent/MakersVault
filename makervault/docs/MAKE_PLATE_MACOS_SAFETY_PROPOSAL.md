@@ -1,11 +1,14 @@
 # macOS preset-reader safety boundary — bounded proposal
 
-**Date:** 2026-09-13. **Status: PROPOSED; implementation not approved by this document.**
+**Date:** 2026-09-13. **Status: MS-1 scope approved; assessment completed NO-GO.**
 **Entry:** `2226728`; unchanged experimental reader/test source `907cddd`, schema 17.
-The owner approved preparing this proposal, not enabling the reader, changing the
-accepted support scope, installing software or publishing a release.
+The owner subsequently said “MS-1 Approved” against proposal commit `b748079`.
+[Assessment results](evidence/gate-13/MAKE_PLATE_MACOS_MS1_RESULTS.md) record the
+supported candidate's missing pre-open guarantees and the required early stop.
+MS-2 did not open. Implementation, installation, support deferral and publication
+are not approved by that scope acceptance; the owner's next disposition is pending.
 
-## Recommendation and decision requested
+## Original recommendation — MS-1 scope subsequently approved
 
 Approve **MS-1 only**: one bounded feasibility pass for a supported, separately
 confined macOS reader using App Sandbox. Investigate an embedded XPC service as the
@@ -197,9 +200,9 @@ development proof bundles or change the public release workflow during feasibili
 
 | Checkpoint | Deliverable / required exit | Current state |
 |---|---|---|
-| MS-0 — proposal | Owner reviews options, unchanged safety requirements and bounded MS-1 scope | This document prepared; acceptance pending |
-| MS-1 — feasibility only | Map each pre-open requirement to a supported enforcement mechanism; identify packaging/lifecycle and authorized SDK/test prerequisites; return GO / NO-GO / BLOCKED | Not started; recommended next authorization |
-| MS-2 — disposable native proof | Only after MS-1 GO and owner approval, prove the table below with synthetic fixtures and retained red controls; no production dispatch | Not authorized by proposal preparation |
+| MS-0 — proposal | Owner reviews options, unchanged safety requirements and bounded MS-1 scope | Owner approves MS-1 only on 2026-09-13; no implementation/support decision |
+| MS-1 — feasibility only | Map each pre-open requirement to a supported enforcement mechanism; identify packaging/lifecycle and authorized SDK/test prerequisites; return GO / NO-GO / BLOCKED | COMPLETED NO-GO — [results](evidence/gate-13/MAKE_PLATE_MACOS_MS1_RESULTS.md); supported pre-open mapping not established, early stop applied |
+| MS-2 — disposable native proof | Only after MS-1 GO and owner approval, prove the table below with synthetic fixtures and retained red controls; no production dispatch | NOT OPENED — MS-1 returned NO-GO; no automatic prototype |
 | MS-3 — integration/release qualification | Separately accepted packaging/transport decision, matched local consent/discovery, native targets, install/update/uninstall and release evidence; rejoin MP-1b/MP-1 | Not started; not automatic after a proof pass |
 
 MS-1 ends after **one candidate assessment**. Stop early if the necessary supported
@@ -230,7 +233,11 @@ does not close the gate; obtaining a dedicated rig may be a prerequisite.
 
 ## 6. Owner checkpoint and handoff
 
-**Recommended approval:** MS-1 only, with no native installation, production code
+**Current checkpoint:** review the [MS-1 NO-GO and proposed Mac-import-only deferral](evidence/gate-13/MAKE_PLATE_MACOS_MS1_RESULTS.md).
+No deferral has been applied, and existing Mac file-open support remains unchanged.
+Further research or a revised architecture needs separate direction.
+
+**Original recommended approval (now granted):** MS-1 only, with no native installation, production code
 activation, support reduction or publication. Report back once the candidate is
 mapped to the required guarantees or rejected. Any MS-2 execution needs the concrete
 build/device plan and separate approval; MS-3 needs its own architecture acceptance.
