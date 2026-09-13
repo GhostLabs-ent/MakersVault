@@ -23,9 +23,13 @@ func TestDarwinExperimentalNativePrimitives(t *testing.T) {
 		label string
 		flags int
 	}{{"root-base", syscall.O_RDONLY | syscall.O_DIRECTORY | syscall.O_CLOEXEC | syscall.O_NOFOLLOW},
-		{"root-nofollow-any", syscall.O_RDONLY | syscall.O_DIRECTORY | syscall.O_CLOEXEC | syscall.O_NOFOLLOW | darwinNoFollowAny}} {
+		{"root-any-alone", syscall.O_RDONLY | syscall.O_DIRECTORY | syscall.O_CLOEXEC | darwinNoFollowAny},
+		{"root-both-rejected", syscall.O_RDONLY | syscall.O_DIRECTORY | syscall.O_CLOEXEC | syscall.O_NOFOLLOW | darwinNoFollowAny}} {
 		fd, err := syscall.Open("/", probe.flags, 0)
 		t.Logf("primitive=%s errno=%v", probe.label, err)
+		if (probe.label == "root-both-rejected" && err != syscall.EINVAL) || (probe.label != "root-both-rejected" && err != nil) {
+			t.Error("unexpected native open flag semantics")
+		}
 		if err == nil {
 			syscall.Close(fd)
 		}
@@ -43,11 +47,16 @@ func TestDarwinExperimentalNativePrimitives(t *testing.T) {
 	var stat syscall.Stat_t
 	_, _, errno := syscall.Syscall6(darwinSYSFstatat64, uintptr(fd), uintptr(unsafe.Pointer(name)), uintptr(unsafe.Pointer(&stat)), darwinAtNoFollow, 0, 0)
 	t.Logf("primitive=fstatat64 errno=%d mode=%o dev=%d struct-size=%d", errno, stat.Mode, stat.Dev, unsafe.Sizeof(stat))
-	flags := syscall.O_RDONLY | syscall.O_DIRECTORY | syscall.O_CLOEXEC | syscall.O_NOFOLLOW | darwinNoFollowAny | syscall.O_NONBLOCK | syscall.O_NOCTTY
+	if errno != 0 {
+		t.Fatal("native fstatat64 unavailable")
+	}
+	flags := syscall.O_RDONLY | syscall.O_DIRECTORY | syscall.O_CLOEXEC | darwinNoFollowAny | syscall.O_NONBLOCK | syscall.O_NOCTTY
 	child, _, errno := syscall.Syscall6(darwinSYSOpenat, uintptr(fd), uintptr(unsafe.Pointer(name)), uintptr(flags), 0, 0, 0)
 	t.Logf("primitive=openat errno=%d", errno)
 	if errno == 0 {
 		syscall.Close(int(child))
+	} else {
+		t.Fatal("native openat unavailable")
 	}
 }
 

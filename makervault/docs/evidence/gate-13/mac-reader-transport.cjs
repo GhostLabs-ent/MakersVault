@@ -14,7 +14,7 @@ if (host === '--prepare' && build === undefined) {
   process.exit(0);
 }
 assert.match(host || '', /^[a-zA-Z0-9._-]+@(?:\d{1,3}\.){3}\d{1,3}$/);
-assert.match(build || '', /^containment-mac-reader-build-(preflight|debug|final)$/);
+assert.match(build || '', /^containment-mac-reader-build-(preflight|debug|final|corrected)$/);
 const root = path.join(durable, build);
 assert(!fs.lstatSync(root).isSymbolicLink());
 assert.equal(fs.statSync(root).mode & 0o077, 0);

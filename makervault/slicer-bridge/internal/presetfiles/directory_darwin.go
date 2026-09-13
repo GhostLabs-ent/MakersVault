@@ -59,7 +59,9 @@ func darwinOpenAt(dir *os.File, name string, flags int) (*os.File, error) {
 	if err != nil {
 		return nil, Code("source_path_invalid")
 	}
-	flags |= syscall.O_RDONLY | syscall.O_CLOEXEC | syscall.O_NOFOLLOW | darwinNoFollowAny |
+	// Darwin rejects combining O_NOFOLLOW with O_NOFOLLOW_ANY (EINVAL). Require
+	// the stronger whole-path flag alone; never retry with a weaker flag.
+	flags |= syscall.O_RDONLY | syscall.O_CLOEXEC | darwinNoFollowAny |
 		syscall.O_NONBLOCK | syscall.O_NOCTTY
 	fd, _, errno := syscall.Syscall6(darwinSYSOpenat, dir.Fd(), uintptr(unsafe.Pointer(path)), uintptr(flags), 0, 0, 0)
 	runtime.KeepAlive(dir)
@@ -115,10 +117,7 @@ func openDirectory(ctx context.Context, path string) (*directory, error) {
 			return nil, Code("source_path_invalid")
 		}
 	}
-	// The literal filesystem root has no traversable components. Applying
-	// NOFOLLOW_ANY to this zero-component anchor returns EINVAL on the test Mac.
-	// Every caller-derived component below still requires both no-follow flags.
-	fd, err := syscall.Open("/", syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_CLOEXEC|syscall.O_NOFOLLOW, 0)
+	fd, err := syscall.Open("/", syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_CLOEXEC|darwinNoFollowAny, 0)
 	if err != nil {
 		return nil, Code("source_unavailable")
 	}
