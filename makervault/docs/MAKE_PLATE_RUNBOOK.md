@@ -10,6 +10,9 @@ checks; two additional counterexamples reproduce failed pre-open safety properti
 The macOS reader experiment is explicitly build-tagged and **excluded from normal
 builds**, which still refuse preset reads. An OS-enforced boundary remains unresolved.
 End-user preset discovery/import and Make Plate are not implemented.
+The [macOS safety-boundary proposal](MAKE_PLATE_MACOS_SAFETY_PROPOSAL.md) is prepared
+at owner request; its bounded MS-1 feasibility pass awaits approval. It does not
+approve native packaging, activate the experiment or defer Mac preset import.
 
 The owner requested review of the working ROADMAP notes from line 349, then
 approved the proposed bounded direction: “lets defer CNC for a later release …
@@ -134,6 +137,12 @@ re-cock protocol. New gate numbers do not reset or falsely close Gates 0–13.
   macOS boundary before enabling it; any material contract/support change needs an
   explicit owner decision. This neither closes MP-1b nor changes existing Mac file-open
   support. Native Windows, real profiles and matched consented integration remain open.
+  The owner subsequently authorizes preparation of the
+  [macOS safety proposal](MAKE_PLATE_MACOS_SAFETY_PROPOSAL.md). It recommends **MS-1
+  only**, one supported-API/embedded-reader feasibility pass with explicit stop
+  conditions. MS-2 native proof and MS-3 integration require separate checkpoints;
+  no custom-SBPL shipping dependency, toolchain installation or automatic deferral.
+  Await owner review before starting that candidate assessment.
 - **MP-1c:** Scoped claim/review/commit authority plus immutable preset storage and
   its additive migration, portable v1/v2 and raw-recovery counterparts as one coherent
   persistence slice. Shared strict wire fixtures must prove API/bridge parity.

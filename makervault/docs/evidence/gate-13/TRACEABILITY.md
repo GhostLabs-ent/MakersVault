@@ -175,8 +175,10 @@ The [Mac reader experiment](MAKE_PLATE_MAC_READER_RESULTS.md) at `907cddd` adds 
 synthetic reading/worker evidence but reproduces two failed pre-open safety properties;
 normal Mac builds still refuse preset reads. MP-1b remains open for a safe macOS
 boundary, native/lifecycle qualification, matched consent and known-root/manifest/
-selection/version discovery. Next review OS-enforced Mac protection before activation,
-with explicit owner review for any contract/support change. The user-facing MP-1 import and MP-2–MP-4 remain undelivered
+selection/version discovery. The owner-requested [macOS safety proposal](../../MAKE_PLATE_MACOS_SAFETY_PROPOSAL.md)
+is prepared: MS-1's bounded supported-API feasibility assessment awaits approval;
+native proof, packaging and any support deferral remain separate owner checkpoints.
+No implementation or new native evidence is implied. The user-facing MP-1 import and MP-2–MP-4 remain undelivered
 and must rejoin Gate 13C. Existing descriptive CNC profiles and
 file-open behavior remain; CNC toolpaths, control and new CNC-specific adapters
 are not part of this release. The future hardware-relay vision is not blanket

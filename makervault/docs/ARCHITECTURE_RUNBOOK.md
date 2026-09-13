@@ -57,6 +57,10 @@ matched consented worker integration, known-root/manifest discovery, local selec
 and version observations are pending. The production bridge has no worker dispatch.
 No workstation discovery, user-facing preset import, plate generation, complete
 native-device qualification or fresh full-gate verification is implied.
+The owner subsequently authorizes preparation of the
+[macOS safety proposal](MAKE_PLATE_MACOS_SAFETY_PROPOSAL.md): recommended MS-1 is a
+bounded supported-API feasibility pass, not approved sandbox implementation or a
+support deferral. The reader remains disabled pending the required evidence.
 The security reviews recheck durable evidence, not rerun the full gate. Earlier
 browser results and WebKit synthetic-drop limits remain separately dated; G13-01
 performance tuning stays deferred. Nothing is pushed or release-qualified.
@@ -350,6 +354,7 @@ row's future-tense wording.
 | T-084 | `VERIFIED` / `OPEN` | Owner directs continuation after MP-1b-1. MP-1b-2 at `60bd90c` implements a Windows NTFS held-handle reader and private self-worker with timeout/cancel, single unreaped-worker slot, bounded framing, diagnostic redaction and atomic selected results. 80 unit tests/race (84 top-level / 166 inclusive pass events, zero fail/skip), vet, six target builds and four fuzz smokes pass on Linux | `docs/evidence/gate-13/MAKE_PLATE_MP1B2_RESULTS.md`, `make-plate-worker-verification.json`, two durable captures/four checked log hashes | Windows native tests compile but have not run; macOS, native lifecycle/startup, matched consented main integration and known-root/manifest/selection/version discovery remain open. Simulated stalls are not uninterruptible kernel-I/O or parent-crash proof; no OS sandbox or cross-process lock. Production main/protocols, API/schema and model bytes unchanged. No device test, full gate/scan, waiver transfer, push/publication or MP-1b acceptance. |
 | T-085 | `VERIFIED` / `OPEN` | Owner supplies a Mac for scoped testing. Test-only `79ac9a0` runs on macOS 15.7.9 / 24G830 / x86_64 without toolchain/app installation: 34 unit tests, four seed-fuzz targets, 38 top-level / 97 inclusive passes, zero fail/skip. Ordinary worker cancellation/timeouts/reaping and refusal by the unimplemented reader pass | `docs/evidence/gate-13/MAKE_PLATE_MAC_NATIVE_RESULTS.md`, `make-plate-mac-verification.json`, four private captures and hash-bound fixture archive | Two successful-reader tests explicitly unrun; macOS filesystem backend, native race/Apple Silicon/Windows, real slicers and matched production dispatch remain pending. Only a Darwin test and evidence drivers added, no runtime/API/schema change. Temporary remote files removed, SSH closed, OpenClaw untouched. No gate closure, install, push/publication or waiver transfer. |
 | T-086 | `VERIFIED` / `OPEN` | Owner authorizes Mac reader work. Explicitly tagged experiment at `907cddd` runs on the same Intel Mac: 34 default and 42 ordinary experimental unit checks, eight seed-fuzz targets, plus two counterexamples reproducing FAILED pre-open safety properties. Default Darwin reader remains unsupported. Linux at preceding `ed97fdc` passes 80 unit tests/race, vet, six builds and four fuzz smokes | `docs/evidence/gate-13/MAKE_PLATE_MAC_READER_RESULTS.md`, `mac-reader-verification.json`, ten private captures/21 checked hashes; three failed native attempts retained | Ordinary reads and worker round trips work only in the experiment; special-file opening and pre-open mount/recall protection remain unresolved. Next review an OS-enforced boundary or seek explicit owner contract/support decision, without silent weakening/removal. No production dispatch, real profiles, API/schema change or gate closure. Four remote fixture directories removed, SSH closed, OpenClaw untouched; no install, push/publication or waiver transfer. |
+| T-087 | `PROPOSED` / `OPEN` | Owner approves preparation of a macOS safety-boundary proposal at entry `2226728`, not activation. Source/documentation review distinguishes supported App Sandbox/XPC from undocumented custom SBPL, retains unresolved pre-open and lifecycle requirements, and proposes MS-1 as one bounded feasibility assessment | `docs/MAKE_PLATE_MACOS_SAFETY_PROPOSAL.md`; cited Apple primary documentation and unchanged native evidence at `907cddd` | Await MS-1 approval; any native proof, packaging/transport change or Mac preset-import deferral needs its own decision. Existing Mac file-open support preserved. Documentation only: no new native test, Mac connection, runtime/API/schema/policy change, SDK/signing installation, gate closure, waiver transfer, push or publication. |
 
 ### 5.4 Current storage invariants
 
@@ -1422,9 +1427,12 @@ at `60bd90c`. The owner's Intel Mac now provides [native worker evidence](eviden
 at `79ac9a0`. The subsequently authorized [reader experiment at `907cddd`](evidence/gate-13/MAKE_PLATE_MAC_READER_RESULTS.md)
 demonstrates synthetic read/worker functionality but also reproduces two failed
 pre-open safety properties; default Darwin reading remains unsupported.
-Next review an OS-enforced macOS boundary before activation, returning to the owner
-for any material contract/support decision. Do not silently weaken the gate or remove
-Mac support. Bambu-owned known-root/manifest/local-selection/version discovery,
+The owner approved preparing the [macOS safety proposal](MAKE_PLATE_MACOS_SAFETY_PROPOSAL.md),
+now ready for review. Recommend approval of **MS-1 only**: one supported App Sandbox/
+embedded-reader feasibility assessment with explicit GO/NO-GO/BLOCKED findings.
+Native proof and production packaging remain separate checkpoints; no unsupported
+policy pivot or silent Mac import deferral. Do not weaken the gate or remove existing
+Mac file-open support. Bambu-owned known-root/manifest/local-selection/version discovery,
 native Windows and remaining lifecycle qualification also remain pending.
 Keep the reader inactive until matched consented worker integration and those
 boundaries are met. MP-1c still couples
