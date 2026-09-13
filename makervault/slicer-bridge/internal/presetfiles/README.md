@@ -1,8 +1,9 @@
-# Local file access boundary — MP-1b-1
+# Local file access boundary — MP-1b-1 / MP-1b-2
 
 Internal, read-only and **not called by the bridge CLI**. This is the first part
 of MP-1b, not completed workstation discovery or a user-facing import feature.
-Windows/macOS backends remain unimplemented and fail closed; their cross-builds
+The Linux backend is locally tested; the new Windows backend is implemented but
+not natively qualified. macOS remains unimplemented and fails closed. Cross-builds
 do not qualify native behavior. No API, protocol, background scan or saved setting
 is added. Do not activate this code until the remaining MP-1b boundaries are met.
 
@@ -26,7 +27,9 @@ Both operations impose a 15-second **cooperative** deadline; LoadBambu keeps the
 parser's 10,000-file / 8-MiB-file / 128-MiB-total limits. It checks cancellation
 between operations and reads. Regular-file kernel I/O can still stall. A bounded
 isolated worker with parent-enforced timeout/cancellation is required before any
-CLI activation; no goroutine is used to hide an uninterruptible read.
+CLI activation. The [MP-1b-2 supervisor](../presetworker/README.md) now implements
+that boundary, exercised through a test executable only; native and matched-main
+integration remain pending. These direct file APIs themselves stay cooperative.
 
 ## Linux amd64/arm64 boundary
 
@@ -60,10 +63,44 @@ Primary references: Linux v6.12 [openat2 UAPI](https://raw.githubusercontent.com
 and the Linux man-pages project's [openat2](https://man7.org/linux/man-pages/man2/openat2.2.html)
 and [O_PATH documentation](https://man7.org/linux/man-pages/man2/open.2.html).
 
+## Windows amd64/arm64 boundary — native tests pending
+
+Accept only explicit drive-absolute backslash paths with ordinary bounded components;
+reject UNC, extended/device namespaces, drive-relative paths, ADS, reserved names,
+dot components and trailing-dot/space ambiguity. These syntax tests run on Linux
+too. Common filename collision checks now use Unicode simple-fold equivalence
+instead of lowercase alone; this does not qualify all NTFS case behavior.
+
+The native backend starts from a fixed local drive, requires NTFS plus a volume
+GUID, and opens each component relative to its held parent with `NtCreateFile`,
+`OBJ_DONT_REPARSE`, `FILE_OPEN_REPARSE_POINT` and existing-only disposition. Every
+handle must remain on the same volume; reparse/device/offline/recall attributes
+are rejected. No junction is followed even within the chosen root. Unknown volumes,
+ReFS/FAT, network/removable drives and missing native primitives fail closed.
+This is not proof about a physical disk's backing or every filesystem filter.
+
+File metadata is checked before granting data access; `ReOpenFile` converts the
+held ordinary single-link file to a read handle without re-resolving its pathname,
+with reparse/no-recall flags. Read-sharing only means conflicting writes/deletes
+may cause a retryable unavailable-source error while handles are held. No permissions
+are changed or privileges enabled. Windows identity/size/mtime/attributes/creation
+time checks are not Unix ctime parity or an atomic multi-file snapshot.
+
+Primary contracts: Microsoft [NtCreateFile](https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile),
+[object attributes/reparse rejection](https://learn.microsoft.com/en-us/windows/win32/api/ntdef/ns-ntdef-_object_attributes),
+[volume GUID paths](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew),
+[volume information](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getvolumeinformationbyhandlew),
+[drive types](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdrivetypew),
+[ReOpenFile](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-reopenfile)
+and [path naming](https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file).
+Go 1.26.6's local Windows directory implementation was inspected for handle-based
+enumeration. None of this source review substitutes for running the native tests.
+
 ## Remaining MP-1b work
 
-Windows/macOS native handle/reparse/mount/local-volume implementations and tests;
-hard-deadline worker isolation; adapter-owned known locations and local root
+Native Windows execution (including reparse/ACL/volume/placeholder and process
+lifecycle cases), the macOS backend, matched supervisor integration and startup/
+cleanup qualification; adapter-owned known locations and local root
 selection; manifest-only machine discovery (not model/process/filament documents),
 user namespaces and independently observed versions. Bambu's pinned
 [PresetBundle source](https://raw.githubusercontent.com/bambulab/BambuStudio/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/libslic3r/PresetBundle.cpp)
@@ -73,6 +110,6 @@ also permits custom data directories. Do not infer loaded presets or an installe
 version from a nearby directory name. No credentials/configuration or actual
 workstation directories were read to implement this package.
 
-Windows Dell/Bambu `v2.8.0.6` remains a required untested target. All tests use
+Windows Dell/Bambu `v2.8.0.6` remains a required untested target. Authored tests use
 generated temporary files and the original MP-1a synthetic documents. No model
 upload limits or source bytes are changed; no server slicing or machine control.

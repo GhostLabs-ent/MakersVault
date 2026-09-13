@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"unicode"
@@ -56,9 +57,13 @@ func safeText(value string) bool {
 // Restrict names to one portable ordinary JSON basename. Windows reserved names
 // and ADS syntax are rejected even when listing on Linux; no URL/path expansion.
 func fileName(name string) bool {
+	return componentName(name) && strings.EqualFold(filepath.Ext(name), ".json")
+}
+
+func componentName(name string) bool {
 	if len(name) == 0 || len(name) > 255 || !safeText(name) ||
 		strings.ContainsAny(name, `/\:<>"|?*`) || strings.TrimSpace(name) != name ||
-		!strings.EqualFold(filepath.Ext(name), ".json") {
+		strings.HasSuffix(name, ".") {
 		return false
 	}
 	stem := strings.ToUpper(strings.TrimRight(strings.SplitN(name, ".", 2)[0], " ."))
@@ -82,6 +87,10 @@ func fileName(name string) bool {
 }
 
 func rootName(name string) bool {
+	if runtime.GOOS == "windows" {
+		_, _, ok := windowsRootParts(name)
+		return ok
+	}
 	return len(name) <= 4096 && safeText(name) && filepath.IsAbs(name) &&
 		filepath.Clean(name) == name && name != string(filepath.Separator) &&
 		!strings.ContainsAny(name, `\`) && !strings.HasPrefix(name, "//")
@@ -129,7 +138,7 @@ func ListJSON(ctx context.Context, root string) ([]string, error) {
 			if !fileName(name) {
 				return nil, Code("source_path_invalid")
 			}
-			folded := strings.ToLower(name)
+			folded := foldName(name)
 			if seen[folded] {
 				return nil, Code("source_ambiguous_filename")
 			}
@@ -195,7 +204,7 @@ func loadBambu(ctx context.Context, inputs []Input, catalog *printerpreset.Catal
 			if !fileName(name) {
 				return nil, Code("source_path_invalid")
 			}
-			folded := strings.ToLower(name)
+			folded := foldName(name)
 			if seen[folded] {
 				return nil, Code("source_ambiguous_filename")
 			}
