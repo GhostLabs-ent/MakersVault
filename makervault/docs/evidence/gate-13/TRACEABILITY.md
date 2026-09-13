@@ -165,8 +165,12 @@ and three-engine upload checks; owner directed continuation. [MP-0](MAKE_PLATE_M
 repairs the manual protocols/macOS pairing branch; 29 bridge tests/six cross-builds
 pass. The owner accepts MP-0 and ADR 0020 on September 12. [MP-1a](MAKE_PLATE_MP1A_RESULTS.md)
 at `a88de92` verifies an isolated Bambu projection core with 47 unit tests/race,
-seeded and short mutation fuzzing, vet and six cross-build pairs. Next is MP-1b's
-safe filesystem reader; the user-facing MP-1 import and MP-2–MP-4 remain undelivered
+seeded and short mutation fuzzing, vet and six cross-build pairs. [MP-1b-1](MAKE_PLATE_MP1B1_RESULTS.md)
+at `8a9b424` adds an inactive Linux file boundary; 68 unit tests/race, permissions,
+same-device bind controls, vet, six target builds and two short fuzz runs pass.
+Windows/macOS readers, hard I/O deadline and known-root/manifest/selection/version
+discovery remain pending; MP-1b is open. Next prioritize Windows and timeout/cancel
+supervision. The user-facing MP-1 import and MP-2–MP-4 remain undelivered
 and must rejoin Gate 13C. Existing descriptive CNC profiles and
 file-open behavior remain; CNC toolpaths, control and new CNC-specific adapters
 are not part of this release. The future hardware-relay vision is not blanket

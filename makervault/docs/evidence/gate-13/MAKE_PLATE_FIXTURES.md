@@ -11,6 +11,11 @@ and pure projection tests now exist; see [results](MAKE_PLATE_MP1A_RESULTS.md).
 The original public-source inventory below remains separate from this synthetic
 test evidence. No real workstation/vendor file is represented as tested input.
 
+**MP-1b-1 update:** [Linux file-boundary results](MAKE_PLATE_MP1B1_RESULTS.md)
+add generated temporary filesystem fixtures and a same-device container bind
+fixture. Windows/macOS readers, hard-timeout supervision and actual known-root/
+manifest discovery remain unimplemented. This does not qualify native profiles.
+
 ## Named public source targets reviewed
 
 | Target | Pinned public source | Required fixture coverage / observed shape |
@@ -55,7 +60,7 @@ not a durable byte-hashed capture or proof of an installed binary's contents.
 | PF03 | Prusa INI/multiple parents/hidden sections/user preset | Prove actual precedence; do not select hidden template as a user printer | PLANNED |
 | PF04 | Centered/circular/concave beds, holes/exclusions, degenerate polygon | Preserve coordinate transform; no rectangle substitution or guessed geometry | MP-1a simple polygon/rectangle projections pass; solver/other adapter cases pending |
 | PF05 | NaN/infinity/overflow, missing nozzle/height, unsupported multi-tool/belt/resin | Reject or mark incomplete; never silently choose a different machine | MP-1a synthetic rejection/completeness cases pass |
-| PF06 | Cycles, ambiguous IDs, deep/large input, traversal, symlink/reparse escape, include URL | Bounded error/cancellation without external read or network request | In-memory inheritance/JSON/budget cases pass; filesystem/native boundaries NOT IMPLEMENTED |
+| PF06 | Cycles, ambiguous IDs, deep/large input, traversal, symlink/reparse escape, include URL | Bounded error/cancellation without external read or network request | Pure cases plus Linux direct-file/ancestor/symlink/hardlink/special-file/mount/permission/race controls pass; Windows/macOS, hard I/O deadline and discovery pending |
 | PF07 | Fake credentials, private paths, scripts, unknown wire fields | Local reader drops nonallowlisted settings; server rejects extra fields; logs stay redacted | Projection filtering/redacted errors pass; server wire/auth validation pending |
 | PF08 | Claim/replay/race/expiry/revocation/wrong principal, idempotent retry | No unauthorized staging or persistent mutation | PLANNED |
 | PF09 | Refresh while recipe pinned, override conflict, concurrent commit | Old snapshot unchanged; review/version conflict explicit | PLANNED |

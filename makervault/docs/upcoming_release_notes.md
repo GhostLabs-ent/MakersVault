@@ -51,6 +51,19 @@ printer controller, or multi-user cloud service.
   discovery, scoped import, persisted presets and actual Bambu version qualification
   remain separate pending work. Upload limits and existing workflows are unchanged.
 
+### Local preset file-reader foundation (MP-1b-1)
+
+- Internal Linux reader now limits access to explicitly selected local documents,
+  rejecting symlinks, hard links, special files and nested mounts. It never returns
+  a partial catalog after a read failure. This is **not enabled in the UI/CLI**.
+- 68 bridge/parser/reader unit tests pass with race detection in an unprivileged
+  container, including permissions and same-device bind-mount controls. Static
+  checks, six-target builds and two short fuzz runs pass; see
+  [evidence and limits](evidence/gate-13/MAKE_PLATE_MP1B1_RESULTS.md).
+- MP-1b remains open: Windows/macOS readers, hard I/O timeout, known-location and
+  manifest discovery, local selection and version observations are still pending.
+  No workstation was scanned; existing uploads and file-open behavior are unchanged.
+
 ### Lower-overhead folder listing (Gate 13C)
 
 - Folder lists read plain database values instead of constructing tracked objects

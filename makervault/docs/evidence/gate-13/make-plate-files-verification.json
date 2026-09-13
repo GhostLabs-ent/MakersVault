@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "gate": "MP-1b-1",
+  "status": "locally_verified_linux_foundation_mp1b_remains_open",
+  "entry_revision": "8f952989adcb314b786121ff4f4e9f41e22fe916",
+  "implementation_revision": "8a9b424f935b03938d9cbb388ce7a843e200924e",
+  "go_image": "sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6",
+  "private_evidence_root": "/home/vinnyc/.local/state/makersvault/verification",
+  "captures": [
+    {
+      "directory": "containment-mp1b1-files-preflight",
+      "exit_code": 0,
+      "source_status": "dirty new package at 8f95298; before unprivileged/bind/paired-root cases",
+      "log": "stdout.log",
+      "sha256": "060c3d5ccdc0d3daf826d4f6a90bf73c648262b2b8cec358ed9c32ee417705b5",
+      "unit_tests_passed": 64
+    },
+    {
+      "directory": "containment-mp1b1-files-unprivileged-preflight",
+      "exit_code": 0,
+      "source_status": "dirty at 8f95298; before final errno/ordinary-reader negative controls",
+      "log": "stdout.log",
+      "sha256": "a3bee0b2b571b9cb078a40ba6d87ac06681a21615600a29c4fddd0550591151c",
+      "unit_tests_passed": 67,
+      "uid_gid": "1000:1000"
+    },
+    {
+      "directory": "containment-mp1b1-files-final",
+      "exit_code": 0,
+      "source_status": "clean 8a9b424 verification sources before and after",
+      "log": "stdout.log",
+      "sha256": "f53c15638303dbd4e71b2514c6c0595e2456c3271d76b3bc737313dd3edb7aac",
+      "unit_tests_passed": 68,
+      "top_level_test_and_seeded_fuzz_pass_events": 70,
+      "inclusive_pass_events": 137,
+      "fail_or_skip_events": 0,
+      "uid_gid": "1000:1000",
+      "same_device_bind_mount_rejection": "passed",
+      "go_vet": "passed",
+      "cross_build_target_combinations": 6,
+      "cross_build_artifacts": 18,
+      "fuzz": [
+        {"target": "FuzzBambuProjection", "executions": 143760, "requested_seconds": 5, "reported_elapsed_seconds": 6},
+        {"target": "FuzzPortableJSONName", "executions": 249648, "requested_seconds": 5, "reported_elapsed_seconds": 5}
+      ],
+      "native_device_tests": 0
+    }
+  ],
+  "limits": [
+    "Internal local listing/explicit document loading, not called by bridge executable",
+    "Linux amd64/arm64 backend only; Windows/macOS fail-closed stubs",
+    "No known-root or manifest discovery, version detection, selection UI, remote import or storage",
+    "Cooperative cancellation only; hard-timeout process isolation remains required before activation",
+    "No atomic multi-file snapshot or exhaustive filesystem/race/Unicode conformance proof",
+    "Synthetic temporary files and fixture mounts, not actual installed profiles or owner Bambu v2.8.0.6 qualification",
+    "No full-app rerun, vulnerability scan, runtime image build, waiver transfer or publication"
+  ]
+}
