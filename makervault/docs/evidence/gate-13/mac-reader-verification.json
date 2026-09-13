@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "gate": "MP-1b-3-mac-reader-experiment",
+  "status": "EXPERIMENTAL; two safety properties fail; default reader unsupported; MP-1b OPEN",
+  "entry_revision": "3bb5d9c2e6b9238328065a4487f87d64e8508980",
+  "prototype_revision": "ed97fdc9d8eaa8ace190bf799206578760cab29a",
+  "test_source_revision": "907cdddbc44adf13c4d4fa59c89bfa6b3767bbe9",
+  "go_image": "sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6",
+  "captures": [
+    {
+      "directory": "containment-mac-reader-build-preflight",
+      "source": "entry_revision",
+      "dirty_source": true,
+      "exit_code": 0,
+      "stdout_bytes": 167,
+      "stdout_sha256": "8bd8712365fb0f3626b68c5b8dc7fb450cedaf437f0b5ca98654683c1968344d"
+    },
+    {
+      "directory": "containment-mac-reader-native-preflight",
+      "source": "entry_revision",
+      "dirty_source": true,
+      "exit_code": 1,
+      "stdout_bytes": 138198,
+      "stdout_sha256": "c24791af3937d8261463e35c73ea03c390de02e3c78bc0b7bc693a1181158e88"
+    },
+    {
+      "directory": "containment-mac-reader-build-debug",
+      "source": "entry_revision",
+      "dirty_source": true,
+      "exit_code": 0,
+      "stdout_bytes": 167,
+      "stdout_sha256": "8bd8712365fb0f3626b68c5b8dc7fb450cedaf437f0b5ca98654683c1968344d"
+    },
+    {
+      "directory": "containment-mac-reader-native-debug",
+      "source": "entry_revision",
+      "dirty_source": true,
+      "exit_code": 1,
+      "stdout_bytes": 139146,
+      "stdout_sha256": "1ff2c49662c73d02d3132d3e8971d12fbc48dc7d155f1c509b11469f50022bcc"
+    },
+    {
+      "directory": "containment-mac-reader-build-final",
+      "source": "prototype_revision",
+      "dirty_source": false,
+      "exit_code": 0,
+      "stdout_bytes": 167,
+      "stdout_sha256": "8bd8712365fb0f3626b68c5b8dc7fb450cedaf437f0b5ca98654683c1968344d"
+    },
+    {
+      "directory": "containment-mac-reader-native-final",
+      "source": "prototype_revision",
+      "dirty_source": false,
+      "exit_code": 1,
+      "stdout_bytes": 140230,
+      "stdout_sha256": "d186bb1fb0c93c5a382a8db174ab8ebb0b3cfcf6ea99ed4c39934d996f33f458"
+    },
+    {
+      "directory": "containment-mac-reader-linux-final",
+      "source": "prototype_revision",
+      "dirty_source": false,
+      "exit_code": 0,
+      "stdout_bytes": 142354,
+      "stdout_sha256": "7fc978eaa8414ffba62f618b54547d7a905e3c40b9fb1f63181d1eddc67d0cea"
+    },
+    {
+      "directory": "containment-mac-reader-build-corrected",
+      "source": "test_source_revision",
+      "dirty_source": false,
+      "exit_code": 0,
+      "stdout_bytes": 167,
+      "stdout_sha256": "8bd8712365fb0f3626b68c5b8dc7fb450cedaf437f0b5ca98654683c1968344d"
+    },
+    {
+      "directory": "containment-mac-reader-native-corrected",
+      "source": "test_source_revision",
+      "dirty_source": false,
+      "exit_code": 0,
+      "stdout_bytes": 154118,
+      "stdout_sha256": "d61bafb418c64b28a763af59e175b39c605e4c8bf8cb1e292fc2fbdf3c28982e"
+    },
+    {
+      "directory": "containment-mac-reader-cleanup",
+      "source": "test_source_revision",
+      "dirty_source": false,
+      "exit_code": 0,
+      "stdout_bytes": 30,
+      "stdout_sha256": "bd8c4171cd4f86a4fbd6e91dd8e2f3a49a2a9d7f16a4e559a049d36e343c9aed"
+    }
+  ],
+  "payload": {
+    "directory": "containment-mac-reader-build-corrected",
+    "file": "native-tests.tar.gz",
+    "bytes": 22467055,
+    "sha256": "6ff138794d0bcb328d5fbd41ca97907f7799b3ea3e71fee08bd3cd1dbeb17516"
+  },
+  "native": {
+    "os": "macOS 15.7.9 / 24G830",
+    "architecture": "x86_64",
+    "unit_tests_default": 34,
+    "unit_tests_experiment": 44,
+    "experimental_ordinary_checks": 42,
+    "counterexamples_of_failed_safety_properties": 2,
+    "seeded_fuzz_targets": 8,
+    "top_level_pass_events": 86,
+    "inclusive_pass_events": 209,
+    "packages": {
+      "default/printerpreset": 18,
+      "default/presetfiles": 7,
+      "default/presetworker": 9,
+      "experiment/printerpreset": 18,
+      "experiment/presetfiles": 16,
+      "experiment/presetworker": 10
+    },
+    "default_reader_supported": false,
+    "release_qualified": false,
+    "native_race_detector": false,
+    "real_slicer_profiles": false
+  },
+  "linux": {
+    "source": "prototype_revision",
+    "unit_tests_with_race": 80,
+    "top_level_pass_events": 84,
+    "inclusive_pass_events": 166,
+    "cross_build_targets": 6,
+    "fuzz_executions": {
+      "FuzzBambuProjection": 151958,
+      "FuzzPortableJSONName": 237480,
+      "FuzzWindowsRootSyntax": 26832,
+      "FuzzWorkerFrame": 16136
+    }
+  },
+  "remote_fixture_directories_removed": 4,
+  "ssh_master_closed": true
+}

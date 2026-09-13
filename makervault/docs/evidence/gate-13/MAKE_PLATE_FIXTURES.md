@@ -29,6 +29,16 @@ and an explicit unsupported-reader regression, not a macOS filesystem pass.
 Two successful-reader tests were deliberately unrun; no real profiles were read,
 applications installed or OpenClaw changed. Disposable fixtures were removed.
 
+**Mac reader experiment update:** [Native results at `907cddd`](MAKE_PLATE_MAC_READER_RESULTS.md)
+add authored APFS fixture reads, held-root/source-preservation, permissions,
+symlink replacement, and successful experimental worker round trips. 34 default
+and 42 ordinary experimental unit checks plus eight seeded fuzz targets pass.
+Two additional FIFO counterexamples reproduce **failed pre-open safety properties**;
+they are not security passes. Normal builds still refuse Mac preset reads.
+No device/mount/recall, real profile, Apple Silicon or native race qualification.
+Four owned remote fixture directories were removed; retained local evidence includes
+three failed native attempts. MP-1b remains open for a safe macOS boundary and discovery.
+
 ## Named public source targets reviewed
 
 | Target | Pinned public source | Required fixture coverage / observed shape |

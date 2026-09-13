@@ -5,8 +5,10 @@
 2026-09-12. MP-1 is in progress: Bambu projection, Linux file access and the
 single-use supervisor are locally verified; Windows reading is implemented but
 not natively verified. MP-1b remains open and inactive in production.
-An owner-provided Intel Mac now passes 34 targeted native parser/policy/worker
-tests; macOS file reading is still unimplemented and correctly refuses requests.
+An owner-provided Intel Mac passes 34 default and 42 ordinary experimental unit
+checks; two additional counterexamples reproduce failed pre-open safety properties.
+The macOS reader experiment is explicitly build-tagged and **excluded from normal
+builds**, which still refuse preset reads. An OS-enforced boundary remains unresolved.
 End-user preset discovery/import and Make Plate are not implemented.
 
 The owner requested review of the working ROADMAP notes from line 349, then
@@ -83,7 +85,7 @@ and ask the owner to trim support rather than silently promising or removing it.
 |---|---|---|
 | UP-1 | Shared transfer progress plus accessible UI; truthful finalizing/error states, nested folders/Project membership, mixed file sizes, empty files, unknown progress and session failure. Unit/type/build plus browser transport/workflow checks | VERIFIED — [84 tests and three-engine results](evidence/gate-13/UPLOAD_PROGRESS_RESULTS.md); owner directed continuation on 2026-09-12 |
 | MP-0 | Final preset/recipe/import contracts, authority and migration/recovery decisions; existing manual-installer parity/macOS pairing repairs with failing-old-source regressions; fixture inventories for named slicer versions | ACCEPTED 2026-09-12 — [contracts/29 bridge tests/six cross-builds](evidence/gate-13/MAKE_PLATE_MP0_RESULTS.md); native device checks remain open |
-| MP-1 | Bambu preset discovery/import/explicit refresh, inheritance/geometry/secret filtering and authorization negative controls; saved snapshots usable without relay. Then Orca and Prusa conformance recorded independently | IN PROGRESS — through MP-1b-2 local supervisor/Windows implementation; native Windows, macOS and discovery/consent remain open |
+| MP-1 | Bambu preset discovery/import/explicit refresh, inheritance/geometry/secret filtering and authorization negative controls; saved snapshots usable without relay. Then Orca and Prusa conformance recorded independently | IN PROGRESS — local supervisor/Windows implementation and experimental Mac reading; two native safety gaps keep normal Mac reader disabled; native Windows and discovery/consent remain open |
 | MP-2 | STL instances, saved recipe lifecycle, deterministic conservative packing/manual editing, source preservation, boundary/height checks, cancellation and memory/time limits, tablet interaction | NOT STARTED |
 | MP-3 | Editable unsliced 3MF, scoped generated-artifact handoff and actual Bambu/Orca/Prusa round trips; no stale prepared data, silent scale changes or shell/default-opener fallback | NOT STARTED |
 | MP-4 | Migration/export/backup/restore/rollback, auth/audit/abuse checks, matched web/API/bridge evidence and updated release limitations; rejoin Gate 13C | NOT STARTED |
@@ -112,16 +114,26 @@ re-cock protocol. New gate numbers do not reset or falsely close Gates 0–13.
   tests are only compiled. **MP-1b is not complete:** native Windows/lifecycle
   qualification, macOS reading, matched consented worker integration, known
   locations/manifest discovery, local selection and version observations remain.
-  Next implement macOS and Bambu discovery while preparing native qualification;
-  no CLI activation or support-target removal.
+  Bambu discovery and native qualification remain pending; no CLI activation or
+  support-target removal. The later Mac experiment/checkpoint below governs next work.
   The owner subsequently supplied a Mac for scoped tests. [Native results at
   `79ac9a0`](evidence/gate-13/MAKE_PLATE_MAC_NATIVE_RESULTS.md) record macOS 15.7.9
   (24G830), x86_64: 34 unit tests plus four seeded fuzz targets pass without a
   toolchain/app install. Ordinary worker timeout/cancel/reaping and unsupported
   reader responses are verified; the two successful-file-reader tests are explicitly
   unrun. No native race detector, Apple Silicon, filesystem or slicer qualification.
-  Test files were removed and OpenClaw was untouched. Continue discovery and the
-  macOS boundary before considering this gate complete.
+  Test files were removed and OpenClaw was untouched.
+  The subsequent owner-authorized [Mac reader experiment at `907cddd`](evidence/gate-13/MAKE_PLATE_MAC_READER_RESULTS.md)
+  passes 34 default and 42 ordinary experimental checks, including both successful
+  worker reader tests in the experimental variant, plus eight seeded fuzz targets.
+  Two additional counterexamples reproduce failed special-file pre-open properties;
+  post-open APFS checks also do not establish mount/recall prevention. The experiment
+  is build-tagged, not release-qualified; the default reader remains unsupported.
+  Three failed native attempts are retained; four temporary remote fixture directories
+  were removed, SSH closed and OpenClaw left untouched. Next review an OS-enforced
+  macOS boundary before enabling it; any material contract/support change needs an
+  explicit owner decision. This neither closes MP-1b nor changes existing Mac file-open
+  support. Native Windows, real profiles and matched consented integration remain open.
 - **MP-1c:** Scoped claim/review/commit authority plus immutable preset storage and
   its additive migration, portable v1/v2 and raw-recovery counterparts as one coherent
   persistence slice. Shared strict wire fixtures must prove API/bridge parity.

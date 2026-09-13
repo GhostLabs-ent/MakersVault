@@ -80,6 +80,14 @@ printer controller, or multi-user cloud service.
   refusal while macOS file reading is unimplemented. This is not yet macOS preset
   import or slicer-launch support; no app/toolchain installation was needed.
 
+### Experimental Mac preset reader — not enabled
+
+- [Native synthetic reads and worker round trips now work](evidence/gate-13/MAKE_PLATE_MAC_READER_RESULTS.md)
+  in an explicitly tagged experiment: 34 default and 42 ordinary experimental checks
+  pass. Two additional counterexamples demonstrate unresolved file-opening safety
+  gaps, so normal builds still refuse Mac preset reads. This is not delivered preset
+  import or release qualification; existing Mac file-open behavior is unchanged.
+
 ### Lower-overhead folder listing (Gate 13C)
 
 - Folder lists read plain database values instead of constructing tracked objects
