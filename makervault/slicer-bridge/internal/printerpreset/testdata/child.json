@@ -1,0 +1,8 @@
+{
+  "type": "machine", "name": "Fixture P1S 0.4", "from": "system", "instantiation": "true",
+  "inherits": "fixture-common", "printer_model": "Fixture P1S", "printer_variant": "0.4",
+  "nozzle_diameter": ["0.4"], "bed_exclude_area": ["0x0", "18x0", "18x28", "0x28"],
+  "printer_extruder_id": ["1", "1"],
+  "include": ["Fixture P1S 0.4 template machine_start_gcode", "Fixture P1S 0.4 template layer_change_gcode"],
+  "notes": "FAKE_PRIVATE_NOTES_DO_NOT_COPY", "hostname": "private.invalid"
+}

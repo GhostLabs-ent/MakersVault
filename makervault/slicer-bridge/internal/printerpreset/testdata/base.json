@@ -1,0 +1,6 @@
+{
+  "type": "machine", "name": "fixture-base", "from": "system", "instantiation": "false",
+  "printer_technology": "FFF", "printer_structure": "corexy", "printable_height": "250",
+  "machine_start_gcode": "FAKE_SCRIPT_DO_NOT_COPY", "access_code": "FAKE_ACCESS_DO_NOT_COPY",
+  "bed_custom_texture": "/fixture/private/texture.png"
+}

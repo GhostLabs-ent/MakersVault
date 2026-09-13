@@ -1,0 +1,8 @@
+{
+  "type": "machine", "name": "fixture-common", "from": "system", "instantiation": "false",
+  "inherits": "fixture-base", "printable_area": ["0x0", "256x0", "256x256", "0x256"],
+  "bed_exclude_area": ["0x0", "28x0", "28x28", "0x28", "0x28", "8x28", "8x256", "0x256"],
+  "nozzle_diameter": ["0.4"], "extruder_printable_area": [], "extruder_printable_height": [],
+  "physical_extruder_map": ["0"], "printer_extruder_id": ["1"], "printer_variant": "0.4",
+  "api_key": "FAKE_KEY_DO_NOT_COPY", "account": {"token": "FAKE_TOKEN_DO_NOT_COPY"}
+}
