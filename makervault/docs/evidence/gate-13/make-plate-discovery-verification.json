@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "gate": "MP-1b-5",
+  "entry_revision": "2257965bf0e69d354d7cf5c00b1a63d7f56672ea",
+  "implementation_revision": "535a0a106197e202036a551e6e83f61fafbe155d",
+  "private_evidence_root": "/home/vinnyc/.local/state/makersvault/verification",
+  "go_image": "sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6",
+  "native_windows_tests_executed": 0,
+  "native_macos_tests_executed": 0,
+  "captures": [
+    {
+      "kind": "preflight",
+      "directory": "containment-mp1b5-discovery-preflight-20260914",
+      "stdout_sha256": "16cda5561671e59ff93c4c6d6273df19543f8d66f0b7afc562d80acb1719a2bb",
+      "unit_tests_passed": 122,
+      "top_level_pass_events": 129,
+      "inclusive_pass_events": 258
+    },
+    {
+      "kind": "preflight2",
+      "directory": "containment-mp1b5-discovery-preflight2-20260914",
+      "stdout_sha256": "560336ea5449387c2f96dbc1a124df295b86d3c0eb065e5f00836d24d219d523",
+      "unit_tests_passed": 123,
+      "top_level_pass_events": 130,
+      "inclusive_pass_events": 260
+    },
+    {
+      "kind": "final",
+      "directory": "containment-mp1b5-discovery-final-20260914",
+      "stdout_sha256": "9c2cdd8e337028a2d7cff14ca6f6fd55770986ebe47317f13d738fe5c325539f",
+      "unit_tests_passed": 123,
+      "top_level_pass_events": 130,
+      "inclusive_pass_events": 260,
+      "fuzz": [
+        {"target": "FuzzBambuProjection", "requested_seconds": 5, "reported_elapsed_seconds": 6, "executions": 133270},
+        {"target": "FuzzPortableJSONName", "requested_seconds": 5, "reported_elapsed_seconds": 5, "executions": 232925},
+        {"target": "FuzzWindowsRootSyntax", "requested_seconds": 5, "reported_elapsed_seconds": 6, "executions": 75477},
+        {"target": "FuzzWorkerFrame", "requested_seconds": 5, "reported_elapsed_seconds": 6, "executions": 37507},
+        {"target": "FuzzBambuManifest", "requested_seconds": 5, "reported_elapsed_seconds": 6, "executions": 156101},
+        {"target": "FuzzBambuLocations", "requested_seconds": 5, "reported_elapsed_seconds": 5, "executions": 201613},
+        {"target": "FuzzBambuIndexedSelections", "requested_seconds": 5, "reported_elapsed_seconds": 6, "executions": 151165}
+      ]
+    }
+  ]
+}

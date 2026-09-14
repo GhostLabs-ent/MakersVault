@@ -119,6 +119,16 @@ printer controller, or multi-user cloud service.
   app-version observations and consented activation still remain; production
   scanning is disabled and the Mac-import deferral is unchanged.
 
+### Bambu profile-identity foundation (MP-1b-5)
+
+- Internal discovery now checks actual profile names against the index, validates
+  exact inheritance and excludes script templates without opening them. Explicit
+  choices are rescanned for bounded geometry review; incomplete geometry is visible.
+- [123 unit tests/race, six-target builds and seven fuzz smokes pass](evidence/gate-13/MAKE_PLATE_MP1B5_RESULTS.md).
+  Production scanning stays disabled. Ordinary saved-user profiles lacking system
+  headers need the next format slice; selector UI, versions, native Windows and
+  consented import remain open. No change to uploads or Mac-import deferral.
+
 ### Lower-overhead folder listing (Gate 13C)
 
 - Folder lists read plain database values instead of constructing tracked objects

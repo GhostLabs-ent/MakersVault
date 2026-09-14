@@ -60,6 +60,14 @@ a same-device directory-bind negative control. 104 unit tests/race and six fuzz
 smokes pass on Linux; native Windows remains untested. Actual profile identity/
 inheritance discovery, local selector UI and installed versions are still pending.
 
+**MP-1b-5 update:** [Content results](MAKE_PLATE_MP1B5_RESULTS.md) add authored
+manifest/document name mismatch, exact parent closure, script/FIFO non-read,
+case-aliased header, shared aggregate/index budget and worker selection fixtures.
+123 unit tests/race and seven fuzz smokes pass. Explicit-machine user fixtures
+prove namespaces only: ordinary saved-user JSON lacking system headers remains
+unsupported and has a negative control. See the [pinned writer/source distinction](../../../slicer-bridge/internal/presetfiles/DISCOVERY.md).
+No real vendor bundle or installed-device fixture is qualified by these tests.
+
 | Target | Pinned public source | Required fixture coverage / observed shape |
 |---|---|---|
 | Bambu Studio 2.8.2.61 | [Release](https://github.com/bambulab/BambuStudio/releases/tag/v02.08.02.61), commit `926a7192574bcb9b3a732e1ec59a46d79cb45466` | P1S 0.4 child → `fdm_bbl_3dp_001_common` → `fdm_machine_common`; string-valued scalar/array numbers, inherited geometry and child exclusion override; G-code `include` references must not be followed |

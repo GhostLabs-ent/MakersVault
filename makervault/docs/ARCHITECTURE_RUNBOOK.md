@@ -2,9 +2,9 @@
 
 **Status:** Governing working document
 
-**Baseline date:** 2026-09-13
+**Baseline date:** 2026-09-14
 
-**Committed baseline:** `main` inactive Bambu location planning/anchored inspection at `123e0ba`, after manifest index/worker at `a9a44ca`, experimental-only macOS reader at `907cddd` (default unsupported, new Mac preset import deferred), MP-1b-2 Windows reader/isolated supervisor at `60bd90c`, MP-1b-1 Linux reader at `8a9b424`, MP-1a parser at `a88de92`, MP-0 bridge repairs at `d116997`, UP-1 web progress at `b059dd7` and approved six-package native update at `6306ccf` (schema 17; Gate 13B accepted at `2f61b37`, 13C qualification open and not accepted)
+**Committed baseline:** `main` inactive Bambu explicit-machine discovery/selection at `535a0a1`, after location planning/anchored inspection at `123e0ba`, manifest index/worker at `a9a44ca`, experimental-only macOS reader at `907cddd` (default unsupported, new Mac preset import deferred), MP-1b-2 Windows reader/isolated supervisor at `60bd90c`, MP-1b-1 Linux reader at `8a9b424`, MP-1a parser at `a88de92`, MP-0 bridge repairs at `d116997`, UP-1 web progress at `b059dd7` and approved six-package native update at `6306ccf` (schema 17; Gate 13B accepted at `2f61b37`, 13C qualification open and not accepted)
 
 **Latest full verification:** clean committed `6306ccf`;
 [native-update evidence](evidence/gate-13/SECURITY_NATIVE_UPDATE_RESULTS.md).
@@ -76,6 +76,13 @@ shared deadline/entry allowance: 104 unit tests/race, vet, six target builds and
 fuzz smokes pass. Profile identity/parent closure and instantiation are next;
 native hint acquisition, account enumeration/local UI, independent app versions and
 Windows/lifecycle qualification remain open. Production scanning stays inactive.
+Subsequent [MP-1b-5 at `535a0a1`](evidence/gate-13/MAKE_PLATE_MP1B5_RESULTS.md) binds
+actual machine identities, validates all loaded parent chains, excludes script
+entries before open and projects exact local choices under shared budgets. 123
+unit tests/race, vet, six target builds and seven fuzz smokes pass; six log hashes
+join the source/captures. Ordinary saved-user JSON without system-style headers is
+not yet supported and is the next MP-1b-6 format slice. No production activation,
+native Windows/real-profile qualification or complete import feature is implied.
 The security reviews recheck durable evidence, not rerun the full gate. Earlier
 browser results and WebKit synthetic-drop limits remain separately dated; G13-01
 performance tuning stays deferred. Nothing is pushed or release-qualified.
@@ -374,6 +381,7 @@ row's future-tense wording.
 | T-089 | `DECIDED` / `OPEN` | Owner approves the limited deferral against `eb8f31d`: new macOS workstation preset discovery/import/refresh is outside v5.1; existing Mac file-open and planned browser Make Plate workflows remain in scope. Experiment stays disabled; MS-2/MS-3 import work deferred, not passed | `docs/evidence/gate-13/MAKE_PLATE_MACOS_DEFERRAL.md`, updated Make Plate platform matrix, ADR 0020 scope notice, limitations and release notes | Next resume Windows/Linux Bambu known-root/manifest discovery, local selection/version observations and native Windows/lifecycle qualification. MP-1b/MP-1 and Gate 13 remain open; no waiver of existing Mac app/signing checks or safety/recovery contracts. Documentation only; no runtime/schema/SDK/device change, Mac connection, push or publication. |
 | T-090 | `VERIFIED` / `OPEN` | Owner directs continuation after Mac-import deferral. MP-1b-3 at `a9a44ca` adds fixed-BBL.json bounded projection, local exact identity/file selection and private manifest-worker framing. 90 unit tests/race, 95 top-level / 199 inclusive passes, vet, six target builds and five fuzz smokes pass on Linux; seven retained hashes verified | `docs/evidence/gate-13/MAKE_PLATE_MP1B3_RESULTS.md`, manifest driver/index/checker; interrupted 120-second wrapper attempt retained separately | Index entries may be templates, not selectable-printer claims; bundle version is not app-version detection. Root/account selection, manifest-to-document identity/parent closure, actual versions, native Windows/lifecycle and matched consented integration remain next. No production activation, real profiles, native-device test, API/schema change, full gate/scan, waiver transfer, MP-1b/MP-1 closure, push or publication. |
 | T-091 | `VERIFIED` / `OPEN` | Owner directs continuation from MP-1b-3. MP-1b-4 at `123e0ba` adds pure Windows/Linux location plans and held-parent inspection of one explicit data root/account. Shared deadline/entry allowance, no account fallback and nested same-device directory-bind rejection pass. 104 unit tests/race, 110 top-level / 225 inclusive passes, vet, six target builds and six fuzz smokes; four log hashes verified | `docs/evidence/gate-13/MAKE_PLATE_MP1B4_RESULTS.md`, locations driver/index/checker and source contracts | Actual profile identity/parent closure/instantiation next. Native hint acquisition, account enumeration/local selector UI, app versions, native Windows/lifecycle and matched consented activation remain open. No production scanning, real profiles/device tests, API/schema change, full gate/scan, waiver transfer, MP-1b/MP-1 closure, push or publication; Mac-import deferral and existing support scope unchanged. |
+| T-092 | `VERIFIED` / `OPEN` | Owner directs continuation from MP-1b-4. MP-1b-5 at `535a0a1` binds explicit machine identities to manifest entries, validates exact parent closure, excludes script files before open and projects bounded local selections under one held ancestry/shared budget. 123 unit tests/race, 130 top-level / 260 inclusive passes, vet, six target builds and seven fuzz smokes; six log hashes verified | `docs/evidence/gate-13/MAKE_PLATE_MP1B5_RESULTS.md`, discovery driver/index/checker and pinned source contract | Next MP-1b-6 qualifies ordinary saved-user machine JSON without guessing system headers; current explicit-machine user fixtures are not real-user-format proof. Native hints/account selector, independent versions/real profiles, Windows/lifecycle and consented activation stay open. No production dispatch, API/schema change, full gate/scan, waiver transfer, native-device test, MP-1b/MP-1 closeout, push or publication. |
 
 ### 5.4 Current storage invariants
 
@@ -1456,8 +1464,11 @@ is verified at `a9a44ca`: bounded local indexing and exact identity/file selecti
 not selectable-printer or installed-version discovery.
 The [MP-1b-4 location substep](evidence/gate-13/MAKE_PLATE_MP1B4_RESULTS.md) now verifies
 unobserved known-location plans and anchored inspection of an explicit root/account.
-**Next: actual manifest-to-document identity, exact parent closure and selectable
-Bambu preset discovery under shared scan budgets.** Native location-hint acquisition,
+The [MP-1b-5 content substep](evidence/gate-13/MAKE_PLATE_MP1B5_RESULTS.md) is verified
+at `535a0a1`: exact identity/parent closure and explicit instantiation with shared
+budgets and no script opens. **Next MP-1b-6: dedicated saved-user machine projection**;
+ordinary Bambu user files do not guarantee system-style type/instantiation headers,
+so this format remains unsupported rather than guessed. Native location-hint acquisition,
 account enumeration/local selector, independent app versions and Windows/lifecycle
 qualification remain open. Keep scanning inactive until matched consented worker
 integration and those boundaries are met. Mac preset import stays

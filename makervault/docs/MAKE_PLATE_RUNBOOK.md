@@ -3,8 +3,9 @@
 **Decision date:** 2026-09-12. **Entry:** `4858147` (schema 17).
 **Status:** MP-0 and [ADR 0020](adr/0020-printer-presets-and-plate-recipes.md) accepted
 2026-09-12. MP-1 is in progress: Bambu projection, Linux file access and the
-single-use supervisor, Bambu manifest index and anchored location inspection are
-locally verified; Windows reading is implemented but not natively verified.
+single-use supervisor, Bambu manifest index, anchored location inspection and
+explicit-machine content discovery are locally verified; ordinary saved-user
+format coverage and native Windows qualification remain open.
 MP-1b remains open and inactive in production.
 An owner-provided Intel Mac passes 34 default and 42 ordinary experimental unit
 checks; two additional counterexamples reproduce failed pre-open safety properties.
@@ -191,6 +192,15 @@ re-cock protocol. New gate numbers do not reset or falsely close Gates 0–13.
   identities/parent closure and instantiation. Native hint acquisition, account
   enumeration/local selector, independent versions, native Windows/lifecycle and
   matched consented integration remain open. Production main stays unchanged.
+  Subsequent [MP-1b-5 at `535a0a1`](evidence/gate-13/MAKE_PLATE_MP1B5_RESULTS.md)
+  binds actual manifest/document identities, validates exact parent chains and
+  offers only explicit instantiation under one held root/shared file-byte-time
+  budget. Script entries are excluded before open; selected geometry is freshly
+  projected or explicitly incomplete. 123 unit tests/race, vet, six target builds
+  and seven fuzz smokes pass. **Next MP-1b-6: ordinary saved-user machine JSON**,
+  whose writer does not guarantee system-style type/instantiation headers; these
+  shapes remain unsupported, not guessed. Local selector/native hints, independent
+  versions/real profiles, native Windows/lifecycle and consented activation stay open.
 - **MP-1c:** Scoped claim/review/commit authority plus immutable preset storage and
   its additive migration, portable v1/v2 and raw-recovery counterparts as one coherent
   persistence slice. Shared strict wire fixtures must prove API/bridge parity.
