@@ -97,6 +97,17 @@ printer controller, or multi-user cloud service.
   upload workaround or broader removal of Mac support is introduced. Existing Mac
   real-app/signing checks still need qualification.
 
+### Bambu manifest-index foundation (MP-1b-3)
+
+- The inactive private worker now reads Bambu's manifest and retains only bundle
+  version and machine identity/file pairs, without following URLs or referenced
+  files. Explicit selection is exact and all-or-nothing; templates are not assumed
+  to be selectable printers and bundle version is not installed-app detection.
+- [90 unit tests/race, six-target builds and five fuzz smokes pass](evidence/gate-13/MAKE_PLATE_MP1B3_RESULTS.md).
+  Root/account selection, actual profile binding/discovery, app-version observations,
+  native Windows qualification and consented import remain open. No production
+  scanning, new UI, upload restriction or change to the Mac-import deferral.
+
 ### Lower-overhead folder listing (Gate 13C)
 
 - Folder lists read plain database values instead of constructing tracked objects

@@ -47,6 +47,13 @@ existing Mac file-open and planned browser Make Plate scope are unchanged.
 
 ## Named public source targets reviewed
 
+**MP-1b-3 update:** [Manifest-index results](MAKE_PLATE_MP1B3_RESULTS.md) add synthetic
+vendor manifests, strict projection/selection, bounded private-worker round trips
+and link/special-file failures. 90 unit tests/race and five fuzz smokes pass on Linux;
+Windows manifest tests compile only. Manifest entries can be templates, so this does
+not yet qualify selectable-machine discovery, root/account selection, application
+version detection or real profiles. Bundle and installed-app versions stay separate.
+
 | Target | Pinned public source | Required fixture coverage / observed shape |
 |---|---|---|
 | Bambu Studio 2.8.2.61 | [Release](https://github.com/bambulab/BambuStudio/releases/tag/v02.08.02.61), commit `926a7192574bcb9b3a732e1ec59a46d79cb45466` | P1S 0.4 child → `fdm_bbl_3dp_001_common` → `fdm_machine_common`; string-valued scalar/array numbers, inherited geometry and child exclusion override; G-code `include` references must not be followed |

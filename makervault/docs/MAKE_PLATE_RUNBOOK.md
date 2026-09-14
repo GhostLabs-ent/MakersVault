@@ -3,8 +3,8 @@
 **Decision date:** 2026-09-12. **Entry:** `4858147` (schema 17).
 **Status:** MP-0 and [ADR 0020](adr/0020-printer-presets-and-plate-recipes.md) accepted
 2026-09-12. MP-1 is in progress: Bambu projection, Linux file access and the
-single-use supervisor are locally verified; Windows reading is implemented but
-not natively verified. MP-1b remains open and inactive in production.
+single-use supervisor and Bambu manifest index are locally verified; Windows reading
+is implemented but not natively verified. MP-1b remains open and inactive in production.
 An owner-provided Intel Mac passes 34 default and 42 ordinary experimental unit
 checks; two additional counterexamples reproduce failed pre-open safety properties.
 The macOS reader experiment is explicitly build-tagged and **excluded from normal
@@ -172,9 +172,16 @@ re-cock protocol. New gate numbers do not reset or falsely close Gates 0–13.
   The owner then [accepts the new-Mac-preset-import-only deferral](evidence/gate-13/MAKE_PLATE_MACOS_DEFERRAL.md)
   for v5.1. Existing Mac file-open and planned browser Make Plate workflows remain
   in scope; further Mac reader research needs separate direction. Native code, SDKs
-  and the owner's Mac were not changed. Next continue Windows/Linux Bambu known-root/
-  manifest discovery, explicit local selection and version observations while
-  preparing native Windows/lifecycle checks; keep production scans inactive.
+  and the owner's Mac were not changed. The subsequent [MP-1b-3 manifest substep
+  at `a9a44ca`](evidence/gate-13/MAKE_PLATE_MP1B3_RESULTS.md) reads only fixed BBL.json,
+  returns a bounded local index and maps explicit exact identities to basenames.
+  It never follows references or confuses bundle version with application version;
+  template entries are not asserted to be selectable printers. 90 unit tests/race,
+  vet, six target builds and five fuzz smokes pass on Linux; one interrupted outer
+  capture is retained separately. Next: adapter-owned root planning/local root and
+  account selection, manifest-to-document identity and parent closure, independent
+  app-version observations and native Windows/lifecycle qualification. Keep
+  production scans inactive; no installed profiles or user-facing discovery qualified.
 - **MP-1c:** Scoped claim/review/commit authority plus immutable preset storage and
   its additive migration, portable v1/v2 and raw-recovery counterparts as one coherent
   persistence slice. Shared strict wire fixtures must prove API/bridge parity.

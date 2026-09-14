@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "gate": "MP-1b-3",
+  "entry_revision": "f1cbb237b481068f545d70bbb6981761edbd14b3",
+  "implementation_revision": "a9a44cabcb9e68959d03e22dd641d36ff6b1daee",
+  "private_evidence_root": "/home/vinnyc/.local/state/makersvault/verification",
+  "go_image": "sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6",
+  "native_windows_tests_executed": 0,
+  "native_macos_tests_executed": 0,
+  "interrupted": {
+    "directory": "containment-mp1b3-manifest-final-20260913",
+    "reason": "outer_compression_wrapper_120_second_limit_no_completion_receipt",
+    "accepted_as_success": false,
+    "artifacts": [
+      {"file": "started.json", "sha256": "80b91c49966367c5c177b5043c34bbd3f6743c2ed04092596ce6cb2535cbd0d8"},
+      {"file": "stdout.log", "sha256": "44e272ad5f4d56e2211f98aec447d423b5294091e213eb5328f9102caa103352"},
+      {"file": "stderr.log", "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+    ]
+  },
+  "captures": [
+    {
+      "kind": "preflight",
+      "directory": "containment-mp1b3-manifest-preflight-20260913",
+      "stdout_sha256": "d5f1041b0b833de5660882efd2061b94434b04a2fd46a4bbf2af1f7b7b826405",
+      "unit_tests_passed": 89,
+      "top_level_pass_events": 94,
+      "inclusive_pass_events": 198
+    },
+    {
+      "kind": "final",
+      "directory": "containment-mp1b3-manifest-final2-20260913",
+      "stdout_sha256": "b564cbe6a46b673bbae104d04397008d63f70e0924c51e2eb273fe9226122a2c",
+      "unit_tests_passed": 90,
+      "top_level_pass_events": 95,
+      "inclusive_pass_events": 199,
+      "fuzz": [
+        {"target": "FuzzBambuProjection", "requested_seconds": 5, "reported_elapsed_seconds": 6, "executions": 167151},
+        {"target": "FuzzPortableJSONName", "requested_seconds": 5, "reported_elapsed_seconds": 5, "executions": 225426},
+        {"target": "FuzzWindowsRootSyntax", "requested_seconds": 5, "reported_elapsed_seconds": 6, "executions": 10546},
+        {"target": "FuzzWorkerFrame", "requested_seconds": 5, "reported_elapsed_seconds": 6, "executions": 19007},
+        {"target": "FuzzBambuManifest", "requested_seconds": 5, "reported_elapsed_seconds": 6, "executions": 133768}
+      ]
+    }
+  ]
+}
