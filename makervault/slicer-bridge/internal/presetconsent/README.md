@@ -2,7 +2,8 @@
 
 **Inactive in production.** MP-1b-8 added the local session and HTTP handler;
 MP-1b-9a adds its bounded numeric-loopback host and actual HTTP/browser harness.
-There is no installed handler, native browser launcher, new protocol action, remote
+MP-1b-9b-1 adds an inactive Windows UI helper and one-attempt owned-URL launcher.
+There is no installed handler, production native UI dispatch, new protocol action, remote
 claim/import endpoint, stored snapshot or desktop application. Production main is
 unchanged. Mac-local preset import stays owner-deferred. No real workstation
 profiles or Windows known-folder calls were used in this slice's tests.
@@ -93,8 +94,9 @@ at most 2s drain before forcibly closing sockets. `Close` is concurrent-safe and
 waits for teardown; do not call it synchronously from its own HTTP handler.
 `Done` means revocation and listener/socket teardown, not guaranteed return of an
 arbitrary non-cooperative callback. Existing worker kill/reap guarantees are separate.
-The caller must close on launch failure; no tab-close detector or native launcher
-is delivered. The test-only readiness pipe/EOF fixture is not production IPC.
+`OpenBrowser` now closes on launch failure/cancellation; its Windows helper is
+implemented but not natively qualified or production-dispatched. No tab-close
+detector is delivered. The test-only readiness pipe/EOF fixture is not production IPC.
 
 Actual browser POSTs exposed that `no-referrer` produces `Origin: null` for native
 forms. The page now uses `same-origin`: exact Origin/CSRF enforcement stays, and
@@ -126,10 +128,11 @@ cleanup is claimed. The old direct file/hint APIs remain cooperative if bypassed
 ## Required next integration checkpoint
 
 MP-1b-9 is split into evidence checkpoints, not closed. MP-1b-9a establishes the
-local server and synthetic browser lifecycle above. Next MP-1b-9b must establish
-bounded native browser/folder-picker helpers and their owner lifecycle, including
-fixed trusted executable/API selection, launch failure/timeout/reaping, and explicit
-custom-root selection without HTTP paths. Do not reuse the legacy pairing launcher
+local server and synthetic browser lifecycle above. MP-1b-9b-1 adds the isolated
+[Windows helper foundation](../presetui/README.md) and one-attempt owned-URL launch,
+including local failure/cancellation revocation. Linux helpers and asynchronous
+consented custom-root selection without HTTP paths remain next; native Windows
+execution is still required. Do not reuse the legacy pairing launcher
 as qualified evidence: its Start-only/default-opener behavior is not this contract.
 Keep main/protocols
 inactive until native Windows/hint/reader/lifecycle, independently observed versions,
