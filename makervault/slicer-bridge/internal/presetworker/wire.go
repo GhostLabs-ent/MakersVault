@@ -37,16 +37,18 @@ type Pick struct {
 // only through private anonymous stdin to the exact self executable, never JSON
 // decoded directly into this public type or through protocol arguments.
 type Request struct {
-	Operation string              `json:"-"` // list, manifest or project
+	Operation string              `json:"-"` // list, manifest, location or project
 	Root      string              `json:"-"`
+	Account   string              `json:"-"` // location only; empty explicitly means system-only
 	Inputs    []presetfiles.Input `json:"-"`
 	Picks     []Pick              `json:"-"`
 }
 
 type Response struct {
-	Names      []string                   `json:"names,omitempty"`    // local-only listing; never import payload
-	Manifest   *presetfiles.BambuManifest `json:"manifest,omitempty"` // local-only index, not selectable printers
-	Candidates []printerpreset.Candidate  `json:"candidates,omitempty"`
+	Names      []string                        `json:"names,omitempty"`    // local-only listing; never import payload
+	Manifest   *presetfiles.BambuManifest      `json:"manifest,omitempty"` // local-only index, not selectable printers
+	Location   *presetfiles.LocationInspection `json:"location,omitempty"` // local-only, no root/account identity
+	Candidates []printerpreset.Candidate       `json:"candidates,omitempty"`
 }
 
 type wireInput struct {
@@ -58,6 +60,7 @@ type wireRequest struct {
 	Version   int
 	Operation string
 	Root      string
+	Account   string
 	Inputs    []wireInput
 	Picks     []Pick
 }
@@ -81,6 +84,13 @@ func boundedText(text string, maximum int, empty bool) bool {
 
 func validateRequest(req wireRequest) bool {
 	if req.Version != 1 {
+		return false
+	}
+	if req.Operation == "location" {
+		return len(req.Inputs) == 0 && len(req.Picks) == 0 && boundedText(req.Root, 4096, false) &&
+			boundedText(req.Account, 255, true) && !strings.ContainsAny(req.Account, `/\:`)
+	}
+	if req.Account != "" {
 		return false
 	}
 	if req.Operation == "list" || req.Operation == "manifest" {
@@ -123,7 +133,7 @@ func marshalRequest(req Request) ([]byte, wireRequest, error) {
 	if len(req.Inputs) > 2 || len(req.Picks) > MaxSelected {
 		return nil, wireRequest{}, Code("worker_request_limit")
 	}
-	wire := wireRequest{Version: 1, Operation: req.Operation, Root: req.Root, Picks: req.Picks}
+	wire := wireRequest{Version: 1, Operation: req.Operation, Root: req.Root, Account: req.Account, Picks: req.Picks}
 	for _, input := range req.Inputs {
 		wire.Inputs = append(wire.Inputs, wireInput{input.Root, input.Files, input.Source})
 	}
@@ -255,10 +265,20 @@ func decodeResponse(data []byte, request wireRequest) (Response, error) {
 		return Response{}, Code("worker_response_invalid")
 	}
 	if result.Code != "" {
-		if !scanCodes[result.Code] || len(result.Response.Names) != 0 || len(result.Response.Candidates) != 0 || result.Response.Manifest != nil {
+		if !scanCodes[result.Code] || len(result.Response.Names) != 0 || len(result.Response.Candidates) != 0 || result.Response.Manifest != nil || result.Response.Location != nil {
 			return Response{}, Code("worker_response_invalid")
 		}
 		return Response{}, result.Code
+	}
+	if request.Operation == "location" {
+		if len(result.Response.Names) != 0 || len(result.Response.Candidates) != 0 || result.Response.Manifest != nil ||
+			result.Response.Location == nil || !result.Response.Location.Validate(request.Account != "") {
+			return Response{}, Code("worker_response_invalid")
+		}
+		return result.Response, nil
+	}
+	if result.Response.Location != nil {
+		return Response{}, Code("worker_response_invalid")
 	}
 	if request.Operation == "manifest" {
 		if len(result.Response.Names) != 0 || len(result.Response.Candidates) != 0 ||
@@ -309,6 +329,8 @@ func Serve(input io.Reader, output io.Writer) int {
 			result.Response.Names, err = presetfiles.ListJSON(ctx, request.Root)
 		} else if request.Operation == "manifest" {
 			result.Response.Manifest, err = presetfiles.ReadBambuManifest(ctx, request.Root)
+		} else if request.Operation == "location" {
+			result.Response.Location, err = presetfiles.InspectBambuLocation(ctx, request.Root, request.Account)
 		} else {
 			inputs := make([]presetfiles.Input, len(request.Inputs))
 			for i, input := range request.Inputs {

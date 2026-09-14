@@ -98,6 +98,11 @@ func ReadBambuManifest(ctx context.Context, root string) (*BambuManifest, error)
 		return nil, err
 	}
 	defer dir.close()
+	return readBambuManifest(ctx, dir)
+}
+
+// No root re-resolution or new deadline: used by the anchored location scan.
+func readBambuManifest(ctx context.Context, dir *directory) (*BambuManifest, error) {
 	beforeRoot, err := dir.file.Stat()
 	if err != nil {
 		return nil, Code("source_unavailable")

@@ -114,6 +114,12 @@ func ListJSON(ctx context.Context, root string) ([]string, error) {
 		return nil, err
 	}
 	defer dir.close()
+	return listJSON(ctx, dir, MaxEntries)
+}
+
+// The caller owns the held directory and shared deadline. A reduced allowance
+// lets a location scan count its manifest entries and user listing together.
+func listJSON(ctx context.Context, dir *directory, allowance int) ([]string, error) {
 	before, err := dir.file.Stat()
 	if err != nil {
 		return nil, Code("source_unavailable")
@@ -128,7 +134,7 @@ func ListJSON(ctx context.Context, root string) ([]string, error) {
 		entries, readErr := dir.file.ReadDir(64)
 		for _, entry := range entries {
 			count++
-			if count > MaxEntries {
+			if count > allowance {
 				return nil, Code("source_entry_limit_exceeded")
 			}
 			name := entry.Name()

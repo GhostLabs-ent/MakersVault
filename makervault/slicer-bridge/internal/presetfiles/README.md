@@ -1,4 +1,4 @@
-# Local file access boundary — MP-1b-1 / MP-1b-2 / MP-1b-3
+# Local file access boundary — MP-1b-1 through MP-1b-4
 
 Internal, read-only and **not called by the bridge CLI**. This is the first part
 of MP-1b, not completed workstation discovery or a user-facing import feature.
@@ -10,6 +10,10 @@ is added. Do not activate this code until the remaining MP-1b boundaries are met
 
 ## Operations
 
+- [Location planning/inspection](LOCATIONS.md) adds pure known-location candidates
+  and bounded held-parent inspection of one explicit data root/account. It reads
+  the system manifest and optionally lists one chosen user machine folder; it does
+  not select an account, parse profiles, observe app versions or enable import.
 - `ListJSON(ctx, root)` lists ordinary direct JSON children in an already selected
   local root. It neither recurses nor reads their contents. All directory entries
   count toward the 10,000-entry ceiling; listing is sorted, never partial on error.
@@ -111,8 +115,8 @@ enumeration. None of this source review substitutes for running the native tests
 
 Native Windows execution (including reparse/ACL/volume/placeholder and process
 lifecycle cases), matched supervisor integration and startup/
-cleanup qualification; adapter-owned known locations and local root
-selection; manifest-to-document identity and parent closure, selectable-machine
+cleanup qualification; native known-folder/hint acquisition and root/account
+selection UI; manifest-to-document identity and parent closure, selectable-machine
 discovery, user namespaces and independently observed application versions. The
 manifest's four-component bundle version is retained exactly, never promoted to
 an installed application version. Malformed, ambiguous or over-budget manifests

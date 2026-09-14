@@ -1,4 +1,4 @@
-# Single-use profile worker — MP-1b-2 / MP-1b-3
+# Single-use profile worker — MP-1b-2 through MP-1b-4
 
 Internal foundation, **not dispatched by the production bridge main**. Only the
 test executable currently handles `--internal-preset-worker-v1`. Do not call `Run`
@@ -15,7 +15,8 @@ must obtain local consent and must never translate browser/server paths into it.
 Do not mutate request slices concurrently with Run.
 
 The child implements only `list` (direct JSON basenames, local-only), `manifest`
-(fixed BBL.json local index; not selectable-printer discovery) or `project`
+(fixed BBL.json local index), `location` (one selected Bambu data root/account;
+system manifest plus optional user filename index) or `project`
 (load selected Bambu documents, resolve up to 100 exact kind/name picks). It neither
 launches descendants nor reads general slicer configuration. A later failed pick
 discards earlier candidates. Labels in successful candidates can still contain
@@ -28,6 +29,15 @@ non-instantiated documents and obtain explicit review. The parent validates the
 index version/path/name/collision bounds and rejects mixed or partial responses.
 No manifest URL or listed file is followed by this operation. Oversized indexes
 fail at the response ceiling rather than silently dropping entries.
+
+The [location operation](../presetfiles/LOCATIONS.md) traverses fixed children from
+held parents, never treats a joined child as a new root, and shares the deadline
+and entry budget across the manifest/user listing. Account is a bounded local-only
+private request field, rejected on other operations; it and the root are absent
+from the result. Empty account means system-only, not automatic/default selection.
+The parent checks account-presence agreement, combined index bounds and deliberately
+unknown app version. No local selector, installed-version probe or profile parsing
+is implied. New Mac location inspection is refused, even in the old experiment.
 
 ## Resource and output controls
 
