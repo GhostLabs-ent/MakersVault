@@ -77,6 +77,14 @@ under [explicit limits](../../../slicer-bridge/internal/presetfiles/SAVED_USER.m
 not nested custom bases/version suffixes or full installed-slicer conformance.
 Windows/macOS builds are compiled only; owner version/profile evidence remains open.
 
+**MP-1b-7 update:** [Account/hint results](MAKE_PLATE_MP1B7_RESULTS.md) add synthetic
+account-directory/sidecar/privacy and two same-device bind layouts, ambiguous/special
+entry failures, injected/native-synthetic Linux hints, redaction/cancellation and
+private account-worker framing. 152 unit tests/race and nine fuzz smokes pass.
+Windows native hints/metadata code compiles only; local consent/selector, bounded
+hint lifecycle, real profiles/versions and native Windows remain open. No production
+dispatch or actual workstation configuration read is implied.
+
 | Target | Pinned public source | Required fixture coverage / observed shape |
 |---|---|---|
 | Bambu Studio 2.8.2.61 | [Release](https://github.com/bambulab/BambuStudio/releases/tag/v02.08.02.61), commit `926a7192574bcb9b3a732e1ec59a46d79cb45466` | P1S 0.4 child → `fdm_bbl_3dp_001_common` → `fdm_machine_common`; string-valued scalar/array numbers, inherited geometry and child exclusion override; G-code `include` references must not be followed |

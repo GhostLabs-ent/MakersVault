@@ -4,7 +4,7 @@
 
 **Baseline date:** 2026-09-14
 
-**Committed baseline:** `main` inactive Bambu saved-user machine projection at `ff310d7`, after explicit-machine discovery/selection at `535a0a1`, location planning/anchored inspection at `123e0ba`, manifest index/worker at `a9a44ca`, experimental-only macOS reader at `907cddd` (default unsupported, new Mac preset import deferred), MP-1b-2 Windows reader/isolated supervisor at `60bd90c`, MP-1b-1 Linux reader at `8a9b424`, MP-1a parser at `a88de92`, MP-0 bridge repairs at `d116997`, UP-1 web progress at `b059dd7` and approved six-package native update at `6306ccf` (schema 17; Gate 13B accepted at `2f61b37`, 13C qualification open and not accepted)
+**Committed baseline:** `main` inactive Bambu local account choices/native hints at `9a72c91`, after saved-user machine projection at `ff310d7`, explicit-machine discovery/selection at `535a0a1`, location planning/anchored inspection at `123e0ba`, manifest index/worker at `a9a44ca`, experimental-only macOS reader at `907cddd` (default unsupported, new Mac preset import deferred), MP-1b-2 Windows reader/isolated supervisor at `60bd90c`, MP-1b-1 Linux reader at `8a9b424`, MP-1a parser at `a88de92`, MP-0 bridge repairs at `d116997`, UP-1 web progress at `b059dd7` and approved six-package native update at `6306ccf` (schema 17; Gate 13B accepted at `2f61b37`, 13C qualification open and not accepted)
 
 **Latest full verification:** clean committed `6306ccf`;
 [native-update evidence](evidence/gate-13/SECURITY_NATIVE_UPDATE_RESULTS.md).
@@ -90,6 +90,14 @@ source control reproduces rejection; 136 unit tests/race, vet, six target builds
 and eight fuzz smokes pass, with six verified log hashes. Next MP-1b-7 is bounded
 account-choice enumeration/native location hints; real profiles/versions, local
 picker/consent and native Windows/lifecycle remain open. No production dispatch.
+Subsequent [MP-1b-7 at `9a72c91`](evidence/gate-13/MAKE_PLATE_MP1B7_RESULTS.md) adds
+bounded metadata-only account choices and native root hints without automatic
+selection. 152 unit tests/race, vet, six target builds and nine fuzz smokes pass;
+four log hashes join the source/captures. Windows is compiled only; native hint
+acquisition is cooperative, not hard-deadline isolated. Next MP-1b-8 is local
+root/account picker and consent-session foundation, with bounded hint lifecycle
+before activation. Native Windows, real profiles/versions and matched main remain
+open; no production scan, API/schema change or native-device qualification.
 The security reviews recheck durable evidence, not rerun the full gate. Earlier
 browser results and WebKit synthetic-drop limits remain separately dated; G13-01
 performance tuning stays deferred. Nothing is pushed or release-qualified.
@@ -390,6 +398,7 @@ row's future-tense wording.
 | T-091 | `VERIFIED` / `OPEN` | Owner directs continuation from MP-1b-3. MP-1b-4 at `123e0ba` adds pure Windows/Linux location plans and held-parent inspection of one explicit data root/account. Shared deadline/entry allowance, no account fallback and nested same-device directory-bind rejection pass. 104 unit tests/race, 110 top-level / 225 inclusive passes, vet, six target builds and six fuzz smokes; four log hashes verified | `docs/evidence/gate-13/MAKE_PLATE_MP1B4_RESULTS.md`, locations driver/index/checker and source contracts | Actual profile identity/parent closure/instantiation next. Native hint acquisition, account enumeration/local selector UI, app versions, native Windows/lifecycle and matched consented activation remain open. No production scanning, real profiles/device tests, API/schema change, full gate/scan, waiver transfer, MP-1b/MP-1 closure, push or publication; Mac-import deferral and existing support scope unchanged. |
 | T-092 | `VERIFIED` / `OPEN` | Owner directs continuation from MP-1b-4. MP-1b-5 at `535a0a1` binds explicit machine identities to manifest entries, validates exact parent closure, excludes script files before open and projects bounded local selections under one held ancestry/shared budget. 123 unit tests/race, 130 top-level / 260 inclusive passes, vet, six target builds and seven fuzz smokes; six log hashes verified | `docs/evidence/gate-13/MAKE_PLATE_MP1B5_RESULTS.md`, discovery driver/index/checker and pinned source contract | Next MP-1b-6 qualifies ordinary saved-user machine JSON without guessing system headers; current explicit-machine user fixtures are not real-user-format proof. Native hints/account selector, independent versions/real profiles, Windows/lifecycle and consented activation stay open. No production dispatch, API/schema change, full gate/scan, waiver transfer, native-device test, MP-1b/MP-1 closeout, push or publication. |
 | T-093 | `VERIFIED` / `OPEN` | Owner directs MP-1b-6. Saved-user machine projection at `ff310d7` uses selected machine-folder context, requires user/version headers, preserves explicit hidden state and keeps generic/system parsing strict. Old-source rejection is reproduced; 136 unit tests/race, 144 top-level / 294 inclusive passes, vet, six target builds and eight fuzz smokes pass; six log hashes verified | `docs/evidence/gate-13/MAKE_PLATE_MP1B6_RESULTS.md`, saved-user drivers/index/checker and pinned source contract | Next MP-1b-7: bounded local account-choice enumeration/native hints. Nested custom bases/version suffixes, installed profiles/versions, picker/consent and native Windows/lifecycle remain unqualified; MP-1b/MP-1 stay open. No production dispatch, API/schema change, full gate/scan, waiver transfer, workstation/device test, push or publication; existing deferrals unchanged. |
+| T-094 | `VERIFIED` / `OPEN` | Owner directs MP-1b-7. Local account choices/native hints at `9a72c91` use bounded metadata-only listing and unobserved root suggestions, without automatic selection or worker environment expansion. 152 unit tests/race, 161 top-level / 326 inclusive passes, vet, six target builds and nine fuzz smokes pass; four log hashes verified | `docs/evidence/gate-13/MAKE_PLATE_MP1B7_RESULTS.md`, accounts driver/index/checker and primary-source contract | Next MP-1b-8: local root/account picker and consent-session foundation. Native hint acquisition is not yet hard-deadline isolated; native Windows/reader/lifecycle, real profiles/versions and matched main remain open. No production dispatch, API/schema change, full gate/scan, waiver transfer, native-device test, MP-1b/MP-1 closure, push or publication; existing deferrals unchanged. |
 
 ### 5.4 Current storage invariants
 
@@ -1476,9 +1485,11 @@ The [MP-1b-5 content substep](evidence/gate-13/MAKE_PLATE_MP1B5_RESULTS.md) is v
 at `535a0a1`: exact identity/parent closure and explicit instantiation with shared
 budgets and no script opens. [MP-1b-6 saved-user projection](evidence/gate-13/MAKE_PLATE_MP1B6_RESULTS.md)
 is now verified at `ff310d7`, without generic/system schema relaxation or app-version
-guessing. **Next MP-1b-7: bounded account-choice enumeration and native location hints**;
-keep all names local and require explicit choice. Nested custom bases/version
-suffixes, real profiles, local picker/consent, independent app versions and Windows/lifecycle
+guessing. [MP-1b-7 account choices/native hints](evidence/gate-13/MAKE_PLATE_MP1B7_RESULTS.md)
+are now verified at `9a72c91`; names remain local and no choice is automatic.
+**Next MP-1b-8: local root/account picker and consent-session foundation**, including
+bounded native-hint lifecycle before activation. Nested custom bases/version
+suffixes, real profiles, independent app versions and Windows/lifecycle
 qualification remain open. Keep scanning inactive until matched consented worker
 integration and those boundaries are met. Mac preset import stays
 disabled for this release; further boundary research requires separate direction.
