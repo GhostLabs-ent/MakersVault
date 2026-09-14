@@ -18,7 +18,9 @@ No environment, filesystem, executable, registry, Flatpak/AppImage installation,
 cloud account, general configuration or version command is probed by the planner.
 Packaging-specific and nonstandard roots need explicit local choice. Supplying
 hints does not grant consent; JSON cannot deserialize paths into the public types.
-Native known-folder/environment acquisition and the actual selection UI remain open.
+[Native hint acquisition](ACCOUNTS.md) is now implemented separately, without
+existence checks or automatic selection. Its native Windows/lifecycle qualification
+and the actual local selection UI/consent remain open.
 
 `InspectBambuLocation` takes one locally selected **data root**, not an install or
 resource root. Its fixed paths are:
@@ -30,7 +32,8 @@ resource root. Its fixed paths are:
 Empty account explicitly requests system-only inspection. It does not mean
 `default`, the first folder found or the logged-in cloud account. A selected
 missing/unreadable account fails the whole operation; no fallback or partial system
-result escapes. Account enumeration/selection UI is not implemented. Directory
+result escapes. [Account enumeration](ACCOUNTS.md) is now a separate bounded local
+operation, not automatic selection; selection UI is not implemented. Directory
 names and roots are absent from the result; successful filenames/labels are still
 potentially private and must remain local until the later explicit review contract.
 

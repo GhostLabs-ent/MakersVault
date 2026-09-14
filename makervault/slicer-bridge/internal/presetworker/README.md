@@ -1,4 +1,4 @@
-# Single-use profile worker — MP-1b-2 through MP-1b-6
+# Single-use profile worker — MP-1b-2 through MP-1b-7
 
 Internal foundation, **not dispatched by the production bridge main**. Only the
 test executable currently handles `--internal-preset-worker-v1`. Do not call `Run`
@@ -32,6 +32,17 @@ MP-1b-6 adds [saved-user machine projection](../presetfiles/SAVED_USER.md) insid
 the same operations, not a new wire mode or relaxed generic `project` reader.
 Invalid selected user files fail atomically; their versions never become observed
 app versions. API wire validation and real installed-profile qualification remain separate.
+
+MP-1b-7 adds private `accounts`: direct bounded local account-folder choices,
+never account contents, selected presets or an active/default account assertion.
+These names stay exclusively in local picker data, not a candidate/import payload.
+Account/inputs/picks are forbidden on this operation, and account results cannot
+appear in other operation responses or alongside errors/partial results. Missing
+`user` is an error; an empty existing folder is an empty list. The [account/hint
+contract](../presetfiles/ACCOUNTS.md) records the metadata-only boundary and limits.
+Native hint acquisition is separate and inactive: it is not a worker operation,
+does not expand the child's environment, and still needs bounded-lifecycle/native
+qualification before matched local consent/UI integration.
 
 The manifest operation retains the profile-bundle version separately, without
 guessing an application version. Its entries include templates and are local-only;

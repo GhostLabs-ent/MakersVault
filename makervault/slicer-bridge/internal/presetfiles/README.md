@@ -1,4 +1,4 @@
-# Local file access boundary — MP-1b-1 through MP-1b-6
+# Local file access boundary — MP-1b-1 through MP-1b-7
 
 Internal, read-only and **not called by the bridge CLI**. This is the first part
 of MP-1b, not completed workstation discovery or a user-facing import feature.
@@ -10,6 +10,10 @@ is added. Do not activate this code until the remaining MP-1b boundaries are met
 
 ## Operations
 
+- [Account choices/native hints](ACCOUNTS.md) supplies bounded local-only directory
+  choices and unobserved native root hints. No account is selected, no account
+  contents are read and no installation/version is inferred. Native hint acquisition
+  is not hard-deadline isolated; Windows implementation is compiled only.
 - [Content discovery/selection](DISCOVERY.md) binds actual machine identities,
   validates exact parent chains and projects bounded explicit choices under one
   held root and shared budget. [Saved-user support](SAVED_USER.md) uses only the
@@ -119,8 +123,8 @@ enumeration. None of this source review substitutes for running the native tests
 
 Native Windows execution (including reparse/ACL/volume/placeholder and process
 lifecycle cases), matched supervisor integration and startup/
-cleanup qualification; native known-folder/hint acquisition and root/account
-selection UI; real-profile and remaining saved-user-format conformance
+cleanup qualification; native known-folder/hint qualification and root/account
+selection UI/consent; real-profile and remaining saved-user-format conformance
 and independently observed application versions. The
 manifest's four-component bundle version is retained exactly, never promoted to
 an installed application version. Malformed, ambiguous or over-budget manifests

@@ -65,6 +65,12 @@ func nativeAvailable() bool {
 // Denying share-write/delete prevents conflicting modifications while a handle
 // is held; a busy source fails for explicit retry, never a more permissive open.
 func openRelative(parent *os.File, name string, isDir bool) (*os.File, error) {
+	return openRelativeTyped(parent, name, isDir, !isDir)
+}
+
+// Metadata-only enumeration may accept either an ordinary file or directory,
+// then classify its confined handle. It never adds data/list access in that mode.
+func openRelativeTyped(parent *os.File, name string, isDir, isFile bool) (*os.File, error) {
 	if !componentName(name) {
 		return nil, Code("source_path_invalid")
 	}
@@ -76,7 +82,10 @@ func openRelative(parent *os.File, name string, isDir bool) (*os.File, error) {
 	attrs := ntObjectAttributes{root: syscall.Handle(parent.Fd()), name: &str,
 		attributes: objCaseInsensitive | objDontReparse}
 	attrs.length = uint32(unsafe.Sizeof(attrs))
-	options := uint32(fileSynchronous | fileOpenReparse | fileNonDirectory)
+	options := uint32(fileSynchronous | fileOpenReparse)
+	if isFile {
+		options |= fileNonDirectory
+	}
 	access := uint32(readAttributes | synchronize)
 	if isDir {
 		options = fileSynchronous | fileOpenReparse | fileDirectory

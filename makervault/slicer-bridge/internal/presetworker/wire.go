@@ -34,7 +34,7 @@ type Pick = printerpreset.Selection
 // only through private anonymous stdin to the exact self executable, never JSON
 // decoded directly into this public type or through protocol arguments.
 type Request struct {
-	Operation string              `json:"-"` // list, manifest, location, discover, select or project
+	Operation string              `json:"-"` // accounts, list, manifest, location, discover, select or project
 	Root      string              `json:"-"`
 	Account   string              `json:"-"` // location/discover/select; empty explicitly means system-only
 	Inputs    []presetfiles.Input `json:"-"`
@@ -42,6 +42,7 @@ type Request struct {
 }
 
 type Response struct {
+	Accounts   *presetfiles.AccountChoices     `json:"accounts,omitempty"`  // LOCAL-ONLY names, never an import payload
 	Names      []string                        `json:"names,omitempty"`     // local-only listing; never import payload
 	Manifest   *presetfiles.BambuManifest      `json:"manifest,omitempty"`  // local-only index, not selectable printers
 	Location   *presetfiles.LocationInspection `json:"location,omitempty"`  // local-only, no root/account identity
@@ -96,7 +97,7 @@ func validateRequest(req wireRequest) bool {
 	if req.Account != "" {
 		return false
 	}
-	if req.Operation == "list" || req.Operation == "manifest" {
+	if req.Operation == "list" || req.Operation == "manifest" || req.Operation == "accounts" {
 		return len(req.Inputs) == 0 && len(req.Picks) == 0 && boundedText(req.Root, 4096, false)
 	}
 	if req.Operation != "project" || req.Root != "" || len(req.Inputs) == 0 || len(req.Inputs) > 2 ||
@@ -270,10 +271,21 @@ func decodeResponse(data []byte, request wireRequest) (Response, error) {
 		return Response{}, Code("worker_response_invalid")
 	}
 	if result.Code != "" {
-		if !scanCodes[result.Code] || len(result.Response.Names) != 0 || len(result.Response.Candidates) != 0 || result.Response.Manifest != nil || result.Response.Location != nil || result.Response.Discovery != nil {
+		if !scanCodes[result.Code] || len(result.Response.Names) != 0 || len(result.Response.Candidates) != 0 || result.Response.Manifest != nil || result.Response.Location != nil || result.Response.Discovery != nil || result.Response.Accounts != nil {
 			return Response{}, Code("worker_response_invalid")
 		}
 		return Response{}, result.Code
+	}
+	if request.Operation == "accounts" {
+		if result.Response.Accounts == nil || !result.Response.Accounts.Validate() ||
+			len(result.Response.Names) != 0 || len(result.Response.Candidates) != 0 || result.Response.Manifest != nil ||
+			result.Response.Location != nil || result.Response.Discovery != nil {
+			return Response{}, Code("worker_response_invalid")
+		}
+		return result.Response, nil
+	}
+	if result.Response.Accounts != nil {
+		return Response{}, Code("worker_response_invalid")
 	}
 	if request.Operation == "discover" {
 		if len(result.Response.Names) != 0 || len(result.Response.Candidates) != 0 || result.Response.Manifest != nil ||
@@ -345,7 +357,9 @@ func Serve(input io.Reader, output io.Writer) int {
 	} else {
 		ctx, cancel := context.WithTimeout(context.Background(), printerpreset.MaxDuration)
 		defer cancel()
-		if request.Operation == "list" {
+		if request.Operation == "accounts" {
+			result.Response.Accounts, err = presetfiles.ListBambuAccounts(ctx, request.Root)
+		} else if request.Operation == "list" {
 			result.Response.Names, err = presetfiles.ListJSON(ctx, request.Root)
 		} else if request.Operation == "manifest" {
 			result.Response.Manifest, err = presetfiles.ReadBambuManifest(ctx, request.Root)
