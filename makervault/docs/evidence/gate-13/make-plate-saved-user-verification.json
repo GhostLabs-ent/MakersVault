@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "gate": "MP-1b-6",
+  "entry_revision": "0de87559e0a02d1ae2ec381002a5b86bae50be51",
+  "old_reader_revision": "535a0a106197e202036a551e6e83f61fafbe155d",
+  "implementation_revision": "ff310d77a71803fb93af709462332bc06aa01f8b",
+  "private_evidence_root": "/home/vinnyc/.local/state/makersvault/verification",
+  "go_image": "sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6",
+  "native_windows_tests_executed": 0,
+  "native_macos_tests_executed": 0,
+  "captures": [
+    {
+      "kind": "red",
+      "directory": "containment-mp1b6-saved-user-red-20260914",
+      "stdout_sha256": "6a64aa68d3c170a42ed98b65cf7d49893bfe1bdb4cd8b16befed31ef5d38742a"
+    },
+    {
+      "kind": "preflight",
+      "directory": "containment-mp1b6-saved-user-preflight-20260914",
+      "stdout_sha256": "772f595332391de517e88a09059ac8474d74ac735ada212427a3343516e1c5c1",
+      "unit_tests_passed": 136,
+      "top_level_pass_events": 144,
+      "inclusive_pass_events": 294
+    },
+    {
+      "kind": "final",
+      "directory": "containment-mp1b6-saved-user-final-20260914",
+      "stdout_sha256": "2b035b63941a63b7e07514bddb70ba5e0cb5f0f0de6b9b87b7c2b03d5c77ea18",
+      "unit_tests_passed": 136,
+      "top_level_pass_events": 144,
+      "inclusive_pass_events": 294,
+      "fuzz": [
+        {"target":"FuzzBambuProjection","requested_seconds":5,"reported_elapsed_seconds":6,"executions":191955},
+        {"target":"FuzzPortableJSONName","requested_seconds":5,"reported_elapsed_seconds":5,"executions":222415},
+        {"target":"FuzzWindowsRootSyntax","requested_seconds":5,"reported_elapsed_seconds":6,"executions":21231},
+        {"target":"FuzzWorkerFrame","requested_seconds":5,"reported_elapsed_seconds":6,"executions":35102},
+        {"target":"FuzzBambuManifest","requested_seconds":5,"reported_elapsed_seconds":6,"executions":112091},
+        {"target":"FuzzBambuLocations","requested_seconds":5,"reported_elapsed_seconds":6,"executions":167353},
+        {"target":"FuzzBambuIndexedSelections","requested_seconds":5,"reported_elapsed_seconds":6,"executions":15527},
+        {"target":"FuzzBambuSavedUserMachine","requested_seconds":5,"reported_elapsed_seconds":6,"executions":164223}
+      ]
+    }
+  ]
+}

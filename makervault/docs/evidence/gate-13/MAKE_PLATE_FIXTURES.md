@@ -68,6 +68,15 @@ prove namespaces only: ordinary saved-user JSON lacking system headers remains
 unsupported and has a negative control. See the [pinned writer/source distinction](../../../slicer-bridge/internal/presetfiles/DISCOVERY.md).
 No real vendor bundle or installed-device fixture is qualified by these tests.
 
+**MP-1b-6 update:** [Saved-user results](MAKE_PLATE_MP1B6_RESULTS.md) add authored
+missing-system-header profiles, hidden/standalone cases, required user/version
+checks, strict generic/system negatives, parent failures and sidecar/privacy tests.
+One new public-API test reproduces old `535a0a1` rejection; 136 unit tests/race and
+eight fuzz smokes pass on the new source. The direct saved-user format is supported
+under [explicit limits](../../../slicer-bridge/internal/presetfiles/SAVED_USER.md),
+not nested custom bases/version suffixes or full installed-slicer conformance.
+Windows/macOS builds are compiled only; owner version/profile evidence remains open.
+
 | Target | Pinned public source | Required fixture coverage / observed shape |
 |---|---|---|
 | Bambu Studio 2.8.2.61 | [Release](https://github.com/bambulab/BambuStudio/releases/tag/v02.08.02.61), commit `926a7192574bcb9b3a732e1ec59a46d79cb45466` | P1S 0.4 child → `fdm_bbl_3dp_001_common` → `fdm_machine_common`; string-valued scalar/array numbers, inherited geometry and child exclusion override; G-code `include` references must not be followed |

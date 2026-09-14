@@ -129,6 +129,17 @@ printer controller, or multi-user cloud service.
   headers need the next format slice; selector UI, versions, native Windows and
   consented import remain open. No change to uploads or Mac-import deferral.
 
+### Bambu saved-user profile foundation (MP-1b-6)
+
+- Direct saved-user machine profiles now use a dedicated selected-folder reader;
+  absent system-style headers no longer block that bounded format. User/version
+  headers are checked, explicit hidden settings preserved, and secrets discarded.
+  Generic/system parsing stays strict; file version is not an installed-app claim.
+- [136 unit tests/race, six-target builds and eight fuzz smokes pass](evidence/gate-13/MAKE_PLATE_MP1B6_RESULTS.md),
+  with an old-source rejection control. Nested custom bases/version suffixes,
+  native Windows, real profiles/versions, local selection and consented activation
+  remain open. Production scanning is still disabled; upload/Mac scope is unchanged.
+
 ### Lower-overhead folder listing (Gate 13C)
 
 - Folder lists read plain database values instead of constructing tracked objects
