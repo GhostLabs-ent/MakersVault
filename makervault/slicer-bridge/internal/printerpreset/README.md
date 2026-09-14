@@ -11,6 +11,15 @@ a typed review candidate or a redacted reason code. A failed Add invalidates the
 catalog, so callers cannot quietly offer a truncated scan as complete. Catalog
 construction is not concurrency-safe; finish one operation before sharing results.
 
+MP-1b-5 adds `AddIndexed` (bind manifest name before retaining a document),
+`ReadIndex` (charge index bytes/files to the same budget) and `Selections` (validate
+all loaded parent chains and list only explicit true instantiation). Parser version
+`bambu-projection-2` additionally rejects malformed instantiation, case-aliased
+headers/duplicates and non-ASCII keys. Original projection fingerprints therefore
+carry a different parser version; old evidence is historical, not requalified.
+See the [content adapter's limits](../presetfiles/DISCOVERY.md), especially ordinary
+saved-user files without explicit machine headers, which are not supported yet.
+
 The source namespace and discarded settings do not enter the candidate or its
 fingerprint. Source labels may still contain user-authored private text: the later
 import review must show what will be shared. Version strings are supplied observations,

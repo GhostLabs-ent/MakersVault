@@ -103,6 +103,10 @@ func ReadBambuManifest(ctx context.Context, root string) (*BambuManifest, error)
 
 // No root re-resolution or new deadline: used by the anchored location scan.
 func readBambuManifest(ctx context.Context, dir *directory) (*BambuManifest, error) {
+	return readBambuManifestBudget(ctx, dir, nil)
+}
+
+func readBambuManifestBudget(ctx context.Context, dir *directory, catalog *printerpreset.Catalog) (*BambuManifest, error) {
 	beforeRoot, err := dir.file.Stat()
 	if err != nil {
 		return nil, Code("source_unavailable")
@@ -119,11 +123,19 @@ func readBambuManifest(ctx context.Context, dir *directory) (*BambuManifest, err
 	if before.Size() > printerpreset.MaxFileBytes {
 		return nil, Code("manifest_bytes_exceeded")
 	}
-	data, err := io.ReadAll(io.LimitReader(contextReader{ctx, file}, printerpreset.MaxFileBytes+1))
+	var data []byte
+	if catalog == nil {
+		data, err = io.ReadAll(io.LimitReader(contextReader{ctx, file}, printerpreset.MaxFileBytes+1))
+	} else {
+		data, err = catalog.ReadIndex(contextReader{ctx, file})
+	}
 	if ctxErr := check(ctx); ctxErr != nil {
 		return nil, ctxErr
 	}
 	if err != nil {
+		if code, ok := err.(printerpreset.Code); ok {
+			return nil, code
+		}
 		return nil, Code("source_unavailable")
 	}
 	if !unchanged(file, before) || !unchanged(dir.file, beforeRoot) {

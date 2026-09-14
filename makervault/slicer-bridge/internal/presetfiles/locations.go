@@ -106,6 +106,41 @@ func (v LocationInspection) Validate(userIncluded bool) bool {
 func InspectBambuLocation(ctx context.Context, root, account string) (*LocationInspection, error) {
 	ctx, cancel := context.WithTimeout(ctx, printerpreset.MaxDuration)
 	defer cancel()
+	session, err := openBambuLocation(ctx, root, account, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer session.close()
+	if err := session.check(ctx); err != nil {
+		return nil, err
+	}
+	return session.inspection, nil
+}
+
+// One held ancestry and deadline for inspection AND subsequent document reads.
+type bambuLocationSession struct {
+	dirs                       []*directory
+	before                     []os.FileInfo
+	systemMachine, userMachine *directory
+	inspection                 *LocationInspection
+}
+
+func (s *bambuLocationSession) close() {
+	for i := len(s.dirs) - 1; i >= 0; i-- {
+		s.dirs[i].close()
+	}
+}
+
+func (s *bambuLocationSession) check(ctx context.Context) error {
+	for i, held := range s.dirs {
+		if !unchanged(held.file, s.before[i]) {
+			return Code("source_changed")
+		}
+	}
+	return check(ctx)
+}
+
+func openBambuLocation(ctx context.Context, root, account string, catalog *printerpreset.Catalog) (result *bambuLocationSession, err error) {
 	if err := check(ctx); err != nil {
 		return nil, err
 	}
@@ -121,36 +156,35 @@ func InspectBambuLocation(ctx context.Context, root, account string) (*LocationI
 	}
 	// Keep every ancestor held and compare all directory observations before
 	// publication. Never derive absolute child paths and reopen them as new roots.
-	dirs := []*directory{dir}
-	before := []os.FileInfo{}
+	session := &bambuLocationSession{dirs: []*directory{dir}}
 	defer func() {
-		for i := len(dirs) - 1; i >= 0; i-- {
-			dirs[i].close()
+		if err != nil {
+			session.close()
 		}
 	}()
 	stat, err := dir.file.Stat()
 	if err != nil {
 		return nil, Code("source_unavailable")
 	}
-	before = append(before, stat)
+	session.before = append(session.before, stat)
 	child := func(parent *directory, name string) (*directory, error) {
 		next, err := parent.child(ctx, name)
 		if err != nil {
 			return nil, err
 		}
-		dirs = append(dirs, next)
+		session.dirs = append(session.dirs, next)
 		stat, err := next.file.Stat()
 		if err != nil {
 			return nil, Code("source_unavailable")
 		}
-		before = append(before, stat)
+		session.before = append(session.before, stat)
 		return next, nil
 	}
 	system, err := child(dir, "system")
 	if err != nil {
 		return nil, err
 	}
-	manifest, err := readBambuManifest(ctx, system)
+	manifest, err := readBambuManifestBudget(ctx, system, catalog)
 	if err != nil {
 		return nil, err
 	}
@@ -158,10 +192,20 @@ func InspectBambuLocation(ctx context.Context, root, account string) (*LocationI
 	if err != nil {
 		return nil, err
 	}
-	if _, err := child(vendor, "machine"); err != nil {
+	session.systemMachine, err = child(vendor, "machine")
+	if err != nil {
 		return nil, err
 	}
-	result := &LocationInspection{Manifest: *manifest, UserIncluded: account != "", UserFiles: []string{}}
+	session.inspection = &LocationInspection{Manifest: *manifest, UserIncluded: account != "", UserFiles: []string{}}
+	allowance := MaxEntries - len(manifest.Machines)
+	// The content scan also charges the fixed manifest itself. Inspection-only
+	// retains its existing index-entry contract, since it opens no profile bodies.
+	if catalog != nil {
+		allowance--
+		if allowance < 0 {
+			return nil, Code("source_entry_limit_exceeded")
+		}
+	}
 	if account != "" {
 		current := dir
 		for _, name := range []string{"user", account, "machine"} {
@@ -170,18 +214,14 @@ func InspectBambuLocation(ctx context.Context, root, account string) (*LocationI
 				return nil, err
 			}
 		}
-		result.UserFiles, err = listJSON(ctx, current, MaxEntries-len(manifest.Machines))
+		session.userMachine = current
+		session.inspection.UserFiles, err = listJSON(ctx, current, allowance)
 		if err != nil {
 			return nil, err
 		}
 	}
-	for i, held := range dirs {
-		if !unchanged(held.file, before[i]) {
-			return nil, Code("source_changed")
-		}
-	}
-	if err := check(ctx); err != nil {
+	if err := session.check(ctx); err != nil {
 		return nil, err
 	}
-	return result, nil
+	return session, nil
 }

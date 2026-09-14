@@ -21,33 +21,31 @@ const (
 	MaxRequestBytes  = 4 << 20
 	MaxResponseBytes = 2 << 20
 	MaxStderrBytes   = 64 << 10
-	MaxSelected      = 100
+	MaxSelected      = presetfiles.MaxSelected
 )
 
 type Code string
 
 func (c Code) Error() string { return string(c) }
 
-type Pick struct {
-	Kind printerpreset.Kind
-	Name string
-}
+type Pick = printerpreset.Selection
 
 // Request is local-only. No environment/command/URL is accepted. Paths travel
 // only through private anonymous stdin to the exact self executable, never JSON
 // decoded directly into this public type or through protocol arguments.
 type Request struct {
-	Operation string              `json:"-"` // list, manifest, location or project
+	Operation string              `json:"-"` // list, manifest, location, discover, select or project
 	Root      string              `json:"-"`
-	Account   string              `json:"-"` // location only; empty explicitly means system-only
+	Account   string              `json:"-"` // location/discover/select; empty explicitly means system-only
 	Inputs    []presetfiles.Input `json:"-"`
 	Picks     []Pick              `json:"-"`
 }
 
 type Response struct {
-	Names      []string                        `json:"names,omitempty"`    // local-only listing; never import payload
-	Manifest   *presetfiles.BambuManifest      `json:"manifest,omitempty"` // local-only index, not selectable printers
-	Location   *presetfiles.LocationInspection `json:"location,omitempty"` // local-only, no root/account identity
+	Names      []string                        `json:"names,omitempty"`     // local-only listing; never import payload
+	Manifest   *presetfiles.BambuManifest      `json:"manifest,omitempty"`  // local-only index, not selectable printers
+	Location   *presetfiles.LocationInspection `json:"location,omitempty"`  // local-only, no root/account identity
+	Discovery  *presetfiles.BambuDiscovery     `json:"discovery,omitempty"` // local choices, not import payload
 	Candidates []printerpreset.Candidate       `json:"candidates,omitempty"`
 }
 
@@ -86,7 +84,12 @@ func validateRequest(req wireRequest) bool {
 	if req.Version != 1 {
 		return false
 	}
-	if req.Operation == "location" {
+	if req.Operation == "select" {
+		return len(req.Inputs) == 0 && boundedText(req.Root, 4096, false) &&
+			boundedText(req.Account, 255, true) && !strings.ContainsAny(req.Account, `/\:`) &&
+			len(req.Picks) > 0 && presetfiles.ValidSelections(req.Picks, MaxSelected)
+	}
+	if req.Operation == "location" || req.Operation == "discover" {
 		return len(req.Inputs) == 0 && len(req.Picks) == 0 && boundedText(req.Root, 4096, false) &&
 			boundedText(req.Account, 255, true) && !strings.ContainsAny(req.Account, `/\:`)
 	}
@@ -238,7 +241,9 @@ func init() {
 		scanCodes[Code(code)] = true
 	}
 	for _, code := range strings.Fields(`manifest_invalid manifest_unsupported manifest_bytes_exceeded
-		manifest_structure_limit manifest_entry_limit manifest_selection_invalid`) {
+		manifest_structure_limit manifest_entry_limit manifest_selection_invalid manifest_identity_mismatch
+		invalid_instantiation invalid_machine_identity invalid_identity_field source_kind_mismatch
+		unsupported_source_schema unsupported_include`) {
 		scanCodes[Code(code)] = true
 	}
 }
@@ -265,10 +270,20 @@ func decodeResponse(data []byte, request wireRequest) (Response, error) {
 		return Response{}, Code("worker_response_invalid")
 	}
 	if result.Code != "" {
-		if !scanCodes[result.Code] || len(result.Response.Names) != 0 || len(result.Response.Candidates) != 0 || result.Response.Manifest != nil || result.Response.Location != nil {
+		if !scanCodes[result.Code] || len(result.Response.Names) != 0 || len(result.Response.Candidates) != 0 || result.Response.Manifest != nil || result.Response.Location != nil || result.Response.Discovery != nil {
 			return Response{}, Code("worker_response_invalid")
 		}
 		return Response{}, result.Code
+	}
+	if request.Operation == "discover" {
+		if len(result.Response.Names) != 0 || len(result.Response.Candidates) != 0 || result.Response.Manifest != nil ||
+			result.Response.Location != nil || result.Response.Discovery == nil || !result.Response.Discovery.Validate(request.Account != "") {
+			return Response{}, Code("worker_response_invalid")
+		}
+		return result.Response, nil
+	}
+	if result.Response.Discovery != nil {
+		return Response{}, Code("worker_response_invalid")
 	}
 	if request.Operation == "location" {
 		if len(result.Response.Names) != 0 || len(result.Response.Candidates) != 0 || result.Response.Manifest != nil ||
@@ -306,6 +321,11 @@ func decodeResponse(data []byte, request wireRequest) (Response, error) {
 				err != nil || len(digest) != 32 {
 				return Response{}, Code("worker_response_invalid")
 			}
+			if request.Operation == "select" && (candidate.Source.ApplicationVersion != "" ||
+				!(presetfiles.BambuManifest{BundleVersion: candidate.Source.BundleVersion, Machines: []presetfiles.ManifestEntry{}}).Validate() ||
+				(request.Account == "" && candidate.Source.Kind == printerpreset.User)) {
+				return Response{}, Code("worker_response_invalid")
+			}
 		}
 	}
 	return result.Response, nil
@@ -331,6 +351,10 @@ func Serve(input io.Reader, output io.Writer) int {
 			result.Response.Manifest, err = presetfiles.ReadBambuManifest(ctx, request.Root)
 		} else if request.Operation == "location" {
 			result.Response.Location, err = presetfiles.InspectBambuLocation(ctx, request.Root, request.Account)
+		} else if request.Operation == "discover" {
+			result.Response.Discovery, err = presetfiles.DiscoverBambu(ctx, request.Root, request.Account)
+		} else if request.Operation == "select" {
+			result.Response.Candidates, err = presetfiles.SelectBambu(ctx, request.Root, request.Account, request.Picks)
 		} else {
 			inputs := make([]presetfiles.Input, len(request.Inputs))
 			for i, input := range request.Inputs {

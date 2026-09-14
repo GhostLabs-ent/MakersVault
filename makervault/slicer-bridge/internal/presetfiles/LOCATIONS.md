@@ -48,13 +48,15 @@ Only one bounded manifest is read (8 MiB), so this operation cannot consume the
 accounting when added, not chain separately reset scans. The isolated worker retains
 its 2-MiB response limit and all-or-nothing framing; direct APIs remain cooperative.
 Directory change checks are not an atomic snapshot or protection against privileged
-local tampering. The scanner never opens listed profiles, template includes or URLs.
+local tampering. This inspection never reads profile bodies, template includes or
+URLs; listed user JSON children receive only confined metadata inspection.
 
 The result's application version is explicitly empty/unobserved. It is not filled
 from a directory label, manifest bundle version, saved config version or owner report.
-Manifest/document identity binding, parent closure, instantiation and selectable
-printer discovery remain the next content step. Installed version observations,
-native qualification and matched consented activation are also still required.
+[Content discovery](DISCOVERY.md) now extends this held ancestry to actual machine
+identities, parent closure and explicit instantiation. Ordinary saved-user schema,
+installed version observations, native qualification and matched consented activation
+are still required; the inspection-only operation remains an index, not that scan.
 
 New Mac preset discovery/import/refresh stays owner-deferred; both planning and
 location inspection refuse macOS, including the old reader experiment. Existing

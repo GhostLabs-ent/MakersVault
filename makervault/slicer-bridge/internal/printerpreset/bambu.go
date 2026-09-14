@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	ParserVersion       = "bambu-projection-1"
+	ParserVersion       = "bambu-projection-2"
 	MaxFiles            = 10000
 	MaxFileBytes        = 8 << 20
 	MaxTotalBytes       = 128 << 20
@@ -148,6 +148,20 @@ func (r checkedReader) Read(p []byte) (int, error) {
 // Add retains allowlisted fields only. Any failed Add invalidates the catalog,
 // preventing resolution from a silently truncated or ambiguous scan.
 func (c *Catalog) Add(source Source, reader io.Reader) (err error) {
+	return c.add(source, "", reader)
+}
+
+// AddIndexed binds a system manifest identity to the actual document, never to
+// its filename. A mismatch poisons the same catalog as any other failed Add.
+func (c *Catalog) AddIndexed(source Source, expected string, reader io.Reader) error {
+	if source.Kind != System || !label(expected, false) {
+		c.failed = true
+		return Code("invalid_source")
+	}
+	return c.add(source, expected, reader)
+}
+
+func (c *Catalog) add(source Source, expected string, reader io.Reader) (err error) {
 	defer func() {
 		if err != nil {
 			c.failed = true
@@ -160,25 +174,9 @@ func (c *Catalog) Add(source Source, reader io.Reader) (err error) {
 		!label(source.ApplicationVersion, true) || !label(source.BundleVersion, true) {
 		return Code("invalid_source")
 	}
-	c.files++
-	if c.files > MaxFiles {
-		return Code("file_count_exceeded")
-	}
-	remaining := int64(MaxTotalBytes) - c.bytes
-	limit := min(int64(MaxFileBytes), remaining)
-	data, readErr := io.ReadAll(io.LimitReader(checkedReader{c, reader}, limit+1))
-	c.bytes += int64(len(data))
-	if readErr != nil {
-		if err = c.check(); err != nil {
-			return err
-		}
-		return Code("read_failed")
-	}
-	if c.bytes > MaxTotalBytes {
-		return Code("total_bytes_exceeded")
-	}
-	if len(data) > MaxFileBytes {
-		return Code("file_bytes_exceeded")
+	data, err := c.read(reader)
+	if err != nil {
+		return err
 	}
 	fields, err := c.project(data)
 	if err != nil {
@@ -192,6 +190,9 @@ func (c *Catalog) Add(source Source, reader io.Reader) (err error) {
 	name, ok := fields["name"].(string)
 	if !ok || !label(name, false) || fields["type"] != "machine" {
 		return Code("invalid_machine_identity")
+	}
+	if expected != "" && name != expected {
+		return Code("manifest_identity_mismatch")
 	}
 	if from, exists := fields["from"]; exists {
 		text, ok := from.(string)
@@ -207,12 +208,57 @@ func (c *Catalog) Add(source Source, reader io.Reader) (err error) {
 			}
 		}
 	}
+	if raw, exists := fields["instantiation"]; exists && raw != "true" && raw != true && raw != "false" && raw != false {
+		return Code("invalid_instantiation")
+	}
 	id := key{source.Namespace, source.Kind, name}
 	if _, exists := c.documents[id]; exists {
 		return Code("ambiguous_identity")
 	}
 	c.documents[id] = document{source, fields}
 	return c.check()
+}
+
+// ReadIndex charges one adapter-owned index to this SAME file/byte/time budget.
+// It grants no file authority and retains no raw text; the caller must validate
+// the returned index and abort the entire scan on failure. A read failure latches.
+func (c *Catalog) ReadIndex(reader io.Reader) (data []byte, err error) {
+	defer func() {
+		if err != nil {
+			c.failed = true
+		}
+	}()
+	return c.read(reader)
+}
+
+func (c *Catalog) read(reader io.Reader) ([]byte, error) {
+	if err := c.check(); err != nil {
+		return nil, err
+	}
+	c.files++
+	if c.files > MaxFiles {
+		return nil, Code("file_count_exceeded")
+	}
+	remaining := int64(MaxTotalBytes) - c.bytes
+	limit := min(int64(MaxFileBytes), remaining)
+	data, readErr := io.ReadAll(io.LimitReader(checkedReader{c, reader}, limit+1))
+	c.bytes += int64(len(data))
+	if readErr != nil {
+		if err := c.check(); err != nil {
+			return nil, err
+		}
+		return nil, Code("read_failed")
+	}
+	if c.bytes > MaxTotalBytes {
+		return nil, Code("total_bytes_exceeded")
+	}
+	if len(data) > MaxFileBytes {
+		return nil, Code("file_bytes_exceeded")
+	}
+	if err := c.check(); err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 func label(text string, empty bool) bool {
@@ -280,20 +326,66 @@ func scriptIncludesOnly(raw any) bool {
 	}
 	for _, item := range items {
 		name, ok := item.(string)
-		if !ok || !label(name, false) || strings.ContainsAny(name, `/\`) {
-			return false
-		}
-		allowed := false
-		for _, suffix := range []string{"machine_start_gcode", "machine_end_gcode", "time_lapse_gcode", "change_filament_gcode", "layer_change_gcode"} {
-			if strings.HasSuffix(name, " template "+suffix) {
-				allowed = true
-			}
-		}
-		if !allowed {
+		if !ok || !IsBambuScriptTemplate(name) {
 			return false
 		}
 	}
 	return true
+}
+
+// IsBambuScriptTemplate is a conservative EXCLUSION rule, never permission to
+// open the named include. Such manifest entries cannot supply layout inheritance.
+func IsBambuScriptTemplate(name string) bool {
+	if !label(name, false) || strings.ContainsAny(name, `/\`) {
+		return false
+	}
+	for _, suffix := range []string{"machine_start_gcode", "machine_end_gcode", "time_lapse_gcode", "change_filament_gcode", "layer_change_gcode"} {
+		if strings.HasSuffix(name, " template "+suffix) {
+			return true
+		}
+	}
+	return false
+}
+
+// Selection is an exact local identity, not a path or evidence of printer ownership.
+type Selection struct {
+	Kind Kind   `json:"kind"`
+	Name string `json:"name"`
+}
+
+// Selections validates EVERY loaded parent chain, including hidden machines,
+// before returning deterministic explicitly instantiated choices. Geometry is
+// resolved only for the later bounded selection; choices are not complete presets.
+func (c *Catalog) Selections(namespace string) ([]Selection, error) {
+	if err := c.check(); err != nil {
+		return nil, err
+	}
+	ids := []key{}
+	for id := range c.documents {
+		if id.namespace == namespace {
+			ids = append(ids, id)
+		}
+	}
+	sort.Slice(ids, func(i, j int) bool {
+		if ids[i].kind != ids[j].kind {
+			return ids[i].kind < ids[j].kind
+		}
+		return ids[i].name < ids[j].name
+	})
+	result := []Selection{}
+	for _, id := range ids {
+		if _, err := c.resolve(id, map[key]bool{}, 1); err != nil {
+			return nil, err
+		}
+		raw := c.documents[id].fields["instantiation"]
+		if raw == true || raw == "true" {
+			result = append(result, Selection{Kind: id.kind, Name: id.name})
+		}
+	}
+	if err := c.check(); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (c *Catalog) Resolve(namespace string, kind Kind, name string) (Candidate, error) {

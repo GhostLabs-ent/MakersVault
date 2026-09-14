@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -78,10 +79,21 @@ func (c *Catalog) jsonValue(d *json.Decoder, keep bool, depth int, nodes *int) (
 		for d.More() {
 			keyToken, err := d.Token()
 			key, ok := keyToken.(string)
-			if err != nil || !ok || !label(key, false) || seen[key] {
+			folded := strings.ToLower(key)
+			if err != nil || !ok || !label(key, false) || seen[folded] {
 				return nil, Code("invalid_json_key")
 			}
-			seen[key] = true
+			// Vendor header lookup is case-insensitive. Do not silently discard
+			// aliases of identity/schema fields or accept disagreeing duplicates.
+			for _, r := range key {
+				if r > 127 {
+					return nil, Code("invalid_json_key")
+				}
+			}
+			if retained[folded] && key != folded {
+				return nil, Code("invalid_json_key")
+			}
+			seen[folded] = true
 			if len(seen) > 2048 {
 				return nil, Code("json_budget_exceeded")
 			}

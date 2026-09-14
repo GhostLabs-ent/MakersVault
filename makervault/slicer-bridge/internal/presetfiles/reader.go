@@ -250,6 +250,10 @@ func loadRoot(ctx context.Context, input Input, catalog *printerpreset.Catalog) 
 }
 
 func loadFile(ctx context.Context, dir *directory, name string, source printerpreset.Source, catalog *printerpreset.Catalog) error {
+	return loadBoundFile(ctx, dir, name, "", source, catalog)
+}
+
+func loadBoundFile(ctx context.Context, dir *directory, name, expected string, source printerpreset.Source, catalog *printerpreset.Catalog) error {
 	file, err := dir.open(ctx, name)
 	if err != nil {
 		return err
@@ -262,7 +266,12 @@ func loadFile(ctx context.Context, dir *directory, name string, source printerpr
 	if before.Size() > printerpreset.MaxFileBytes {
 		return printerpreset.Code("file_bytes_exceeded")
 	}
-	if err := catalog.Add(source, contextReader{ctx, file}); err != nil {
+	if expected == "" {
+		err = catalog.Add(source, contextReader{ctx, file})
+	} else {
+		err = catalog.AddIndexed(source, expected, contextReader{ctx, file})
+	}
+	if err != nil {
 		if ctxErr := check(ctx); ctxErr != nil {
 			return ctxErr
 		}

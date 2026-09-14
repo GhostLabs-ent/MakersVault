@@ -1,4 +1,4 @@
-# Local file access boundary — MP-1b-1 through MP-1b-4
+# Local file access boundary — MP-1b-1 through MP-1b-5
 
 Internal, read-only and **not called by the bridge CLI**. This is the first part
 of MP-1b, not completed workstation discovery or a user-facing import feature.
@@ -10,6 +10,10 @@ is added. Do not activate this code until the remaining MP-1b boundaries are met
 
 ## Operations
 
+- [Content discovery/selection](DISCOVERY.md) binds actual machine identities,
+  validates exact parent chains and projects bounded explicit choices under one
+  held root and shared budget. Production remains inactive; ordinary saved-user
+  files without explicit machine/instantiation headers need the next format slice.
 - [Location planning/inspection](LOCATIONS.md) adds pure known-location candidates
   and bounded held-parent inspection of one explicit data root/account. It reads
   the system manifest and optionally lists one chosen user machine folder; it does
@@ -32,8 +36,8 @@ is added. Do not activate this code until the remaining MP-1b boundaries are met
   `SelectFiles` maps explicit exact identities, with no implicit all-selection,
   filename guessing or dependency expansion. This is **not** a selectable-printer
   list: machine entries also include inheritance and G-code templates. The future
-  adapter must verify file/manifest identity and resolve instantiated machine
-  documents without following script includes before offering presets in the UI.
+  content operation now verifies these identities and parent chains; this index-only
+  operation still does not offer presets or confer local selection/consent authority.
 - `Input` cannot convey paths/files through JSON. This is defense in depth, NOT
   authorization: only a future locally consented adapter may construct it. No
   browser/server path, environment expansion or shell interpretation is permitted.
@@ -116,8 +120,8 @@ enumeration. None of this source review substitutes for running the native tests
 Native Windows execution (including reparse/ACL/volume/placeholder and process
 lifecycle cases), matched supervisor integration and startup/
 cleanup qualification; native known-folder/hint acquisition and root/account
-selection UI; manifest-to-document identity and parent closure, selectable-machine
-discovery, user namespaces and independently observed application versions. The
+selection UI; ordinary saved-user format projection, real-profile conformance
+and independently observed application versions. The
 manifest's four-component bundle version is retained exactly, never promoted to
 an installed application version. Malformed, ambiguous or over-budget manifests
 fail without a partial index. The index parser permits at most 10,000 machine

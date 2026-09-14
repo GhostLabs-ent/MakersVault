@@ -1,4 +1,4 @@
-# Single-use profile worker — MP-1b-2 through MP-1b-4
+# Single-use profile worker — MP-1b-2 through MP-1b-5
 
 Internal foundation, **not dispatched by the production bridge main**. Only the
 test executable currently handles `--internal-preset-worker-v1`. Do not call `Run`
@@ -21,6 +21,14 @@ system manifest plus optional user filename index) or `project`
 launches descendants nor reads general slicer configuration. A later failed pick
 discards earlier candidates. Labels in successful candidates can still contain
 private user-authored text and require the eventual visible import review.
+
+MP-1b-5 also adds private `discover` (bound machine identities and exact parent
+closure) and `select` (rescan one chosen location, project up to 100 exact choices).
+Both share the held ancestry and manifest/profile budgets described in
+[content discovery](../presetfiles/DISCOVERY.md). Account is allowed only for
+location/discover/select. Discoveries cannot appear on another operation or beside
+partial candidates/errors; selections cannot claim an observed application version.
+The API wire validator and real saved-user-format qualification remain separate.
 
 The manifest operation retains the profile-bundle version separately, without
 guessing an application version. Its entries include templates and are local-only;
