@@ -3,8 +3,9 @@
 **Decision date:** 2026-09-12. **Entry:** `4858147` (schema 17).
 **Status:** MP-0 and [ADR 0020](adr/0020-printer-presets-and-plate-recipes.md) accepted
 2026-09-12. MP-1 is in progress: Bambu projection, Linux file access and the
-single-use supervisor and Bambu manifest index are locally verified; Windows reading
-is implemented but not natively verified. MP-1b remains open and inactive in production.
+single-use supervisor, Bambu manifest index and anchored location inspection are
+locally verified; Windows reading is implemented but not natively verified.
+MP-1b remains open and inactive in production.
 An owner-provided Intel Mac passes 34 default and 42 ordinary experimental unit
 checks; two additional counterexamples reproduce failed pre-open safety properties.
 The macOS reader experiment is explicitly build-tagged and **excluded from normal
@@ -182,6 +183,14 @@ re-cock protocol. New gate numbers do not reset or falsely close Gates 0–13.
   account selection, manifest-to-document identity and parent closure, independent
   app-version observations and native Windows/lifecycle qualification. Keep
   production scans inactive; no installed profiles or user-facing discovery qualified.
+  Subsequent [MP-1b-4 at `123e0ba`](evidence/gate-13/MAKE_PLATE_MP1B4_RESULTS.md) adds
+  unobserved known-location plans and held-parent inspection of one explicit data
+  root/account. Manifest and user filename indexes share a deadline/entry budget;
+  no account or app version is guessed. 104 unit tests/race, vet, six target builds
+  and six fuzz smokes pass; Windows is compiled only. Next bind actual profile
+  identities/parent closure and instantiation. Native hint acquisition, account
+  enumeration/local selector, independent versions, native Windows/lifecycle and
+  matched consented integration remain open. Production main stays unchanged.
 - **MP-1c:** Scoped claim/review/commit authority plus immutable preset storage and
   its additive migration, portable v1/v2 and raw-recovery counterparts as one coherent
   persistence slice. Shared strict wire fixtures must prove API/bridge parity.

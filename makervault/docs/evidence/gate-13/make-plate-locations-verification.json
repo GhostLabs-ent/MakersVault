@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "gate": "MP-1b-4",
+  "entry_revision": "a29f010e16d62a208ecfcc70ae4c3ce98cce5c10",
+  "implementation_revision": "123e0babd12f061340e386a9fd21c0f7e296d320",
+  "private_evidence_root": "/home/vinnyc/.local/state/makersvault/verification",
+  "go_image": "sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6",
+  "native_windows_tests_executed": 0,
+  "native_macos_tests_executed": 0,
+  "captures": [
+    {
+      "kind": "preflight",
+      "directory": "containment-mp1b4-locations-preflight-20260913",
+      "stdout_sha256": "f86b421929309cd23990bbab6108628dd84f8e96921109e1fce2a7339def61d7",
+      "unit_tests_passed": 104,
+      "top_level_pass_events": 110,
+      "inclusive_pass_events": 225
+    },
+    {
+      "kind": "final",
+      "directory": "containment-mp1b4-locations-final-20260913",
+      "stdout_sha256": "4f4d88fa792908b13aeccb73a4c97cf017f4e7d38831e0613f7e9fe0827b3cb4",
+      "unit_tests_passed": 104,
+      "top_level_pass_events": 110,
+      "inclusive_pass_events": 225,
+      "fuzz": [
+        {"target": "FuzzBambuProjection", "requested_seconds": 5, "reported_elapsed_seconds": 6, "executions": 183711},
+        {"target": "FuzzPortableJSONName", "requested_seconds": 5, "reported_elapsed_seconds": 5, "executions": 240457},
+        {"target": "FuzzWindowsRootSyntax", "requested_seconds": 5, "reported_elapsed_seconds": 6, "executions": 27871},
+        {"target": "FuzzWorkerFrame", "requested_seconds": 5, "reported_elapsed_seconds": 6, "executions": 27781},
+        {"target": "FuzzBambuManifest", "requested_seconds": 5, "reported_elapsed_seconds": 6, "executions": 174585},
+        {"target": "FuzzBambuLocations", "requested_seconds": 5, "reported_elapsed_seconds": 6, "executions": 80766}
+      ]
+    }
+  ]
+}

@@ -108,6 +108,17 @@ printer controller, or multi-user cloud service.
   native Windows qualification and consented import remain open. No production
   scanning, new UI, upload restriction or change to the Mac-import deferral.
 
+### Bambu location-inspection foundation (MP-1b-4)
+
+- Known-location planning and bounded inspection of one explicitly chosen data
+  folder/account now work internally. Child directories stay anchored beneath the
+  chosen root; manifest/user indexes share a deadline and entry budget. No account,
+  application version or selectable printer is guessed.
+- [104 unit tests/race, six-target builds and six fuzz smokes pass](evidence/gate-13/MAKE_PLATE_MP1B4_RESULTS.md).
+  Native Windows remains untested. Workstation profile binding, local selector UI,
+  app-version observations and consented activation still remain; production
+  scanning is disabled and the Mac-import deferral is unchanged.
+
 ### Lower-overhead folder listing (Gate 13C)
 
 - Folder lists read plain database values instead of constructing tracked objects
