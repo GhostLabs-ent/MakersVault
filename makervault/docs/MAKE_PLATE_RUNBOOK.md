@@ -10,8 +10,9 @@ consent session/page and bounded loopback host are locally verified. Windows hin
 lookup uses the bounded private worker. MP-1b-9a adds actual HTTP/browser evidence;
 MP-1b-9b-1 adds the inactive Windows UI helper foundation and owned-URL launch.
 MP-1b-9b-2 adds inactive Linux fixed-tool helpers with isolated exec/policy evidence.
-Consented custom-picker wiring, independent version/profile observations and native
-Windows/Linux desktop qualification remain open.
+MP-1b-9b-3 wires the asynchronous consented picker with synthetic HTTP/browser
+evidence. Independent version/profile observations and native Windows/Linux desktop
+qualification remain open; next is MP-1b-9b-4's matched native qualification package.
 MP-1b remains open and inactive in production.
 An owner-provided Intel Mac passes 34 default and 42 ordinary experimental unit
 checks; two additional counterexamples reproduce failed pre-open safety properties.
@@ -265,6 +266,16 @@ re-cock protocol. New gate numbers do not reset or falsely close Gates 0–13.
   and native Windows/Linux qualification remain explicit before activation.
   **Next MP-1b-9b-3: asynchronous consented custom-folder selection**, without HTTP
   paths or longer handler deadlines. No production dispatch, remote import or gate closure.
+  Subsequent [MP-1b-9b-3 at `1399ba4`](evidence/gate-13/MAKE_PLATE_MP1B9B3_RESULTS.md)
+  adds explicit asynchronous session-owned selection, read-only refresh, picker-only
+  cancellation and a private unselected root choice requiring confirmation before
+  preset reads. 206 unit tests/race, 219 top-level / 462 inclusive passes, vet,
+  36 cross-builds, 13 fuzz smokes and 55 HTTP/browser scenarios pass; 62 artifact
+  hashes checked. One ambiguous referrer-harness failure and one incomplete capture
+  remain recorded. HTTP deadlines, production dispatch, providers/API/schema unchanged.
+  **Next MP-1b-9b-4: matched native Windows/Linux qualification package and scoped
+  execution**, including independently observed profiles/versions and lifecycle.
+  Synthetic dialogs do not qualify native UI. No activation, import or gate closure.
 - **MP-1c:** Scoped claim/review/commit authority plus immutable preset storage and
   its additive migration, portable v1/v2 and raw-recovery counterparts as one coherent
   persistence slice. Shared strict wire fixtures must prove API/bridge parity.

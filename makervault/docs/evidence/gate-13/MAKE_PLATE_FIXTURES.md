@@ -125,6 +125,15 @@ browser regressions pass. No real handler/dialog/profile/version qualification.
 Next is asynchronous consented custom selection; native desktop/device and matched
 dispatch checks remain open. No production activation or dependency installation.
 
+**MP-1b-9b-3 update:** [Asynchronous consent results](MAKE_PLATE_MP1B9B3_RESULTS.md)
+add session-owned picker fixtures and test-only stdin dialog control. 206 units/race,
+13 fuzz smokes, 36 cross-builds and 55 actual-HTTP browser scenarios pass, including
+30 asynchronous picker cases/156 stage checks. No native dialog is opened or real profile read.
+An ambiguous old referrer sample and an incomplete capture remain retained; derived
+regressions observe a specific navigation without changing application privacy headers.
+62 artifact hashes checked. Next is matched native Windows/Linux qualification
+planning and scoped execution; production remains inactive and versions unqualified.
+
 | Target | Pinned public source | Required fixture coverage / observed shape |
 |---|---|---|
 | Bambu Studio 2.8.2.61 | [Release](https://github.com/bambulab/BambuStudio/releases/tag/v02.08.02.61), commit `926a7192574bcb9b3a732e1ec59a46d79cb45466` | P1S 0.4 child → `fdm_bbl_3dp_001_common` → `fdm_machine_common`; string-valued scalar/array numbers, inherited geometry and child exclusion override; G-code `include` references must not be followed |
