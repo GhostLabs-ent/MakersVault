@@ -1,0 +1,258 @@
+{
+  "schema_version": 1,
+  "gate": "MP-1b-9b-1",
+  "entry_revision": "5d634c3bba6f361e501649f365163da683a40772",
+  "implementation_revision": "e8eddf2c7bc0c58edafd493a121ef5febf9d644f",
+  "private_evidence_root": "/home/vinnyc/.local/state/makersvault/verification",
+  "go_image": "sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6",
+  "browser_image": "sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e",
+  "playwright_tree_sha256": "e1e5864f59981adbcbeedf3f3c6b0c598bf57c3e7c105fcbc9dc72d374e496ca",
+  "native_windows_tests_executed": 0,
+  "native_macos_tests_executed": 0,
+  "native_linux_ui_executed": 0,
+  "captures": [
+    {
+      "kind": "go-preflight",
+      "directory": "containment-mp1b9b1-go-preflight-20260914",
+      "artifacts": [
+        {
+          "file": "consent-accounts.html",
+          "bytes": 3540,
+          "sha256": "7ea17f54db1f2ace7915b11f72f5afe30df859f91b358a99ed69617ad43ae468"
+        },
+        {
+          "file": "consent-approved.html",
+          "bytes": 2605,
+          "sha256": "73e4161a42bcb2eeac4798502bb81942b397156d8f2d88b0e1bd37412e4a53df"
+        },
+        {
+          "file": "consent-consent.html",
+          "bytes": 3148,
+          "sha256": "bae8b947a425859dc225aca2d5796695415f032d6561bb3009bc56780ca8ea0a"
+        },
+        {
+          "file": "consent-http-fixture",
+          "bytes": 15019607,
+          "sha256": "3e6d4b715923bf1eb4120bcc6cf4870fccdf8c7399a3b27bb22a24a3302276e1"
+        },
+        {
+          "file": "consent-presets.html",
+          "bytes": 3164,
+          "sha256": "0b136acbac33d952d126ef89c3da286aca6af276ed2621c30d8d8a1d263441db"
+        },
+        {
+          "file": "consent-review.html",
+          "bytes": 4122,
+          "sha256": "d422640d63de6264932c05a1008a24ed683ddb9cd440f633342e109d17acf9a9"
+        },
+        {
+          "file": "consent-roots.html",
+          "bytes": 3168,
+          "sha256": "dc3134904335cfccd265613e93b57201d3bb511d8a2641607033f2b131c7fbc9"
+        },
+        {
+          "file": "result.json",
+          "bytes": 2941,
+          "sha256": "5d5cecb0f6c2ec7bb279c411bfa43102f52fd5c2bea4bfba731f425b6fc71cc7"
+        },
+        {
+          "file": "started.json",
+          "bytes": 2235,
+          "sha256": "05181737bd4b72e76bf3a8f76e08b75dcbad695bfa07663ea69d74db2f70639c"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "stdout.log",
+          "bytes": 370345,
+          "sha256": "cff43e59b8d6f518c3f2a4a6359ef1f71b6384774fd1d3323f3fa47cad97380b"
+        }
+      ],
+      "unit_tests_passed": 194,
+      "top_level_pass_events": 206,
+      "inclusive_pass_events": 433
+    },
+    {
+      "kind": "go-final",
+      "directory": "containment-mp1b9b1-go-final-20260914",
+      "artifacts": [
+        {
+          "file": "consent-accounts.html",
+          "bytes": 3540,
+          "sha256": "6e06096104ea6329feb065be222006f49707938ce810520b2f95c39831773d9c"
+        },
+        {
+          "file": "consent-approved.html",
+          "bytes": 2605,
+          "sha256": "8aaeda0c7166c8e74cff29585eac44c6a6e4bd1bf4bec8dfb0d9dc3b3a62e335"
+        },
+        {
+          "file": "consent-consent.html",
+          "bytes": 3148,
+          "sha256": "376ff48ab650488944f842168e4cf642cf803d1c0c3af43d598800b4467d1ea4"
+        },
+        {
+          "file": "consent-http-fixture",
+          "bytes": 15019607,
+          "sha256": "3e6d4b715923bf1eb4120bcc6cf4870fccdf8c7399a3b27bb22a24a3302276e1"
+        },
+        {
+          "file": "consent-presets.html",
+          "bytes": 3164,
+          "sha256": "f5568fc1b81267749f203ace9e4938cb91c5a472f862bba3294f2da36af36da0"
+        },
+        {
+          "file": "consent-review.html",
+          "bytes": 4122,
+          "sha256": "70fe7b336d85d84ad47904cb1be2f7ff1d47c1b6af42dd14b2176b3991f9f05f"
+        },
+        {
+          "file": "consent-roots.html",
+          "bytes": 3168,
+          "sha256": "1b33d0f7f7742e4218e05bcadd093e9b144602d38933806064cfb311e4858eed"
+        },
+        {
+          "file": "result.json",
+          "bytes": 2617,
+          "sha256": "214f6dfaed643579964f815fac0ce12106c0bd61fde1648b37060cdf01ceb89b"
+        },
+        {
+          "file": "started.json",
+          "bytes": 2086,
+          "sha256": "df5cdc88684e9a17f076222920dc2dc819774d2f32c2e5f2b57db2d999163bb4"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "stdout.log",
+          "bytes": 377128,
+          "sha256": "09ddcb6f3b7473e0783f2fbfcbd6e61a5c683b4010bfd02cf19827787998c4a8"
+        }
+      ],
+      "unit_tests_passed": 194,
+      "top_level_pass_events": 206,
+      "inclusive_pass_events": 433,
+      "fuzz": [
+        {
+          "target": "FuzzBambuProjection",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 108912
+        },
+        {
+          "target": "FuzzPortableJSONName",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 5,
+          "executions": 216648
+        },
+        {
+          "target": "FuzzWindowsRootSyntax",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 29190
+        },
+        {
+          "target": "FuzzWorkerFrame",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 62497
+        },
+        {
+          "target": "FuzzBambuManifest",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 119556
+        },
+        {
+          "target": "FuzzBambuLocations",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 65551
+        },
+        {
+          "target": "FuzzBambuIndexedSelections",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 164676
+        },
+        {
+          "target": "FuzzBambuSavedUserMachine",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 229102
+        },
+        {
+          "target": "FuzzAccountChoices",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 108481
+        },
+        {
+          "target": "FuzzNativeLocationPlan",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 177226
+        },
+        {
+          "target": "FuzzNativeUIFrame",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 16083
+        },
+        {
+          "target": "FuzzPreviewURL",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 5,
+          "executions": 276988
+        }
+      ]
+    },
+    {
+      "kind": "browser-final",
+      "directory": "containment-mp1b9b1-browser-final-20260914",
+      "artifacts": [
+        {
+          "file": "local-http-browser-results.json",
+          "bytes": 5604,
+          "sha256": "717810ad1b4e5b4c740216cec6e8657efd3d4a7f53302b3b281313e578d8fcf0"
+        },
+        {
+          "file": "local-http-review-1024.png",
+          "bytes": 103078,
+          "sha256": "5958c72b0c153d5634008f235d2be977c93bb93673802f4cf5d8e687e8f8417b"
+        },
+        {
+          "file": "local-http-review-390.png",
+          "bytes": 98096,
+          "sha256": "cb5b010c6d824410521770bec7a21d52737456d52f88a46bef6a235925a71b52"
+        },
+        {
+          "file": "result.json",
+          "bytes": 1440,
+          "sha256": "01b9052e6023e087b2fc540cb250e63734dc19f2974e9a73753023170d576369"
+        },
+        {
+          "file": "started.json",
+          "bytes": 913,
+          "sha256": "aef2a8ba3231e44d03f702d0c73d629973e364844db517ea0202084064e31646"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "stdout.log",
+          "bytes": 192,
+          "sha256": "fab446a83fbc56715bef530985db33bf2ce82f1173eb14783c9f0aa3c550cdac"
+        }
+      ]
+    }
+  ]
+}

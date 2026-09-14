@@ -8,8 +8,9 @@ explicit-machine content discovery, bounded saved-user machine projection,
 local account choices/native location hints, and the inactive local selection/
 consent session/page and bounded loopback host are locally verified. Windows hint
 lookup uses the bounded private worker. MP-1b-9a adds actual HTTP/browser evidence;
-native browser/folder-picker helpers, independent version/profile observations
-and native Windows qualification remain open.
+MP-1b-9b-1 adds the inactive Windows UI helper foundation and owned-URL launch.
+Linux helpers, consented custom-picker wiring, independent version/profile
+observations and native Windows qualification remain open.
 MP-1b remains open and inactive in production.
 An owner-provided Intel Mac passes 34 default and 42 ordinary experimental unit
 checks; two additional counterexamples reproduce failed pre-open safety properties.
@@ -245,6 +246,15 @@ re-cock protocol. New gate numbers do not reset or falsely close Gates 0–13.
   **next MP-1b-9b is bounded native browser/folder-picker helpers and owner lifecycle**.
   No native helper, installed-handler change, production caller, remote import or
   real-profile qualification is delivered; matched/native/version gates still apply.
+  Subsequent [MP-1b-9b-1 at `e8eddf2`](evidence/gate-13/MAKE_PLATE_MP1B9B1_RESULTS.md)
+  adds private bounded Windows browser/folder helpers and one-attempt owned-URL
+  launch with failure/cancellation revocation. 194 unit tests/race, vet, six targets
+  (36 builds), 12 fuzz smokes and 25 actual-HTTP browser scenarios pass; 29 artifact
+  hashes checked. Windows UI is compiled only, never natively executed. Browser
+  acceptance is not readiness; picker flags do not confine Shell browsing.
+  **Next MP-1b-9b-2: Linux native helpers**, followed by asynchronous consented custom
+  selection and matched/native qualification. No production dispatch, remote import,
+  real-profile/version qualification or MP-1b-9b/MP-1b closeout.
 - **MP-1c:** Scoped claim/review/commit authority plus immutable preset storage and
   its additive migration, portable v1/v2 and raw-recovery counterparts as one coherent
   persistence slice. Shared strict wire fixtures must prove API/bridge parity.

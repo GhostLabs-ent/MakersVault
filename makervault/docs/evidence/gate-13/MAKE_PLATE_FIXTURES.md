@@ -107,6 +107,15 @@ are retained, including the reproduced Origin-null issue and orchestration failu
 Native browser/folder-picker helpers and physical-device/profile/version evidence
 remain pending. Production main, API/schema and prior native providers are unchanged.
 
+**MP-1b-9b-1 update:** [Windows UI foundation results](MAKE_PLATE_MP1B9B1_RESULTS.md)
+add fake-native strict frame/URL/root checks, ordinary Linux helper-process stall/
+cancel/reap/redaction tests and owned-URL launch/revocation fixtures. 194 unit tests/
+race, 12 fuzz smokes and 25 actual-HTTP browser regressions pass; 36 cross-builds
+include Windows UI/layout tests, **not native execution**. Browser evidence uses
+the completed source-bound synthetic executable. No real dialog, browser handler,
+profile or workstation version is qualified. Linux native helpers and asynchronous
+consented custom selection remain next; all production dispatch stays inactive.
+
 | Target | Pinned public source | Required fixture coverage / observed shape |
 |---|---|---|
 | Bambu Studio 2.8.2.61 | [Release](https://github.com/bambulab/BambuStudio/releases/tag/v02.08.02.61), commit `926a7192574bcb9b3a732e1ec59a46d79cb45466` | P1S 0.4 child → `fdm_bbl_3dp_001_common` → `fdm_machine_common`; string-valued scalar/array numbers, inherited geometry and child exclusion override; G-code `include` references must not be followed |
