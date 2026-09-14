@@ -85,6 +85,17 @@ Windows native hints/metadata code compiles only; local consent/selector, bounde
 hint lifecycle, real profiles/versions and native Windows remain open. No production
 dispatch or actual workstation configuration read is implied.
 
+**MP-1b-8 update:** [Local consent results](MAKE_PLATE_MP1B8_RESULTS.md) add synthetic
+root/account/preset sessions, exact-byte review/revocation controls, guarded local
+HTTP recorder tests and Windows hint-worker framing/deadline fixtures. 172 unit
+tests/race and ten fuzz smokes pass; six generated HTML stages pass 36 offline
+rendering/control checks across three engines and two viewports. Two initial
+narrow-review overflow failures are retained, with a verified CSS correction.
+These fixtures contain no real workstation data. Browser checks do not submit to
+a live listener, validate a native launcher or qualify physical tablet/accessibility
+behavior. Windows code is compiled only; real profiles/versions, actual HTTP and
+native Windows/hint/reader/lifecycle remain open. No production dispatch or import.
+
 | Target | Pinned public source | Required fixture coverage / observed shape |
 |---|---|---|
 | Bambu Studio 2.8.2.61 | [Release](https://github.com/bambulab/BambuStudio/releases/tag/v02.08.02.61), commit `926a7192574bcb9b3a732e1ec59a46d79cb45466` | P1S 0.4 child → `fdm_bbl_3dp_001_common` → `fdm_machine_common`; string-valued scalar/array numbers, inherited geometry and child exclusion override; G-code `include` references must not be followed |

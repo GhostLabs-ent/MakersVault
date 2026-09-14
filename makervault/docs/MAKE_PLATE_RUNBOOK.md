@@ -4,9 +4,11 @@
 **Status:** MP-0 and [ADR 0020](adr/0020-printer-presets-and-plate-recipes.md) accepted
 2026-09-12. MP-1 is in progress: Bambu projection, Linux file access and the
 single-use supervisor, Bambu manifest index, anchored location inspection and
-explicit-machine content discovery, bounded saved-user machine projection and
-local account choices/native location hints are
-locally verified. Native selection/version/profile and Windows qualification remain open.
+explicit-machine content discovery, bounded saved-user machine projection,
+local account choices/native location hints, and the inactive local selection/
+consent session and page are locally verified. Windows hint lookup now uses the
+bounded private worker. Actual local-server/browser-launch lifecycle, independent
+version/profile observations and native Windows qualification remain open.
 MP-1b remains open and inactive in production.
 An owner-provided Intel Mac passes 34 default and 42 ordinary experimental unit
 checks; two additional counterexamples reproduce failed pre-open safety properties.
@@ -219,6 +221,19 @@ re-cock protocol. New gate numbers do not reset or falsely close Gates 0–13.
   picker and consent-session foundation**, including bounded hint lifecycle before
   activation. Native Windows/real profiles, independent versions and matched main
   remain open; no production scan or import is enabled.
+  Subsequent [MP-1b-8 at `dafb3fb`](evidence/gate-13/MAKE_PLATE_MP1B8_RESULTS.md)
+  adds an inactive local root/account/preset picker, expiring consent session and
+  guarded HTTP handler, with explicit local-read approval, fresh exact-byte review
+  and one-use local consumption. Windows native hints use the existing bounded
+  worker without broader inherited environment. 172 unit tests/race, vet, six
+  targets (30 builds), ten fuzz smokes and 36 synthetic browser rendering checks
+  pass; two initial narrow-layout failures are retained and corrected. This is
+  not a running listener, browser launcher, authenticated import or saved preset.
+  **Next MP-1b-9: isolated local-server/browser-launch lifecycle harness**, including
+  actual HTTP form behavior, connection/time limits, teardown and bounded native
+  custom-root selection. Keep main/protocols inactive until native Windows/hint/
+  reader/lifecycle, independent versions, real profiles and matched dispatch gates
+  are met. MP-1b and MP-1 remain open.
 - **MP-1c:** Scoped claim/review/commit authority plus immutable preset storage and
   its additive migration, portable v1/v2 and raw-recovery counterparts as one coherent
   persistence slice. Shared strict wire fixtures must prove API/bridge parity.
