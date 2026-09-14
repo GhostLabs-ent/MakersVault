@@ -13,8 +13,9 @@ End-user preset discovery/import and Make Plate are not implemented.
 The owner approved [MS-1's bounded feasibility assessment](MAKE_PLATE_MACOS_SAFETY_PROPOSAL.md),
 now [completed NO-GO](evidence/gate-13/MAKE_PLATE_MACOS_MS1_RESULTS.md): no supported
 pre-open enforcement mapping was established for the candidate. MS-2 did not open.
-Proposed deferral of new Mac preset import awaits owner decision; existing Mac
-file-open support stays unchanged. No native packaging or activation is approved.
+The owner [approved deferring only new Mac preset import for v5.1](evidence/gate-13/MAKE_PLATE_MACOS_DEFERRAL.md).
+Existing Mac file-open support stays unchanged. No native packaging or activation
+is approved; next MP-1b work is Windows/Linux Bambu discovery and native qualification.
 
 The owner requested review of the working ROADMAP notes from line 349, then
 approved the proposed bounded direction: “lets defer CNC for a later release …
@@ -31,6 +32,8 @@ not publication, a production deployment, or an automatic Gate 13 closeout.
 - User-initiated discovery/import/refresh of printer presets, starting with Bambu
   Studio against the owner's Windows tablet, followed by OrcaSlicer and separately
   qualified PrusaSlicer support. A parser or cross-build alone is not qualification.
+  New macOS workstation preset discovery/import/refresh is deferred from v5.1 by
+  the owner's September 13 decision; Windows/Linux remain in this release scope.
 - Versioned, typed printer-preset snapshots linked to the existing MachineProfile
   identity. Include normalized units/origin, bed polygon/exclusions, maximum height,
   nozzle variant, source identity/version and explicit user overrides. Do not treat
@@ -44,7 +47,8 @@ not publication, a production deployment, or an automatic Gate 13 closeout.
 - Plate computation remains possible with a saved preset when the relay is offline
   and MakersVault is available. Local slicer launch requires the workstation bridge.
 
-**Deferred:** CNC/CAM integration and CNC-specific adapters; full 3MF/STEP input
+**Deferred:** new macOS workstation preset discovery/import/refresh; CNC/CAM
+integration and CNC-specific adapters; full 3MF/STEP input
 conversion for plate generation; resin workflows; background profile synchronization;
 advanced nesting, automatic orientation/supports, multi-plate splitting, material
 grouping, direct printer discovery/status/control, queues, USB/serial integration.
@@ -53,6 +57,23 @@ No server-side slicing, G-code generation, printing or manual-thumbnail requirem
 
 If a supported slicer needs more work than its gate permits, report the evidence
 and ask the owner to trim support rather than silently promising or removing it.
+
+### Platform scope after the Mac-import deferral
+
+This is the approved feature scope, **not a matrix of completed qualification**.
+
+| Workflow | Windows/Linux | macOS |
+|---|---|---|
+| New workstation-local preset discovery/import/refresh | In scope; incomplete/inactive pending MP-1 | Deferred from v5.1; default reader refuses requests |
+| Existing model-file handoff/protocols | Unchanged; remaining native checks apply | Unchanged; actual app/signing/distribution checks still apply |
+| Planned browser use of stored presets, plate editing and recipes | In scope; not delivered | In scope; not delivered; no local profile scan implied |
+| Planned editable 3MF export and selected-slicer handoff | In scope; MP-3 proof required | In scope; MP-3/native proof required; import deferral does not qualify it |
+
+The deferral applies to the **bridge workstation**, not the browser or Docker host.
+Future capability/error handling must explain the unavailable local import action
+without hiding unrelated Mac browser workflows or offering an unsafe fallback.
+No new manual preset or image-upload requirement is introduced. Re-entry into Mac
+import requires the [accepted decision's safety/qualification checkpoints](evidence/gate-13/MAKE_PLATE_MACOS_DEFERRAL.md).
 
 ## Architecture boundaries
 
@@ -90,7 +111,7 @@ and ask the owner to trim support rather than silently promising or removing it.
 |---|---|---|
 | UP-1 | Shared transfer progress plus accessible UI; truthful finalizing/error states, nested folders/Project membership, mixed file sizes, empty files, unknown progress and session failure. Unit/type/build plus browser transport/workflow checks | VERIFIED — [84 tests and three-engine results](evidence/gate-13/UPLOAD_PROGRESS_RESULTS.md); owner directed continuation on 2026-09-12 |
 | MP-0 | Final preset/recipe/import contracts, authority and migration/recovery decisions; existing manual-installer parity/macOS pairing repairs with failing-old-source regressions; fixture inventories for named slicer versions | ACCEPTED 2026-09-12 — [contracts/29 bridge tests/six cross-builds](evidence/gate-13/MAKE_PLATE_MP0_RESULTS.md); native device checks remain open |
-| MP-1 | Bambu preset discovery/import/explicit refresh, inheritance/geometry/secret filtering and authorization negative controls; saved snapshots usable without relay. Then Orca and Prusa conformance recorded independently | IN PROGRESS — local supervisor/Windows implementation and experimental Mac reading; two native safety gaps keep normal Mac reader disabled; native Windows and discovery/consent remain open |
+| MP-1 | Windows/Linux Bambu preset discovery/import/explicit refresh, inheritance/geometry/secret filtering and authorization negative controls; saved snapshots usable without relay. Then Orca and Prusa conformance recorded independently | IN PROGRESS — Mac-local import deferred by owner; Windows/Linux discovery/consent, native Windows/lifecycle and persistence/recovery remain open; browser planning scope unchanged |
 | MP-2 | STL instances, saved recipe lifecycle, deterministic conservative packing/manual editing, source preservation, boundary/height checks, cancellation and memory/time limits, tablet interaction | NOT STARTED |
 | MP-3 | Editable unsliced 3MF, scoped generated-artifact handoff and actual Bambu/Orca/Prusa round trips; no stale prepared data, silent scale changes or shell/default-opener fallback | NOT STARTED |
 | MP-4 | Migration/export/backup/restore/rollback, auth/audit/abuse checks, matched web/API/bridge evidence and updated release limitations; rejoin Gate 13C | NOT STARTED |
@@ -117,10 +138,11 @@ re-cock protocol. New gate numbers do not reset or falsely close Gates 0–13.
   implements the Windows NTFS reader and isolated self-worker. 80 unit tests/race,
   six target builds and four short fuzz runs pass on Linux; Windows native reader
   tests are only compiled. **MP-1b is not complete:** native Windows/lifecycle
-  qualification, macOS reading, matched consented worker integration, known
+  qualification, matched consented Windows/Linux worker integration, known
   locations/manifest discovery, local selection and version observations remain.
-  Bambu discovery and native qualification remain pending; no CLI activation or
-  support-target removal. The later Mac experiment/checkpoint below governs next work.
+  Bambu discovery and native qualification remain pending; no CLI activation.
+  Mac-local import is explicitly deferred by the later owner decision below, not
+  qualified by its historical experiment. Existing Mac file-open support stays in scope.
   The owner subsequently supplied a Mac for scoped tests. [Native results at
   `79ac9a0`](evidence/gate-13/MAKE_PLATE_MAC_NATIVE_RESULTS.md) record macOS 15.7.9
   (24G830), x86_64: 34 unit tests plus four seeded fuzz targets pass without a
@@ -147,9 +169,12 @@ re-cock protocol. New gate numbers do not reset or falsely close Gates 0–13.
   The owner subsequently approves MS-1. Its [NO-GO assessment](evidence/gate-13/MAKE_PLATE_MACOS_MS1_RESULTS.md)
   identifies missing supported special-file/mount/recall enforcement and unresolved
   XPC lifecycle equivalence. The approved early-stop rule applies; MS-2 did not open.
-  Recommend owner review of a new-Mac-preset-import-only deferral for v5.1; do not
-  apply it automatically or remove old Mac file-open support. Further research needs
-  separate direction. Native code, SDKs and the owner's Mac were not changed.
+  The owner then [accepts the new-Mac-preset-import-only deferral](evidence/gate-13/MAKE_PLATE_MACOS_DEFERRAL.md)
+  for v5.1. Existing Mac file-open and planned browser Make Plate workflows remain
+  in scope; further Mac reader research needs separate direction. Native code, SDKs
+  and the owner's Mac were not changed. Next continue Windows/Linux Bambu known-root/
+  manifest discovery, explicit local selection and version observations while
+  preparing native Windows/lifecycle checks; keep production scans inactive.
 - **MP-1c:** Scoped claim/review/commit authority plus immutable preset storage and
   its additive migration, portable v1/v2 and raw-recovery counterparts as one coherent
   persistence slice. Shared strict wire fixtures must prove API/bridge parity.

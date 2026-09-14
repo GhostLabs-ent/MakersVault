@@ -110,6 +110,12 @@ benchmark. See [Gate 5 evidence](evidence/gate-5/RESULTS.md) for the full matrix
 
 ## Intentional boundaries
 
+New macOS workstation printer-preset discovery, import and refresh are deferred
+from v5.1 by [owner decision](evidence/gate-13/MAKE_PLATE_MACOS_DEFERRAL.md). Existing
+Mac model-file opening remains unchanged. Planned browser-based Make Plate and
+Windows/Linux preset import remain in scope, not delivered by this decision; their
+implementation and native/release checks are still required.
+
 v5.1 does not add manual thumbnail uploads, account self-registration, private
 libraries or per-object ACLs, passwordless/TOTP authentication, recovery codes, API
 keys or OIDC/SSO, slicing or printer control, automatic STEP card previews,

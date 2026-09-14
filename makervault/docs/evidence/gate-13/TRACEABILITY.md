@@ -173,13 +173,15 @@ single-use scan supervisor; 80 unit tests/race, six builds and four fuzz smokes 
 on Linux. Windows native tests only compile; production worker dispatch is absent.
 The [Mac reader experiment](MAKE_PLATE_MAC_READER_RESULTS.md) at `907cddd` adds native
 synthetic reading/worker evidence but reproduces two failed pre-open safety properties;
-normal Mac builds still refuse preset reads. MP-1b remains open for a safe macOS
-boundary, native/lifecycle qualification, matched consent and known-root/manifest/
+normal Mac builds still refuse preset reads. MP-1b remains open for Windows/Linux
+native/lifecycle qualification, matched consent and known-root/manifest/
 selection/version discovery. The owner approved [MS-1](../../MAKE_PLATE_MACOS_SAFETY_PROPOSAL.md),
 whose [assessment returns NO-GO](MAKE_PLATE_MACOS_MS1_RESULTS.md): required supported
-pre-open controls are not established. MS-2 did not open. Deferral of only new Mac
-preset import is recommended but awaits owner decision; existing Mac file-open
-support is unchanged. No implementation or new native evidence is implied.
+pre-open controls are not established. MS-2 did not open. The owner then
+[accepts deferral of only new Mac preset import from v5.1](MAKE_PLATE_MACOS_DEFERRAL.md).
+Existing Mac file-open and planned browser Make Plate scope are unchanged. Resume
+Windows/Linux Bambu discovery and native qualification; no implementation or new
+native evidence is implied by recording the deferral.
 The user-facing MP-1 import and MP-2–MP-4 remain undelivered
 and must rejoin Gate 13C. Existing descriptive CNC profiles and
 file-open behavior remain; CNC toolpaths, control and new CNC-specific adapters
@@ -194,7 +196,7 @@ new prioritization below is proposed until the owner accepts the re-baselined ro
 |---|---|---|
 | C01 | API keys/OIDC/SSO, TOTP/passwordless/recovery codes, invitations/email, custom roles/private ACLs: intentionally outside accepted shared-vault/passkey scope | Separate identity ADR and owner need; migrations, grant scope/revocation, recovery, audit and abuse proof before implementation |
 | C02 | S3, managed/provider storage, synchronization, live/merge portable import and browser job orchestration: local-first/no-go provider decision and stronger mutation boundaries | Portability/provider gate reopened only with demand and atomicity/capacity/failure/exit evidence; application never takes custody of `age` keys |
-| C03 | Physical security keys/platform prompts, Firefox/WebKit passkey ceremonies, OS-specific real-app launch/signing/notarization: Docker/virtual/cross-build evidence is insufficient. Windows Dell/Bambu v2.8.0.6/YubiKey checks remain unperformed. Owner's Intel Mac passes 34 default and 42 ordinary experimental checks, but two native counterexamples expose unmet pre-open safety properties; default reader stays unsupported. No real-app launch qualification | [Mac reader gaps](MAKE_PLATE_MAC_READER_RESULTS.md), [earlier native limits](MAKE_PLATE_MAC_NATIVE_RESULTS.md), [tablet checklist](WINDOWS_TABLET_CHECKLIST.md), [original findings](PLATFORM_OPERATOR_RESULTS.md) and [MP-0 repairs](MAKE_PLATE_MP0_RESULTS.md): review OS-enforced Mac protection, obtain remaining hardware/build/origin prerequisites, then record actual results or explicitly bounded supported release claims. Do not automatically defer release blockers to desktop |
+| C03 | Physical security keys/platform prompts, Firefox/WebKit passkey ceremonies, OS-specific real-app launch/signing/notarization: Docker/virtual/cross-build evidence is insufficient. Windows Dell/Bambu v2.8.0.6/YubiKey checks remain unperformed. Only new Mac preset discovery/import/refresh is owner-deferred from v5.1; existing Mac file-open checks remain open. Historical experimental tests do not qualify them | [Accepted limited deferral](MAKE_PLATE_MACOS_DEFERRAL.md), [Mac reader gaps](MAKE_PLATE_MAC_READER_RESULTS.md), [tablet checklist](WINDOWS_TABLET_CHECKLIST.md) and [MP-0 repairs](MAKE_PLATE_MP0_RESULTS.md): obtain remaining native hardware/build/origin evidence for in-scope workflows. Safe Mac preset import requires a separately approved re-entry; no general Mac support or release-blocker deferral to desktop |
 | C04 | Server-wide select-all, continuous NAS watching/exclusions/live progress, mobile/touch/accessibility and density polish: accepted P1/scale boundaries | Dedicated UX/API scopes with bounded jobs and representative device/assistive-tool evidence; existing loaded-ID/no-copy semantics preserved |
 | C05 | Custom metadata, dedicated KiCad support, public adapter SDK/marketplace, automatic source-site artwork and expanded format previews: strategic direction beyond delivered integrations | Demonstrated workflows, schema/adapter/source-rights and parser-isolation decisions; no manual-thumbnail requirement or unsafe STEP preview fallback |
 | C06 | **Gate 12 deferred to desktop by owner on 2026-09-05**; optional support links/donation setup and paid hosting/backup/storage services not completed by policy text | Desktop roadmap must retain all Sustainability decision tests, explicit vendor/cost/telemetry/business approval, export-after-cancellation, service-failure isolation and operational/shutdown/support evidence |

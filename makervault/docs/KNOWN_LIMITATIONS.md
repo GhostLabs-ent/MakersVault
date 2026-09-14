@@ -99,6 +99,13 @@ into empty stopped volumes; it cannot publish directly over a storage mount poin
 
 ## Platform scope
 
+- New macOS workstation printer-preset discovery/import/refresh is
+  [owner-deferred from v5.1](evidence/gate-13/MAKE_PLATE_MACOS_DEFERRAL.md). The
+  experimental reader remains disabled in normal builds. This does not remove
+  existing Mac file-open functionality or planned browser-based Make Plate scope,
+  and does not qualify outstanding native app/signing checks. Windows/Linux preset
+  import and browser planning still require implementation and release evidence;
+  no manual preset or image-upload workaround is supplied by this deferral.
 - Release bridge binaries target Linux, Windows, and macOS on amd64/arm64, but actual
   slicer/engraver discovery and protocol registration vary by installed application
   and operating-system policy.

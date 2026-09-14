@@ -3,6 +3,11 @@
 **Status:** Accepted by owner on 2026-09-12; not an implemented API or schema.
 **Date:** 2026-09-12. **Application baseline:** schema 17 / bridge `d116997`.
 
+**2026-09-13 release-scope amendment:** the owner [defers only new macOS workstation
+preset discovery/import/refresh from v5.1](../evidence/gate-13/MAKE_PLATE_MACOS_DEFERRAL.md).
+Existing Mac file-open and planned browser Make Plate scope remain unchanged.
+This does not weaken this ADR's safety, consent, data-model or recovery contracts.
+
 ## Context and scope
 
 The owner approved [Make Plate](../MAKE_PLATE_RUNBOOK.md) while deferring CNC/CAM.

@@ -28,6 +28,10 @@ printer controller, or multi-user cloud service.
   3MF slicer handoff have separate implementation/qualification gates. CNC/CAM
   integration is explicitly deferred to a later release. No printing/control or
   manual-thumbnail workflow is added.
+- New macOS workstation preset discovery/import/refresh is also deferred from v5.1
+  by [owner decision](evidence/gate-13/MAKE_PLATE_MACOS_DEFERRAL.md). Existing Mac
+  file opening is unchanged; planned browser-based Make Plate and Windows/Linux
+  preset import remain in scope, not yet delivered or release-qualified.
 
 ### Bridge compatibility repairs (MP-0)
 
@@ -70,8 +74,9 @@ printer controller, or multi-user cloud service.
   and prevents partial results. It is **not enabled in the production bridge**.
 - 80 unit tests with race detection, six-target builds and four short fuzz runs pass
   on Linux; see [results and limits](evidence/gate-13/MAKE_PLATE_MP1B2_RESULTS.md).
-  Windows native tests compile but have not run. macOS, actual profile discovery,
-  local consent/matched worker integration and native lifecycle checks remain open.
+  Windows native tests compile but have not run. Windows/Linux profile discovery,
+  local consent/matched worker integration and native lifecycle checks remain open;
+  new Mac-local preset import is separately deferred from v5.1.
 
 ### Native Mac worker verification
 
@@ -80,13 +85,17 @@ printer controller, or multi-user cloud service.
   refusal while macOS file reading is unimplemented. This is not yet macOS preset
   import or slicer-launch support; no app/toolchain installation was needed.
 
-### Experimental Mac preset reader — not enabled
+### Mac preset import — deferred from v5.1
 
 - [Native synthetic reads and worker round trips now work](evidence/gate-13/MAKE_PLATE_MAC_READER_RESULTS.md)
   in an explicitly tagged experiment: 34 default and 42 ordinary experimental checks
   pass. Two additional counterexamples demonstrate unresolved file-opening safety
   gaps, so normal builds still refuse Mac preset reads. This is not delivered preset
   import or release qualification; existing Mac file-open behavior is unchanged.
+- Following the MS-1 NO-GO assessment, the owner deferred new Mac-local preset
+  discovery/import/refresh. The experiment remains disabled; no manual file/image
+  upload workaround or broader removal of Mac support is introduced. Existing Mac
+  real-app/signing checks still need qualification.
 
 ### Lower-overhead folder listing (Gate 13C)
 

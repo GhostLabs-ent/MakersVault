@@ -1,12 +1,14 @@
 # macOS preset-reader safety boundary — bounded proposal
 
-**Date:** 2026-09-13. **Status: MS-1 scope approved; assessment completed NO-GO.**
+**Date:** 2026-09-13. **Status: MS-1 completed NO-GO; Mac preset import deferred by owner for v5.1.**
 **Entry:** `2226728`; unchanged experimental reader/test source `907cddd`, schema 17.
 The owner subsequently said “MS-1 Approved” against proposal commit `b748079`.
 [Assessment results](evidence/gate-13/MAKE_PLATE_MACOS_MS1_RESULTS.md) record the
 supported candidate's missing pre-open guarantees and the required early stop.
-MS-2 did not open. Implementation, installation, support deferral and publication
-are not approved by that scope acceptance; the owner's next disposition is pending.
+MS-2 did not open. The owner then separately [approved the limited Mac-import deferral](evidence/gate-13/MAKE_PLATE_MACOS_DEFERRAL.md)
+against assessment commit `eb8f31d`. Existing Mac file-open support is unchanged;
+implementation, installation and publication remain unauthorized. The original
+proposal below is retained as design/re-entry history, not a new execution plan.
 
 ## Original recommendation — MS-1 scope subsequently approved
 
@@ -202,8 +204,8 @@ development proof bundles or change the public release workflow during feasibili
 |---|---|---|
 | MS-0 — proposal | Owner reviews options, unchanged safety requirements and bounded MS-1 scope | Owner approves MS-1 only on 2026-09-13; no implementation/support decision |
 | MS-1 — feasibility only | Map each pre-open requirement to a supported enforcement mechanism; identify packaging/lifecycle and authorized SDK/test prerequisites; return GO / NO-GO / BLOCKED | COMPLETED NO-GO — [results](evidence/gate-13/MAKE_PLATE_MACOS_MS1_RESULTS.md); supported pre-open mapping not established, early stop applied |
-| MS-2 — disposable native proof | Only after MS-1 GO and owner approval, prove the table below with synthetic fixtures and retained red controls; no production dispatch | NOT OPENED — MS-1 returned NO-GO; no automatic prototype |
-| MS-3 — integration/release qualification | Separately accepted packaging/transport decision, matched local consent/discovery, native targets, install/update/uninstall and release evidence; rejoin MP-1b/MP-1 | Not started; not automatic after a proof pass |
+| MS-2 — disposable native proof | Only after a renewed assessment returns GO and owner approval, prove the table below with synthetic fixtures and retained red controls; no production dispatch | DEFERRED with Mac preset import for v5.1; not opened or passed |
+| MS-3 — integration/release qualification | Separately accepted packaging/transport decision, matched local consent/discovery, native targets, install/update/uninstall and release evidence; rejoin MP-1b/MP-1 | DEFERRED for Mac preset import only; existing Mac file-open qualification is not deferred |
 
 MS-1 ends after **one candidate assessment**. Stop early if the necessary supported
 pre-open rule cannot be identified, independent policy needs unapproved packaging,
@@ -233,9 +235,10 @@ does not close the gate; obtaining a dedicated rig may be a prerequisite.
 
 ## 6. Owner checkpoint and handoff
 
-**Current checkpoint:** review the [MS-1 NO-GO and proposed Mac-import-only deferral](evidence/gate-13/MAKE_PLATE_MACOS_MS1_RESULTS.md).
-No deferral has been applied, and existing Mac file-open support remains unchanged.
-Further research or a revised architecture needs separate direction.
+**Current checkpoint:** the owner [accepted the Mac-import-only deferral](evidence/gate-13/MAKE_PLATE_MACOS_DEFERRAL.md).
+Resume the remaining Windows/Linux MP-1b work; existing Mac file-open support and
+planned browser Make Plate workflows remain in scope. Further Mac reader research
+or a revised architecture needs separate direction.
 
 **Original recommended approval (now granted):** MS-1 only, with no native installation, production code
 activation, support reduction or publication. Report back once the candidate is
