@@ -18,6 +18,9 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	if len(os.Args) == 2 && os.Args[1] == "--local-http-fixture" {
+		os.Exit(serveBrowserFixture())
+	}
 	if len(os.Args) == 2 && os.Args[1] == presetworker.Argument {
 		os.Exit(presetworker.Serve(os.Stdin, os.Stdout))
 	}

@@ -13,9 +13,9 @@ import (
 const MaxFormBytes = 16 << 10
 const MaxPageBytes = 4 << 20
 
-// LocalHandler never listens or opens a browser. Future integration must bind
-// only 127.0.0.1, set server read/write/header/idle deadlines, cap connections,
-// disable request/URL/body logging and close the server/session on expiry/revoke.
+// LocalHandler never listens or opens a browser. StartLocal supplies the bounded
+// numeric-loopback host, without request/URL/body logging, and tears it down on
+// expiry/revoke. Native browser launch and production integration remain separate.
 // A website-origin trust entry does not bypass this separate local consent page.
 type LocalHandler struct {
 	session          *Session
@@ -37,7 +37,9 @@ func (h *LocalHandler) URL() string { return "http://" + h.host + h.path }
 
 func (h *LocalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
-	w.Header().Set("Referrer-Policy", "no-referrer")
+	// no-referrer makes native form POSTs send Origin:null. Keep exact Origin
+	// enforcement while withholding the nonce-bearing Referer from other origins.
+	w.Header().Set("Referrer-Policy", "same-origin")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("X-Frame-Options", "DENY")
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")

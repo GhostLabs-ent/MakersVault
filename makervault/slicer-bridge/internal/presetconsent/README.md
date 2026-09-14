@@ -1,7 +1,8 @@
 # Local preset preview/consent foundation — MP-1b-8
 
-**Inactive in production.** This package adds a local session and HTTP handler,
-not a listener, installed handler, browser launcher, new protocol action, remote
+**Inactive in production.** MP-1b-8 added the local session and HTTP handler;
+MP-1b-9a adds its bounded numeric-loopback host and actual HTTP/browser harness.
+There is no installed handler, native browser launcher, new protocol action, remote
 claim/import endpoint, stored snapshot or desktop application. Production main is
 unchanged. Mac-local preset import stays owner-deferred. No real workstation
 profiles or Windows known-folder calls were used in this slice's tests.
@@ -62,7 +63,7 @@ GET is read-only; only GET/POST are supported. There is no CORS permission, scri
 external asset, cookie/session token, arbitrary callback or URL redirect.
 
 HTML uses contextual `html/template` escaping, no trusted dynamic HTML. Privacy
-headers include no-store, no-referrer, nosniff, no framing, and a default-deny CSP
+headers include no-store, same-origin referrer policy, nosniff, no framing, and a default-deny CSP
 with only local forms/inline static CSS. A 4-MiB buffered rendering ceiling checks
 both writer methods; failures emit no partial page. Normalized review bytes have a
 separate 2-MiB ceiling. Radio/checkbox labels, visible focus and 44px-minimum buttons
@@ -70,8 +71,39 @@ support keyboard/tablet use; physical devices and screen readers are unqualified
 
 Do not publish the local nonce URL, CSRF token, paths, account names or form bodies
 to logs/server. Local malware or a process already able to read browser/session
-memory is outside this boundary. Tests of an unmounted handler are not proof of
-DNS-rebinding/connection containment by an actual server or OS browser launch.
+memory is outside this boundary. MP-1b-8's unmounted tests remain historical;
+MP-1b-9a now exercises real HTTP Host/Origin controls and browser forms. It is not
+native OS browser-launch, DNS-service/rebinding or physical-device qualification.
+
+## Numeric-loopback host — MP-1b-9a
+
+`StartLocal` attaches one session once, binds only `tcp4` at `127.0.0.1:0`, and
+returns a private URL. No hint, profile read or browser lookup occurs on startup.
+At most eight connections enter net/http; excess accepted sockets are immediately
+closed. A separate eight-handler budget covers work outliving a connection.
+Only HTTP/1 is enabled. Defaults: 3s header, 5s whole-request read, 20s write,
+5s idle and 20s handler context deadlines; 8-KiB MaxHeaderBytes (plus Go's bounded
+parser allowance), existing 16-KiB forms and 4-MiB page ceiling. Worker operations
+retain their own 15s/context budget. These are not OS backlog/packet-rate or
+hard-real-time guarantees; deadline tests use shortened internal test limits.
+
+Owner/context cancellation, session expiry/revoke, exact one-use consumption or
+an unexpected Serve failure revoke the session and cancel work. Shutdown permits
+at most 2s drain before forcibly closing sockets. `Close` is concurrent-safe and
+waits for teardown; do not call it synchronously from its own HTTP handler.
+`Done` means revocation and listener/socket teardown, not guaranteed return of an
+arbitrary non-cooperative callback. Existing worker kill/reap guarantees are separate.
+The caller must close on launch failure; no tab-close detector or native launcher
+is delivered. The test-only readiness pipe/EOF fixture is not production IPC.
+
+Actual browser POSTs exposed that `no-referrer` produces `Origin: null` for native
+forms. The page now uses `same-origin`: exact Origin/CSRF enforcement stays, and
+cross-origin navigations receive no Referer. Same-origin requests may carry the
+private path back to this same unlogged listener. Do not add request logging.
+Null/missing/foreign origins remain rejected; privacy settings overriding Origin
+can therefore fail closed. The [Fetch Origin algorithm](https://fetch.spec.whatwg.org/#append-a-request-origin-header)
+and [same-origin policy](https://www.w3.org/TR/referrer-policy/#referrer-policy-same-origin)
+explain this choice. Browser tests use no interception or Origin/header overrides.
 
 ## Bounded native hints without broader environment inheritance
 
@@ -93,11 +125,13 @@ cleanup is claimed. The old direct file/hint APIs remain cooperative if bypassed
 
 ## Required next integration checkpoint
 
-MP-1b-9: isolated local server/launcher lifecycle harness, before production
-activation. Bind only numeric loopback; set bounded connections, read/write/header/
-idle deadlines; cancel workers and close sockets/session on expiry, revoke, browser
-failure and shutdown. Qualify actual HTTP-origin/form behavior and the bounded native
-folder picker/custom-root source without accepting HTTP paths. Keep main/protocols
+MP-1b-9 is split into evidence checkpoints, not closed. MP-1b-9a establishes the
+local server and synthetic browser lifecycle above. Next MP-1b-9b must establish
+bounded native browser/folder-picker helpers and their owner lifecycle, including
+fixed trusted executable/API selection, launch failure/timeout/reaping, and explicit
+custom-root selection without HTTP paths. Do not reuse the legacy pairing launcher
+as qualified evidence: its Start-only/default-opener behavior is not this contract.
+Keep main/protocols
 inactive until native Windows/hint/reader/lifecycle, independently observed versions,
 real profiles and matched early worker dispatch are reviewed together. MP-1c still
 owns remote claim/matching-code/approval/submit/commit and whole persistence/recovery.

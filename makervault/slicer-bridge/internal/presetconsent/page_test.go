@@ -46,7 +46,7 @@ func TestLocalPageNoReadOnGetAndNoAutomaticChoice(t *testing.T) {
 	if w.Code != 200 || calls.Load() != 0 || !strings.Contains(w.Body.String(), "Allow local reading") || !strings.Contains(w.Body.String(), "Nothing is sent or saved") {
 		t.Fatal("GET did work or concealed consent scope")
 	}
-	for key, want := range map[string]string{"Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "X-Frame-Options": "DENY", "X-Content-Type-Options": "nosniff"} {
+	for key, want := range map[string]string{"Cache-Control": "no-store", "Referrer-Policy": "same-origin", "X-Frame-Options": "DENY", "X-Content-Type-Options": "nosniff"} {
 		if w.Header().Get(key) != want {
 			t.Fatal("privacy header missing")
 		}

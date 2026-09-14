@@ -67,6 +67,7 @@ type Session struct {
 	root, account                                        string
 	preview                                              []byte
 	busy                                                 bool
+	serverStarted                                        bool
 	backend                                              backend
 }
 
@@ -113,6 +114,9 @@ func (s *Session) live() bool {
 	if s.ctx.Err() != nil {
 		s.clear()
 		s.customRoot = ""
+		if s.stage == "consumed" {
+			return false
+		}
 		if s.ctx.Err() == context.DeadlineExceeded {
 			s.stage = "expired"
 		} else {
@@ -357,5 +361,6 @@ func (s *Session) TakeApproved() ([]byte, error) {
 	s.clear()
 	s.customRoot = ""
 	s.stage = "consumed"
+	s.cancel() // release an attached local host after exact one-use consumption
 	return result, nil
 }
