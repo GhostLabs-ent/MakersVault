@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io"
+	"runtime"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -34,7 +35,7 @@ type Pick = printerpreset.Selection
 // only through private anonymous stdin to the exact self executable, never JSON
 // decoded directly into this public type or through protocol arguments.
 type Request struct {
-	Operation string              `json:"-"` // accounts, list, manifest, location, discover, select or project
+	Operation string              `json:"-"` // native-locations, accounts, list, manifest, location, discover, select or project
 	Root      string              `json:"-"`
 	Account   string              `json:"-"` // location/discover/select; empty explicitly means system-only
 	Inputs    []presetfiles.Input `json:"-"`
@@ -42,6 +43,7 @@ type Request struct {
 }
 
 type Response struct {
+	Locations  []presetfiles.BambuLocation     `json:"-"`                   // paths use only the distinct private envelope
 	Accounts   *presetfiles.AccountChoices     `json:"accounts,omitempty"`  // LOCAL-ONLY names, never an import payload
 	Names      []string                        `json:"names,omitempty"`     // local-only listing; never import payload
 	Manifest   *presetfiles.BambuManifest      `json:"manifest,omitempty"`  // local-only index, not selectable printers
@@ -64,10 +66,13 @@ type wireRequest struct {
 	Picks     []Pick
 }
 type envelope struct {
-	Version  int
-	Code     Code
-	Response Response
+	Version   int
+	Code      Code
+	Response  Response
+	Locations []wireLocation `json:",omitempty"`
 }
+
+type wireLocation struct{ ID, DataRoot string }
 
 func boundedText(text string, maximum int, empty bool) bool {
 	if !utf8.ValidString(text) || len(text) > maximum || (!empty && text == "") {
@@ -84,6 +89,9 @@ func boundedText(text string, maximum int, empty bool) bool {
 func validateRequest(req wireRequest) bool {
 	if req.Version != 1 {
 		return false
+	}
+	if req.Operation == "native-locations" {
+		return req.Root == "" && req.Account == "" && len(req.Inputs) == 0 && len(req.Picks) == 0
 	}
 	if req.Operation == "select" {
 		return len(req.Inputs) == 0 && boundedText(req.Root, 4096, false) &&
@@ -244,7 +252,7 @@ func init() {
 	for _, code := range strings.Fields(`manifest_invalid manifest_unsupported manifest_bytes_exceeded
 		manifest_structure_limit manifest_entry_limit manifest_selection_invalid manifest_identity_mismatch
 		invalid_instantiation invalid_machine_identity invalid_identity_field source_kind_mismatch
-		unsupported_source_schema unsupported_include unsupported_user_version`) {
+		unsupported_source_schema unsupported_include unsupported_user_version source_hint_unavailable`) {
 		scanCodes[Code(code)] = true
 	}
 }
@@ -271,10 +279,24 @@ func decodeResponse(data []byte, request wireRequest) (Response, error) {
 		return Response{}, Code("worker_response_invalid")
 	}
 	if result.Code != "" {
-		if !scanCodes[result.Code] || len(result.Response.Names) != 0 || len(result.Response.Candidates) != 0 || result.Response.Manifest != nil || result.Response.Location != nil || result.Response.Discovery != nil || result.Response.Accounts != nil {
+		if !scanCodes[result.Code] || len(result.Locations) != 0 || len(result.Response.Names) != 0 || len(result.Response.Candidates) != 0 || result.Response.Manifest != nil || result.Response.Location != nil || result.Response.Discovery != nil || result.Response.Accounts != nil {
 			return Response{}, Code("worker_response_invalid")
 		}
 		return Response{}, result.Code
+	}
+	if request.Operation == "native-locations" {
+		if runtime.GOOS != "windows" || !validNativeLocations(result.Locations) ||
+			len(result.Response.Names) != 0 || len(result.Response.Candidates) != 0 || result.Response.Manifest != nil ||
+			result.Response.Location != nil || result.Response.Discovery != nil || result.Response.Accounts != nil {
+			return Response{}, Code("worker_response_invalid")
+		}
+		for _, location := range result.Locations {
+			result.Response.Locations = append(result.Response.Locations, presetfiles.BambuLocation{ID: location.ID, DataRoot: location.DataRoot})
+		}
+		return result.Response, nil
+	}
+	if len(result.Locations) != 0 {
+		return Response{}, Code("worker_response_invalid")
 	}
 	if request.Operation == "accounts" {
 		if result.Response.Accounts == nil || !result.Response.Accounts.Validate() ||
@@ -357,7 +379,17 @@ func Serve(input io.Reader, output io.Writer) int {
 	} else {
 		ctx, cancel := context.WithTimeout(context.Background(), printerpreset.MaxDuration)
 		defer cancel()
-		if request.Operation == "accounts" {
+		if request.Operation == "native-locations" {
+			if runtime.GOOS != "windows" {
+				err = presetfiles.Code("source_platform_unsupported")
+			} else {
+				var locations []presetfiles.BambuLocation
+				locations, err = presetfiles.NativeBambuLocations(ctx)
+				for _, location := range locations {
+					result.Locations = append(result.Locations, wireLocation{location.ID, location.DataRoot})
+				}
+			}
+		} else if request.Operation == "accounts" {
 			result.Response.Accounts, err = presetfiles.ListBambuAccounts(ctx, request.Root)
 		} else if request.Operation == "list" {
 			result.Response.Names, err = presetfiles.ListJSON(ctx, request.Root)
@@ -388,6 +420,7 @@ func Serve(input io.Reader, output io.Writer) int {
 			}
 		}
 		if err != nil {
+			result.Locations = nil
 			result.Response = Response{}
 			result.Code = safeCode(err)
 		}

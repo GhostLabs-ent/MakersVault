@@ -64,15 +64,17 @@ known-location candidates; native acquisition itself has no remote/custom input.
 - Native diagnostics become a fixed `source_hint_unavailable`; cancellation and
   unsupported-platform results are explicit. No private path is placed in errors.
 
-The sanitized worker intentionally does **not** inherit HOME/XDG or acquire hints.
-The future local flow must acquire hints and let the user choose before constructing
-private worker requests; browser/server fields cannot be used to fill them.
-Native API acquisition checks context before/after but is **not hard-deadline
-isolated**. `DONT_VERIFY` avoids an existence check; it is not proof of bounded
-Shell API latency or no internal OS activity. Qualification/integration must address
-that remaining lifecycle boundary before enabling it. No real Windows known-folder
-call or installed-profile scan was performed here; Linux tests inject/override
-synthetic hints, and Windows cross-builds do not qualify ABI/runtime behavior.
+The sanitized worker intentionally does **not** inherit HOME/XDG. MP-1b-8's
+[consent foundation](../presetconsent/README.md) now calls `presetworker.NativeLocations`:
+Windows native acquisition runs inside the existing hard-deadline worker via a
+no-input `native-locations` operation; Linux copies environment strings and runs
+the pure planner in the parent, with no filesystem/NSS lookup. Its child refuses
+native hints rather than guessing from sanitized environment. Browser/server fields
+cannot fill any hint. The direct `NativeBambuLocations` API remains cooperative.
+`DONT_VERIFY` is not itself proof of bounded Shell latency or no internal OS work;
+the worker isolates that call without changing the underlying provider/supervisor.
+No real Windows known-folder call or installed-profile scan was performed here;
+native Windows/lifecycle and matched-main qualification remain open.
 
 ## Primary contracts reviewed September 14, 2026
 
@@ -83,6 +85,7 @@ synthetic hints, and Windows cross-builds do not qualify ABI/runtime behavior.
 - [Known-folder identifiers](https://learn.microsoft.com/en-us/windows/win32/shell/knownfolderid) supplies the RoamingAppData GUID; [LoadLibraryExW](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw) specifies the System32-only search flag.
 
 Source review is not proof about the owner's reported Windows Bambu v2.8.0.6.
-Local selector/consent, native hint/reader/lifecycle qualification, independent
+The inactive local selector/consent foundation exists; server/launcher integration,
+native hint/reader/lifecycle qualification, independent
 installed versions/real profiles and matched main remain open. No API/schema,
 normal upload limit, geometry, slicing or existing Mac file-open behavior changes.

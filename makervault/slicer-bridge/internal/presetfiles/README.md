@@ -1,4 +1,4 @@
-# Local file access boundary — MP-1b-1 through MP-1b-7
+# Local file access boundary — MP-1b-1 through MP-1b-8
 
 Internal, read-only and **not called by the bridge CLI**. This is the first part
 of MP-1b, not completed workstation discovery or a user-facing import feature.
@@ -12,8 +12,10 @@ is added. Do not activate this code until the remaining MP-1b boundaries are met
 
 - [Account choices/native hints](ACCOUNTS.md) supplies bounded local-only directory
   choices and unobserved native root hints. No account is selected, no account
-  contents are read and no installation/version is inferred. Native hint acquisition
-  is not hard-deadline isolated; Windows implementation is compiled only.
+  contents are read and no installation/version is inferred. MP-1b-8's inactive
+  [consent foundation](../presetconsent/README.md) uses worker-isolated Windows
+  hints and explicit local choices; native Windows and server/launcher qualification
+  remain open. Direct low-level APIs still cooperate rather than isolate I/O.
 - [Content discovery/selection](DISCOVERY.md) binds actual machine identities,
   validates exact parent chains and projects bounded explicit choices under one
   held root and shared budget. [Saved-user support](SAVED_USER.md) uses only the

@@ -1,4 +1,4 @@
-# Single-use profile worker — MP-1b-2 through MP-1b-7
+# Single-use profile worker — MP-1b-2 through MP-1b-8
 
 Internal foundation, **not dispatched by the production bridge main**. Only the
 test executable currently handles `--internal-preset-worker-v1`. Do not call `Run`
@@ -40,9 +40,15 @@ Account/inputs/picks are forbidden on this operation, and account results cannot
 appear in other operation responses or alongside errors/partial results. Missing
 `user` is an error; an empty existing folder is an empty list. The [account/hint
 contract](../presetfiles/ACCOUNTS.md) records the metadata-only boundary and limits.
-Native hint acquisition is separate and inactive: it is not a worker operation,
-does not expand the child's environment, and still needs bounded-lifecycle/native
-qualification before matched local consent/UI integration.
+MP-1b-8 now isolates Windows native hint acquisition through `native-locations`.
+This no-input operation uses the same supervisor/deadline/reap slot and returns
+only a strictly validated private three-root known plan. Public response JSON
+cannot emit paths, and other operations reject that private envelope field.
+Linux continues environment-only/pure planning in the parent; its sanitized worker
+refuses native hints. No broader environment inheritance or supervisor change.
+The [local consent foundation](../presetconsent/README.md) calls these operations
+only after explicit approval; it has an unmounted local handler, not a production
+listener/launcher. Native Windows and matched lifecycle/main qualification stay open.
 
 The manifest operation retains the profile-bundle version separately, without
 guessing an application version. Its entries include templates and are local-only;

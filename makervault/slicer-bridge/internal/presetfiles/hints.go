@@ -4,10 +4,10 @@ import "context"
 
 // NativeBambuLocations acquires current-user hints on the LOCAL workstation,
 // without testing candidate existence or selecting an installation. This is not
-// called by production main or by the sanitized worker. A future local consent
-// flow must call it before constructing private worker requests, never fill hints
-// from browser/server data. OS hint acquisition itself is cooperative, not an
-// isolated hard-deadline operation; integration must account for that separately.
+// called by production main. The consent foundation calls presetworker.NativeLocations:
+// Windows runs this low-level provider only inside the isolated worker; Linux only
+// copies environment strings and plans. Never fill hints from browser/server data.
+// This direct API remains cooperative and is not an isolated hard-deadline API.
 func NativeBambuLocations(ctx context.Context) ([]BambuLocation, error) {
 	return nativeBambuLocations(ctx, nativeLocationHints)
 }
