@@ -1,4 +1,4 @@
-# Single-use profile worker — MP-1b-2
+# Single-use profile worker — MP-1b-2 / MP-1b-3
 
 Internal foundation, **not dispatched by the production bridge main**. Only the
 test executable currently handles `--internal-preset-worker-v1`. Do not call `Run`
@@ -14,11 +14,20 @@ wire shape is not an API schema or an authentication mechanism. A future caller
 must obtain local consent and must never translate browser/server paths into it.
 Do not mutate request slices concurrently with Run.
 
-The child implements only `list` (direct JSON basenames, local-only) or `project`
+The child implements only `list` (direct JSON basenames, local-only), `manifest`
+(fixed BBL.json local index; not selectable-printer discovery) or `project`
 (load selected Bambu documents, resolve up to 100 exact kind/name picks). It neither
 launches descendants nor reads general slicer configuration. A later failed pick
 discards earlier candidates. Labels in successful candidates can still contain
 private user-authored text and require the eventual visible import review.
+
+The manifest operation retains the profile-bundle version separately, without
+guessing an application version. Its entries include templates and are local-only;
+the later adapter must bind actual document identities, resolve parents, exclude
+non-instantiated documents and obtain explicit review. The parent validates the
+index version/path/name/collision bounds and rejects mixed or partial responses.
+No manifest URL or listed file is followed by this operation. Oversized indexes
+fail at the response ceiling rather than silently dropping entries.
 
 ## Resource and output controls
 

@@ -1,9 +1,10 @@
-# Local file access boundary — MP-1b-1 / MP-1b-2
+# Local file access boundary — MP-1b-1 / MP-1b-2 / MP-1b-3
 
 Internal, read-only and **not called by the bridge CLI**. This is the first part
 of MP-1b, not completed workstation discovery or a user-facing import feature.
 The Linux backend is locally tested; the new Windows backend is implemented but
-not natively qualified. macOS remains unimplemented and fails closed. Cross-builds
+not natively qualified. New Mac-local preset import is owner-deferred from v5.1;
+the tagged experiment remains excluded from normal builds, which fail closed. Cross-builds
 do not qualify native behavior. No API, protocol, background scan or saved setting
 is added. Do not activate this code until the remaining MP-1b boundaries are met.
 
@@ -19,11 +20,21 @@ is added. Do not activate this code until the remaining MP-1b boundaries are met
   filesystem path. A failed read/parse returns no catalog, including after earlier
   files succeeded. The caller must resolve/review candidates within the catalog's
   remaining budget. It does not send or save metadata.
+- `ReadBambuManifest(ctx, root)` opens only the fixed `BBL.json` basename through
+  the same held-handle boundary. `ParseBambuManifest(ctx, bytes)` is its pure,
+  bounded projection. The local index retains only bundle version and exact
+  `machine_list` name/basename pairs; model/filament/process lists, URLs and unknown
+  settings are discarded. No referenced file, user folder or URL is visited.
+  `SelectFiles` maps explicit exact identities, with no implicit all-selection,
+  filename guessing or dependency expansion. This is **not** a selectable-printer
+  list: machine entries also include inheritance and G-code templates. The future
+  adapter must verify file/manifest identity and resolve instantiated machine
+  documents without following script includes before offering presets in the UI.
 - `Input` cannot convey paths/files through JSON. This is defense in depth, NOT
   authorization: only a future locally consented adapter may construct it. No
   browser/server path, environment expansion or shell interpretation is permitted.
 
-Both operations impose a 15-second **cooperative** deadline; LoadBambu keeps the
+File operations impose a 15-second **cooperative** deadline; LoadBambu keeps the
 parser's 10,000-file / 8-MiB-file / 128-MiB-total limits. It checks cancellation
 between operations and reads. Regular-file kernel I/O can still stall. A bounded
 isolated worker with parent-enforced timeout/cancellation is required before any
@@ -99,10 +110,21 @@ enumeration. None of this source review substitutes for running the native tests
 ## Remaining MP-1b work
 
 Native Windows execution (including reparse/ACL/volume/placeholder and process
-lifecycle cases), the macOS backend, matched supervisor integration and startup/
+lifecycle cases), matched supervisor integration and startup/
 cleanup qualification; adapter-owned known locations and local root
-selection; manifest-only machine discovery (not model/process/filament documents),
-user namespaces and independently observed versions. Bambu's pinned
+selection; manifest-to-document identity and parent closure, selectable-machine
+discovery, user namespaces and independently observed application versions. The
+manifest's four-component bundle version is retained exactly, never promoted to
+an installed application version. Malformed, ambiguous or over-budget manifests
+fail without a partial index. The index parser permits at most 10,000 machine
+entries, 8 MiB, depth 16, 250,000 value nodes and 2,048 keys per object; unknown
+schema markers and unsupported reference shapes fail closed. The worker's 2-MiB
+output limit can reject a large index even within the file/entry limits.
+
+Bambu's pinned [BBL manifest](https://raw.githubusercontent.com/bambulab/BambuStudio/926a7192574bcb9b3a732e1ec59a46d79cb45466/resources/profiles/BBL.json)
+separates machine/model/filament/process lists and declares bundle `02.08.00.05`.
+Its machine list includes script templates, not just instantiated printers. This
+source review is not installed-device qualification. The pinned
 [PresetBundle source](https://raw.githubusercontent.com/bambulab/BambuStudio/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/libslic3r/PresetBundle.cpp)
 loads system vendor manifests and a separate user folder; its
 [GUI data-root selection](https://raw.githubusercontent.com/bambulab/BambuStudio/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/slic3r/GUI/GUI_App.cpp)

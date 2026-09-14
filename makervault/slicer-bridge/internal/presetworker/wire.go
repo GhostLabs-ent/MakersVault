@@ -37,15 +37,16 @@ type Pick struct {
 // only through private anonymous stdin to the exact self executable, never JSON
 // decoded directly into this public type or through protocol arguments.
 type Request struct {
-	Operation string              `json:"-"` // list or project
+	Operation string              `json:"-"` // list, manifest or project
 	Root      string              `json:"-"`
 	Inputs    []presetfiles.Input `json:"-"`
 	Picks     []Pick              `json:"-"`
 }
 
 type Response struct {
-	Names      []string                  `json:"names,omitempty"` // local-only listing; never import payload
-	Candidates []printerpreset.Candidate `json:"candidates,omitempty"`
+	Names      []string                   `json:"names,omitempty"`    // local-only listing; never import payload
+	Manifest   *presetfiles.BambuManifest `json:"manifest,omitempty"` // local-only index, not selectable printers
+	Candidates []printerpreset.Candidate  `json:"candidates,omitempty"`
 }
 
 type wireInput struct {
@@ -82,7 +83,7 @@ func validateRequest(req wireRequest) bool {
 	if req.Version != 1 {
 		return false
 	}
-	if req.Operation == "list" {
+	if req.Operation == "list" || req.Operation == "manifest" {
 		return len(req.Inputs) == 0 && len(req.Picks) == 0 && boundedText(req.Root, 4096, false)
 	}
 	if req.Operation != "project" || req.Root != "" || len(req.Inputs) == 0 || len(req.Inputs) > 2 ||
@@ -226,6 +227,10 @@ func init() {
 		worker_source_rejected worker_request_invalid worker_request_limit worker_response_limit`) {
 		scanCodes[Code(code)] = true
 	}
+	for _, code := range strings.Fields(`manifest_invalid manifest_unsupported manifest_bytes_exceeded
+		manifest_structure_limit manifest_entry_limit manifest_selection_invalid`) {
+		scanCodes[Code(code)] = true
+	}
 }
 
 func safeCode(err error) Code {
@@ -250,13 +255,18 @@ func decodeResponse(data []byte, request wireRequest) (Response, error) {
 		return Response{}, Code("worker_response_invalid")
 	}
 	if result.Code != "" {
-		if !scanCodes[result.Code] || len(result.Response.Names) != 0 || len(result.Response.Candidates) != 0 {
+		if !scanCodes[result.Code] || len(result.Response.Names) != 0 || len(result.Response.Candidates) != 0 || result.Response.Manifest != nil {
 			return Response{}, Code("worker_response_invalid")
 		}
 		return Response{}, result.Code
 	}
-	if request.Operation == "list" {
-		if len(result.Response.Candidates) != 0 || len(result.Response.Names) > presetfiles.MaxEntries {
+	if request.Operation == "manifest" {
+		if len(result.Response.Names) != 0 || len(result.Response.Candidates) != 0 ||
+			result.Response.Manifest == nil || !result.Response.Manifest.Validate() {
+			return Response{}, Code("worker_response_invalid")
+		}
+	} else if request.Operation == "list" {
+		if result.Response.Manifest != nil || len(result.Response.Candidates) != 0 || len(result.Response.Names) > presetfiles.MaxEntries {
 			return Response{}, Code("worker_response_invalid")
 		}
 		for i, name := range result.Response.Names {
@@ -266,7 +276,7 @@ func decodeResponse(data []byte, request wireRequest) (Response, error) {
 			}
 		}
 	} else {
-		if len(result.Response.Names) != 0 || len(result.Response.Candidates) != len(request.Picks) {
+		if result.Response.Manifest != nil || len(result.Response.Names) != 0 || len(result.Response.Candidates) != len(request.Picks) {
 			return Response{}, Code("worker_response_invalid")
 		}
 		for i, candidate := range result.Response.Candidates {
@@ -297,6 +307,8 @@ func Serve(input io.Reader, output io.Writer) int {
 		defer cancel()
 		if request.Operation == "list" {
 			result.Response.Names, err = presetfiles.ListJSON(ctx, request.Root)
+		} else if request.Operation == "manifest" {
+			result.Response.Manifest, err = presetfiles.ReadBambuManifest(ctx, request.Root)
 		} else {
 			inputs := make([]presetfiles.Input, len(request.Inputs))
 			for i, input := range request.Inputs {
