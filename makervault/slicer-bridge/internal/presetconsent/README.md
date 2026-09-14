@@ -3,6 +3,8 @@
 **Inactive in production.** MP-1b-8 added the local session and HTTP handler;
 MP-1b-9a adds its bounded numeric-loopback host and actual HTTP/browser harness.
 MP-1b-9b-1 adds an inactive Windows UI helper and one-attempt owned-URL launcher.
+MP-1b-9b-2 adds Linux UI helpers; MP-1b-9b-3 wires asynchronous custom selection
+inside this still-inactive session, with synthetic HTTP/browser evidence only.
 There is no installed handler, production native UI dispatch, new protocol action, remote
 claim/import endpoint, stored snapshot or desktop application. Production main is
 unchanged. Mac-local preset import stays owner-deferred. No real workstation
@@ -47,10 +49,57 @@ while worker I/O is outstanding; late results cannot resurrect the session.
 
 State access is serialized. Locks are released during worker I/O so another local
 request or owner cancellation can revoke it. Request cancellation, session expiry
-and the original 15-second worker budget bound each operation. `View`, `Apply` and
+and the original 15-second worker budget bound each metadata operation. The
+explicitly consented asynchronous picker has separate ownership below. `View`, `Apply` and
 `TakeApproved` all check expiry/revocation before exposing data or authority. Call
 `Close` on teardown; this is not a secure-memory-erasure or immediate-GC guarantee.
 Backend dependencies are internal/test-injected, not an external adapter registry.
+
+## Asynchronous custom-folder consent — MP-1b-9b-3
+
+The initial page offers **Allow local reading and choose a folder**, explicitly
+authorizing the native dialog without first looking up default hints. Alternatively,
+the root-choice page offers **Choose a custom folder** after ordinary reading
+consent. Both use the existing CSRF/revision-bound local POST with decision `browse`;
+no new HTTP fields, paths, account names, initial directory or native options.
+GET, stale forms, pre-cancelled requests, wrong stages and missing providers cannot
+launch it. The default locally constructed backend calls `presetui.PickFolder`.
+Production main still does not dispatch the private UI action; this is not activation.
+
+Acceptance rotates the revision, removes old choices, starts one callback and
+returns the HTTP page immediately. Its context is bounded by the existing session
+expiry and **90s picker budget**, not the accepting request's 20s deadline. A later
+request disconnect does not revoke accepted local interaction. The script-free
+waiting page offers an explicit same-path GET **Refresh status**, **Cancel folder
+selection**, and whole-preview **Cancel**. No automatic polling or tab-close detector.
+
+`stop-picker` needs a current revision and cancels only the picker. The busy slot
+remains occupied until its callback returns; no restart, parallel picker or metadata
+work queues behind it. Whole-session cancellation/expiry/owner shutdown cancels it
+and immediately revokes visible authority. Late successful results are discarded.
+Host `Done` still does not guarantee arbitrary callback or OS-provider UI cleanup;
+the helper supervisor's actual kill/reap slot remains a separate bound. One bounded
+operation may retain its previous choices in memory until it returns; no secure
+erasure or hard-real-time callback completion is asserted.
+
+A successful canonical local path is validated with the existing pure root planner,
+kept only in local session memory, and offered as one **unselected opaque ID** with
+a generic workstation-folder label. **Use this folder** must still be submitted
+before account enumeration, and account/system selection precedes preset discovery.
+The dialog confirms which folder was picked; its raw result is not rendered into
+HTML/form fields or normalized preview. Existing default/configured-root hint labels
+may display local paths; this change does not claim to remove those older labels.
+Native folder browsing itself can access filesystem/provider state and is not a
+sandbox or profile-read grant. Error messages concern preset reads, not OS UI I/O.
+
+Cancellation, timeout, unsafe/empty paths and helper failure produce fixed redacted
+warnings, never an automatic scan. Any previous unselected roots return with fresh
+IDs; a successful new folder replaces them. Start-over discards the picked root and
+requires consent again, without extending expiry; a separately configured CustomRoot
+retains its pre-existing configuration semantics. Native Windows/Linux dialogs,
+provider side effects, accessibility, real profiles and installed versions remain
+unqualified. All browser picker completions in this checkpoint are test-only stdin
+signals, not evidence that the real native helper was dispatched.
 
 ## Local HTTP boundary
 
@@ -131,9 +180,11 @@ MP-1b-9 is split into evidence checkpoints, not closed. MP-1b-9a establishes the
 local server and synthetic browser lifecycle above. MP-1b-9b-1 adds the isolated
 [Windows helper foundation](../presetui/README.md) and one-attempt owned-URL launch,
 including local failure/cancellation revocation. MP-1b-9b-2 adds the inactive
-[Linux fixed-tool helper foundation](../presetui/LINUX.md). Asynchronous consented
-custom-root selection without HTTP paths is next; native Windows and Linux desktop
-qualification remain required. Do not reuse the legacy pairing launcher
+[Linux fixed-tool helper foundation](../presetui/LINUX.md). MP-1b-9b-3 adds the
+asynchronous consented selection above without submitted paths or longer HTTP
+deadlines. Next MP-1b-9b-4 is matched native Windows/Linux desktop qualification
+planning and scoped execution; production remains off until those checks pass.
+Do not reuse the legacy pairing launcher
 as qualified evidence: its Start-only/default-opener behavior is not this contract.
 Keep main/protocols
 inactive until native Windows/hint/reader/lifecycle, independently observed versions,

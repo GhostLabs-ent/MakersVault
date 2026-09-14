@@ -13,11 +13,18 @@ import (
 	"time"
 
 	"makersvault/slicer-bridge/internal/presetfiles"
+	"makersvault/slicer-bridge/internal/presetui"
 	"makersvault/slicer-bridge/internal/presetworker"
 	"makersvault/slicer-bridge/internal/printerpreset"
 )
 
 func TestMain(m *testing.M) {
+	if len(os.Args) == 2 && os.Args[1] == presetui.Argument {
+		os.Exit(31) // tests must never dispatch a real desktop UI
+	}
+	if len(os.Args) == 2 && os.Args[1] == "--local-picker-fixture" {
+		os.Exit(servePickerFixture())
+	}
 	if len(os.Args) == 2 && os.Args[1] == "--local-http-fixture" {
 		os.Exit(serveBrowserFixture())
 	}

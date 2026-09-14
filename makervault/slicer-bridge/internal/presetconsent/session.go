@@ -1,5 +1,5 @@
 // Package presetconsent is an inactive local preview/consent foundation. It has
-// no remote import, persistence, browser launch or production-main integration.
+// no remote import, persistence or production-main integration.
 package presetconsent
 
 import (
@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"makersvault/slicer-bridge/internal/presetfiles"
+	"makersvault/slicer-bridge/internal/presetui"
 	"makersvault/slicer-bridge/internal/presetworker"
 	"makersvault/slicer-bridge/internal/printerpreset"
 )
@@ -39,6 +40,7 @@ type View struct {
 	Origin, Stage, Warning, Revision, Digest, Preview string
 	Choices                                           []Choice
 	Busy                                              bool
+	CanPick, Picking, PickerStopping                  bool
 }
 
 // Action accepts only ephemeral local choice IDs and the currently displayed
@@ -51,6 +53,7 @@ type Action struct {
 type backend struct {
 	hints func(context.Context) ([]presetfiles.BambuLocation, error)
 	run   func(context.Context, presetworker.Request) (presetworker.Response, error)
+	pick  func(context.Context) (string, error)
 }
 type selection struct {
 	label, root, account string
@@ -69,6 +72,7 @@ type Session struct {
 	busy                                                 bool
 	serverStarted                                        bool
 	backend                                              backend
+	picker                                               *folderOperation
 }
 
 func token() string {
@@ -79,12 +83,18 @@ func token() string {
 }
 
 func New(ctx context.Context, config Config) (*Session, error) {
-	return newSession(ctx, config, backend{presetworker.NativeLocations, presetworker.Run})
+	return newSession(ctx, config, backend{
+		hints: presetworker.NativeLocations, run: presetworker.Run,
+		pick: func(ctx context.Context) (string, error) {
+			folder, err := presetui.PickFolder(ctx)
+			return folder.Path(), err
+		},
+	})
 }
 
 func newSession(ctx context.Context, config Config, runner backend) (*Session, error) {
 	u, err := url.Parse(config.Origin)
-	if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.Path != "" ||
+	if ctx == nil || err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.Path != "" ||
 		u.RawQuery != "" || u.ForceQuery || strings.HasSuffix(u.Host, ":") || u.Fragment != "" || u.Opaque != "" || len(config.Origin) > 2048 ||
 		u.String() != config.Origin || strings.ToLower(u.Host) != u.Host ||
 		config.ExpiresAt.IsZero() || !config.ExpiresAt.After(time.Now()) ||
@@ -139,9 +149,11 @@ func (s *Session) Close() {
 func (s *Session) View() View {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.live()
+	live := s.live()
 	v := View{Origin: s.origin, Stage: s.stage, Warning: s.warning, Revision: s.revision,
-		Digest: s.digest, Preview: string(s.preview), Busy: s.busy}
+		Digest: s.digest, Preview: string(s.preview), Busy: live && s.busy,
+		CanPick: live && s.backend.pick != nil && !s.busy && (s.stage == "consent" || s.stage == "roots"),
+		Picking: live && s.picker != nil, PickerStopping: live && s.picker != nil && s.picker.ctx.Err() != nil}
 	for _, id := range s.order {
 		v.Choices = append(v.Choices, Choice{id, s.choices[id].label})
 	}
@@ -161,6 +173,9 @@ func (s *Session) offer(items []selection) {
 // so cancellation/expiry and UI inspection can proceed. One revision is consumed
 // before work starts; replays/stale tabs cannot launch another scan or approve it.
 func (s *Session) Apply(ctx context.Context, action Action) error {
+	if ctx == nil {
+		return Code("consent_operation_cancelled")
+	}
 	s.mu.Lock()
 	if !s.live() {
 		s.mu.Unlock()
@@ -173,12 +188,29 @@ func (s *Session) Apply(ctx context.Context, action Action) error {
 		return nil
 	}
 	if s.busy {
+		if action.Decision == "stop-picker" && s.picker != nil && action.Revision == s.revision &&
+			len(action.Choices) == 0 && action.Digest == "" && ctx.Err() == nil {
+			s.picker.cancel()
+			s.revision = token()
+			s.mu.Unlock()
+			return nil
+		}
 		s.mu.Unlock()
 		return Code("consent_busy")
 	}
 	if action.Revision != s.revision {
 		s.mu.Unlock()
 		return Code("consent_stale")
+	}
+	if action.Decision == "browse" && (s.stage == "consent" || s.stage == "roots") &&
+		s.backend.pick != nil && len(action.Choices) == 0 && action.Digest == "" {
+		if ctx.Err() != nil {
+			s.mu.Unlock()
+			return Code("consent_operation_cancelled")
+		}
+		s.startPicker() // explicit consent; only the session owns work after acceptance
+		s.mu.Unlock()
+		return nil
 	}
 	if action.Decision == "restart" && len(action.Choices) == 0 && action.Digest == "" {
 		s.clear()
