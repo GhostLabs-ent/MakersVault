@@ -130,9 +130,10 @@ cleanup is claimed. The old direct file/hint APIs remain cooperative if bypassed
 MP-1b-9 is split into evidence checkpoints, not closed. MP-1b-9a establishes the
 local server and synthetic browser lifecycle above. MP-1b-9b-1 adds the isolated
 [Windows helper foundation](../presetui/README.md) and one-attempt owned-URL launch,
-including local failure/cancellation revocation. Linux helpers and asynchronous
-consented custom-root selection without HTTP paths remain next; native Windows
-execution is still required. Do not reuse the legacy pairing launcher
+including local failure/cancellation revocation. MP-1b-9b-2 adds the inactive
+[Linux fixed-tool helper foundation](../presetui/LINUX.md). Asynchronous consented
+custom-root selection without HTTP paths is next; native Windows and Linux desktop
+qualification remain required. Do not reuse the legacy pairing launcher
 as qualified evidence: its Start-only/default-opener behavior is not this contract.
 Keep main/protocols
 inactive until native Windows/hint/reader/lifecycle, independently observed versions,

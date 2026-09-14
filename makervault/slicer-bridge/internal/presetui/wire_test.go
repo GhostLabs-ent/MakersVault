@@ -86,7 +86,7 @@ func TestUIResponseAuthorityAndAtomicity(t *testing.T) {
 }
 
 func TestUIServePlatformAndIOFailures(t *testing.T) {
-	for _, platform := range []string{"linux", "darwin", "unknown"} {
+	for _, platform := range []string{"darwin", "unknown"} {
 		var out bytes.Buffer
 		serve(strings.NewReader(`{"Version":1,"Operation":"folder"}`), &out, platform, func(request) (string, error) { t.Fatal("unsupported action executed"); return "", nil })
 		if !strings.Contains(out.String(), "ui_platform_unsupported") {
@@ -108,7 +108,7 @@ func TestUIEnvironmentAllowlist(t *testing.T) {
 	if strings.Join(keys, ",") != "SystemRoot,SystemDrive,USERPROFILE,LOCALAPPDATA,APPDATA,TEMP,TMP" || len(values) != 8 {
 		t.Fatal("desktop environment widened")
 	}
-	if got := uiEnvironment("linux", func(string) string { t.Fatal("unsupported lookup"); return "" }); len(got) != 1 {
+	if got := uiEnvironment("darwin", func(string) string { t.Fatal("unsupported lookup"); return "" }); len(got) != 1 {
 		t.Fatal("environment inherited")
 	}
 }
@@ -130,7 +130,7 @@ func TestUIPublicPreflightNeverLaunches(t *testing.T) {
 	if err := OpenBrowser(context.Background(), "file:///private"); err != Code("ui_request_invalid") {
 		t.Fatal(err)
 	}
-	if runtime.GOOS != "windows" {
+	if runtime.GOOS != "windows" && runtime.GOOS != "linux" {
 		if _, err := PickFolder(context.Background()); err != Code("ui_platform_unsupported") {
 			t.Fatal(err)
 		}

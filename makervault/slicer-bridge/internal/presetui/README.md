@@ -1,8 +1,8 @@
-# Inactive native UI helpers — MP-1b-9b-1
+# Inactive native UI helpers — MP-1b-9b
 
-Windows amd64/arm64 implementation foundation, **not native qualification**.
+Windows and Linux amd64/arm64 implementation foundations, **not desktop qualification**.
 Production main has no dispatch/caller; existing pairing and file-open launchers
-are unchanged. Linux native helpers remain the next checkpoint, not deferred;
+are unchanged. [Linux fixed-tool helpers](LINUX.md) now have isolated exec/policy tests;
 macOS new local preset import remains owner-deferred. Unsupported targets refuse.
 Neither helper slices, prints, opens model files or uploads anything.
 
@@ -20,8 +20,11 @@ context and expiry own the page lifetime. Success never means browser readiness.
 
 Browser timeout 15s; folder timeout 90s, shortened by caller cancellation/deadline.
 The separate UI supervisor has one active/unreaped child per parent, owned pipes,
-1-KiB input, 32-KiB output and 4-KiB diagnostic limits. Any stderr or exit failure
-discards output and returns a fixed code. Malformed, duplicate, aliased, nested,
+1-KiB input, 32-KiB output and 4-KiB diagnostic limits. Private-pipe stderr or exit failure
+discards output and returns a fixed code. Linux's native browser phase redirects
+stdio to validated `/dev/null` and uses exit status, avoiding browser-held pipes.
+The Linux folder phase recognizes exit 1 as cancelled only after clean pipe completion.
+Malformed, duplicate, aliased, nested,
 oversized or partial/error-plus-path frames fail closed. A selected folder has no
 exported JSON field; its path is returned only to a local owner through private IPC.
 The existing pure Windows root policy rejects UNC/device/drive-root/traversal/ADS
@@ -40,7 +43,8 @@ USERPROFILE, LOCALAPPDATA, APPDATA, TEMP and TMP, plus the fixed race-test exit 
 No PATH/COMSPEC/BROWSER or arbitrary parent credentials are copied. Desktop/profile
 variables are needed for OS UI context; compatibility needs native testing. The
 more restrictive **file-worker environment is unchanged**. No shell command,
-PowerShell script, PATH lookup or fallback opener is used by this new package.
+PowerShell script, helper PATH lookup or fallback opener is used by this new package.
+Linux reconstructs a separately validated desktop environment; see its contract.
 
 ## Windows implementation and unqualified OS behavior
 
@@ -75,9 +79,9 @@ on 2026-09-14; this mutable reference is not a pinned SDK or device qualificatio
 
 ## Required next work
 
-MP-1b-9b remains open: Linux helper implementation, asynchronous **consented** custom
+MP-1b-9b remains open: asynchronous **consented** custom
 folder selection in the local owner/session (never a raw HTTP path), then matched
-private dispatch/native Windows qualification and real profile/version evidence.
+private dispatch/native Windows and Linux desktop qualification and real profile/version evidence.
 Do not put a 90s dialog inside the existing 20s HTTP handler or raise that budget.
 Independent installed-app/bundle versions, reader/hint lifecycle, owner Windows
 Bambu Studio v2.8.0.6 and native UI must be qualified together before activation.

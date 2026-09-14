@@ -13,12 +13,17 @@ import (
 )
 
 // Tests NEVER dispatch a real native UI, including when run on Windows.
+var nativeFixture func(string)
+
 func TestMain(m *testing.M) {
 	if len(os.Args) == 2 && os.Args[1] == Argument {
 		os.Exit(31)
 	}
 	if len(os.Args) == 2 && strings.HasPrefix(os.Args[1], "--fixture-") {
 		mode := strings.TrimPrefix(os.Args[1], "--fixture-")
+		if nativeFixture != nil {
+			nativeFixture(mode)
+		}
 		hang := func() {
 			for {
 				time.Sleep(time.Hour)
@@ -29,6 +34,15 @@ func TestMain(m *testing.M) {
 		}
 		_, _ = io.Copy(io.Discard, os.Stdin)
 		switch mode {
+		case "native-cancel":
+			os.Stdout.WriteString("/private/partial\n")
+			os.Exit(1)
+		case "native-cancel-diagnostic":
+			os.Stderr.WriteString("PRIVATE_DIAGNOSTIC")
+			os.Exit(1)
+		case "native-folder":
+			os.Stdout.WriteString("/home/fixture/Bambu Studio\n")
+			os.Exit(0)
 		case "stdout-overflow":
 			_, _ = os.Stdout.Write(bytes.Repeat([]byte("x"), MaxResponseBytes+1))
 			hang()

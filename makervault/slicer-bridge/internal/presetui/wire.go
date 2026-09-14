@@ -179,7 +179,7 @@ func serve(input io.Reader, output io.Writer, platform string, action func(reque
 	res := response{Version: 1}
 	if err != nil || decode(data, &req, MaxRequestBytes) != nil || !validRequest(req) {
 		res.Code = "ui_request_invalid"
-	} else if platform != "windows" {
+	} else if platform != "windows" && platform != "linux" {
 		res.Code = "ui_platform_unsupported"
 	} else {
 		res.Path, err = action(req)

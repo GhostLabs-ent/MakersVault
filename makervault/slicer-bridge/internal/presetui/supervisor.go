@@ -50,6 +50,15 @@ func uiEnvironment(platform string, lookup func(string) string) []string {
 			}
 		}
 	}
+	if platform == "linux" {
+		// Only desktop/session paths cross the self-worker boundary. The Linux
+		// exec stage validates these and reconstructs the native-tool environment.
+		for _, key := range linuxDesktopKeys {
+			if value := lookup(key); value != "" {
+				values = append(values, key+"="+value)
+			}
+		}
+	}
 	return values
 }
 
@@ -69,7 +78,7 @@ func run(ctx context.Context, req request) (string, error) {
 	if !validRequest(req) {
 		return "", Code("ui_request_invalid")
 	}
-	if runtime.GOOS != "windows" || (runtime.GOARCH != "amd64" && runtime.GOARCH != "arm64") {
+	if (runtime.GOOS != "windows" && runtime.GOOS != "linux") || (runtime.GOARCH != "amd64" && runtime.GOARCH != "arm64") {
 		return "", Code("ui_platform_unsupported")
 	}
 	data, err := json.Marshal(req)
@@ -82,11 +91,16 @@ func run(ctx context.Context, req request) (string, error) {
 	}
 	cmd := exec.Command(executable, Argument)
 	cmd.Env = uiEnvironment(runtime.GOOS, os.Getenv)
-	result, err := supervise(ctx, cmd, data)
+	result, err := superviseExit(ctx, cmd, data, runtime.GOOS == "linux" && req.Operation == "folder")
 	if err != nil {
 		return "", err
 	}
-	value, err := decodeResponse(result, req, runtime.GOOS)
+	var value string
+	if runtime.GOOS == "linux" {
+		value, err = decodeLinuxResult(result, req)
+	} else {
+		value, err = decodeResponse(result, req, runtime.GOOS)
+	}
 	if ctx.Err() != nil {
 		return "", contextCode(ctx)
 	}
@@ -100,6 +114,10 @@ type event struct {
 }
 
 func supervise(ctx context.Context, cmd *exec.Cmd, request []byte) ([]byte, error) {
+	return superviseExit(ctx, cmd, request, false)
+}
+
+func superviseExit(ctx context.Context, cmd *exec.Cmd, request []byte, picker bool) ([]byte, error) {
 	if ctx.Err() != nil {
 		return nil, contextCode(ctx)
 	}
@@ -190,12 +208,20 @@ func supervise(ctx context.Context, cmd *exec.Cmd, request []byte) ([]byte, erro
 		release() // release only after actual reap and pipe cleanup
 	}()
 	var response []byte
+	var cancelled bool
 	for remaining := 4; remaining > 0; remaining-- {
 		select {
 		case <-ctx.Done():
 			_ = cmd.Process.Kill()
 			return nil, contextCode(ctx)
 		case item := <-events:
+			// Zenity's documented cancel exit is recognized only after all pipes
+			// finish. Any diagnostic, overflow or other failure still wins.
+			var status *exec.ExitError
+			if picker && item.kind == "exit" && errors.As(item.err, &status) && status.ExitCode() == 1 {
+				cancelled = true
+				item.err = nil
+			}
 			if item.err != nil {
 				_ = cmd.Process.Kill()
 				if ctx.Err() != nil {
@@ -218,5 +244,8 @@ func supervise(ctx context.Context, cmd *exec.Cmd, request []byte) ([]byte, erro
 	// successful sequential operations need not race the reaper for the slot.
 	copying.Wait()
 	release()
+	if cancelled {
+		return nil, Code("ui_cancelled")
+	}
 	return response, nil
 }
