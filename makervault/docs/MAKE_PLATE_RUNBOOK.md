@@ -6,9 +6,10 @@
 single-use supervisor, Bambu manifest index, anchored location inspection and
 explicit-machine content discovery, bounded saved-user machine projection,
 local account choices/native location hints, and the inactive local selection/
-consent session and page are locally verified. Windows hint lookup now uses the
-bounded private worker. Actual local-server/browser-launch lifecycle, independent
-version/profile observations and native Windows qualification remain open.
+consent session/page and bounded loopback host are locally verified. Windows hint
+lookup uses the bounded private worker. MP-1b-9a adds actual HTTP/browser evidence;
+native browser/folder-picker helpers, independent version/profile observations
+and native Windows qualification remain open.
 MP-1b remains open and inactive in production.
 An owner-provided Intel Mac passes 34 default and 42 ordinary experimental unit
 checks; two additional counterexamples reproduce failed pre-open safety properties.
@@ -234,6 +235,16 @@ re-cock protocol. New gate numbers do not reset or falsely close Gates 0–13.
   custom-root selection. Keep main/protocols inactive until native Windows/hint/
   reader/lifecycle, independent versions, real profiles and matched dispatch gates
   are met. MP-1b and MP-1 remain open.
+  Subsequent [MP-1b-9a at `c7099ad`](evidence/gate-13/MAKE_PLATE_MP1B9A_RESULTS.md)
+  supplies the numeric-loopback host, connection/handler/time budgets and bounded
+  cancellation/expiry/consumption teardown. Actual browser forms exposed an
+  Origin-null incompatibility; same-origin referrer policy fixes it while preserving
+  exact Origin/CSRF checks and withholding cross-origin Referer. 181 unit tests/race,
+  vet, six targets (30 builds), ten fuzz smokes and 25 real-HTTP browser scenarios
+  pass; four failed captures remain recorded. MP-1b-9 is split, not closed:
+  **next MP-1b-9b is bounded native browser/folder-picker helpers and owner lifecycle**.
+  No native helper, installed-handler change, production caller, remote import or
+  real-profile qualification is delivered; matched/native/version gates still apply.
 - **MP-1c:** Scoped claim/review/commit authority plus immutable preset storage and
   its additive migration, portable v1/v2 and raw-recovery counterparts as one coherent
   persistence slice. Shared strict wire fixtures must prove API/bridge parity.

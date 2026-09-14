@@ -4,7 +4,7 @@
 
 **Baseline date:** 2026-09-14
 
-**Committed baseline:** `main` inactive Bambu local consent/session/page and bounded hint-worker foundation at `dafb3fb`, after local account choices/native hints at `9a72c91`, saved-user machine projection at `ff310d7`, explicit-machine discovery/selection at `535a0a1`, location planning/anchored inspection at `123e0ba`, manifest index/worker at `a9a44ca`, experimental-only macOS reader at `907cddd` (default unsupported, new Mac preset import deferred), MP-1b-2 Windows reader/isolated supervisor at `60bd90c`, MP-1b-1 Linux reader at `8a9b424`, MP-1a parser at `a88de92`, MP-0 bridge repairs at `d116997`, UP-1 web progress at `b059dd7` and approved six-package native update at `6306ccf` (schema 17; Gate 13B accepted at `2f61b37`, 13C qualification open and not accepted)
+**Committed baseline:** `main` inactive bounded local HTTP consent host at `c7099ad`, after Bambu local consent/session/page and bounded hint-worker foundation at `dafb3fb`, after local account choices/native hints at `9a72c91`, saved-user machine projection at `ff310d7`, explicit-machine discovery/selection at `535a0a1`, location planning/anchored inspection at `123e0ba`, manifest index/worker at `a9a44ca`, experimental-only macOS reader at `907cddd` (default unsupported, new Mac preset import deferred), MP-1b-2 Windows reader/isolated supervisor at `60bd90c`, MP-1b-1 Linux reader at `8a9b424`, MP-1a parser at `a88de92`, MP-0 bridge repairs at `d116997`, UP-1 web progress at `b059dd7` and approved six-package native update at `6306ccf` (schema 17; Gate 13B accepted at `2f61b37`, 13C qualification open and not accepted)
 
 **Latest full verification:** clean committed `6306ccf`;
 [native-update evidence](evidence/gate-13/SECURITY_NATIVE_UPDATE_RESULTS.md).
@@ -108,6 +108,15 @@ Next MP-1b-9 is the isolated local-server/browser-launch lifecycle harness. No
 listener, launcher, remote import authority, persistence or production caller is
 delivered; actual HTTP and native Windows/hint/reader/lifecycle, independent versions,
 real profiles and matched main remain open. MP-1b and MP-1 are not closed.
+Subsequent [MP-1b-9a at `c7099ad`](evidence/gate-13/MAKE_PLATE_MP1B9A_RESULTS.md)
+adds numeric-loopback hosting, connection/handler/time limits and bounded teardown.
+181 unit tests/race, vet, six targets (30 builds), ten fuzz smokes and 25 actual-HTTP
+browser scenarios pass, including six full approval flows/36 stages. Four failed
+captures remain recorded; native form Origin-null rejection was corrected with
+same-origin referrer policy, not weakened Origin/CSRF checks. MP-1b-9 is split:
+next MP-1b-9b is bounded native browser/folder-picker helpers and owner lifecycle.
+Production dispatch, native device/profile/version qualification and remote import
+remain open; existing pairing/main/API/schema and OS hint providers are unchanged.
 The security reviews recheck durable evidence, not rerun the full gate. Earlier
 browser results and WebKit synthetic-drop limits remain separately dated; G13-01
 performance tuning stays deferred. Nothing is pushed or release-qualified.
@@ -410,6 +419,7 @@ row's future-tense wording.
 | T-093 | `VERIFIED` / `OPEN` | Owner directs MP-1b-6. Saved-user machine projection at `ff310d7` uses selected machine-folder context, requires user/version headers, preserves explicit hidden state and keeps generic/system parsing strict. Old-source rejection is reproduced; 136 unit tests/race, 144 top-level / 294 inclusive passes, vet, six target builds and eight fuzz smokes pass; six log hashes verified | `docs/evidence/gate-13/MAKE_PLATE_MP1B6_RESULTS.md`, saved-user drivers/index/checker and pinned source contract | Next MP-1b-7: bounded local account-choice enumeration/native hints. Nested custom bases/version suffixes, installed profiles/versions, picker/consent and native Windows/lifecycle remain unqualified; MP-1b/MP-1 stay open. No production dispatch, API/schema change, full gate/scan, waiver transfer, workstation/device test, push or publication; existing deferrals unchanged. |
 | T-094 | `VERIFIED` / `OPEN` | Owner directs MP-1b-7. Local account choices/native hints at `9a72c91` use bounded metadata-only listing and unobserved root suggestions, without automatic selection or worker environment expansion. 152 unit tests/race, 161 top-level / 326 inclusive passes, vet, six target builds and nine fuzz smokes pass; four log hashes verified | `docs/evidence/gate-13/MAKE_PLATE_MP1B7_RESULTS.md`, accounts driver/index/checker and primary-source contract | Next MP-1b-8: local root/account picker and consent-session foundation. Native hint acquisition is not yet hard-deadline isolated; native Windows/reader/lifecycle, real profiles/versions and matched main remain open. No production dispatch, API/schema change, full gate/scan, waiver transfer, native-device test, MP-1b/MP-1 closure, push or publication; existing deferrals unchanged. |
 | T-095 | `VERIFIED` / `OPEN` | Owner directs MP-1b-8. Inactive local consent/session/page at `dafb3fb` requires explicit read/root/account/preset choices, fresh exact-byte review and one-use consumption; Windows hint lookup uses the bounded private worker without wider environment inheritance. 172 unit tests/race, 182 top-level / 370 inclusive passes, vet, six targets (30 builds), ten fuzz smokes and 36 offline browser rendering checks pass; 47 artifact hashes checked | `docs/evidence/gate-13/MAKE_PLATE_MP1B8_RESULTS.md`, consent drivers/index/checker; eight captures retain two initial narrow-review overflow failures and their CSS correction | Next MP-1b-9: isolated local-server/browser-launch lifecycle harness. No listener/launcher, remote import authority, stored preset or production dispatch delivered; native Windows/hint/reader/lifecycle, real profiles/versions and matched main remain open. HTTP recorder/synthetic browser checks are not live-server or device qualification. No API/schema change, full gate/scan, waiver transfer, MP-1b/MP-1 closure, push or publication; existing deferrals unchanged. |
+| T-096 | `VERIFIED` / `OPEN` | Owner directs MP-1b-9 continuation, split into local-host and native-helper checkpoints. MP-1b-9a at `c7099ad` adds numeric-loopback hosting, connection/handler/time limits, revocation/expiry/consumption teardown and same-origin referrer policy fixing native form Origin-null rejection without weakening Origin/CSRF checks. 181 unit tests/race, 191 top-level / 400 inclusive passes, vet, six targets (30 builds), ten fuzz smokes and 25 actual-HTTP browser scenarios pass | `docs/evidence/gate-13/MAKE_PLATE_MP1B9A_RESULTS.md`, local-server drivers/index/checker; ten captures retain four failures, including mixed-source/readiness orchestration failures and reproduced browser rejection | Next MP-1b-9b: bounded native browser/folder-picker helpers and owner lifecycle. Browser fixtures use synthetic backends, not real profiles, native launching, physical tablets or vault import; native Windows/hint/reader/lifecycle, independent versions and matched production main remain open. No API/schema change, native-device access, full gate/scan, waiver transfer, gate closeout, push or publication. Existing deferrals unchanged. |
 
 ### 5.4 Current storage invariants
 
@@ -1500,10 +1510,12 @@ guessing. [MP-1b-7 account choices/native hints](evidence/gate-13/MAKE_PLATE_MP1
 are now verified at `9a72c91`; names remain local and no choice is automatic.
 [MP-1b-8 local consent/session/page](evidence/gate-13/MAKE_PLATE_MP1B8_RESULTS.md)
 is now verified at `dafb3fb`, with bounded Windows hint-worker lookup and 36 offline
-browser rendering checks. No listener/launcher or remote import is enabled.
-**Next MP-1b-9: isolated local-server/browser-launch lifecycle harness**: actual
-HTTP forms, bounded connections/timeouts, cancellation/teardown and bounded native
-custom-root selection. Nested custom bases/version suffixes, real profiles,
+browser rendering checks. The subsequent [MP-1b-9a local HTTP host](evidence/gate-13/MAKE_PLATE_MP1B9A_RESULTS.md)
+at `c7099ad` now verifies bounded hosting/teardown and 25 actual-HTTP browser scenarios.
+MP-1b-9 is split, not closed. **Next MP-1b-9b: bounded native browser/folder-picker
+helpers and owner lifecycle**, with fixed trusted invocation, timeout/reaping and
+custom-root selection without HTTP paths. No production listener, native launcher
+or remote import is enabled. Nested custom bases/version suffixes, real profiles,
 independent app versions and native Windows/hint/reader/lifecycle qualification
 remain open. Keep scanning inactive until matched consented worker integration
 and those boundaries are met. Mac preset import stays

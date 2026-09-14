@@ -96,6 +96,17 @@ a live listener, validate a native launcher or qualify physical tablet/accessibi
 behavior. Windows code is compiled only; real profiles/versions, actual HTTP and
 native Windows/hint/reader/lifecycle remain open. No production dispatch or import.
 
+**MP-1b-9a update:** [Local HTTP results](MAKE_PLATE_MP1B9A_RESULTS.md) add actual
+numeric-loopback form/Host/Origin, connection-budget, deadline and teardown fixtures.
+181 unit tests/race, ten fuzz smokes and 25 three-engine/two-viewport browser scenarios
+pass. A test-only executable supplies a synthetic backend and private readiness/
+teardown pipe; its byte hash joins browser evidence to the Go build. Six complete
+approval flows cover 36 HTTP stages; cancellation, foreign-origin refusal and
+cross-origin referrer privacy are independently exercised. Four failed captures
+are retained, including the reproduced Origin-null issue and orchestration failures.
+Native browser/folder-picker helpers and physical-device/profile/version evidence
+remain pending. Production main, API/schema and prior native providers are unchanged.
+
 | Target | Pinned public source | Required fixture coverage / observed shape |
 |---|---|---|
 | Bambu Studio 2.8.2.61 | [Release](https://github.com/bambulab/BambuStudio/releases/tag/v02.08.02.61), commit `926a7192574bcb9b3a732e1ec59a46d79cb45466` | P1S 0.4 child → `fdm_bbl_3dp_001_common` → `fdm_machine_common`; string-valued scalar/array numbers, inherited geometry and child exclusion override; G-code `include` references must not be followed |
