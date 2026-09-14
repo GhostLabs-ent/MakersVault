@@ -116,6 +116,15 @@ the completed source-bound synthetic executable. No real dialog, browser handler
 profile or workstation version is qualified. Linux native helpers and asynchronous
 consented custom selection remain next; all production dispatch stays inactive.
 
+**MP-1b-9b-2 update:** [Linux UI foundation results](MAKE_PLATE_MP1B9B2_RESULTS.md)
+add command/environment/output policy, exit/cancel/redaction and held-system-ELF
+fixtures. Actual harmless `true` and test-only self-exec prove ordinary Linux exec,
+same PID and browser stdio separation; they are not GIO/Zenity desktop tests.
+200 unit tests/race, 13 fuzz smokes, 36 cross-builds and 25 source-bound actual-HTTP
+browser regressions pass. No real handler/dialog/profile/version qualification.
+Next is asynchronous consented custom selection; native desktop/device and matched
+dispatch checks remain open. No production activation or dependency installation.
+
 | Target | Pinned public source | Required fixture coverage / observed shape |
 |---|---|---|
 | Bambu Studio 2.8.2.61 | [Release](https://github.com/bambulab/BambuStudio/releases/tag/v02.08.02.61), commit `926a7192574bcb9b3a732e1ec59a46d79cb45466` | P1S 0.4 child → `fdm_bbl_3dp_001_common` → `fdm_machine_common`; string-valued scalar/array numbers, inherited geometry and child exclusion override; G-code `include` references must not be followed |

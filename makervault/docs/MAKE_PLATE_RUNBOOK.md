@@ -9,8 +9,9 @@ local account choices/native location hints, and the inactive local selection/
 consent session/page and bounded loopback host are locally verified. Windows hint
 lookup uses the bounded private worker. MP-1b-9a adds actual HTTP/browser evidence;
 MP-1b-9b-1 adds the inactive Windows UI helper foundation and owned-URL launch.
-Linux helpers, consented custom-picker wiring, independent version/profile
-observations and native Windows qualification remain open.
+MP-1b-9b-2 adds inactive Linux fixed-tool helpers with isolated exec/policy evidence.
+Consented custom-picker wiring, independent version/profile observations and native
+Windows/Linux desktop qualification remain open.
 MP-1b remains open and inactive in production.
 An owner-provided Intel Mac passes 34 default and 42 ordinary experimental unit
 checks; two additional counterexamples reproduce failed pre-open safety properties.
@@ -255,6 +256,15 @@ re-cock protocol. New gate numbers do not reset or falsely close Gates 0–13.
   **Next MP-1b-9b-2: Linux native helpers**, followed by asynchronous consented custom
   selection and matched/native qualification. No production dispatch, remote import,
   real-profile/version qualification or MP-1b-9b/MP-1b closeout.
+  Subsequent [MP-1b-9b-2 at `47943b0`](evidence/gate-13/MAKE_PLATE_MP1B9B2_RESULTS.md)
+  adds fixed root-owned GIO/Zenity invocation, held-ELF same-PID exec, Linux desktop
+  environment/output controls and browser private-pipe isolation. 200 unit tests/
+  race, vet, six targets (36 builds), 13 fuzz smokes and 25 actual-HTTP browser
+  scenarios pass; 29 artifact hashes checked. Ordinary Linux exec is exercised,
+  not actual GIO/Zenity desktop behavior. Conventional tool/session prerequisites
+  and native Windows/Linux qualification remain explicit before activation.
+  **Next MP-1b-9b-3: asynchronous consented custom-folder selection**, without HTTP
+  paths or longer handler deadlines. No production dispatch, remote import or gate closure.
 - **MP-1c:** Scoped claim/review/commit authority plus immutable preset storage and
   its additive migration, portable v1/v2 and raw-recovery counterparts as one coherent
   persistence slice. Shared strict wire fixtures must prove API/bridge parity.
