@@ -17,8 +17,11 @@ all loaded parent chains and list only explicit true instantiation). Parser vers
 `bambu-projection-2` additionally rejects malformed instantiation, case-aliased
 headers/duplicates and non-ASCII keys. Original projection fingerprints therefore
 carry a different parser version; old evidence is historical, not requalified.
-See the [content adapter's limits](../presetfiles/DISCOVERY.md), especially ordinary
-saved-user files without explicit machine headers, which are not supported yet.
+MP-1b-6 adds `AddLocalUserMachine` for the selected machine-directory context,
+requiring user/version headers and retaining explicit hidden settings. Missing
+instantiation is selectable only on that dedicated path. Generic/system schemas
+remain strict. File version is validated locally then discarded; current parser
+version is `bambu-projection-3`. See the [saved-user contract and limits](../presetfiles/SAVED_USER.md).
 
 The source namespace and discarded settings do not enter the candidate or its
 fingerprint. Source labels may still contain user-authored private text: the later
@@ -36,7 +39,7 @@ The future API must independently validate submitted metadata.
 
 - Exact namespace/name inheritance; system profiles cannot inherit user profiles.
   Ambiguous user/system parents fail instead of guessing precedence. Hidden/missing
-  instantiation is not assumed selectable. Actual user-profile discovery and vendor
+  instantiation is not assumed selectable by generic/system parsing. Actual profiles and vendor
   precedence compatibility remain to be qualified.
 - FFF/corexy, i3 or delta descriptions; one nozzle; one distinct tool identity.
   Unsupported multiple-tool, per-tool or auxiliary wrapping geometry is explicit.

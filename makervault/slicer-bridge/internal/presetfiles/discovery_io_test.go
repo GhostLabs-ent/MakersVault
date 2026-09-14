@@ -17,7 +17,7 @@ import (
 
 const discoveryBase = `{"type":"machine","name":"Base","instantiation":false,"printer_technology":"FFF","printer_structure":"corexy","printable_area":["0x0","200x0","200x200","0x200"],"printable_height":"200","bed_exclude_area":[],"nozzle_diameter":["0.4"]}`
 const discoveryChild = `{"type":"machine","name":"Printer","instantiation":true,"inherits":"Base","include":["Printer template machine_start_gcode"],"machine_start_gcode":"FAKE_PRIVATE_SCRIPT","secret":"FAKE_PRIVATE_CREDENTIAL"}`
-const discoveryUser = `{"type":"machine","name":"My printer","instantiation":"true","inherits":"Printer","from":"User"}`
+const discoveryUser = `{"type":"machine","name":"My printer","instantiation":"true","inherits":"Printer","from":"User","version":"2.8.2.61"}`
 const discoveryManifest = `{"name":"Bambulab","version":"1.2.3.4","machine_list":[{"name":"Printer","sub_path":"machine/not-the-name.json"},{"name":"Base","sub_path":"machine/base.json"},{"name":"Printer template machine_start_gcode","sub_path":"machine/include-trap.json"}]}`
 
 func writeDiscoveryFixture(t *testing.T, root, relative, data string) {
@@ -100,9 +100,9 @@ func TestDiscoveryFailsAtomicallyOnIdentityAndGraphErrors(t *testing.T) {
 		{"unsupported-include", "system/BBL/machine/not-the-name.json", strings.Replace(discoveryChild, "Printer template machine_start_gcode", "other-geometry", 1), "unsupported_include"},
 		{"script-parent", "system/BBL/machine/not-the-name.json", strings.Replace(discoveryChild, `"inherits":"Base"`, `"inherits":"Printer template machine_start_gcode"`, 1), "missing_parent"},
 		{"wrong-type", "system/BBL/machine/not-the-name.json", strings.Replace(discoveryChild, `"machine"`, `"filament"`, 1), "invalid_machine_identity"},
-		{"saved-user-without-machine-headers", "user/private-account/machine/local-file.json", `{"name":"Local saved preset","from":"User","version":"2.8.0.6","inherits":"Printer"}`, "invalid_machine_identity"},
+		{"system-without-machine-headers", "system/BBL/machine/not-the-name.json", `{"name":"Printer","from":"User","version":"2.8.2.61","inherits":"Base"}`, "invalid_machine_identity"},
 		{"future-schema", "system/BBL/machine/not-the-name.json", strings.Replace(discoveryChild, `"type":`, `"schema_version":99,"type":`, 1), "unsupported_source_schema"},
-		{"ambiguous-parent", "user/private-account/machine/extra.json", `{"type":"machine","name":"Printer","instantiation":false}`, "ambiguous_parent"},
+		{"ambiguous-parent", "user/private-account/machine/extra.json", `{"type":"machine","name":"Printer","instantiation":false,"from":"User","version":"2.8.2.61"}`, "ambiguous_parent"},
 		{"duplicate-user", "user/private-account/machine/extra.json", discoveryUser, "ambiguous_identity"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

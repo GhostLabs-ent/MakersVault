@@ -19,14 +19,14 @@ var retained = map[string]bool{
 	"head_wrap_detect_zone": true, "wrapping_exclude_area": true,
 }
 
-func (c *Catalog) project(data []byte) (map[string]any, error) {
+func (c *Catalog) project(data []byte, localUserMachine bool) (map[string]any, error) {
 	if !utf8.Valid(data) {
 		return nil, Code("invalid_json")
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.UseNumber()
 	nodes := 0
-	value, err := c.jsonValue(decoder, true, 0, &nodes)
+	value, err := c.jsonValue(decoder, true, 0, &nodes, localUserMachine)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (c *Catalog) project(data []byte) (map[string]any, error) {
 
 // Token walking checks duplicate keys even in discarded objects. Unknown values
 // are validated but not retained; never marshal a raw vendor document for export.
-func (c *Catalog) jsonValue(d *json.Decoder, keep bool, depth int, nodes *int) (any, error) {
+func (c *Catalog) jsonValue(d *json.Decoder, keep bool, depth int, nodes *int, localUserMachine bool) (any, error) {
 	if err := c.check(); err != nil {
 		return nil, err
 	}
@@ -90,15 +90,15 @@ func (c *Catalog) jsonValue(d *json.Decoder, keep bool, depth int, nodes *int) (
 					return nil, Code("invalid_json_key")
 				}
 			}
-			if retained[folded] && key != folded {
+			if (retained[folded] || (localUserMachine && folded == "version")) && key != folded {
 				return nil, Code("invalid_json_key")
 			}
 			seen[folded] = true
 			if len(seen) > 2048 {
 				return nil, Code("json_budget_exceeded")
 			}
-			keepField := keep && (depth != 0 || retained[key])
-			value, err := c.jsonValue(d, keepField, depth+1, nodes)
+			keepField := keep && (depth != 0 || retained[key] || (localUserMachine && key == "version"))
+			value, err := c.jsonValue(d, keepField, depth+1, nodes, localUserMachine)
 			if err != nil {
 				return nil, err
 			}
@@ -121,7 +121,7 @@ func (c *Catalog) jsonValue(d *json.Decoder, keep bool, depth int, nodes *int) (
 			if keep && count > 256 {
 				return nil, Code("field_items_exceeded")
 			}
-			value, err := c.jsonValue(d, keep, depth+1, nodes)
+			value, err := c.jsonValue(d, keep, depth+1, nodes, localUserMachine)
 			if err != nil {
 				return nil, err
 			}

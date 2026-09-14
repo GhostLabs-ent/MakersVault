@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	ParserVersion       = "bambu-projection-2"
+	ParserVersion       = "bambu-projection-3"
 	MaxFiles            = 10000
 	MaxFileBytes        = 8 << 20
 	MaxTotalBytes       = 128 << 20
@@ -96,8 +96,9 @@ type key struct {
 	name      string
 }
 type document struct {
-	source Source
-	fields map[string]any
+	source     Source
+	fields     map[string]any
+	selectable bool // established from explicit headers or the dedicated local-user contract
 }
 type value struct {
 	raw   any
@@ -148,7 +149,7 @@ func (r checkedReader) Read(p []byte) (int, error) {
 // Add retains allowlisted fields only. Any failed Add invalidates the catalog,
 // preventing resolution from a silently truncated or ambiguous scan.
 func (c *Catalog) Add(source Source, reader io.Reader) (err error) {
-	return c.add(source, "", reader)
+	return c.add(source, "", reader, false)
 }
 
 // AddIndexed binds a system manifest identity to the actual document, never to
@@ -158,10 +159,10 @@ func (c *Catalog) AddIndexed(source Source, expected string, reader io.Reader) e
 		c.failed = true
 		return Code("invalid_source")
 	}
-	return c.add(source, expected, reader)
+	return c.add(source, expected, reader, false)
 }
 
-func (c *Catalog) add(source Source, expected string, reader io.Reader) (err error) {
+func (c *Catalog) add(source Source, expected string, reader io.Reader, localUserMachine bool) (err error) {
 	defer func() {
 		if err != nil {
 			c.failed = true
@@ -178,7 +179,7 @@ func (c *Catalog) add(source Source, expected string, reader io.Reader) (err err
 	if err != nil {
 		return err
 	}
-	fields, err := c.project(data)
+	fields, err := c.project(data, localUserMachine)
 	if err != nil {
 		return err
 	}
@@ -188,7 +189,14 @@ func (c *Catalog) add(source Source, expected string, reader io.Reader) (err err
 		}
 	}
 	name, ok := fields["name"].(string)
-	if !ok || !label(name, false) || fields["type"] != "machine" {
+	if !ok || !label(name, false) {
+		return Code("invalid_machine_identity")
+	}
+	if localUserMachine {
+		if err := validateLocalUserMachine(fields); err != nil {
+			return err
+		}
+	} else if fields["type"] != "machine" {
 		return Code("invalid_machine_identity")
 	}
 	if expected != "" && name != expected {
@@ -215,7 +223,12 @@ func (c *Catalog) add(source Source, expected string, reader io.Reader) (err err
 	if _, exists := c.documents[id]; exists {
 		return Code("ambiguous_identity")
 	}
-	c.documents[id] = document{source, fields}
+	instantiation, explicit := fields["instantiation"]
+	selectable := instantiation == "true" || instantiation == true || (localUserMachine && !explicit)
+	// Document version identifies saved source bytes, not an observed installation
+	// or the system bundle. It is validated locally, never inherited or exported.
+	delete(fields, "version")
+	c.documents[id] = document{source: source, fields: fields, selectable: selectable}
 	return c.check()
 }
 
@@ -354,7 +367,7 @@ type Selection struct {
 }
 
 // Selections validates EVERY loaded parent chain, including hidden machines,
-// before returning deterministic explicitly instantiated choices. Geometry is
+// before returning deterministic selectable choices. Geometry is
 // resolved only for the later bounded selection; choices are not complete presets.
 func (c *Catalog) Selections(namespace string) ([]Selection, error) {
 	if err := c.check(); err != nil {
@@ -377,8 +390,7 @@ func (c *Catalog) Selections(namespace string) ([]Selection, error) {
 		if _, err := c.resolve(id, map[key]bool{}, 1); err != nil {
 			return nil, err
 		}
-		raw := c.documents[id].fields["instantiation"]
-		if raw == true || raw == "true" {
+		if c.documents[id].selectable {
 			result = append(result, Selection{Kind: id.kind, Name: id.name})
 		}
 	}
@@ -397,8 +409,9 @@ func (c *Catalog) Resolve(namespace string, kind Kind, name string) (Candidate, 
 	if !ok {
 		return Candidate{}, Code("preset_not_found")
 	}
-	// Missing instantiation is not guessed to be a selectable user preset.
-	if doc.fields["instantiation"] != "true" && doc.fields["instantiation"] != true {
+	// Only the dedicated machine-directory reader may establish saved-user
+	// selectability without a system-style instantiation header.
+	if !doc.selectable {
 		return Candidate{}, Code("not_selectable")
 	}
 	fields, err := c.resolve(id, map[key]bool{}, 1)

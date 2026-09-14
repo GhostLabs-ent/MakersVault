@@ -1,4 +1,4 @@
-# Bambu content discovery — MP-1b-5
+# Bambu content discovery — MP-1b-5 / MP-1b-6
 
 Internal Windows/Linux foundation, **inactive in the production executable**.
 `DiscoverBambu` inspects one locally selected data root and optional explicit
@@ -43,9 +43,9 @@ Any file, identity, schema, graph or selection failure returns no partial result
 - Change checks are not an atomic multi-file snapshot or a privileged-local-attacker
   sandbox. Selection rereads and future immutable review/digest binding remain needed.
 
-## Deliberate format limit and next checkpoint
+## Format boundary and next checkpoint
 
-This slice accepts the existing **explicit machine-document schema**: `type` must
+The system and generic readers keep the **explicit machine-document schema**: `type` must
 be `machine`, and only explicit true instantiation becomes a choice. False/missing
 instantiation is counted as hidden, malformed instantiation fails. Source JSON now
 rejects case-aliased headers/duplicates and non-ASCII keys (`bambu-projection-2`).
@@ -60,11 +60,12 @@ distinguishes templates and combines configurations more broadly than this adapt
 
 Importantly, the [saved-user writer](https://raw.githubusercontent.com/bambulab/BambuStudio/926a7192574bcb9b3a732e1ec59a46d79cb45466/src/libslic3r/Config.cpp)
 writes name/from/version plus config values; it does not guarantee system-style
-type/instantiation headers. **Ordinary saved-user files without these headers are
-not yet supported**: missing type is rejected, not guessed from a filename; missing
-instantiation is not silently treated as true. Next qualify a dedicated local-user
-projection using explicit machine-directory context and authored format fixtures,
-without relaxing the system schema or claiming an installed application version.
+type/instantiation headers. MP-1b-6 adds a [dedicated saved-user reader](SAVED_USER.md)
+from the selected machine-directory context, requiring user/version headers and
+preserving explicit hidden settings. Generic/system parsing is not relaxed; file
+versions are not installed-app observations. Parser version is now `bambu-projection-3`.
+Direct saved-user files are supported under that bounded contract, not nested custom
+base profiles, arbitrary version suffixes or complete installed-slicer conformance.
 
 These primary-source observations are not byte-hashed vendor fixtures or native
 qualification of the owner's reported Bambu Studio v2.8.0.6. Native root hints,

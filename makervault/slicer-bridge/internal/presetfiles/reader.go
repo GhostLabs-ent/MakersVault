@@ -254,6 +254,23 @@ func loadFile(ctx context.Context, dir *directory, name string, source printerpr
 }
 
 func loadBoundFile(ctx context.Context, dir *directory, name, expected string, source printerpreset.Source, catalog *printerpreset.Catalog) error {
+	return readProfileFile(ctx, dir, name, func(reader io.Reader) error {
+		if expected == "" {
+			return catalog.Add(source, reader)
+		}
+		return catalog.AddIndexed(source, expected, reader)
+	})
+}
+
+// This is used only with the held selected user machine directory. Generic
+// LoadBambu/project does not infer this authority merely from Source.Kind=User.
+func loadSavedUserFile(ctx context.Context, dir *directory, name string, source printerpreset.Source, catalog *printerpreset.Catalog) error {
+	return readProfileFile(ctx, dir, name, func(reader io.Reader) error {
+		return catalog.AddLocalUserMachine(source, reader)
+	})
+}
+
+func readProfileFile(ctx context.Context, dir *directory, name string, consume func(io.Reader) error) error {
 	file, err := dir.open(ctx, name)
 	if err != nil {
 		return err
@@ -266,11 +283,7 @@ func loadBoundFile(ctx context.Context, dir *directory, name, expected string, s
 	if before.Size() > printerpreset.MaxFileBytes {
 		return printerpreset.Code("file_bytes_exceeded")
 	}
-	if expected == "" {
-		err = catalog.Add(source, contextReader{ctx, file})
-	} else {
-		err = catalog.AddIndexed(source, expected, contextReader{ctx, file})
-	}
+	err = consume(contextReader{ctx, file})
 	if err != nil {
 		if ctxErr := check(ctx); ctxErr != nil {
 			return ctxErr

@@ -1,4 +1,4 @@
-# Single-use profile worker — MP-1b-2 through MP-1b-5
+# Single-use profile worker — MP-1b-2 through MP-1b-6
 
 Internal foundation, **not dispatched by the production bridge main**. Only the
 test executable currently handles `--internal-preset-worker-v1`. Do not call `Run`
@@ -28,7 +28,10 @@ Both share the held ancestry and manifest/profile budgets described in
 [content discovery](../presetfiles/DISCOVERY.md). Account is allowed only for
 location/discover/select. Discoveries cannot appear on another operation or beside
 partial candidates/errors; selections cannot claim an observed application version.
-The API wire validator and real saved-user-format qualification remain separate.
+MP-1b-6 adds [saved-user machine projection](../presetfiles/SAVED_USER.md) inside
+the same operations, not a new wire mode or relaxed generic `project` reader.
+Invalid selected user files fail atomically; their versions never become observed
+app versions. API wire validation and real installed-profile qualification remain separate.
 
 The manifest operation retains the profile-bundle version separately, without
 guessing an application version. Its entries include templates and are local-only;
@@ -41,7 +44,7 @@ fail at the response ceiling rather than silently dropping entries.
 The [location operation](../presetfiles/LOCATIONS.md) traverses fixed children from
 held parents, never treats a joined child as a new root, and shares the deadline
 and entry budget across the manifest/user listing. Account is a bounded local-only
-private request field, rejected on other operations; it and the root are absent
+private request field for location/discover/select only; it and the root are absent
 from the result. Empty account means system-only, not automatic/default selection.
 The parent checks account-presence agreement, combined index bounds and deliberately
 unknown app version. No local selector, installed-version probe or profile parsing

@@ -243,7 +243,7 @@ func init() {
 	for _, code := range strings.Fields(`manifest_invalid manifest_unsupported manifest_bytes_exceeded
 		manifest_structure_limit manifest_entry_limit manifest_selection_invalid manifest_identity_mismatch
 		invalid_instantiation invalid_machine_identity invalid_identity_field source_kind_mismatch
-		unsupported_source_schema unsupported_include`) {
+		unsupported_source_schema unsupported_include unsupported_user_version`) {
 		scanCodes[Code(code)] = true
 	}
 }

@@ -11,7 +11,7 @@ import (
 const MaxSelected = 100
 const discoveryNamespace = "chosen-bambu-location" // never an account or directory
 
-// BambuDiscovery stays local. These are instantiated identities with resolved
+// BambuDiscovery stays local. These are selectable identities with resolved
 // parent chains, NOT installed/owned printers or geometry-complete snapshots.
 // Hidden machines and excluded script entries are counted, never silently offered.
 type BambuDiscovery struct {
@@ -105,7 +105,7 @@ func scanBambu(ctx context.Context, root, account string, picks []printerpreset.
 	}
 	source.Kind = printerpreset.User
 	for _, file := range session.inspection.UserFiles {
-		if err := loadBoundFile(ctx, session.userMachine, file, "", source, catalog); err != nil {
+		if err := loadSavedUserFile(ctx, session.userMachine, file, source, catalog); err != nil {
 			return nil, nil, err
 		}
 		machines++

@@ -54,8 +54,8 @@ URLs; listed user JSON children receive only confined metadata inspection.
 The result's application version is explicitly empty/unobserved. It is not filled
 from a directory label, manifest bundle version, saved config version or owner report.
 [Content discovery](DISCOVERY.md) now extends this held ancestry to actual machine
-identities, parent closure and explicit instantiation. Ordinary saved-user schema,
-installed version observations, native qualification and matched consented activation
+identities, parent closure and [saved-user machine context](SAVED_USER.md).
+Installed version observations, native qualification and matched consented activation
 are still required; the inspection-only operation remains an index, not that scan.
 
 New Mac preset discovery/import/refresh stays owner-deferred; both planning and
