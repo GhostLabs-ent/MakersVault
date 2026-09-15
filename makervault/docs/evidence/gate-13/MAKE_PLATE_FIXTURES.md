@@ -134,6 +134,15 @@ regressions observe a specific navigation without changing application privacy h
 62 artifact hashes checked. Next is matched native Windows/Linux qualification
 planning and scoped execution; production remains inactive and versions unqualified.
 
+**MP-1b-9b-4a update:** [Native qualification package results](MAKE_PLATE_MP1B9B4A_RESULTS.md)
+add a separately tagged UI runner with in-memory synthetic metadata and no file-worker
+dispatch, plus an [operator packet](../../MAKE_PLATE_NATIVE_QUALIFICATION.md). 215 units/
+race, 14 fuzz runs, 48 builds and 55 browser regressions pass; 58 hashes checked. One
+initial fuzz-deadline failure remains retained; unchanged full rerun passed. Four
+candidate Windows/Linux executables are compiled only; Linux inspect/refusal checks
+do not open native UI or qualify a desktop. Next is approved hands-on execution with
+observed device identity; reader/hint/profile/version qualification remains separate.
+
 | Target | Pinned public source | Required fixture coverage / observed shape |
 |---|---|---|
 | Bambu Studio 2.8.2.61 | [Release](https://github.com/bambulab/BambuStudio/releases/tag/v02.08.02.61), commit `926a7192574bcb9b3a732e1ec59a46d79cb45466` | P1S 0.4 child → `fdm_bbl_3dp_001_common` → `fdm_machine_common`; string-valued scalar/array numbers, inherited geometry and child exclusion override; G-code `include` references must not be followed |

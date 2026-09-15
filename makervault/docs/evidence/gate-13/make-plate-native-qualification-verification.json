@@ -1,0 +1,468 @@
+{
+  "schema_version": 1,
+  "gate": "MP-1b-9b-4a",
+  "entry_revision": "e4d121bbe5ec0014817ca43cbd472f66cc43f987",
+  "implementation_revision": "01594bd3e8f024e15a195690d82a8cbe72b02e63",
+  "private_evidence_root": "/home/vinnyc/.local/state/makersvault/verification",
+  "go_image": "sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6",
+  "browser_image": "sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e",
+  "playwright_tree_sha256": "e1e5864f59981adbcbeedf3f3c6b0c598bf57c3e7c105fcbc9dc72d374e496ca",
+  "native_windows_tests_executed": 0,
+  "native_macos_tests_executed": 0,
+  "native_linux_ui_executed": 0,
+  "captures": [
+    {
+      "kind": "go-preflight",
+      "directory": "containment-mp1b9b4a-go-preflight-20260915",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 46.157,
+      "artifacts": [
+        {
+          "file": "consent-accounts.html",
+          "bytes": 3614,
+          "sha256": "178c2ed4631466542519ae5f8f4498efe1f2adb3826270ee1dc8a65dcaa8bc33"
+        },
+        {
+          "file": "consent-approved.html",
+          "bytes": 2679,
+          "sha256": "33fb572e73602d58d2b0c5df93649a426ce4fe70fde7ca409faf693add75ca5e"
+        },
+        {
+          "file": "consent-consent.html",
+          "bytes": 3222,
+          "sha256": "f41632e29a479c1f050f488439e9bbf22622c78589b5090ce80973eb8dc53c63"
+        },
+        {
+          "file": "consent-http-fixture",
+          "bytes": 15144591,
+          "sha256": "954e918cacb0b137c390fb089af20f6d3baa8c86dd9b7c0a58736a6911ac543e"
+        },
+        {
+          "file": "consent-presets.html",
+          "bytes": 3238,
+          "sha256": "8031f3a118e75a951e00eee2ba160c56aea6b3153135f5f7adee017e5f497ddc"
+        },
+        {
+          "file": "consent-review.html",
+          "bytes": 4196,
+          "sha256": "df90a978dd22843a9c6e80dc91efcb1cfc26c411a79be205ca7d11254490e1ed"
+        },
+        {
+          "file": "consent-roots.html",
+          "bytes": 3242,
+          "sha256": "c6c5cdf50dcfa6c3aa7e6719f38b6b389f5f9d2494e794bf1cd5254def37c303"
+        },
+        {
+          "file": "preset-native-linux-amd64",
+          "bytes": 12591600,
+          "sha256": "9f2e592528f530cae888283826de1387afe69212b95de0772aa27ff83411ccb4"
+        },
+        {
+          "file": "qualification-default-build-refused.txt",
+          "bytes": 138,
+          "sha256": "e696bd9da995b1baec6318764b853f47f2c75decc911b70c9922ad862ad0da66"
+        },
+        {
+          "file": "qualification-inspect.json",
+          "bytes": 249,
+          "sha256": "bc0352f4ab01b2a47b750bef775c264f0e76ef283296ea8729872a62581c06f2"
+        },
+        {
+          "file": "qualification-noninteractive.txt",
+          "bytes": 73,
+          "sha256": "8045019913dcff5b1fc5d311423ff9fd52709d5317858ad82701b41ae74926a0"
+        },
+        {
+          "file": "qualification-worker-refused.txt",
+          "bytes": 88,
+          "sha256": "4b660b11d8ee812774a0a4a5ac51c6da111470398a5745d042f7c011ad23d2ee"
+        },
+        {
+          "file": "result.json",
+          "bytes": 2986,
+          "sha256": "d9aa5f2d767cee5fa7a5ca3a90b51f5df89ff0c6c0ab8bdaa1e94a51d71a3066"
+        },
+        {
+          "file": "started.json",
+          "bytes": 2265,
+          "sha256": "97e5a62b25a4c34622653132dd04fe2191095b7819f56afda0a07e98f1d5b9d6"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "stdout.log",
+          "bytes": 412322,
+          "sha256": "599031d1a66b65f2cc801939f4698f65d63beb6cef8105e7bd5d56716b2722a2"
+        }
+      ],
+      "unit_tests_passed": 215,
+      "top_level_pass_events": 229,
+      "inclusive_pass_events": 481
+    },
+    {
+      "kind": "go-final",
+      "directory": "containment-mp1b9b4a-go-final-20260915",
+      "status": "failed",
+      "exit_code": 1,
+      "duration_seconds": 146.135,
+      "artifacts": [
+        {
+          "file": "consent-accounts.html",
+          "bytes": 3614,
+          "sha256": "a3a3ce3269cff7fc17b9d1f0a6382e540f720c03023c083d3f9144f2d3d4c28a"
+        },
+        {
+          "file": "consent-approved.html",
+          "bytes": 2679,
+          "sha256": "a663bbe9730e7732554f4c5f24b423d18e53618bef3b3bc21f8fd8405a03139e"
+        },
+        {
+          "file": "consent-consent.html",
+          "bytes": 3222,
+          "sha256": "449fa2affefd4602696c811aed324d1dfe4cffdbcba03ca88f44fff0502bd800"
+        },
+        {
+          "file": "consent-http-fixture",
+          "bytes": 15144591,
+          "sha256": "954e918cacb0b137c390fb089af20f6d3baa8c86dd9b7c0a58736a6911ac543e"
+        },
+        {
+          "file": "consent-presets.html",
+          "bytes": 3238,
+          "sha256": "e873dd501d1b85ff43ef1f347e8defda367609d185cabe1b6532ba6774001554"
+        },
+        {
+          "file": "consent-review.html",
+          "bytes": 4196,
+          "sha256": "6918499179d9cc40f620d8d404e3f2f274ce931d7abc4304a9e81cc3ffed7288"
+        },
+        {
+          "file": "consent-roots.html",
+          "bytes": 3242,
+          "sha256": "ee9fe15e9ee9e61673269a17c88efe69c60f14c4ecbbced8615d24f1628410de"
+        },
+        {
+          "file": "result.json",
+          "bytes": 2632,
+          "sha256": "d79599282cedabdce81f6d8a0981922e41b75b4cb5bc4f70f2cf1d04bbc3390a"
+        },
+        {
+          "file": "started.json",
+          "bytes": 2101,
+          "sha256": "1d30ee6af8726c2663da8959636499ee6154f91d4e9917c839db53734c5975ec"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "stdout.log",
+          "bytes": 398090,
+          "sha256": "d083534a6ac9bfa09222161beee2bd79b7504047cb20624c64ea972cba8bb190"
+        }
+      ],
+      "unit_tests_passed": 206,
+      "top_level_pass_events": 219,
+      "inclusive_pass_events": 462,
+      "fuzz": [
+        {
+          "target": "FuzzBambuProjection",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 144924
+        },
+        {
+          "target": "FuzzPortableJSONName",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 5,
+          "executions": 221434
+        },
+        {
+          "target": "FuzzWindowsRootSyntax",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 11407
+        },
+        {
+          "target": "FuzzWorkerFrame",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 25432
+        },
+        {
+          "target": "FuzzBambuManifest",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 5,
+          "executions": 181696
+        }
+      ]
+    },
+    {
+      "kind": "go-final2",
+      "directory": "containment-mp1b9b4a-go-final2-20260915",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 249.748,
+      "artifacts": [
+        {
+          "file": "consent-accounts.html",
+          "bytes": 3614,
+          "sha256": "74f4824d421dea2d721b2b4c50743425ce0dfeb953023eb734984764748d13fc"
+        },
+        {
+          "file": "consent-approved.html",
+          "bytes": 2679,
+          "sha256": "4598fa1529366bca80bea75d572b32f314191fb700e148c576cdc1c5584bc998"
+        },
+        {
+          "file": "consent-consent.html",
+          "bytes": 3222,
+          "sha256": "2fe3eff3c9077397cc7cf81cac87a505ea0dfe2807a6a00cccf949024699f913"
+        },
+        {
+          "file": "consent-http-fixture",
+          "bytes": 15144591,
+          "sha256": "954e918cacb0b137c390fb089af20f6d3baa8c86dd9b7c0a58736a6911ac543e"
+        },
+        {
+          "file": "consent-presets.html",
+          "bytes": 3238,
+          "sha256": "8bd5e1266fd3774161ac41cc749d5b0bc332c8679b31436478b430c0add770c2"
+        },
+        {
+          "file": "consent-review.html",
+          "bytes": 4196,
+          "sha256": "6f375e019a2f0a1afca310a3d68e5ddd4eeba0ae9b3c9bf82757ffd438f9b6a8"
+        },
+        {
+          "file": "consent-roots.html",
+          "bytes": 3242,
+          "sha256": "29d18b5ed886f993f3a892b8958fec0450caefab06c6128c94e1657fe5f204fd"
+        },
+        {
+          "file": "preset-native-linux-amd64",
+          "bytes": 12591816,
+          "sha256": "5b2a4526b4da3abf60f954264c8deaed5f559c11f4d3ab273e8cc3475a61700a"
+        },
+        {
+          "file": "preset-native-linux-arm64",
+          "bytes": 11777882,
+          "sha256": "102daa0e9e806661bed65b26f2ba0e7d31cca6952c0240a53359c419d9098db1"
+        },
+        {
+          "file": "preset-native-windows-amd64.exe",
+          "bytes": 12815872,
+          "sha256": "62ce1f9721f8da693ce3b48aac72b4423127eaf32e65e647d5512d03b7bdbee4"
+        },
+        {
+          "file": "preset-native-windows-arm64.exe",
+          "bytes": 11778560,
+          "sha256": "31c1d59d01e31c9fe4a2d788e48b2370f1fbbaaa99d867204f46c84ff8b36b0f"
+        },
+        {
+          "file": "qualification-default-build-refused.txt",
+          "bytes": 138,
+          "sha256": "e696bd9da995b1baec6318764b853f47f2c75decc911b70c9922ad862ad0da66"
+        },
+        {
+          "file": "qualification-inspect.json",
+          "bytes": 280,
+          "sha256": "bb14804ebae3ea880b51451d7219e4f43dc56210b7ae4a25ab79978c0a1792d8"
+        },
+        {
+          "file": "qualification-noninteractive.txt",
+          "bytes": 73,
+          "sha256": "8045019913dcff5b1fc5d311423ff9fd52709d5317858ad82701b41ae74926a0"
+        },
+        {
+          "file": "qualification-worker-refused.txt",
+          "bytes": 88,
+          "sha256": "4b660b11d8ee812774a0a4a5ac51c6da111470398a5745d042f7c011ad23d2ee"
+        },
+        {
+          "file": "result.json",
+          "bytes": 2633,
+          "sha256": "3466b2b8d684d1a147124d246a0ceaed6feef2db3dd79a2b082c566d89e2aeeb"
+        },
+        {
+          "file": "started.json",
+          "bytes": 2102,
+          "sha256": "787d99a4a129b9cbc36f78b04a2e1c3bec556f6cd664979e9c9361dee4ca0660"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "stdout.log",
+          "bytes": 420403,
+          "sha256": "be1aace0b6ed40e8c4ec1fc8b48b35afbe6723d82ef73cae1596d9d9e97f2650"
+        }
+      ],
+      "unit_tests_passed": 215,
+      "top_level_pass_events": 229,
+      "inclusive_pass_events": 481,
+      "fuzz": [
+        {
+          "target": "FuzzBambuProjection",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 76286
+        },
+        {
+          "target": "FuzzPortableJSONName",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 5,
+          "executions": 224699
+        },
+        {
+          "target": "FuzzWindowsRootSyntax",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 34568
+        },
+        {
+          "target": "FuzzWorkerFrame",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 81762
+        },
+        {
+          "target": "FuzzBambuManifest",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 201696
+        },
+        {
+          "target": "FuzzBambuLocations",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 93610
+        },
+        {
+          "target": "FuzzBambuIndexedSelections",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 24764
+        },
+        {
+          "target": "FuzzBambuSavedUserMachine",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 50302
+        },
+        {
+          "target": "FuzzAccountChoices",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 193013
+        },
+        {
+          "target": "FuzzNativeLocationPlan",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 173100
+        },
+        {
+          "target": "FuzzNativeUIFrame",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 12288
+        },
+        {
+          "target": "FuzzPreviewURL",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 5,
+          "executions": 242527
+        },
+        {
+          "target": "FuzzLinuxUIResult",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 27232
+        },
+        {
+          "target": "FuzzQualificationConsent",
+          "requested_seconds": 5,
+          "reported_elapsed_seconds": 6,
+          "executions": 11075
+        }
+      ]
+    },
+    {
+      "kind": "browser-final",
+      "directory": "containment-mp1b9b4a-browser-final-20260915",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 40.302,
+      "artifacts": [
+        {
+          "file": "async-picker-browser-results.json",
+          "bytes": 7574,
+          "sha256": "1da8b25e7c2525a63fbad203bab19e5ca42f8163dc788edfde79c3ff673a4f35"
+        },
+        {
+          "file": "async-picker-selected-1024.png",
+          "bytes": 75810,
+          "sha256": "a40856c85b562e1eddd6d1170e0b1a1102aa14af990c18b072680d0ea7bd2450"
+        },
+        {
+          "file": "async-picker-selected-390.png",
+          "bytes": 70277,
+          "sha256": "592a72675d86e997c8b6566d3e461a2c58ff48a60362d66c7d8fce4e9ace14d5"
+        },
+        {
+          "file": "async-picker-waiting-1024.png",
+          "bytes": 56211,
+          "sha256": "1230737529978801ef1bad59a25f7b347d28a4a58110eacd4cf69374e98378d1"
+        },
+        {
+          "file": "async-picker-waiting-390.png",
+          "bytes": 51436,
+          "sha256": "9242ca09ab761e6858a394003a27b52f15079813100a37dbae3c2f14f9c50bd2"
+        },
+        {
+          "file": "local-http-browser-results.json",
+          "bytes": 5630,
+          "sha256": "225dbb246f349e22cc6a8e64a5451d149f9ca760c9e21978d286b3b90ef105a0"
+        },
+        {
+          "file": "local-http-review-1024.png",
+          "bytes": 103078,
+          "sha256": "5958c72b0c153d5634008f235d2be977c93bb93673802f4cf5d8e687e8f8417b"
+        },
+        {
+          "file": "local-http-review-390.png",
+          "bytes": 98096,
+          "sha256": "cb5b010c6d824410521770bec7a21d52737456d52f88a46bef6a235925a71b52"
+        },
+        {
+          "file": "result.json",
+          "bytes": 1444,
+          "sha256": "90f60d4fa0d33e7848228f649872837d6305f552183b58fd7f55caf9d149e0af"
+        },
+        {
+          "file": "started.json",
+          "bytes": 916,
+          "sha256": "c72ef10bedb691d8f7de30b5e737ef864e2ef9ee9e73588e76f7b4ea7725a0ba"
+        },
+        {
+          "file": "stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "stdout.log",
+          "bytes": 1072,
+          "sha256": "6cc970ae36c77605800ed87f0912ee3baa07d3ec12ecdaf2bffc5b090d2339e0"
+        }
+      ]
+    }
+  ]
+}

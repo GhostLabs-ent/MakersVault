@@ -12,7 +12,9 @@ MP-1b-9b-1 adds the inactive Windows UI helper foundation and owned-URL launch.
 MP-1b-9b-2 adds inactive Linux fixed-tool helpers with isolated exec/policy evidence.
 MP-1b-9b-3 wires the asynchronous consented picker with synthetic HTTP/browser
 evidence. Independent version/profile observations and native Windows/Linux desktop
-qualification remain open; next is MP-1b-9b-4's matched native qualification package.
+qualification remain open. MP-1b-9b-4a prepares the separately tagged native UI
+runner and [operator packet](MAKE_PLATE_NATIVE_QUALIFICATION.md); next is scoped
+hands-on execution in MP-1b-9b-4b, not production activation.
 MP-1b remains open and inactive in production.
 An owner-provided Intel Mac passes 34 default and 42 ordinary experimental unit
 checks; two additional counterexamples reproduce failed pre-open safety properties.
@@ -276,6 +278,16 @@ re-cock protocol. New gate numbers do not reset or falsely close Gates 0–13.
   **Next MP-1b-9b-4: matched native Windows/Linux qualification package and scoped
   execution**, including independently observed profiles/versions and lifecycle.
   Synthetic dialogs do not qualify native UI. No activation, import or gate closure.
+  Subsequent [MP-1b-9b-4a at `01594bd`](evidence/gate-13/MAKE_PLATE_MP1B9B4A_RESULTS.md)
+  prepares a separate build-tagged native-UI runner with synthetic-only metadata,
+  exact terminal consent and no file-worker dispatch. 215 unit tests/race, vet,
+  48 builds, 14 fuzz runs and 55 browser regressions pass; 58 artifact hashes checked.
+  An initial location-planner fuzz deadline failure remains retained; unchanged full
+  rerun passed. Four Windows/Linux candidate executables are hashed, not native UI
+  qualified. Existing runtime files/main/API/schema/providers stay unchanged.
+  **Next MP-1b-9b-4b: target identity, permission and approved hands-on UI checks**
+  using the [operator packet](MAKE_PLATE_NATIVE_QUALIFICATION.md). Native hints/readers,
+  real profiles/versions and matched production dispatch still require separate review.
 - **MP-1c:** Scoped claim/review/commit authority plus immutable preset storage and
   its additive migration, portable v1/v2 and raw-recovery counterparts as one coherent
   persistence slice. Shared strict wire fixtures must prove API/bridge parity.
