@@ -1,4 +1,4 @@
-FROM python:3.11-slim AS base
+FROM python:3.12-slim AS base
 WORKDIR /app
 
 COPY requirements.txt requirements.lock ./
