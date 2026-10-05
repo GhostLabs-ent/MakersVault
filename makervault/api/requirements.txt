@@ -1,7 +1,7 @@
 # ------------------------------------------------
 # api/requirements.txt
 # ------------------------------------------------
-fastapi==0.115.0
+fastapi==0.141.1
 uvicorn[standard]==0.30.6
 sqlmodel==0.0.21
 python-multipart==0.0.9
