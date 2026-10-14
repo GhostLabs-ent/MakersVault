@@ -2,7 +2,7 @@
 # api/requirements.txt
 # ------------------------------------------------
 fastapi==0.115.0
-uvicorn[standard]==0.30.6
+uvicorn[standard]==0.52.1
 sqlmodel==0.0.21
 python-multipart==0.0.9
 pillow==10.4.0
