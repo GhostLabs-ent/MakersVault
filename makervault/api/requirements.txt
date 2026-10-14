@@ -3,7 +3,7 @@
 # ------------------------------------------------
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
-sqlmodel==0.0.21
+sqlmodel==0.0.39
 python-multipart==0.0.9
 pillow==10.4.0
 starlette==0.38.5
