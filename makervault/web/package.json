@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "fflate": "0.8.2",
-    "lucide-react": "^0.441.0",
+    "lucide-react": "^1.31.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "three": "^0.160.0",
