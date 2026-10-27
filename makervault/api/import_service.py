@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Optional
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
-from urllib.request import Request, urlopen
+from urllib.request import Request
 
 from fastapi import HTTPException
 
@@ -24,6 +24,7 @@ from import_resolvers import (
     resolve_thingiverse_download_url,
     thingiverse_html_headers,
 )
+from safe_http import safe_urlopen
 from schemas import ImportRequest
 from url_utils import validate_remote_url
 
@@ -48,14 +49,13 @@ def open_import_response(url: str, body: ImportRequest, referer: Optional[str] =
         headers["Referer"] = referer
     req = Request(url, headers=headers)
     try:
-        resp = urlopen(req, timeout=IMPORT_TIMEOUT_SECONDS)
+        resp = safe_urlopen(req, timeout=IMPORT_TIMEOUT_SECONDS)
     except HTTPError as err:
         raise HTTPException(status_code=err.code or 400, detail=f"Failed to fetch URL: {err.reason}") from err
     except URLError as err:
         raise HTTPException(status_code=400, detail="Failed to reach the provided URL") from err
 
     final_url = resp.geturl()
-    validate_remote_url(final_url)
     content_type = resp.headers.get("Content-Type", "")
     if is_html_content_type(content_type):
         html_bytes = resp.read(IMPORT_HTML_MAX_BYTES + 1)

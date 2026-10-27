@@ -5,7 +5,7 @@ from html.parser import HTMLParser
 from typing import Any, List, Optional
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlparse
-from urllib.request import Request, urlopen
+from urllib.request import Request
 
 from fastapi import HTTPException
 
@@ -19,6 +19,7 @@ from config import (
     IMPORT_USER_AGENT,
 )
 from file_utils import is_json_content_type
+from safe_http import safe_urlopen
 from schemas import ImportRequest
 
 
@@ -290,7 +291,7 @@ def fetch_json_from_url(url: str, referer: Optional[str] = None, headers: Option
         request_headers.update(headers)
     req = Request(url, headers=request_headers)
     try:
-        resp = urlopen(req, timeout=IMPORT_TIMEOUT_SECONDS)
+        resp = safe_urlopen(req, timeout=IMPORT_TIMEOUT_SECONDS)
     except HTTPError:
         return None
     except URLError:
@@ -351,7 +352,7 @@ def fetch_makerworld_instance_download_url(
     )
     req = Request(api_url, headers=makerworld_api_headers(referer=page_url, cookie=makerworld_cookie))
     try:
-        resp = urlopen(req, timeout=IMPORT_TIMEOUT_SECONDS)
+        resp = safe_urlopen(req, timeout=IMPORT_TIMEOUT_SECONDS)
     except HTTPError:
         return None
     except URLError:
@@ -382,7 +383,7 @@ def fetch_makerworld_model_download_url(
     api_url = f"https://makerworld.com/api/v1/models/{model_id}/download"
     req = Request(api_url, headers=makerworld_api_headers(referer=page_url, nonce=nonce, cookie=makerworld_cookie))
     try:
-        resp = urlopen(req, timeout=IMPORT_TIMEOUT_SECONDS)
+        resp = safe_urlopen(req, timeout=IMPORT_TIMEOUT_SECONDS)
     except HTTPError:
         return None
     except URLError:
@@ -496,7 +497,7 @@ def fetch_printables_graphql(query: str, variables: dict, referer: Optional[str]
         headers["Referer"] = referer
     req = Request("https://api.printables.com/graphql/", data=data, headers=headers)
     try:
-        resp = urlopen(req, timeout=IMPORT_TIMEOUT_SECONDS)
+        resp = safe_urlopen(req, timeout=IMPORT_TIMEOUT_SECONDS)
     except HTTPError as err:
         message = None
         try:
@@ -709,7 +710,7 @@ def fetch_thingiverse_json(
 ) -> Optional[Any]:
     req = Request(url, headers=thingiverse_api_headers(referer=page_url, cookie=thingiverse_cookie, token=token))
     try:
-        resp = urlopen(req, timeout=IMPORT_TIMEOUT_SECONDS)
+        resp = safe_urlopen(req, timeout=IMPORT_TIMEOUT_SECONDS)
     except HTTPError as err:
         message = None
         try:
@@ -741,7 +742,7 @@ def fetch_thingiverse_view_token(page_url: str, thingiverse_cookie: Optional[str
     api_url = "https://www.thingiverse.com/api/v2/auth/view"
     req = Request(api_url, headers=thingiverse_api_headers(referer=page_url, cookie=thingiverse_cookie))
     try:
-        resp = urlopen(req, timeout=IMPORT_TIMEOUT_SECONDS)
+        resp = safe_urlopen(req, timeout=IMPORT_TIMEOUT_SECONDS)
     except HTTPError as err:
         message = None
         try:

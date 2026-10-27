@@ -37,6 +37,7 @@ deployment guidance required by Gate 1.
 | Variable | Current default | Effect |
 |---|---|---|
 | `IMPORT_TIMEOUT_SECONDS` | `30` | Remote request time budget. |
+| `IMPORT_MAX_REDIRECTS` | `5` | Maximum redirect hops followed while fetching a remote import; each hop is validated before connecting. |
 | `IMPORT_MAX_MB` | `512` | Maximum remote response size for link imports and zip entries. |
 | `MAX_UPLOAD_MB` | `4096` | Direct upload cap enforced by the API; the reverse proxy needs a matching `client_max_body_size`. |
 | `IMPORT_HTML_MAX_KB` | `4096` | Maximum resolver HTML size. |
