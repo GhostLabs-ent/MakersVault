@@ -1,12 +1,11 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
@@ -14,7 +13,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 )
 
 type SlicerConfig struct {
@@ -254,28 +252,7 @@ func fileExists(path string) bool {
 }
 
 func downloadFile(downloadURL, targetPath string) error {
-	client := &http.Client{Timeout: 5 * time.Minute}
-	req, err := http.NewRequest(http.MethodGet, downloadURL, nil)
-	if err != nil {
-		return fmt.Errorf("request: %w", err)
-	}
-	res, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("download: %w", err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return fmt.Errorf("download failed: %s", res.Status)
-	}
-	out, err := os.Create(targetPath)
-	if err != nil {
-		return fmt.Errorf("create file: %w", err)
-	}
-	defer out.Close()
-	if _, err := io.Copy(out, res.Body); err != nil {
-		return fmt.Errorf("save file: %w", err)
-	}
-	return nil
+	return newDownloader().download(context.Background(), downloadURL, targetPath)
 }
 
 func resolveSlicerCommand(id string, cfg Config) (string, []string) {
