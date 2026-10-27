@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import type { ZipEntry } from "../lib/zipUtils";
+import { formatBytes } from "../lib/format";
 
 type ZipPromptConfig = {
   label: string;
@@ -17,18 +18,6 @@ type PromptStage = "choice" | "select";
 function errorMessage(err: unknown, fallback: string) {
   if (err instanceof Error && err.message.trim()) return err.message;
   return fallback;
-}
-
-function formatBytes(bytes: number) {
-  if (!bytes && bytes !== 0) return "";
-  const units = ["B", "KB", "MB", "GB"];
-  let size = bytes;
-  let idx = 0;
-  while (size >= 1024 && idx < units.length - 1) {
-    size /= 1024;
-    idx++;
-  }
-  return `${size.toFixed(idx === 0 ? 0 : 1)} ${units[idx]}`;
 }
 
 export function useZipImportPrompt() {

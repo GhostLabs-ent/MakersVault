@@ -15,11 +15,12 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { Folder, UnauthorizedError, createFolder, deleteFolder, downloadFolderZip, listFolders, updateFolder } from "../lib/api";
+import { Folder, UnauthorizedError, createFolder, downloadFolderZip, listFolders, updateFolder } from "../lib/api";
 import { entriesFromDataTransfer, uploadEntriesToFolder } from "../lib/uploadTree";
 import { buildUploadEntriesFromZip, isZipFile, readZipEntries } from "../lib/zipUtils";
 import TagInput from "./TagInput";
 import { useZipImportPrompt } from "./ZipImportModal";
+import FolderDeleteDialog from "./FolderDeleteDialog";
 
 type Props = {
   selectedId?: string | null;
@@ -56,6 +57,7 @@ export default function Sidebar({
   const [editParent, setEditParent] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [dropUploading, setDropUploading] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const [query, setQuery] = useState("");
   const zipPrompt = useZipImportPrompt();
 
@@ -250,27 +252,20 @@ export default function Sidebar({
     } finally { setBusy(false); setEditing(null); setEditTags([]); setEditParent(null); }
   };
 
-  const remove = async (id: string) => {
-    if (!confirm("Delete folder? (Assets remain but become unassigned)")) return;
-    setBusy(true);
-    try {
-      await deleteFolder(id);
-      await refresh();
-      onFoldersChanged?.();
-      if (selectedId === id) {
-        // Selecting the root refetches assets through the grid's folderId effect.
-        onSelect(null);
-      } else {
-        // Deleting another folder unassigns (and may rename) its assets, so the
-        // grid needs an explicit refetch; the selected-folder branch above must
-        // not also bump this counter or the grid would fetch twice.
-        onAssetsChanged?.();
-      }
+  const handleDeleted = async () => {
+    const deletedId = pendingDelete?.id;
+    setPendingDelete(null);
+    await refresh();
+    onFoldersChanged?.();
+    if (deletedId && selectedId === deletedId) {
+      // Selecting the root refetches assets through the grid's folderId effect.
+      onSelect(null);
+    } else {
+      // Deleting a folder takes its assets with it, so the grid needs an
+      // explicit refetch; the selected-folder branch above must not also bump
+      // this counter or the grid would fetch twice.
+      onAssetsChanged?.();
     }
-    catch (err) {
-      handleError(err, "Failed to delete folder.");
-    }
-    finally { setBusy(false); }
   };
 
   const downloadFolder = async (folder: Folder) => {
@@ -473,7 +468,10 @@ export default function Sidebar({
                 <button
                   className="sidebar-menu-item sidebar-menu-danger"
                   disabled={busy}
-                  onClick={(e) => { closeFolderMenu(e); remove(folder.id); }}
+                  onClick={(e) => {
+                    closeFolderMenu(e);
+                    setPendingDelete({ id: folder.id, name: folder.name || "Untitled" });
+                  }}
                 >
                   <Trash2 className="h-4 w-4" /> Delete
                 </button>
@@ -645,6 +643,14 @@ export default function Sidebar({
           <span>Settings</span>
         </button>
       </div>
+      {pendingDelete && (
+        <FolderDeleteDialog
+          folder={pendingDelete}
+          onCancel={() => setPendingDelete(null)}
+          onDeleted={handleDeleted}
+          onUnauthorized={onUnauthorized}
+        />
+      )}
       {zipPrompt.modal}
     </aside>
   );

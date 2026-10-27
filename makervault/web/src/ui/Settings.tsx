@@ -12,6 +12,7 @@ import {
   updateStorageSettings,
 } from "../lib/api";
 import { entriesFromFileList, uploadEntriesToFolder, type UploadEntry } from "../lib/uploadTree";
+import TrashCard from "./TrashCard";
 
 type Props = {
   settings: AppSettings;
@@ -863,6 +864,8 @@ export default function Settings({
             </div>
           )}
         </div>
+
+        <TrashCard onUnauthorized={onUnauthorized} />
       </div>
     );
   }

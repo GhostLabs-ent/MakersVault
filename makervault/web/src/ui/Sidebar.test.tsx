@@ -12,15 +12,17 @@ vi.mock("../lib/api", () => ({
   createFolder: vi.fn(),
   deleteFolder: vi.fn(async () => ({ ok: true })),
   downloadFolderZip: vi.fn(),
+  getFolderDeletePreview: vi.fn(),
   listFolders: vi.fn(),
   updateFolder: vi.fn(),
 }));
 
 import Sidebar from "./Sidebar";
-import { deleteFolder, listFolders } from "../lib/api";
+import { deleteFolder, getFolderDeletePreview, listFolders } from "../lib/api";
 
 const listFoldersMock = vi.mocked(listFolders);
 const deleteFolderMock = vi.mocked(deleteFolder);
+const previewMock = vi.mocked(getFolderDeletePreview);
 
 const folders: Folder[] = [
   { id: "f1", name: "Keep", tags: [] },
@@ -39,21 +41,35 @@ function deleteButtonFor(folderName: string): HTMLElement {
   return button;
 }
 
+/** Click a folder's Delete action and wait for the confirmation dialog's preview. */
+async function openDeleteDialog(folderName: string) {
+  fireEvent.click(deleteButtonFor(folderName));
+  const input = await screen.findByLabelText("Type the folder name to confirm");
+  await screen.findByText(/tracked asset/);
+  const button = screen.getByRole("button", { name: "Delete folder" }) as HTMLButtonElement;
+  return { input, button };
+}
+
 describe("Sidebar folder deletion", () => {
   beforeEach(() => {
     listFoldersMock.mockReset();
     listFoldersMock.mockResolvedValue(folders);
     deleteFolderMock.mockClear();
-    // jsdom has no window.confirm; the delete flow must be approved.
-    vi.stubGlobal("confirm", vi.fn(() => true));
+    previewMock.mockReset();
+    previewMock.mockResolvedValue({
+      folders: 2,
+      assets: 3,
+      files: 4,
+      bytes: 2048,
+      in_trash: false,
+    });
   });
 
   afterEach(() => {
     cleanup();
-    vi.unstubAllGlobals();
   });
 
-  it("signals an asset refetch when a non-selected folder is deleted", async () => {
+  it("opens the confirmation dialog without deleting, and only enables the button at the exact folder name", async () => {
     const onSelect = vi.fn();
     const onFoldersChanged = vi.fn();
     const onAssetsChanged = vi.fn();
@@ -68,11 +84,25 @@ describe("Sidebar folder deletion", () => {
     );
 
     await screen.findByText("Victim");
-    fireEvent.click(deleteButtonFor("Victim"));
+    const { input, button } = await openDeleteDialog("Victim");
 
-    await waitFor(() => expect(deleteFolderMock).toHaveBeenCalledWith("f2"));
+    expect(previewMock).toHaveBeenCalledWith("f2");
+    expect(deleteFolderMock).not.toHaveBeenCalled();
+    expect(button.disabled).toBe(true);
+
+    fireEvent.change(input, { target: { value: "Victim2" } });
+    expect(deleteFolderMock).not.toHaveBeenCalled();
+    expect(button.disabled).toBe(true);
+
+    fireEvent.change(input, { target: { value: "Victim" } });
+    expect(button.disabled).toBe(false);
+
+    fireEvent.click(button);
+
+    await waitFor(() => expect(deleteFolderMock).toHaveBeenCalledWith("f2", "Victim"));
     await waitFor(() => expect(onAssetsChanged).toHaveBeenCalledTimes(1));
     expect(onSelect).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("selects the root instead of signalling an asset refetch when the selected folder is deleted", async () => {
@@ -90,10 +120,14 @@ describe("Sidebar folder deletion", () => {
     );
 
     await screen.findByText("Victim");
-    fireEvent.click(deleteButtonFor("Victim"));
+    const { input, button } = await openDeleteDialog("Victim");
 
-    await waitFor(() => expect(deleteFolderMock).toHaveBeenCalledWith("f2"));
+    fireEvent.change(input, { target: { value: "Victim" } });
+    fireEvent.click(button);
+
+    await waitFor(() => expect(deleteFolderMock).toHaveBeenCalledWith("f2", "Victim"));
     await waitFor(() => expect(onSelect).toHaveBeenCalledWith(null));
     expect(onAssetsChanged).not.toHaveBeenCalled();
+    expect(onFoldersChanged).toHaveBeenCalled();
   });
 });

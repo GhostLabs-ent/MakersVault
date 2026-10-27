@@ -500,44 +500,6 @@ def test_rename_leaves_assets_outside_the_folder_prefix_untouched(isolated_stora
 
 # --- boundaries -------------------------------------------------------------
 
-def test_delete_folder_keeps_metadata_semantics_and_touches_no_files(
-    isolated_storage: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """DELETE keeps today's metadata-only semantics; recursive delete is Mf-5gh0.
-
-    `reorganize_managed_assets` is spied, not removed: the existing call relocates
-    assets and could mask the assertion that the folder tree itself is never
-    touched, so the spy records the call and does nothing.
-    """
-    storage = isolated_storage
-    calls = []
-
-    def spy():
-        calls.append(True)
-
-    with TestClient(app) as client:
-        headers = auth_header(client)
-        parent = created_folder(client, headers, "Parent")
-        child = created_folder(client, headers, "Child", parent_id=parent["id"])
-        write_placeholder_file(storage / "Parent" / "model.stl")
-        asset_id = insert_asset_row("Delete me", parent["id"], "Parent/model.stl")
-        before = filesystem_snapshot(storage)
-
-        monkeypatch.setattr(main, "reorganize_managed_assets", spy)
-        response = client.delete(f"/folder/{parent['id']}", headers=headers)
-        assert response.status_code == 200, response.text
-        assert response.json() == {"ok": True}
-
-    assert calls == [True]
-    with Session(engine) as session:
-        assert session.get(Folder, parent["id"]) is None
-    assert read_folder(child["id"]).parent_id is None
-    assert read_asset(asset_id).folder_id is None
-    assert (storage / "Parent" / "model.stl").is_file()
-    assert filesystem_snapshot(storage) == before
-
-
 def test_long_name_segment_truncates_to_120_and_suffix_goes_after_truncation(isolated_storage: Path) -> None:
     storage = isolated_storage
     long_name = "x" * 200

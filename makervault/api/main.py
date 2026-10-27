@@ -17,6 +17,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.middleware.cors import CORSMiddleware
 
 import folder_service
+import trash_service
 from asset_file_service import (
     backfill_prepared_print_metadata,
     delete_all_asset_files,
@@ -28,7 +29,6 @@ from asset_file_service import (
 )
 from asset_service import (
     STORAGE_TEMPLATE_TOKENS,
-    available_model_name,
     backfill_embedded_thumbnails,
     cleanup_asset,
     create_asset_record,
@@ -76,6 +76,7 @@ from schemas import (
     AssetOut,
     AssetRename,
     DownloadRequest,
+    FolderDeletePreviewOut,
     FolderIn,
     FolderOut,
     ImportInspectOut,
@@ -92,6 +93,9 @@ from schemas import (
     StorageSettings,
     StorageSettingsOut,
     TagUpdate,
+    TrashEntryOut,
+    TrashListOut,
+    TrashPurgeOut,
 )
 from settings_service import (
     DEFAULT_STORAGE_TEMPLATE,
@@ -872,28 +876,36 @@ def update_folder(folder_id: str, body: FolderIn, _: Optional[str] = Depends(req
 
 
 @app.delete("/folder/{folder_id}")
-def delete_folder(folder_id: str, _: Optional[str] = Depends(require_auth)):
+def delete_folder(
+    folder_id: str,
+    confirm_name: Optional[str] = Query(None),
+    _: Optional[str] = Depends(require_auth),
+):
+    """Delete a folder's whole directory subtree through the trash.
+
+    ``confirm_name`` is compared by hand and declared optional: a required query
+    parameter would make FastAPI answer 422 for a missing name, while the API
+    contract is a 400 "you did not confirm this folder".
+    """
     with Session(engine) as s:
-        f = s.get(Folder, folder_id)
-        if not f:
+        folder = s.get(Folder, folder_id)
+        if not folder:
             raise HTTPException(404)
-        # Detach children to root
-        for child in s.exec(select(Folder).where(Folder.parent_id == folder_id)):
-            child.parent_id = None
-            s.add(child)
-        # Unassign assets in this folder
-        for asset in s.exec(select(Asset).where(Asset.folder_id == folder_id)):
-            next_name = available_model_name(s, asset.name, None, exclude_id=asset.id)
-            if next_name != asset.name:
-                asset.name = next_name
-                asset.title = next_name
-                asset.filename = filename_for_model_name(next_name, asset.filename)
-            asset.folder_id = None
-            s.add(asset)
-        s.delete(f)
-        s.commit()
-    reorganize_managed_assets()
-    return {"ok": True}
+        if confirm_name is None or confirm_name != folder.name:
+            raise HTTPException(status_code=400, detail="confirm_name must match the folder name exactly")
+        if scan_status().get("running"):
+            raise HTTPException(status_code=409, detail="A library scan is running; try again when it finishes")
+        result = trash_service.trash_folder(s, folder)
+    return {"ok": True, **result}
+
+
+@app.get("/folder/{folder_id}/delete-preview", response_model=FolderDeletePreviewOut)
+def folder_delete_preview(folder_id: str, _: Optional[str] = Depends(require_auth)):
+    with Session(engine) as s:
+        folder = s.get(Folder, folder_id)
+        if not folder:
+            raise HTTPException(404)
+        return trash_service.folder_delete_preview(s, folder)
 
 
 @app.get("/folder/{folder_id}/download")
@@ -906,6 +918,24 @@ def download_folder(folder_id: str, background: BackgroundTasks, _: Optional[str
         folder_map = {folder_id: folder.name}
     download_name = f"{(folder.name or 'folder').replace(' ', '_')[:50] or 'folder'}.zip"
     return zip_assets_response(assets, download_name, background, folder_map)
+
+
+# Trash endpoints -----------------------------------------------
+
+
+@app.get("/trash", response_model=TrashListOut)
+def list_trash(_: Optional[str] = Depends(require_auth)):
+    entries = trash_service.list_entries()
+    return TrashListOut(
+        entries=[TrashEntryOut(**entry) for entry in entries],
+        total_size=sum(entry["size"] for entry in entries),
+    )
+
+
+@app.post("/trash/purge", response_model=TrashPurgeOut)
+def purge_trash(older_than_days: Optional[int] = Query(None, ge=0), _: Optional[str] = Depends(require_auth)):
+    return TrashPurgeOut(**trash_service.purge(older_than_days))
+
 
 @app.post("/asset/{asset_id}/folder", response_model=AssetOut)
 def update_asset_folder(asset_id: str, body: AssetFolderUpdate, _: Optional[str] = Depends(require_auth)):

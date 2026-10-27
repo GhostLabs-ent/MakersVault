@@ -94,6 +94,14 @@ class FolderIn(BaseModel):
   parent_id: Optional[str] = None
 
 
+class FolderDeletePreviewOut(BaseModel):
+  folders: int
+  assets: int
+  files: int
+  bytes: int
+  in_trash: bool
+
+
 class FolderOut(BaseModel):
   id: str
   name: str
@@ -121,6 +129,24 @@ class DownloadRequest(BaseModel):
 
 class TagUpdate(BaseModel):
   tags: List[str]
+
+
+class TrashEntryOut(BaseModel):
+  path: str
+  name: str
+  size: int
+  mtime: str
+
+
+class TrashListOut(BaseModel):
+  entries: List[TrashEntryOut]
+  total_size: int
+
+
+class TrashPurgeOut(BaseModel):
+  purged: int
+  bytes: int
+  failed: List[str] = []
 
 
 class AssetMetaUpdate(BaseModel):

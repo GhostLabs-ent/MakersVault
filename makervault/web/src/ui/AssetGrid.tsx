@@ -26,6 +26,7 @@ import TagInput from "./TagInput";
 import { colorForTag } from "./tagColors";
 import { refreshWindow } from "../lib/assetPaging";
 import { useStableCallback } from "../lib/useStableCallback";
+import { formatBytes } from "../lib/format";
 import { EngravingSettings, PreviewSettings, ResolvedTheme, SlicerSettings, engraverLabelFor, slicerLabelFor } from "../lib/settings";
 import { entriesFromDataTransfer, uploadEntriesToFolder } from "../lib/uploadTree";
 import { buildUploadEntriesFromZip, isZipFile, readZipEntries } from "../lib/zipUtils";
@@ -1569,7 +1570,7 @@ function AssetPreviewModal({ asset, theme, onClose }: { asset: Asset; theme: Res
           <div>
             <h2 className="text-lg font-semibold">{asset.name}</h2>
             <p className="text-sm opacity-70">
-              {asset.filename} · {formatFileSize(asset.size)}
+              {asset.filename} · {formatBytes(asset.size)}
             </p>
             {(asset.creator || asset.collection) && (
               <p className="text-xs text-muted">
@@ -1624,16 +1625,4 @@ function AssetPreviewModal({ asset, theme, onClose }: { asset: Asset; theme: Res
       </div>
     </div>
   );
-}
-
-function formatFileSize(bytes: number) {
-  if (!bytes && bytes !== 0) return "";
-  const units = ["B", "KB", "MB", "GB"];
-  let size = bytes;
-  let idx = 0;
-  while (size >= 1024 && idx < units.length - 1) {
-    size /= 1024;
-    idx++;
-  }
-  return `${size.toFixed(idx === 0 ? 0 : 1)} ${units[idx]}`;
 }

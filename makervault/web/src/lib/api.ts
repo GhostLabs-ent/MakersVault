@@ -489,6 +489,41 @@ export type Folder = {
   storage_path?: string | null;
 };
 
+export type FolderDeletePreview = {
+  folders: number;
+  assets: number;
+  files: number;
+  bytes: number;
+  in_trash: boolean;
+};
+
+export type FolderDeleteResult = {
+  ok: boolean;
+  // null when the folder had no directory on disk (a scan-created row)
+  trash_path: string | null;
+  folders: number;
+  assets: number;
+  bytes: number;
+};
+
+export type TrashEntry = {
+  path: string;
+  name: string;
+  size: number;
+  mtime: string;
+};
+
+export type TrashList = {
+  entries: TrashEntry[];
+  total_size: number;
+};
+
+export type TrashPurgeResult = {
+  purged: number;
+  bytes: number;
+  failed: string[];
+};
+
 export async function listFolders(): Promise<Folder[]> {
   const res = await fetch(`${apiBase()}/folders`, { headers: authHeaders() });
   assertOk(res, "Failed to list folders");
@@ -515,9 +550,41 @@ export async function updateFolder(id: string, name: string, tags: string[], par
   return res.json();
 }
 
-export async function deleteFolder(id: string) {
-  const res = await fetch(`${apiBase()}/folder/${id}`, { method: "DELETE", headers: authHeaders() });
-  assertOk(res, "Delete folder failed");
+export async function deleteFolder(id: string, confirmName: string): Promise<FolderDeleteResult> {
+  const qs = new URLSearchParams({ confirm_name: confirmName });
+  const res = await fetch(`${apiBase()}/folder/${id}?${qs.toString()}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) {
+    // Surface the server's 400 (mismatched confirm_name) / 409 detail in the dialog.
+    throw new Error(await readErrorMessage(res, "Delete folder failed"));
+  }
+  return res.json();
+}
+
+export async function getFolderDeletePreview(id: string): Promise<FolderDeletePreview> {
+  const res = await fetch(`${apiBase()}/folder/${id}/delete-preview`, { headers: authHeaders() });
+  assertOk(res, "Failed to load delete preview");
+  return res.json();
+}
+
+export async function getTrash(): Promise<TrashList> {
+  const res = await fetch(`${apiBase()}/trash`, { headers: authHeaders() });
+  assertOk(res, "Failed to load trash");
+  return res.json();
+}
+
+export async function purgeTrash(olderThanDays?: number): Promise<TrashPurgeResult> {
+  const qs = new URLSearchParams();
+  if (typeof olderThanDays === "number") qs.set("older_than_days", String(olderThanDays));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await fetch(`${apiBase()}/trash/purge${suffix}`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  assertOk(res, "Failed to empty trash");
   return res.json();
 }
 
