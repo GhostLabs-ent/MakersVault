@@ -109,10 +109,26 @@ const DEFAULT_SETTINGS: AppSettings = {
   },
 };
 
-export function loadSettings(): AppSettings {
-  if (typeof window === "undefined") return DEFAULT_SETTINGS;
+type SettingsCacheEntry = {
+  raw: string | null;
+  legacyTheme: string | null;
+  settings: AppSettings;
+};
+
+// Single-entry cache keyed by the two raw storage strings. `null` is a valid
+// key (empty storage), so the uninitialized state is `null` for the entry
+// itself rather than an entry with `raw: null`.
+let settingsCache: SettingsCacheEntry | null = null;
+
+/**
+ * Parses and validates a raw settings payload.
+ *
+ * Pure: callers pass the raw storage values in, so this never reads
+ * `localStorage` itself. `legacyTheme` is only consulted when the stored theme
+ * is missing or invalid. Malformed JSON yields `DEFAULT_SETTINGS`.
+ */
+function parseStoredSettings(raw: string | null, legacyTheme: string | null): AppSettings {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) || {} : {};
     const slicer = parsed.slicer || {};
     const selected = typeof slicer.selected === "string" ? slicer.selected : DEFAULT_SETTINGS.slicer.selected;
@@ -142,14 +158,13 @@ export function loadSettings(): AppSettings {
       ? previews.mode as PreviewMode
       : DEFAULT_SETTINGS.previews.mode;
     if (!themeValid) {
-      const legacy = window.localStorage.getItem(LEGACY_THEME_KEY);
-      if (legacy === "light" || legacy === "dark") {
-        themeSelected = legacy;
+      if (legacyTheme === "light" || legacyTheme === "dark") {
+        themeSelected = legacyTheme;
       } else {
         themeSelected = DEFAULT_SETTINGS.theme.selected;
       }
     }
-    return {
+    return freezeSettings({
       slicer: {
         enabled,
         selected: valid ? selected : DEFAULT_SETTINGS.slicer.selected,
@@ -173,10 +188,67 @@ export function loadSettings(): AppSettings {
       previews: {
         mode: previewMode,
       },
-    };
+    });
   } catch {
+    // DEFAULT_SETTINGS is shared and must stay mutable: freeze only freshly
+    // built settings objects.
     return DEFAULT_SETTINGS;
   }
+}
+
+/** Freezes a freshly parsed settings object so the cached reference cannot be mutated in place. */
+function freezeSettings(settings: AppSettings): AppSettings {
+  Object.freeze(settings.slicer);
+  Object.freeze(settings.engraving);
+  Object.freeze(settings.theme);
+  Object.freeze(settings.makerworld);
+  Object.freeze(settings.thingiverse);
+  Object.freeze(settings.network);
+  Object.freeze(settings.previews);
+  return Object.freeze(settings);
+}
+
+/**
+ * Returns the parsed application settings.
+ *
+ * The result is a cached, frozen, shared reference - do not mutate it; copy
+ * before editing. The cache revalidates on every call by comparing both stored
+ * strings, so a change from this tab, another tab, devtools or a test stub is
+ * picked up by the very next call. A hit costs two `getItem` calls and two
+ * string comparisons (no `JSON.parse`); a miss re-parses once and caches,
+ * including malformed JSON, which is cached as the default settings.
+ */
+export function loadSettings(): AppSettings {
+  if (typeof window === "undefined") return DEFAULT_SETTINGS;
+
+  let raw: string | null;
+  try {
+    raw = window.localStorage.getItem(STORAGE_KEY);
+  } catch {
+    // Storage is unreadable, so nothing can be cached or trusted.
+    return DEFAULT_SETTINGS;
+  }
+
+  // A failing legacy read must not discard otherwise valid main settings.
+  let legacyTheme: string | null = null;
+  try {
+    legacyTheme = window.localStorage.getItem(LEGACY_THEME_KEY);
+  } catch {
+    legacyTheme = null;
+  }
+
+  if (settingsCache && settingsCache.raw === raw && settingsCache.legacyTheme === legacyTheme) {
+    return settingsCache.settings;
+  }
+
+  const settings = parseStoredSettings(raw, legacyTheme);
+  settingsCache = { raw, legacyTheme, settings };
+  return settings;
+}
+
+/** Test-only: drops the cached snapshot so stubbed or cleared stores cannot serve stale settings. */
+export function resetSettingsCache(): void {
+  settingsCache = null;
 }
 
 export function saveSettings(settings: AppSettings) {
