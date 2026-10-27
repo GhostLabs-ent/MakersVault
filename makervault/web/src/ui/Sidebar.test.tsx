@@ -131,3 +131,187 @@ describe("Sidebar folder deletion", () => {
     expect(onFoldersChanged).toHaveBeenCalled();
   });
 });
+
+const treeFolders: Folder[] = [
+  { id: "f1", name: "Keep", tags: [] },
+  { id: "f2", name: "Victim", tags: [] },
+  { id: "f3", name: "Nested", tags: [], parent_id: "f1" },
+  { id: "f4", name: "Empty", tags: [], parent_id: "f2" },
+];
+
+/** The tree row element for a folder id. */
+function treeRow(id: string): HTMLElement {
+  const row = document.querySelector<HTMLElement>(`[data-tree-row="${id}"]`);
+  if (!row) throw new Error(`Tree row ${id} is not rendered`);
+  return row;
+}
+
+function treeRows(): HTMLElement[] {
+  return Array.from(document.querySelectorAll<HTMLElement>("[data-tree-row]"));
+}
+
+function rowIdsWithTabStop(): string[] {
+  return treeRows()
+    .filter(row => row.tabIndex === 0)
+    .map(row => row.dataset.treeRow ?? "");
+}
+
+/**
+ * Render the sidebar with the shared hierarchy and wait until root folders have
+ * auto-expanded (Keep → Nested visible), i.e. the tree is in its stable order:
+ * Keep, Nested, Victim, Empty.
+ */
+async function renderTree(selectedId: string | null = null) {
+  listFoldersMock.mockReset();
+  listFoldersMock.mockResolvedValue(treeFolders);
+  const onSelect = vi.fn();
+  const view = render(<Sidebar selectedId={selectedId} onSelect={onSelect} />);
+  await screen.findByText("Nested");
+  return { onSelect, ...view };
+}
+
+describe("Sidebar keyboard tree", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("gives exactly one visible row the tab stop, starting on the selected folder", async () => {
+    await renderTree("f2");
+
+    await waitFor(() => expect(rowIdsWithTabStop()).toEqual(["f2"]));
+    expect(treeRows().map(row => row.dataset.treeRow)).toEqual(["f1", "f3", "f2", "f4"]);
+    for (const row of treeRows()) {
+      expect(row.tabIndex).toBe(row.dataset.treeRow === "f2" ? 0 : -1);
+    }
+  });
+
+  it("falls back to the first row when nothing is selected", async () => {
+    await renderTree(null);
+
+    await waitFor(() => expect(rowIdsWithTabStop()).toEqual(["f1"]));
+    expect(treeRow("f1").tabIndex).toBe(0);
+    expect(treeRow("f3").tabIndex).toBe(-1);
+    expect(treeRow("f2").tabIndex).toBe(-1);
+    expect(treeRow("f4").tabIndex).toBe(-1);
+  });
+
+  it("moves focus and the tab stop with ArrowDown/ArrowUp, clamped at the ends", async () => {
+    await renderTree(null);
+    await waitFor(() => expect(rowIdsWithTabStop()).toEqual(["f1"]));
+
+    treeRow("f1").focus();
+    expect(document.activeElement).toBe(treeRow("f1"));
+
+    fireEvent.keyDown(treeRow("f1"), { key: "ArrowDown" });
+    expect(document.activeElement).toBe(treeRow("f3"));
+    expect(rowIdsWithTabStop()).toEqual(["f3"]);
+
+    fireEvent.keyDown(treeRow("f3"), { key: "ArrowDown" });
+    expect(document.activeElement).toBe(treeRow("f2"));
+
+    fireEvent.keyDown(treeRow("f2"), { key: "ArrowDown" });
+    expect(document.activeElement).toBe(treeRow("f4"));
+
+    fireEvent.keyDown(treeRow("f4"), { key: "ArrowDown" });
+    expect(document.activeElement).toBe(treeRow("f4"));
+
+    fireEvent.keyDown(treeRow("f4"), { key: "ArrowUp" });
+    expect(document.activeElement).toBe(treeRow("f2"));
+
+    fireEvent.keyDown(treeRow("f2"), { key: "ArrowUp" });
+    fireEvent.keyDown(treeRow("f3"), { key: "ArrowUp" });
+    expect(document.activeElement).toBe(treeRow("f1"));
+    expect(rowIdsWithTabStop()).toEqual(["f1"]);
+
+    fireEvent.keyDown(treeRow("f1"), { key: "ArrowUp" });
+    expect(document.activeElement).toBe(treeRow("f1"));
+  });
+
+  it("expands with ArrowRight, then focuses the child; ArrowLeft collapses or returns to the parent", async () => {
+    await renderTree(null);
+    await waitFor(() => expect(treeRow("f3")).toBeTruthy());
+
+    treeRow("f1").focus();
+    // Roots auto-expand, so collapse Keep first and reopen it with the keyboard.
+    fireEvent.keyDown(treeRow("f1"), { key: "ArrowLeft" });
+    expect(treeRow("f1").getAttribute("aria-expanded")).toBe("false");
+    expect(document.querySelector('[data-tree-row="f3"]')).toBeNull();
+
+    fireEvent.keyDown(treeRow("f1"), { key: "ArrowRight" });
+    expect(treeRow("f1").getAttribute("aria-expanded")).toBe("true");
+    await waitFor(() => expect(document.querySelector('[data-tree-row="f3"]')).not.toBeNull());
+    // Expanding alone leaves focus on the parent row.
+    expect(document.activeElement).toBe(treeRow("f1"));
+
+    fireEvent.keyDown(treeRow("f1"), { key: "ArrowRight" });
+    expect(document.activeElement).toBe(treeRow("f3"));
+
+    fireEvent.keyDown(treeRow("f3"), { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(treeRow("f1"));
+
+    fireEvent.keyDown(treeRow("f1"), { key: "ArrowLeft" });
+    expect(treeRow("f1").getAttribute("aria-expanded")).toBe("false");
+    expect(document.querySelector('[data-tree-row="f3"]')).toBeNull();
+  });
+
+  it("selects the focused folder with Enter and Space", async () => {
+    const { onSelect } = await renderTree(null);
+    await waitFor(() => expect(treeRow("f2")).toBeTruthy());
+
+    treeRow("f2").focus();
+    fireEvent.keyDown(treeRow("f2"), { key: "Enter" });
+    expect(onSelect).toHaveBeenLastCalledWith("f2");
+
+    onSelect.mockClear();
+    treeRow("f4").focus();
+    const notPrevented = fireEvent.keyDown(treeRow("f4"), { key: " " });
+    expect(notPrevented).toBe(false);
+    expect(onSelect).toHaveBeenLastCalledWith("f4");
+  });
+
+  it("leaves Enter and Space to the folder action menu instead of selecting", async () => {
+    const { onSelect } = await renderTree(null);
+    await waitFor(() => expect(treeRow("f2")).toBeTruthy());
+
+    // The row's action menu summary is a natively focusable control inside the
+    // treeitem: Enter/Space must keep toggling the menu, not open the folder.
+    const summary = screen.getByLabelText("Actions for Victim");
+    summary.focus();
+
+    const enterNotPrevented = fireEvent.keyDown(summary, { key: "Enter" });
+    expect(enterNotPrevented).toBe(true);
+    const spaceNotPrevented = fireEvent.keyDown(summary, { key: " " });
+    expect(spaceNotPrevented).toBe(true);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("moves from the All files button into the first tree row with ArrowDown", async () => {
+    await renderTree(null);
+    const allFiles = screen.getByRole("button", { name: /All files/ });
+
+    fireEvent.keyDown(allFiles, { key: "ArrowDown" });
+
+    expect(document.activeElement).toBe(treeRow("f1"));
+    expect(rowIdsWithTabStop()).toEqual(["f1"]);
+  });
+
+  it("exposes tree/treeitem roles, levels, selection and non-tabbable inner controls", async () => {
+    await renderTree("f3");
+    await waitFor(() => expect(rowIdsWithTabStop()).toEqual(["f3"]));
+
+    expect(screen.getByRole("tree", { name: "Folders" })).toBeTruthy();
+    expect(treeRow("f1").getAttribute("role")).toBe("treeitem");
+    expect(treeRow("f1").getAttribute("aria-level")).toBe("1");
+    expect(treeRow("f1").getAttribute("aria-expanded")).toBe("true");
+    expect(treeRow("f2").getAttribute("aria-level")).toBe("1");
+    expect(treeRow("f3").getAttribute("aria-level")).toBe("2");
+    expect(treeRow("f3").getAttribute("aria-selected")).toBe("true");
+    expect(treeRow("f3").getAttribute("aria-current")).toBe("page");
+    expect(treeRow("f3").hasAttribute("aria-expanded")).toBe(false);
+    expect(treeRow("f2").getAttribute("aria-current")).toBeNull();
+    expect(treeRow("f2").getAttribute("aria-selected")).toBe("false");
+
+    expect(within(treeRow("f1")).getByRole("button", { name: "Keep" }).tabIndex).toBe(-1);
+    expect(within(treeRow("f1")).getByRole("button", { name: "Collapse" }).tabIndex).toBe(-1);
+  });
+});

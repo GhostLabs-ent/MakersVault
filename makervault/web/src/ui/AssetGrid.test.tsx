@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createRef } from "react";
 
-import type { Asset } from "../lib/api";
+import type { Asset, Folder } from "../lib/api";
 import {
   ESTIMATED_ROW_HEIGHT,
   GRID_GAP_PX,
@@ -196,6 +196,7 @@ type HarnessProps = {
   folderId?: string | null;
   foldersVersion?: number;
   assetsVersion?: number;
+  onNavigateFolder?: (id: string | null) => void;
 };
 
 /**
@@ -1172,5 +1173,96 @@ describe("AssetGrid bulk actions", () => {
     await waitFor(() => expect(screen.queryByText("Calibration cube")).toBeNull());
     expect(screen.queryByText("Spool holder")).toBeNull();
     expect(listAssetsMock.mock.calls.length).toBe(callsBefore);
+  });
+});
+
+describe("folder cards", () => {
+  const folderFixtures: Folder[] = [
+    { id: "p", name: "Parts", tags: [] },
+    { id: "c1", name: "Brackets", tags: [], parent_id: "p" },
+    { id: "c2", name: "Clamps", tags: [], parent_id: "p" },
+    { id: "x", name: "Elsewhere", tags: [] },
+  ];
+
+  beforeEach(() => {
+    listAssetsMock.mockReset();
+    listAssetsMock.mockResolvedValue({ items: makeSyntheticBatch(2), hasMore: false });
+    listFoldersMock.mockReset();
+    listFoldersMock.mockResolvedValue(folderFixtures);
+    fileUrlMock.mockClear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    FakeResizeObserver.instances = [];
+    cleanup();
+  });
+
+  it("shows the breadcrumb trail and the direct subfolders of the open folder", async () => {
+    const onNavigateFolder = vi.fn();
+    renderHarness({ folderId: "p", onNavigateFolder });
+
+    const nav = await waitFor(() => {
+      const found = document.querySelector<HTMLElement>("[data-folder-breadcrumbs]");
+      if (!found) throw new Error("breadcrumbs not rendered");
+      return found;
+    });
+    expect(within(nav).getByRole("button", { name: "All files" })).toBeTruthy();
+    const current = within(nav).getByRole("button", { name: "Parts" });
+    expect(current.getAttribute("aria-current")).toBe("page");
+    expect(within(nav).getAllByRole("button").map(b => b.textContent)).toEqual([
+      "All files",
+      "Parts",
+    ]);
+
+    const tiles = await waitFor(() => {
+      const found = document.querySelector<HTMLElement>("[data-folder-tiles]");
+      if (!found) throw new Error("folder tiles not rendered");
+      return found;
+    });
+    expect(
+      Array.from(tiles.querySelectorAll("[data-folder-tile]")).map(el =>
+        el.getAttribute("data-folder-tile"),
+      ),
+    ).toEqual(["c1", "c2"]);
+    expect(within(tiles).getByRole("button", { name: /Brackets/ })).toBeTruthy();
+    expect(within(tiles).getByRole("button", { name: /Clamps/ })).toBeTruthy();
+    // Direct children only: a sibling root is not a subfolder of "Parts".
+    expect(within(tiles).queryByRole("button", { name: /Elsewhere/ })).toBeNull();
+
+    fireEvent.click(within(tiles).getByRole("button", { name: /Brackets/ }));
+    expect(onNavigateFolder).toHaveBeenLastCalledWith("c1");
+
+    fireEvent.keyDown(within(tiles).getByRole("button", { name: /Clamps/ }), { key: "Enter" });
+    expect(onNavigateFolder).toHaveBeenLastCalledWith("c2");
+  });
+
+  it("keeps the virtualizer intact with subfolder tiles above the grid", async () => {
+    const total = 60;
+    listAssetsMock.mockResolvedValue({ items: makeSyntheticBatch(total), hasMore: false });
+
+    const { scroller } = renderHarness({ folderId: "p", onNavigateFolder: vi.fn() });
+
+    await screen.findByText("Asset 1");
+    await waitFor(() =>
+      expect(document.querySelector("[data-folder-tiles]")).toBeTruthy(),
+    );
+    const gridWrap = stubGridRect(scroller);
+
+    // The tiles are their own block above the grid: never inside the wrapper
+    // the virtualizer measures, or the offset math would be wrong.
+    const tiles = document.querySelector("[data-folder-tiles]");
+    expect(tiles).toBeTruthy();
+    expect(gridWrap.contains(tiles)).toBe(false);
+
+    const rows = mountedRowIndexes();
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows[0]).toBe(0);
+    expect(rows).toEqual(Array.from({ length: rows.length }, (_, index) => index));
+    expect(screen.getByText("Asset 1")).toBeTruthy();
+
+    const bottomSpacer = document.querySelector<HTMLElement>('[data-virtual-spacer="bottom"]');
+    expect(bottomSpacer).toBeTruthy();
+    expect(Number.parseFloat(bottomSpacer?.style.height ?? "0")).toBeGreaterThan(0);
   });
 });

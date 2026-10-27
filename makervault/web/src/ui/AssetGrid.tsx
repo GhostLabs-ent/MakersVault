@@ -30,6 +30,7 @@ import LightBurnPreview from "./LightBurnPreview";
 import TagBadge from "./TagBadge";
 import TagInput from "./TagInput";
 import BulkActionBar from "./BulkActionBar";
+import FolderBreadcrumbs, { FolderTiles } from "./FolderNav";
 import { colorForTag } from "./tagColors";
 import { refreshWindow } from "../lib/assetPaging";
 import { useStableCallback } from "../lib/useStableCallback";
@@ -43,6 +44,8 @@ import {
   unionTags,
 } from "../lib/bulkUi";
 import { GRID_GAP_PX, chunkRows, colsForWidth } from "../lib/virtualGrid";
+import { childFolders } from "../lib/folderTree";
+import { previewQueue } from "../lib/previewQueue";
 import { useVirtualRows } from "./useVirtualRows";
 import { formatBytes } from "../lib/format";
 import { EngravingSettings, PreviewSettings, ResolvedTheme, SlicerSettings, engraverLabelFor, slicerLabelFor } from "../lib/settings";
@@ -98,6 +101,9 @@ function rowsBatchSizeForWidth(width: number) {
   return colsForWidth(width) * ROWS_PER_BATCH;
 }
 
+/** Placeholder so the folder nav props stay non-optional inside the grid. */
+function noop(): void {}
+
 type Props = {
   folderId?: string | null;
   foldersVersion?: number;
@@ -109,6 +115,8 @@ type Props = {
   theme: ResolvedTheme;
   /** Scroll container the grid lives in (the app's `<main>`). */
   scrollElementRef?: React.RefObject<HTMLElement | null>;
+  /** Navigate to a folder (or the root) from the breadcrumbs/tiles. */
+  onNavigateFolder?: (id: string | null) => void;
 };
 
 type RefreshOpts = { tags?: string[]; search?: string; keepLoadedPages?: boolean };
@@ -166,6 +174,7 @@ export default function AssetGrid({
   previewSettings,
   theme,
   scrollElementRef,
+  onNavigateFolder,
 }: Props) {
   const [items, setItems] = useState<Asset[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -399,6 +408,12 @@ export default function AssetGrid({
     })();
   }, [foldersVersion]);
 
+  // Opening another folder is a new browsing session, so the per-session
+  // preview budget (Mf-04od) is refunded; reset() resolves queued jobs with null.
+  useEffect(() => {
+    previewQueue.reset();
+  }, [folderId]);
+
   useEffect(() => {
     const present = new Set(items.map(i => i.id));
     setSelectedIds(prev => new Set([...prev].filter(id => present.has(id))));
@@ -446,6 +461,10 @@ export default function AssetGrid({
     }
     return m;
   }, [folders, folderById]);
+
+  // Direct subfolders of the open folder, derived from the folder list the grid
+  // already fetched — no extra requests.
+  const subfolders = useMemo(() => childFolders(folders, folderId ?? null), [folderId, folders]);
 
   const folderOptions = useMemo(() => {
     return [
@@ -996,6 +1015,13 @@ export default function AssetGrid({
         </div>
       )}
       <div className="flex flex-col gap-4">
+      {/* Deliberately non-sticky: `BulkActionBar` is the single sticky element
+          in this column (top-0 z-30), so the two cannot fight over the slot. */}
+      <FolderBreadcrumbs
+        folders={folders}
+        folderId={folderId ?? null}
+        onNavigate={onNavigateFolder ?? noop}
+      />
       <BulkActionBar
         count={selectedIds.size}
         folderOptions={folderOptions}
@@ -1072,6 +1098,21 @@ export default function AssetGrid({
             </button>
           )}
         </div>
+      )}
+
+      <FolderTiles
+        folders={folders}
+        folderId={folderId ?? null}
+        onNavigate={onNavigateFolder ?? noop}
+      />
+
+      {/* A folder holding only subfolders must never look broken (#15). Applies
+          to both the flat and the grouped sort modes. At the root there are no
+          subfolder tiles, so the hint stays off. */}
+      {!!folderId && !loading && !items.length && subfolders.length > 0 && (
+        <p className="text-sm opacity-70">
+          No files directly in this folder — pick a subfolder above.
+        </p>
       )}
 
       {["folder", "type"].includes(sortKey) ? (

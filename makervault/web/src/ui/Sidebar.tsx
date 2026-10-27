@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { Folder, UnauthorizedError, createFolder, downloadFolderZip, listFolders, updateFolder } from "../lib/api";
+import { flattenFolderTree } from "../lib/folderTree";
 import { entriesFromDataTransfer, uploadEntriesToFolder } from "../lib/uploadTree";
 import { buildUploadEntriesFromZip, isZipFile, readZipEntries } from "../lib/zipUtils";
 import TagInput from "./TagInput";
@@ -59,6 +60,7 @@ export default function Sidebar({
   const [dropUploading, setDropUploading] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const [query, setQuery] = useState("");
+  const [activeFolderId, setActiveFolderId] = useState<string | null>(selectedId ?? null);
   const zipPrompt = useZipImportPrompt();
 
   const uploadWithZipPrompt = async (entries: Awaited<ReturnType<typeof entriesFromDataTransfer>>, folderId: string | null) => {
@@ -288,17 +290,26 @@ export default function Sidebar({
   }, [folders]);
 
   useEffect(() => {
-    // Ensure selected folder path is expanded
+    // Keep the tab stop on the selected folder when navigation happens outside
+    // the tree (breadcrumbs, subfolder tiles).
+    setActiveFolderId(selectedId ?? null);
+  }, [selectedId]);
+
+  useEffect(() => {
+    // Ensure the selected folder's ancestors are expanded. The functional
+    // update keeps manual collapses intact and avoids depending on `expanded`.
     if (!selectedId) return;
-    const next = new Set(expanded);
-    let current = folderById[selectedId];
-    const guard = new Set<string>();
-    while (current?.parent_id && !guard.has(current.parent_id)) {
-      next.add(current.parent_id);
-      guard.add(current.parent_id);
-      current = folderById[current.parent_id];
-    }
-    setExpanded(next);
+    setExpanded(prev => {
+      const next = new Set(prev);
+      let current = folderById[selectedId];
+      const guard = new Set<string>();
+      while (current?.parent_id && !guard.has(current.parent_id)) {
+        next.add(current.parent_id);
+        guard.add(current.parent_id);
+        current = folderById[current.parent_id];
+      }
+      return next;
+    });
   }, [selectedId, folderById]);
 
   const isDescendant = React.useCallback(
@@ -390,6 +401,109 @@ export default function Sidebar({
     });
   };
 
+  const isFolderOpen = (id: string) => !!query.trim() || expanded.has(id);
+
+  // Visible rows in DOM order, shared with the keyboard navigation below.
+  const treeRows = React.useMemo(
+    () =>
+      flattenFolderTree(folders, {
+        expanded,
+        alwaysExpanded: !!query.trim(),
+        isVisible: visibleFolderIds ? (id: string) => visibleFolderIds.has(id) : undefined,
+      }),
+    [expanded, folders, query, visibleFolderIds]
+  );
+
+  const treeRowIds = React.useMemo(
+    () => new Set(treeRows.map(row => row.id)),
+    [treeRows]
+  );
+
+  // Exactly one visible row owns the tab stop. If the tracked row is hidden
+  // (ancestor collapsed, filtered out) fall back to the first visible row.
+  const rovingFolderId =
+    activeFolderId && treeRowIds.has(activeFolderId)
+      ? activeFolderId
+      : treeRows[0]?.id ?? null;
+
+  const rowElements = React.useRef(new Map<string, HTMLElement>());
+
+  const setRowElement = (id: string) => (element: HTMLDivElement | null) => {
+    if (element) rowElements.current.set(id, element);
+    else rowElements.current.delete(id);
+  };
+
+  const focusTreeRow = (id: string | null) => {
+    if (!id) return;
+    setActiveFolderId(id);
+    rowElements.current.get(id)?.focus();
+  };
+
+  const handleTreeKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const rowElement = target.closest<HTMLElement>("[data-tree-row]");
+    const rowId = rowElement?.dataset.treeRow;
+    if (!rowId) return;
+    const index = treeRows.findIndex(row => row.id === rowId);
+    if (index === -1) return;
+    const row = treeRows[index];
+
+    switch (event.key) {
+      case "ArrowDown":
+        event.preventDefault();
+        focusTreeRow(treeRows[Math.min(index + 1, treeRows.length - 1)].id);
+        return;
+      case "ArrowUp":
+        event.preventDefault();
+        focusTreeRow(treeRows[Math.max(index - 1, 0)].id);
+        return;
+      case "ArrowRight":
+        event.preventDefault();
+        if (!row.hasChildren) return;
+        if (!isFolderOpen(row.id)) {
+          toggleExpand(row.id);
+          return;
+        }
+        if (treeRows[index + 1]?.depth === row.depth + 1) {
+          focusTreeRow(treeRows[index + 1].id);
+        }
+        return;
+      case "ArrowLeft":
+        event.preventDefault();
+        if (row.hasChildren && isFolderOpen(row.id)) {
+          toggleExpand(row.id);
+          return;
+        }
+        for (let i = index - 1; i >= 0; i -= 1) {
+          if (treeRows[i].depth === row.depth - 1) {
+            focusTreeRow(treeRows[i].id);
+            return;
+          }
+        }
+        return;
+      case "Home":
+        event.preventDefault();
+        focusTreeRow(treeRows[0].id);
+        return;
+      case "End":
+        event.preventDefault();
+        focusTreeRow(treeRows[treeRows.length - 1].id);
+        return;
+      case "Enter":
+      case " ":
+        // Only the row itself opens the folder. A focused descendant (the
+        // actions menu, its items, the chevron) keeps its native activation,
+        // otherwise Enter/Space would select the folder instead.
+        if (target !== rowElement) return;
+        event.preventDefault();
+        onSelect(row.id);
+        return;
+      default:
+        return;
+    }
+  };
+
   const closeFolderMenu = (e: React.MouseEvent<HTMLElement>) => {
     const details = e.currentTarget.closest("details") as HTMLDetailsElement | null;
     if (details?.open) {
@@ -403,22 +517,35 @@ export default function Sidebar({
       child => !visibleFolderIds || visibleFolderIds.has(child.id)
     );
     const isSelected = selectedId === folder.id;
-    const isOpen = !!query.trim() || expanded.has(folder.id);
+    const isOpen = isFolderOpen(folder.id);
+    const hasChildren = children.length > 0;
     const isDropTarget = dropTargetId === folder.id;
     return (
-      <div key={folder.id} className="sidebar-tree-node">
+      // `role="none"`: the wrapper only carries indentation, so the treeitem
+      // stays directly owned by the tree/group.
+      <div key={folder.id} role="none" className="sidebar-tree-node">
         <div
           className={`sidebar-tree-row ${isSelected ? "is-selected" : ""} ${isDropTarget ? "is-drop-target" : ""}`}
           style={{ paddingLeft: 10 }}
+          role="treeitem"
+          aria-level={depth + 1}
+          aria-expanded={hasChildren ? isOpen : undefined}
+          aria-selected={isSelected}
+          aria-current={isSelected ? "page" : undefined}
+          data-tree-row={folder.id}
+          tabIndex={folder.id === rovingFolderId ? 0 : -1}
+          ref={setRowElement(folder.id)}
           onDragOver={handleDragOverTarget(folder.id)}
           onDrop={handleDropFiles(folder.id)}
         >
-          {children.length ? (
+          {hasChildren ? (
             <button
+              type="button"
               onClick={() => toggleExpand(folder.id)}
               className="sidebar-tree-chevron"
               aria-label={isOpen ? "Collapse" : "Expand"}
               aria-expanded={isOpen}
+              tabIndex={-1}
             >
               <ChevronRight className={`h-3.5 w-3.5 transition-transform ${isOpen ? "rotate-90" : ""}`} />
             </button>
@@ -426,10 +553,11 @@ export default function Sidebar({
             <span className="sidebar-tree-spacer" aria-hidden="true" />
           )}
           <button
+            type="button"
             className="sidebar-tree-label"
             onClick={() => onSelect(folder.id)}
             title={folderPath(folder)}
-            aria-current={isSelected ? "page" : undefined}
+            tabIndex={-1}
           >
             {isOpen && children.length ? (
               <FolderOpen className="sidebar-folder-icon" aria-hidden="true" />
@@ -479,8 +607,8 @@ export default function Sidebar({
             </details>
           </div>
         </div>
-        {isOpen && children.length > 0 && (
-          <div className="sidebar-tree-children">
+        {isOpen && hasChildren && (
+          <div className="sidebar-tree-children" role="group">
             {children.map(child => renderFolderNode(child, depth + 1))}
           </div>
         )}
@@ -526,8 +654,14 @@ export default function Sidebar({
 
       <nav className="sidebar-navigation" aria-label="Library folders">
         <button
+          type="button"
           className={`sidebar-all-items ${!selectedId ? "is-selected" : ""} ${dropTargetId === DROP_ALL_ID ? "is-drop-target" : ""}`}
           onClick={() => onSelect(null)}
+          onKeyDown={event => {
+            if (event.key !== "ArrowDown") return;
+            event.preventDefault();
+            focusTreeRow(treeRows[0]?.id ?? null);
+          }}
           onDragOver={handleDragOverTarget(DROP_ALL_ID)}
           onDrop={handleDropFiles(null)}
         >
@@ -541,17 +675,22 @@ export default function Sidebar({
           <span>{visibleFolderIds ? visibleFolderIds.size : folders.length}</span>
         </div>
 
-        <div className="sidebar-tree">
+        <div
+          className="sidebar-tree"
+          role="tree"
+          aria-label="Folders"
+          onKeyDown={handleTreeKeyDown}
+        >
           {(childrenMap["__root"] || []).map(f => renderFolderNode(f, 0))}
           {folders.length === 0 && (
-            <div className="sidebar-empty">
+            <div className="sidebar-empty" role="none">
               <FolderPlus className="h-5 w-5" />
               <span>No folders yet</span>
               <button onClick={() => startCreate(null)}>Create your first folder</button>
             </div>
           )}
           {!!folders.length && visibleFolderIds?.size === 0 && (
-            <div className="sidebar-empty">
+            <div className="sidebar-empty" role="none">
               <Search className="h-5 w-5" />
               <span>No matching folders</span>
               <button onClick={() => setQuery("")}>Clear search</button>

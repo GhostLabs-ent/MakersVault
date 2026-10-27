@@ -212,6 +212,7 @@ export default function App() {
             previewSettings={settings.previews}
             theme={resolvedTheme}
             scrollElementRef={mainScrollRef}
+            onNavigateFolder={handleSelectFolder}
           />
         ) : (
           <Settings
