@@ -43,12 +43,13 @@ ticket has been processed.
 
 ## This repo's verification (run it yourself to verify-close)
 
-Docker is NOT available on this host (the daemon needs sudo and is not running),
-so never run `make verify*`. Use the host toolchains:
+Docker is available. Use `make verify` as the push gate, and the host toolchains
+for fast iteration while developing:
 
 - API: `cd makervault/api && source /home/mal/fuck_it_ill_do_it_myself/MakersVault/.venv/bin/activate && ruff check . && python -m pytest -q`
 - Web: `cd makervault/web && npm run verify` (lint + tsc + vitest + build)
-- After pushing, CI is authoritative for the container smoke test:
+- Push gate: `make verify` (lint, tests, bridge, compose, container smoke, ~4 min)
+- At the end of a batch, confirm CI (duplicates the same jobs):
   `gh workflow run Verify --repo insanemal/MakersVault --ref main`, then
   `gh run list --repo insanemal/MakersVault --limit 1` and
   `gh run view <id> --repo insanemal/MakersVault --json jobs -q '.jobs[] | "\(.name): \(.status)/\(.conclusion)"'`

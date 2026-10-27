@@ -41,8 +41,8 @@ Epics are parents (`tk show <epic>` lists children); `<- [id]` in `tk list` mean
 uploads → deploy, except where a ticket unblocks another.
 
 ## Verify suite for THIS repo
-Docker is **not** available on this host (daemon needs sudo, currently stopped),
-so `make verify*` targets cannot run locally. Use the host toolchains:
+Docker runs on this host (daemon up), so `make verify` is the gate. Use the host
+toolchains for fast iteration:
 
 ```bash
 cd makervault/api && source /home/mal/fuck_it_ill_do_it_myself/MakersVault/.venv/bin/activate \
@@ -51,8 +51,14 @@ cd makervault/api && source /home/mal/fuck_it_ill_do_it_myself/MakersVault/.venv
 cd makervault/web && npm run verify      # eslint + tsc + vitest + vite build
 ```
 
-CI is authoritative for the container layer (compose validation + container
-smoke test):
+Full gate before any push (lint in images, API tests, web lint/tsc/vitest/build,
+bridge, compose validation, container smoke, ~4 min):
+
+```bash
+make verify
+```
+
+CI duplicates the same jobs, so it stays a safety net rather than the only check:
 
 ```bash
 gh workflow run Verify --repo insanemal/MakersVault --ref main
