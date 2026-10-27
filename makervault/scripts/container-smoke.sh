@@ -52,13 +52,18 @@ if [ "$api_uid" = "0" ] || [ "$web_uid" = "0" ]; then
   exit 1
 fi
 
+expected_schema=$(sed -n 's/^ *Migration(\([0-9][0-9]*\),.*/\1/p' "$app_dir/api/migrations.py" | sort -n | tail -1)
+if [ -z "$expected_schema" ]; then
+  echo "Smoke test failed: could not determine expected schema version from api/migrations.py" >&2
+  exit 1
+fi
 schema_output=$(compose exec -T api python -m migrations)
 case "$schema_output" in
-  *"schema version: 3"*) ;;
+  *"schema version: $expected_schema"*) ;;
   *)
-    echo "Smoke test failed: unexpected schema output: $schema_output" >&2
+    echo "Smoke test failed: expected schema version $expected_schema, got: $schema_output" >&2
     exit 1
     ;;
 esac
 
-echo "Container smoke test passed (direct and same-origin API, API UID $api_uid, web UID $web_uid, schema 3)."
+echo "Container smoke test passed (direct and same-origin API, API UID $api_uid, web UID $web_uid, schema $expected_schema)."

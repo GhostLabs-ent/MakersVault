@@ -9,6 +9,7 @@ class Folder(SQLModel, table=True):
   name: str
   tags_json: str = Field(default="[]")
   parent_id: Optional[str] = Field(default=None, foreign_key="folder.id")
+  storage_path: Optional[str] = None
 
 
 class Asset(SQLModel, table=True):
@@ -28,6 +29,9 @@ class Asset(SQLModel, table=True):
   supporting_file_count: int = Field(default=0)
   prepared_file_id: Optional[str] = None
   prepared_metadata_json: Optional[str] = None
+  missing_since: Optional[str] = None
+  disk_mtime: Optional[int] = None
+  is_reference: int = 0
 
 
 class AssetFile(SQLModel, table=True):
