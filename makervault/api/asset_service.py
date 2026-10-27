@@ -1,8 +1,11 @@
+import errno
 import io
 import json
 import logging
+import os
 import re
 import tempfile
+import threading
 from pathlib import Path
 from typing import List, Optional
 from zipfile import BadZipFile, ZipFile
@@ -22,6 +25,21 @@ from schemas import ImportRequest
 from settings_service import get_storage_template
 
 log = logging.getLogger(__name__)
+
+# Serialises the no-hardlink fallback across this process's threads. Coarse on
+# purpose: the fallback is rare and a per-destination dict would grow unbounded.
+_FALLBACK_MOVE_LOCK = threading.Lock()
+# Errnos meaning "this filesystem cannot create hardlinks": SMB/FAT and
+# unprivileged Windows mounts refusing link() as a matter of policy (EPERM,
+# EACCES); filesystems with no hardlink support at all (ENOTSUP, EOPNOTSUPP);
+# the link count cap (EMLINK); and FUSE/SMB servers that report "not
+# implemented" or "invalid argument" instead of a dedicated errno (ENOSYS,
+# EINVAL). EXDEV is included for completeness even though a rename cannot cross
+# filesystems either: falling back only re-raises the same EXDEV. Every other
+# OSError propagates unchanged.
+_HARDLINK_UNSUPPORTED_ERRNOS = frozenset(
+    {errno.EXDEV, errno.EPERM, errno.EACCES, errno.ENOTSUP, errno.EOPNOTSUPP, errno.EMLINK, errno.ENOSYS, errno.EINVAL}
+)
 
 STORAGE_TEMPLATE_TOKENS = ("folder", "collection", "tags", "creator", "model", "name", "filename", "id")
 _TOKEN_RE = re.compile(r"\{([a-z_]+)\}")
@@ -207,16 +225,50 @@ def _relative_storage_path(path: Path) -> str:
         raise HTTPException(status_code=400, detail="Asset path resolved outside the storage directory") from None
 
 
+def _hardlink_move(old_path: Path, new_path: Path) -> None:
+    """Move bytes by linking then unlinking, so new_path is either created by us or the move fails.
+
+    ``os.link`` is atomic and refuses an existing destination (file or
+    directory), so concurrent moves onto one target cannot overwrite committed
+    bytes. It preserves the inode, so content and mtime are unchanged; the
+    unlink then retires the old name. A failed unlink rolls the half-move back:
+    after this function the bytes have exactly one name, never two and never zero.
+    """
+    os.link(old_path, new_path)
+    try:
+        old_path.unlink()
+    except OSError:
+        new_path.unlink(missing_ok=True)
+        raise
+
+
+def _locked_rename_move(old_path: Path, new_path: Path, relative: str) -> None:
+    """Check-then-rename fallback for filesystems that cannot hardlink.
+
+    The lock serialises this process's own moving threads, which is the only
+    interleaving one worker can produce; it is NOT safe against a second worker
+    process, which is why hardlinking is the default and this is the fallback.
+    new_path is either created by us or the move fails.
+    """
+    with _FALLBACK_MOVE_LOCK:
+        if new_path.exists():
+            raise HTTPException(status_code=409, detail=f"Storage path already exists: {relative}")
+        os.rename(old_path, new_path)
+
+
 def move_managed_file(old_path: Path, new_path: Path) -> bool:
     """Move one managed file and prune the directory it vacated.
 
     Only an explicit rename (same directory) or a folder move reaches here; a
     metadata edit never does, which is what keeps the storage template from
-    relocating files as a side effect.
+    relocating files as a side effect. Whatever the interleaving, new_path is
+    either created by us or the move fails: committed bytes are never overwritten.
     """
     if old_path.resolve() == new_path.resolve():
         return False
     relative = _relative_storage_path(new_path)
+    # Friendly fast path with today's 409 precedence; exists() is a read, so it
+    # decides nothing once two moves race - the link below is the arbiter.
     if new_path.exists():
         raise HTTPException(status_code=409, detail=f"Storage path already exists: {relative}")
     if not old_path.exists():
@@ -224,7 +276,14 @@ def move_managed_file(old_path: Path, new_path: Path) -> bool:
         return False
     new_path.parent.mkdir(parents=True, exist_ok=True)
     old_parent = old_path.parent
-    old_path.rename(new_path)
+    try:
+        _hardlink_move(old_path, new_path)
+    except FileExistsError:
+        raise HTTPException(status_code=409, detail=f"Storage path already exists: {relative}") from None
+    except OSError as error:
+        if error.errno not in _HARDLINK_UNSUPPORTED_ERRNOS:
+            raise
+        _locked_rename_move(old_path, new_path, relative)
     prune_empty_storage_dirs(old_parent)
     return True
 
@@ -235,6 +294,7 @@ def restore_moved_file(moved: bool, old_path: Path, new_path: Path) -> None:
         return
     try:
         old_path.parent.mkdir(parents=True, exist_ok=True)
+        # Undoing our own no-clobber move: nobody else can have created old_path.
         new_path.rename(old_path)
         prune_empty_storage_dirs(new_path.parent)
     except OSError:
