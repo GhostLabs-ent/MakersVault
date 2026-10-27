@@ -21,6 +21,13 @@ services:
       - IMPORT_MOUNT_INCLUDE_HIDDEN=${IMPORT_MOUNT_INCLUDE_HIDDEN:-false}
       - IMPORT_MOUNT_ON_STARTUP=${IMPORT_MOUNT_ON_STARTUP:-false}
       - IMPORT_MOUNT_COPY=${IMPORT_MOUNT_COPY:-true}
+      # Login throttling. Repeated failed logins lock the single admin account
+      # out with escalating backoff.
+      - LOGIN_THROTTLE_ENABLED=${LOGIN_THROTTLE_ENABLED:-true}
+      - LOGIN_MAX_FAILURES=${LOGIN_MAX_FAILURES:-5}
+      - LOGIN_FAILURE_WINDOW_SECONDS=${LOGIN_FAILURE_WINDOW_SECONDS:-900}
+      - LOGIN_LOCKOUT_SECONDS=${LOGIN_LOCKOUT_SECONDS:-300}
+      - LOGIN_MAX_LOCKOUT_SECONDS=${LOGIN_MAX_LOCKOUT_SECONDS:-3600}
     volumes:
       - makersvault_storage:/app/storage
       - makersvault_db:/app/data
@@ -38,6 +45,15 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS:-}
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
+      # Security headers emitted by the bundled Nginx. Empty means "use the
+      # built-in default"; the literal value `off` omits that header.
+      - SECURITY_HEADERS_ENABLED=${SECURITY_HEADERS_ENABLED:-true}
+      - SECURITY_HEADERS_HSTS=${SECURITY_HEADERS_HSTS:-}
+      - SECURITY_HEADERS_CSP=${SECURITY_HEADERS_CSP:-}
+      - SECURITY_HEADERS_REFERRER_POLICY=${SECURITY_HEADERS_REFERRER_POLICY:-}
+      - SECURITY_HEADERS_FRAME_OPTIONS=${SECURITY_HEADERS_FRAME_OPTIONS:-}
+      - SECURITY_HEADERS_PERMISSIONS_POLICY=${SECURITY_HEADERS_PERMISSIONS_POLICY:-}
+      - SECURITY_HEADERS_CONTENT_TYPE_OPTIONS=${SECURITY_HEADERS_CONTENT_TYPE_OPTIONS:-}
     ports:
       - "${WEB_PORT:-5173}:5173"
     depends_on:

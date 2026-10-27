@@ -42,7 +42,7 @@ docker compose -f docker-compose.deploy.yml up -d
 ```
 
 <p><code>makervault/docker-compose.deploy.yml</code> is the canonical production manifest. <code>makervault/docker-compose.yml</code> is the canonical local source-build manifest. The historical <code>docker-deploy.yml</code> filename is retained only as a compatibility alias.</p>
-<p><strong>Security notice:</strong> the current beta authentication defaults are suitable only for a trusted local test deployment. Do not expose the current build directly to the Internet. The API refuses to start if <code>AUTH_PASSWORD</code> or <code>AUTH_SECRET</code> are still the published sample values; set your own in <code>.env</code>.</p>
+<p><strong>Security notice:</strong> the current beta authentication defaults are suitable only for a trusted local test deployment. Do not expose the current build directly to the Internet. The API refuses to start if <code>AUTH_PASSWORD</code> or <code>AUTH_SECRET</code> are still the published sample values; set your own in <code>.env</code>. Repeated failed logins are throttled with an escalating account lockout: this is a deliberate single-admin tradeoff, so anyone who can reach the login form can temporarily lock you out — change the default <code>AUTH_USERNAME</code> and, if the instance is publicly reachable, put it behind a proxy or network policy that restricts who can POST to the login endpoint. The web container also sends HSTS, CSP, <code>X-Content-Type-Options</code>, Referrer-Policy, frame, and Permissions-Policy headers on every response; they are configurable (or disableable) through the <code>SECURITY_HEADERS_*</code> variables for proxy setups that own those headers themselves.</p>
 
 <h3>Setting up the .env file</h3>
 <p>Create a <strong>.env</strong> file in the same folder as <code>docker-compose.yml</code>. Start with this baseline:</p>
@@ -68,7 +68,21 @@ IMPORT_MOUNT_PATH_HOST=/path/to/imports
 IMPORT_MOUNT_EXTS=stl,3mf,step,stp,obj,svg,png,jpg,jpeg,webp,bmp,lbrn,lbrn2,zip
 IMPORT_MOUNT_INCLUDE_HIDDEN=false
 IMPORT_MOUNT_ON_STARTUP=true
+LOGIN_THROTTLE_ENABLED=true
+LOGIN_MAX_FAILURES=5
+LOGIN_FAILURE_WINDOW_SECONDS=900
+LOGIN_LOCKOUT_SECONDS=300
+LOGIN_MAX_LOCKOUT_SECONDS=3600
+SECURITY_HEADERS_ENABLED=true
+SECURITY_HEADERS_HSTS=
+SECURITY_HEADERS_CSP=
+SECURITY_HEADERS_REFERRER_POLICY=
+SECURITY_HEADERS_FRAME_OPTIONS=
+SECURITY_HEADERS_PERMISSIONS_POLICY=
+SECURITY_HEADERS_CONTENT_TYPE_OPTIONS=
 ```
+
+<p>An empty <code>SECURITY_HEADERS_*</code> value means "keep the built-in default"; the literal value <code>off</code> omits that one header; <code>SECURITY_HEADERS_ENABLED=false</code> disables all of them (useful when an external proxy already sends its own headers).</p>
 
 <p>For direct/LAN mode, set <code>VITE_API_URL</code> to a browser-reachable API URL (for example, <code>http://10.0.0.160:8000</code>).</p>
 

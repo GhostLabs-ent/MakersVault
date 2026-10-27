@@ -52,6 +52,39 @@ if [ "$api_uid" = "0" ] || [ "$web_uid" = "0" ]; then
   exit 1
 fi
 
+response_headers() {
+  curl --silent --show-error --dump-header - --output /dev/null "$1"
+}
+
+assert_header() {
+  url=$1
+  header=$2
+  expected=$3
+
+  if ! headers=$(response_headers "$url"); then
+    echo "Smoke test failed: could not fetch $url while checking $header" >&2
+    exit 1
+  fi
+
+  if printf '%s\n' "$headers" | grep -qi "^${header}:.*${expected}"; then
+    return 0
+  fi
+
+  echo "Smoke test failed: $url is missing response header $header (expected to contain \"$expected\")" >&2
+  printf '%s\n' "$headers" >&2
+  exit 1
+}
+
+for web_url in "http://localhost:$web_port/" "http://localhost:$web_port/api/health"; do
+  assert_header "$web_url" x-content-type-options nosniff
+  assert_header "$web_url" referrer-policy strict-origin-when-cross-origin
+  assert_header "$web_url" x-frame-options DENY
+  assert_header "$web_url" strict-transport-security 'max-age='
+  assert_header "$web_url" content-security-policy 'default-src'
+done
+
+assert_header "http://localhost:$web_port/runtime-config.js" cache-control no-store
+
 expected_schema=$(sed -n 's/^ *Migration(\([0-9][0-9]*\),.*/\1/p' "$app_dir/api/migrations.py" | sort -n | tail -1)
 if [ -z "$expected_schema" ]; then
   echo "Smoke test failed: could not determine expected schema version from api/migrations.py" >&2

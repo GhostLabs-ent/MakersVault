@@ -32,6 +32,21 @@ deployment guidance required by Gate 1.
 | `API_PORT` | `8000` | Published API port. |
 | `WEB_PORT` | `5173` | Published web port. |
 
+## Login throttle settings
+
+Owned by `api/login_throttle.py` and wired through `api/config.py`. Failures are
+counted per submitted username (proxy headers are not trusted); repeated
+failures lock the single admin account out with escalating backoff. Empty values
+fall back to the defaults below.
+
+| Variable | Current default | Effect |
+|---|---|---|
+| `LOGIN_THROTTLE_ENABLED` | `true` | Master switch for failed-login throttling. |
+| `LOGIN_MAX_FAILURES` | `5` | Failures allowed inside the window before a lockout starts. |
+| `LOGIN_FAILURE_WINDOW_SECONDS` | `900` | Rolling window in which failures are counted. |
+| `LOGIN_LOCKOUT_SECONDS` | `300` | First lockout duration; later lockouts escalate. |
+| `LOGIN_MAX_LOCKOUT_SECONDS` | `3600` | Ceiling for the escalating lockout. |
+
 ## Remote import settings
 
 | Variable | Current default | Effect |
@@ -63,9 +78,32 @@ deployment guidance required by Gate 1.
 | `VITE_ALLOWED_HOSTS` | empty | Vite-only host policy during source development/preview. It does not configure Nginx. |
 | `PUBLIC_URL` | empty | When set and `VITE_API_URL` is empty, runtime API URL becomes `<PUBLIC_URL>/api`. |
 
+## Web security header settings
+
+Owned by `web/30-security-headers.sh`, which regenerates
+`/etc/nginx/security-headers.conf` at container start and is included by the
+Nginx server block and by every location that declares its own `add_header`.
+An empty value means "use the built-in default"; the literal value `off` omits
+that one header.
+
+| Variable | Current default | Effect |
+|---|---|---|
+| `SECURITY_HEADERS_ENABLED` | `true` | Master switch. `false` writes an empty header file so no security header is sent. |
+| `SECURITY_HEADERS_CONTENT_TYPE_OPTIONS` | `nosniff` | `X-Content-Type-Options` value. |
+| `SECURITY_HEADERS_REFERRER_POLICY` | `strict-origin-when-cross-origin` | `Referrer-Policy` value. |
+| `SECURITY_HEADERS_FRAME_OPTIONS` | `DENY` | `X-Frame-Options` value. The default CSP also sets `frame-ancestors 'none'`. |
+| `SECURITY_HEADERS_PERMISSIONS_POLICY` | `camera=(), microphone=(), geolocation=()` | `Permissions-Policy` value. |
+| `SECURITY_HEADERS_HSTS` | `max-age=31536000` | `Strict-Transport-Security` value. No `includeSubDomains`, no `preload` by default. |
+| `SECURITY_HEADERS_CSP` | built-in policy | `Content-Security-Policy` value. The built-in policy allows `'self'` plus the origin of an absolute `VITE_API_URL` (or `<PUBLIC_URL>/api`) in `connect-src`. |
+
+Values are validated before they are written into Nginx configuration: a value
+containing a double quote, `$`, a backslash, or control characters is rejected
+with a `[security-headers]` warning and that header falls back to its default.
+
 The production web image is a static Vite build served by unprivileged Nginx.
-Only `web/40-runtime-config.sh` participates in its runtime configuration. The old
-Node development entrypoint is not part of the production image.
+Only `web/30-security-headers.sh` (security headers) and `web/40-runtime-config.sh`
+(runtime API URL) participate in its runtime configuration. The old Node
+development entrypoint is not part of the production image.
 
 ## Browser-local settings
 

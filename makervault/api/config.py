@@ -80,3 +80,11 @@ DEFAULT_MOUNT_IMPORT_EXTS = {
     ".lbrn2",
     ".zip",
 }
+
+# Login throttling: failures are counted per submitted username within the
+# window; each repeated lockout strike doubles the lockout, capped at the max.
+LOGIN_THROTTLE_ENABLED = env_bool("LOGIN_THROTTLE_ENABLED", True)
+LOGIN_MAX_FAILURES = env_int("LOGIN_MAX_FAILURES", 5)
+LOGIN_FAILURE_WINDOW_SECONDS = env_int("LOGIN_FAILURE_WINDOW_SECONDS", 900)
+LOGIN_LOCKOUT_SECONDS = env_int("LOGIN_LOCKOUT_SECONDS", 300)
+LOGIN_MAX_LOCKOUT_SECONDS = env_int("LOGIN_MAX_LOCKOUT_SECONDS", 3600)

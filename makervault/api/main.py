@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import tempfile
 import threading
@@ -9,7 +10,7 @@ from urllib.parse import quote, urlparse
 from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile
 
 import jwt
-from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Query, Response, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Query, Request, Response, UploadFile
 from fastapi.responses import FileResponse
 from jwt import PyJWTError
 from sqlalchemy.exc import IntegrityError
@@ -18,6 +19,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.middleware.cors import CORSMiddleware
 
 import folder_service
+import login_throttle as login_throttle_module
 import trash_service
 from asset_file_service import (
     backfill_prepared_print_metadata,
@@ -112,10 +114,13 @@ from settings_service import (
 from url_utils import normalize_import_url
 from zip_service import extract_zip_entries_to_assets, list_zip_entries
 
+log = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     validate_auth_configuration()
+    login_throttle_module.limiter.reset()
     run_migrations(engine)
     threading.Thread(target=backfill_embedded_thumbnails, daemon=True).start()
     threading.Thread(target=backfill_prepared_print_metadata, daemon=True).start()
@@ -365,11 +370,26 @@ def library_scan_start(_: Optional[str] = Depends(require_auth)):
 
 
 @app.post("/login", response_model=LoginResponse)
-def login(body: LoginRequest):
+def login(body: LoginRequest, request: Request):
     if not AUTH_ENABLED:
         raise HTTPException(status_code=503, detail="Authentication is not configured on the server")
+    client_host = request.client.host if request.client else "unknown"
+    username = login_throttle_module.normalize_username(body.username)
+    retry_after = login_throttle_module.limiter.retry_after(username)
+    if retry_after:
+        log.warning("Login throttled for username %r from %s (retry after %ss)", username, client_host, retry_after)
+        raise HTTPException(
+            status_code=429,
+            detail="Too many failed login attempts. Try again later.",
+            headers={"Retry-After": str(retry_after)},
+        )
     if not credentials_match(body.username, body.password):
+        lockout_seconds = login_throttle_module.limiter.record_failure(username)
+        log.warning("Failed login attempt for username %r from %s", username, client_host)
+        if lockout_seconds:
+            log.warning("Login throttled for username %r from %s (retry after %ss)", username, client_host, lockout_seconds)
         raise HTTPException(status_code=401, detail="Invalid username or password")
+    login_throttle_module.limiter.record_success(username)
     token = create_token(body.username)
     return LoginResponse(token=token, expires_in=AUTH_TOKEN_TTL)
 
