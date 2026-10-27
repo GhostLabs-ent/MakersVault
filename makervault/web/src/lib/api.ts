@@ -679,7 +679,6 @@ export async function getStorageSettings(): Promise<StorageSettings> {
 
 export async function updateStorageSettings(payload: {
   template: string;
-  apply_existing: boolean;
 }): Promise<StorageSettings> {
   const res = await fetch(`${apiBase()}/settings/storage`, {
     method: "POST",

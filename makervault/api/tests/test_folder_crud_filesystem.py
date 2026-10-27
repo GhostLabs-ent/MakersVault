@@ -16,6 +16,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Connection, Engine
 from sqlmodel import Session, select
 
+import asset_service
 import folder_paths
 import folder_service
 import main
@@ -415,11 +416,12 @@ def test_converge_ancestor_paths_tolerates_a_folder_deleted_meanwhile() -> None:
         assert folder_paths.converge_ancestor_paths(session, None) == ""
 
 
-def test_metadata_only_patch_moves_no_files(isolated_storage: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_metadata_only_patch_moves_no_files(isolated_storage: Path) -> None:
     storage = isolated_storage
 
-    def boom():
-        raise AssertionError("a folder PATCH must not reorganize managed assets")
+    # The metadata-edit path must have no reorganize hook left to call at all.
+    assert not hasattr(main, "reorganize_managed_assets")
+    assert not hasattr(asset_service, "relocate_asset")
 
     with TestClient(app) as client:
         headers = auth_header(client)
@@ -429,7 +431,6 @@ def test_metadata_only_patch_moves_no_files(isolated_storage: Path, monkeypatch:
         paths_before = storage_paths_in_db()
         snapshot_before = filesystem_snapshot(storage)
 
-        monkeypatch.setattr(main, "reorganize_managed_assets", boom)
         response = patch_folder(client, headers, folder["id"], "Foo", tags=["tags-only"])
         assert response.status_code == 200, response.text
         assert response.json()["tags"] == ["tags-only"]

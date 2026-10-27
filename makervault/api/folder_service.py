@@ -269,7 +269,7 @@ def move_folder(
 
     # A reparent can leave the vacated parent chain empty, and the library scan
     # turns every directory into a folder, so an empty leftover would reappear as
-    # a folder of its own. Best effort, exactly like `relocate_asset`.
+    # a folder of its own. Best effort, exactly like `asset_service.prune_empty_storage_dirs`.
     prune_empty_storage_dirs(source.parent)
     session.refresh(folder)
     return folder

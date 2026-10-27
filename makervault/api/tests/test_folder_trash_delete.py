@@ -16,8 +16,10 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
+import asset_service
 import db
 import library_scan
+import main
 import trash_service
 from db import engine
 from main import app
@@ -220,18 +222,12 @@ def test_delete_requires_matching_confirm_name(isolated_storage: Path) -> None:
 # --- whole-subtree delete ---------------------------------------------------
 
 
-def test_delete_moves_subtree_to_trash_and_removes_rows(
-    isolated_storage: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_delete_moves_subtree_to_trash_and_removes_rows(isolated_storage: Path) -> None:
     storage = isolated_storage
-    calls = []
 
-    def boom(*args, **kwargs):
-        calls.append((args, kwargs))
-        raise AssertionError("reorganize_managed_assets must not run on delete")
-
-    monkeypatch.setattr("main.reorganize_managed_assets", boom)
+    # Nothing in the delete path may reach a metadata-relocation helper.
+    assert not hasattr(main, "reorganize_managed_assets")
+    assert not hasattr(asset_service, "relocate_asset")
 
     with TestClient(app) as client:
         headers = auth_header(client)
@@ -261,7 +257,6 @@ def test_delete_moves_subtree_to_trash_and_removes_rows(
         assert body["bytes"] == 20
         assert re.fullmatch(r"\.trash/\d{8}T\d{6}Z-Parent", body["trash_path"]), body["trash_path"]
 
-    assert calls == []
     entry = storage / body["trash_path"]
     assert (entry / "model.stl").read_bytes() == b"parent bytes"
     assert (entry / "Child" / "part.stl").read_bytes() == b"child bytes"

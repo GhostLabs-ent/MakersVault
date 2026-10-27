@@ -176,7 +176,6 @@ class MountImportSettingsOut(MountImportSettings):
 
 class StorageSettings(BaseModel):
   template: str
-  apply_existing: bool = False
 
 
 class StorageSettingsOut(BaseModel):

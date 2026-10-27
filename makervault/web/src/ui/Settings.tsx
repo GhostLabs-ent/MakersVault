@@ -141,7 +141,6 @@ export default function Settings({
   const [storageInitial, setStorageInitial] = React.useState("{folder}/{model}/{filename}");
   const [storageTokens, setStorageTokens] = React.useState<string[]>([]);
   const [storageSample, setStorageSample] = React.useState("");
-  const [storageApplyExisting, setStorageApplyExisting] = React.useState(false);
   const [storageLoading, setStorageLoading] = React.useState(false);
   const [storageSaving, setStorageSaving] = React.useState(false);
   const [storageStatus, setStorageStatus] = React.useState<string | null>(null);
@@ -340,20 +339,12 @@ export default function Settings({
     setStorageSaving(true);
     setStorageStatus(null);
     try {
-      const data = await updateStorageSettings({
-        template: storageTemplate,
-        apply_existing: storageApplyExisting,
-      });
+      const data = await updateStorageSettings({ template: storageTemplate });
       setStorageTemplate(data.template);
       setStorageInitial(data.template);
       setStorageTokens(data.allowed_tokens || []);
       setStorageSample(data.sample_path || "");
-      setStorageApplyExisting(false);
-      setStorageStatus(
-        storageApplyExisting
-          ? `Saved. Moved ${data.moved} file(s)${data.skipped ? `; skipped ${data.skipped}` : ""}.`
-          : "Storage structure saved for new and updated models."
-      );
+      setStorageStatus("Storage structure saved. New uploads and imports use this template; existing files are never moved.");
     } catch (err) {
       if (err instanceof UnauthorizedError) {
         onUnauthorized?.();
@@ -770,6 +761,9 @@ export default function Settings({
           <div>
             <div className="text-lg font-semibold">Path template</div>
             <p className="text-sm opacity-70">
+              The template applies only to new uploads and imports; existing files are never moved.
+            </p>
+            <p className="text-sm opacity-70">
               The model name is unique inside its MakerVault folder. Renaming a model also renames its file while preserving the extension.
             </p>
           </div>
@@ -807,23 +801,10 @@ export default function Settings({
             <div className="text-[10px] uppercase tracking-wide text-muted">Example path</div>
             <div className="mt-1 break-all font-mono text-xs">{draftSample || storageSample || "Enter a template to preview its path"}</div>
           </div>
-          <label className="flex items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={storageApplyExisting}
-              onChange={e => setStorageApplyExisting(e.target.checked)}
-              className="mt-0.5 h-4 w-4"
-              disabled={storageLoading || storageSaving}
-            />
-            <span>
-              Reorganize existing managed files now
-              <span className="block text-xs opacity-70">Mounted no-copy files are skipped. Existing URLs continue to use stable asset IDs.</span>
-            </span>
-          </label>
           <div className="flex items-center gap-3 flex-wrap">
             <button
               className="text-sm px-3 py-2 rounded-md bg-accent disabled:opacity-60"
-              disabled={storageLoading || storageSaving || (!isDirty && !storageApplyExisting)}
+              disabled={storageLoading || storageSaving || !isDirty}
               onClick={saveStorageSettings}
             >
               {storageSaving ? "Saving..." : "Save storage structure"}

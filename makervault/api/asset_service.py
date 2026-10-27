@@ -10,6 +10,7 @@ from fastapi import HTTPException
 from PIL import Image
 from sqlmodel import Session, select
 
+import folder_paths
 from config import IMPORT_MAX_BYTES
 from db import STORAGE, THUMBS, engine
 from file_utils import build_import_filename, mime_from_content_type, sanitize_filename
@@ -162,42 +163,89 @@ def prune_empty_storage_dirs(start: Path) -> None:
         current = current.parent
 
 
-def relocate_asset(asset: Asset, session: Session, old_path: Path, template: Optional[str] = None) -> bool:
-    new_relative = render_storage_path(asset, session, template)
-    new_path = STORAGE / new_relative
+def _relative_storage_path(path: Path) -> str:
+    """Express an absolute storage path relative to the library root."""
+    try:
+        return path.resolve().relative_to(STORAGE.resolve()).as_posix()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Asset path resolved outside the storage directory") from None
+
+
+def move_managed_file(old_path: Path, new_path: Path) -> bool:
+    """Move one managed file and prune the directory it vacated.
+
+    Only an explicit rename (same directory) or a folder move reaches here; a
+    metadata edit never does, which is what keeps the storage template from
+    relocating files as a side effect.
+    """
     if old_path.resolve() == new_path.resolve():
-        asset.storage_path = new_relative
         return False
+    relative = _relative_storage_path(new_path)
     if new_path.exists():
-        raise HTTPException(status_code=409, detail=f"Storage path already exists: {new_relative}")
-    if old_path.exists():
-        new_path.parent.mkdir(parents=True, exist_ok=True)
-        old_parent = old_path.parent
-        old_path.rename(new_path)
-        prune_empty_storage_dirs(old_parent)
-    asset.storage_path = new_relative
+        raise HTTPException(status_code=409, detail=f"Storage path already exists: {relative}")
+    if not old_path.exists():
+        # mount no-copy rows own no managed file: the row moves, the bytes do not.
+        return False
+    new_path.parent.mkdir(parents=True, exist_ok=True)
+    old_parent = old_path.parent
+    old_path.rename(new_path)
+    prune_empty_storage_dirs(old_parent)
     return True
 
 
-def reorganize_managed_assets(template: Optional[str] = None) -> tuple[int, int]:
-    moved = 0
-    skipped = 0
-    with Session(engine) as session:
-        assets = list(session.exec(select(Asset).order_by(Asset.id)))
-        for asset in assets:
-            old_path = managed_asset_path(asset)
-            if not old_path.exists() and asset.source_path:
-                skipped += 1
-                continue
-            try:
-                changed = relocate_asset(asset, session, old_path, template)
-                session.add(asset)
-                session.commit()
-                moved += 1 if changed else 0
-            except HTTPException:
-                session.rollback()
-                skipped += 1
-    return moved, skipped
+def rename_asset_in_place(asset: Asset, old_path: Path, filename: str) -> bool:
+    """Rename an asset's managed file inside its current directory.
+
+    The storage template is never rendered here: only the basename changes, so a
+    template containing {tags} or {creator} cannot move a file during a rename.
+    """
+    new_path = old_path.parent / filename
+    moved = move_managed_file(old_path, new_path)
+    asset.storage_path = _relative_storage_path(new_path)
+    return moved
+
+
+def _folder_member_directory(session: Session, folder_id: str, exclude_asset_id: Optional[str]) -> Optional[str]:
+    """Directory of the first stored asset in the folder, "." for the root, None if none."""
+    statement = (
+        select(Asset)
+        .where(Asset.folder_id == folder_id, Asset.storage_path.is_not(None))
+        .order_by(Asset.id)
+    )
+    for row in session.exec(statement):
+        if row.id == exclude_asset_id:
+            continue
+        return Path(row.storage_path).parent.as_posix()
+    return None
+
+
+def folder_storage_directory(session: Session, folder_id: Optional[str], exclude_asset_id: Optional[str] = None) -> Path:
+    """Return the directory a folder owns, taking the disk as the source of truth.
+
+    Order: the folder's own storage_path; else the directory of one of its
+    already-stored assets (library-scan folders have storage_path NULL but their
+    files live somewhere real); else a newly converged path derived from the
+    folder names. Unfiled assets (folder_id None) belong at the storage root.
+    """
+    if not folder_id:
+        return STORAGE
+    folder = session.get(Folder, folder_id)
+    if not folder:
+        raise HTTPException(status_code=400, detail="Folder not found")
+    relative = folder.storage_path
+    if relative is None:
+        relative = _folder_member_directory(session, folder_id, exclude_asset_id)
+    if relative is None:
+        relative = folder_paths.converge_ancestor_paths(session, folder_id)
+    return (STORAGE / relative) if relative else STORAGE
+
+
+def move_asset_to_folder(asset: Asset, session: Session, old_path: Path, folder_id: Optional[str]) -> bool:
+    """Move an asset's managed file into the directory its new folder owns."""
+    new_path = folder_storage_directory(session, folder_id, exclude_asset_id=asset.id) / asset.filename
+    moved = move_managed_file(old_path, new_path)
+    asset.storage_path = _relative_storage_path(new_path)
+    return moved
 
 
 def save_thumb_image(asset_id: str, image: Image.Image) -> Optional[str]:

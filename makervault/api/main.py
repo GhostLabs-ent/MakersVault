@@ -36,9 +36,9 @@ from asset_service import (
     filename_for_model_name,
     finalize_asset_record,
     managed_asset_path,
+    move_asset_to_folder,
     prune_empty_storage_dirs,
-    relocate_asset,
-    reorganize_managed_assets,
+    rename_asset_in_place,
     sample_storage_path,
     save_thumb,
     save_thumb_bytes,
@@ -343,9 +343,9 @@ def get_storage_settings(_: Optional[str] = Depends(require_auth)):
 @app.post("/settings/storage", response_model=StorageSettingsOut)
 def update_storage_settings(body: StorageSettings, _: Optional[str] = Depends(require_auth)):
     template = validate_storage_template(body.template)
+    # The template governs new uploads and imports only; existing files never move.
     set_storage_template(template)
-    moved, skipped = reorganize_managed_assets(template) if body.apply_existing else (0, 0)
-    return storage_settings_out(template, moved, skipped)
+    return storage_settings_out(template)
 
 
 @app.get("/library/scan", response_model=LibraryScanStatusOut)
@@ -750,9 +750,7 @@ def set_tags(asset_id: str, body: TagUpdate, _: Optional[str] = Depends(require_
         a = s.get(Asset, asset_id)
         if not a:
             raise HTTPException(404)
-        old_path = managed_asset_path(a)
         a.tags_json = json.dumps(body.tags)
-        relocate_asset(a, s, old_path)
         s.add(a)
         s.commit()
         s.refresh(a)
@@ -775,13 +773,14 @@ def update_asset_meta(asset_id: str, body: AssetMetaUpdate, _: Optional[str] = D
                 a.name = next_name
                 a.title = next_name
                 a.filename = filename_for_model_name(next_name, a.filename)
+                # A rename only changes the basename; the storage template is never rendered.
+                rename_asset_in_place(a, old_path, a.filename)
         if body.notes is not None:
             a.notes = body.notes
         if body.creator is not None:
             a.creator = body.creator.strip() or None
         if body.collection is not None:
             a.collection = body.collection.strip() or None
-        relocate_asset(a, s, old_path)
         s.add(a)
         s.commit()
         s.refresh(a)
@@ -813,7 +812,7 @@ def rename_asset(asset_id: str, body: AssetRename, _: Optional[str] = Depends(re
         a.name = model_name
         a.title = model_name
         a.filename = new_name_only
-        relocate_asset(a, s, old_path)
+        rename_asset_in_place(a, old_path, a.filename)
         s.add(a)
         s.commit()
         s.refresh(a)
@@ -950,11 +949,12 @@ def update_asset_folder(asset_id: str, body: AssetFolderUpdate, _: Optional[str]
             if not folder:
                 raise HTTPException(status_code=400, detail="Folder not found")
             unique_model_name(s, asset.name, folder.id, exclude_id=asset.id)
-            asset.folder_id = folder.id
         else:
-            asset.folder_id = None
             unique_model_name(s, asset.name, None, exclude_id=asset.id)
-        relocate_asset(asset, s, old_path)
+        # Move before assigning folder_id: an autoflush must not expose the moving
+        # asset as a witness for its own target directory.
+        move_asset_to_folder(asset, s, old_path, folder_id)
+        asset.folder_id = folder_id
         s.add(asset)
         s.commit()
         s.refresh(asset)

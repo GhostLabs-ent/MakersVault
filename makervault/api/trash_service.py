@@ -11,8 +11,8 @@ undone if the commit fails.
 Semantics that callers must not loose sight of:
 
 * The delete is whole-subtree (``rm -r``): child folders and every asset in them
-  go with the parent. Nothing outside the subtree may relocate, so
-  ``reorganize_managed_assets()`` is deliberately never called.
+  go with the parent. Nothing outside the subtree may relocate: the storage
+  template is never rendered and no metadata-relocation helper runs here.
 * ``is_reference`` assets point at files outside the storage root. They lose
   their rows only; the external file is never touched, and neither is anything
   referenced by ``source_path``.
