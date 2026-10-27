@@ -22,6 +22,7 @@ export default tseslint.config(
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
       "@typescript-eslint/no-explicit-any": "warn",
+      "no-alert": "error",
       "no-empty": ["error", { allowEmptyCatch: true }],
       "@typescript-eslint/no-unused-vars": [
         "error",

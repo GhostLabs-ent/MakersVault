@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { createRef } from "react";
+import { createRef, type ReactElement } from "react";
 
 import type { Asset, Folder } from "../lib/api";
 import {
@@ -18,6 +18,7 @@ vi.mock("../lib/api", () => ({
   batchDeleteAssets: vi.fn(),
   batchMoveAssets: vi.fn(),
   batchSetTags: vi.fn(),
+  createFolder: vi.fn(),
   deleteAsset: vi.fn(),
   deleteAssetFile: vi.fn(),
   deletePreparedPrint: vi.fn(),
@@ -32,6 +33,7 @@ vi.mock("../lib/api", () => ({
   startLibraryScan: vi.fn(),
   updateAssetFolder: vi.fn(),
   updateAssetMeta: vi.fn(),
+  uploadAsset: vi.fn(),
   uploadAssetFile: vi.fn(),
 }));
 
@@ -45,17 +47,25 @@ vi.mock("./LightBurnPreview", () => ({
 }));
 
 import AssetGrid from "./AssetGrid";
+import Toaster from "./Toaster";
+import { resetToasts } from "../lib/toast";
 import {
   batchDeleteAssets,
   batchMoveAssets,
   batchSetTags,
+  createFolder,
   deleteAsset,
+  deleteAssetFile,
+  deletePreparedPrint,
   fileUrl,
   getLibraryScanStatus,
+  listAssetFiles,
   listAssets,
   listFolders,
   setTags,
   startLibraryScan,
+  updateAssetMeta,
+  uploadAsset,
 } from "../lib/api";
 
 const listAssetsMock = vi.mocked(listAssets);
@@ -68,6 +78,26 @@ const fileUrlMock = vi.mocked(fileUrl);
 const deleteAssetMock = vi.mocked(deleteAsset);
 const startLibraryScanMock = vi.mocked(startLibraryScan);
 const getLibraryScanStatusMock = vi.mocked(getLibraryScanStatus);
+const updateAssetMetaMock = vi.mocked(updateAssetMeta);
+const uploadAssetMock = vi.mocked(uploadAsset);
+const createFolderMock = vi.mocked(createFolder);
+const deleteAssetFileMock = vi.mocked(deleteAssetFile);
+const deletePreparedPrintMock = vi.mocked(deletePreparedPrint);
+const listAssetFilesMock = vi.mocked(listAssetFiles);
+
+/** The toast stack, scoped so `BulkActionBar`'s own `role="alert"` is never hit. */
+function toaster() {
+  return within(screen.getByTestId("toaster"));
+}
+
+function renderWithToaster(ui: ReactElement) {
+  return render(
+    <>
+      {ui}
+      <Toaster />
+    </>
+  );
+}
 
 /** Status payload of an idle library scan, as the API reports it. */
 function idleScanStatus(): Awaited<ReturnType<typeof getLibraryScanStatus>> {
@@ -329,6 +359,7 @@ class FakeResizeObserver {
 
 describe("AssetGrid asset refresh", () => {
   beforeEach(() => {
+    resetToasts();
     listAssetsMock.mockReset();
     listAssetsMock.mockResolvedValue({ items: assets, hasMore: false });
     fileUrlMock.mockClear();
@@ -592,6 +623,7 @@ describe("AssetGrid asset refresh", () => {
 
 describe("virtualized flat grid", () => {
   beforeEach(() => {
+    resetToasts();
     listAssetsMock.mockReset();
     listAssetsMock.mockResolvedValue({ items: [], hasMore: false });
     fileUrlMock.mockClear();
@@ -913,6 +945,7 @@ describe("virtualized flat grid", () => {
 
 describe("AssetGrid missing assets", () => {
   beforeEach(() => {
+    resetToasts();
     listAssetsMock.mockReset();
     listAssetsMock.mockResolvedValue({ items: [missingAsset, ...assets], hasMore: false });
     deleteAssetMock.mockReset();
@@ -933,13 +966,15 @@ describe("AssetGrid missing assets", () => {
     expect(screen.getByText("Calibration cube")).toBeTruthy();
   });
 
-  it("Forget entry deletes only that asset", async () => {
-    vi.stubGlobal("confirm", vi.fn(() => true));
-
+  it("Forget entry deletes only that asset after confirming", async () => {
     render(<AssetGrid theme="dark" />);
 
     await screen.findByText(/File missing/i);
     fireEvent.click(screen.getByRole("button", { name: "Forget entry" }));
+
+    const dialog = screen.getByRole("dialog", { name: /Forget "lost-model\.stl"\?/ });
+    expect(deleteAssetMock).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Forget" }));
 
     await waitFor(() => expect(deleteAssetMock).toHaveBeenCalledWith(missingAsset.id));
     for (const other of assets) {
@@ -965,6 +1000,7 @@ describe("AssetGrid missing assets", () => {
 
 describe("AssetGrid bulk actions", () => {
   beforeEach(() => {
+    resetToasts();
     listAssetsMock.mockReset();
     listAssetsMock.mockResolvedValue({ items: assets, hasMore: false });
     listFoldersMock.mockReset();
@@ -1065,7 +1101,7 @@ describe("AssetGrid bulk actions", () => {
     expect(screen.getByText("Spool holder")).toBeTruthy();
     expect(screen.getByText("Engraved sign")).toBeTruthy();
 
-    // The whole-request failure is reported in the bar, not via alert().
+    // The whole-request failure is reported in the bar, not as a toast.
     await waitFor(() =>
       expect(bulkBar().getByRole("alert").textContent).toBe("Bulk delete failed: server exploded"),
     );
@@ -1176,6 +1212,211 @@ describe("AssetGrid bulk actions", () => {
   });
 });
 
+describe("AssetGrid shared dialogs and toasts", () => {
+  let consoleError: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    resetToasts();
+    listAssetsMock.mockReset();
+    listAssetsMock.mockResolvedValue({ items: assets, hasMore: false });
+    listFoldersMock.mockReset();
+    listFoldersMock.mockResolvedValue([]);
+    batchDeleteAssetsMock.mockReset();
+    deleteAssetMock.mockReset();
+    deleteAssetFileMock.mockReset();
+    deletePreparedPrintMock.mockReset();
+    listAssetFilesMock.mockReset();
+    listAssetFilesMock.mockResolvedValue([]);
+    updateAssetMetaMock.mockReset();
+    uploadAssetMock.mockReset();
+    createFolderMock.mockReset();
+    createFolderMock.mockImplementation(async (name: string) => ({ id: `folder-${name}` }));
+    fileUrlMock.mockClear();
+    // Failed requests are logged by design; keep the test output readable.
+    consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleError.mockRestore();
+    cleanup();
+  });
+
+  async function waitForGrid() {
+    await screen.findByText("Calibration cube");
+    await waitFor(() => expect(screen.queryByText("Loading...")).toBeNull());
+  }
+
+  /** The card's own Delete button, never the bulk bar's identically named one. */
+  function cardDeleteButton(index = 0): HTMLElement {
+    const bar = screen.queryByTestId("bulk-action-bar");
+    const buttons = screen.getAllByRole("button", { name: "Delete" });
+    const cardButtons = bar ? buttons.filter(button => !bar.contains(button)) : buttons;
+    return cardButtons[index];
+  }
+
+  function makeDrop(files: File[]) {
+    return { types: ["Files"], items: [], files, dropEffect: "copy" };
+  }
+
+  it("deleting a card opens the in-app dialog without calling deleteAsset", async () => {
+    listAssetsMock.mockResolvedValue({ items: [assets[0]], hasMore: false });
+
+    render(<AssetGrid theme="dark" />);
+    await waitForGrid();
+
+    fireEvent.click(cardDeleteButton());
+
+    screen.getByRole("dialog", {
+      name: 'Delete "calibration-cube.stl"? This cannot be undone.',
+    });
+    expect(deleteAssetMock).not.toHaveBeenCalled();
+  });
+
+  it("cancelling the delete dialog makes no request and closes it", async () => {
+    listAssetsMock.mockResolvedValue({ items: [assets[0]], hasMore: false });
+
+    render(<AssetGrid theme="dark" />);
+    await waitForGrid();
+
+    fireEvent.click(cardDeleteButton());
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(deleteAssetMock).not.toHaveBeenCalled();
+  });
+
+  it("confirming the delete dialog calls deleteAsset exactly once", async () => {
+    listAssetsMock.mockResolvedValue({ items: [assets[0]], hasMore: false });
+    deleteAssetMock.mockResolvedValue(undefined);
+
+    render(<AssetGrid theme="dark" />);
+    await waitForGrid();
+
+    fireEvent.click(cardDeleteButton());
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => expect(deleteAssetMock).toHaveBeenCalledWith(assets[0].id));
+    expect(deleteAssetMock).toHaveBeenCalledTimes(1);
+    expect(batchDeleteAssetsMock).not.toHaveBeenCalled();
+  });
+
+  it("a multi-select delete confirms once and uses the batch endpoint", async () => {
+    batchDeleteAssetsMock.mockImplementation(async ids => ({ deleted: ids, failed: [] }));
+
+    render(<AssetGrid theme="dark" />);
+    await waitForGrid();
+
+    const boxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+    fireEvent.click(boxes[0]);
+    fireEvent.click(boxes[1]);
+
+    fireEvent.click(cardDeleteButton());
+    const dialog = screen.getByRole("dialog", {
+      name: "Delete 2 selected items? This cannot be undone.",
+    });
+    expect(batchDeleteAssetsMock).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => expect(batchDeleteAssetsMock).toHaveBeenCalledTimes(1));
+    expect(batchDeleteAssetsMock.mock.calls[0][0]).toHaveLength(2);
+    expect(deleteAssetMock).not.toHaveBeenCalled();
+  });
+
+  it("a failed rename emits exactly one toast and reverts the field", async () => {
+    listAssetsMock.mockResolvedValue({ items: [assets[0]], hasMore: false });
+    updateAssetMetaMock.mockRejectedValue(new Error("server says no"));
+
+    renderWithToaster(<AssetGrid theme="dark" />);
+    await waitForGrid();
+
+    fireEvent.doubleClick(screen.getByText("Calibration cube"));
+    const input = screen.getByDisplayValue("Calibration cube");
+    fireEvent.change(input, { target: { value: "Renamed cube" } });
+    fireEvent.blur(input);
+
+    await waitFor(() => expect(screen.getByTestId("toaster")).toBeTruthy());
+    const alerts = toaster().getAllByRole("alert");
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].textContent).toContain("server says no");
+
+    // The card reverts to the server-side name (the catch only resets the field).
+    await waitFor(() => expect(screen.queryByDisplayValue("Renamed cube")).toBeNull());
+    expect(screen.getByText("Calibration cube")).toBeTruthy();
+  });
+
+  it("a failed drop toasts the filename with a retry that re-uploads only that file", async () => {
+    listAssetsMock.mockResolvedValue({ items: [], hasMore: false });
+    uploadAssetMock.mockRejectedValue(new Error("disk full"));
+
+    const { container } = renderWithToaster(<AssetGrid theme="dark" />);
+    await waitFor(() => expect(screen.queryByText("Loading...")).toBeNull());
+
+    const dropped = new File(["content"], "sample.stl", { type: "application/octet-stream" });
+    fireEvent.drop(container.firstChild as Element, { dataTransfer: makeDrop([dropped]) });
+
+    await waitFor(() => expect(uploadAssetMock).toHaveBeenCalledTimes(1));
+    const toast = toaster();
+    expect(toast.getByText(/Failed to upload 1 file/)).toBeTruthy();
+    expect(toast.getByText(/sample\.stl/)).toBeTruthy();
+
+    fireEvent.click(toast.getByRole("button", { name: /retry/i }));
+
+    await waitFor(() => expect(uploadAssetMock).toHaveBeenCalledTimes(2));
+    expect(uploadAssetMock.mock.calls[1][0].name).toBe("sample.stl");
+  });
+
+  it("cancelling the supporting-file remove dialog makes no request", async () => {
+    listAssetsMock.mockResolvedValue({ items: [assets[1]], hasMore: false });
+    listAssetFilesMock.mockResolvedValue([
+      { id: "sf1", filename: "instructions.pdf", mime: "application/pdf", size: 10, url: "/x" },
+    ]);
+
+    render(<AssetGrid theme="dark" />);
+    await screen.findByText("Spool holder");
+
+    fireEvent.click(screen.getByRole("button", { name: /Supporting files/ }));
+    await screen.findByText("instructions.pdf");
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Remove instructions.pdf from this model?" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(deleteAssetFileMock).not.toHaveBeenCalled();
+  });
+
+  it("cancelling the prepared-print clear dialog makes no request", async () => {
+    listAssetsMock.mockResolvedValue({
+      items: [
+        {
+          ...assets[0],
+          prepared_print: {
+            printer: "Prusa",
+            material: "PLA",
+            estimated_seconds: 3600,
+            removable: true,
+          },
+        },
+      ],
+      hasMore: false,
+    });
+
+    render(<AssetGrid theme="dark" />);
+    await screen.findByText("Calibration cube");
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+
+    const dialog = screen.getByRole("dialog", {
+      name: "Clear the attached prepared print from this model?",
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(deletePreparedPrintMock).not.toHaveBeenCalled();
+  });
+});
+
 describe("folder cards", () => {
   const folderFixtures: Folder[] = [
     { id: "p", name: "Parts", tags: [] },
@@ -1185,6 +1426,7 @@ describe("folder cards", () => {
   ];
 
   beforeEach(() => {
+    resetToasts();
     listAssetsMock.mockReset();
     listAssetsMock.mockResolvedValue({ items: makeSyntheticBatch(2), hasMore: false });
     listFoldersMock.mockReset();

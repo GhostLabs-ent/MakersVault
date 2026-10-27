@@ -89,6 +89,9 @@ export async function uploadEntriesToFolder(
   onUnauthorized?: () => void
 ) {
   const failed: string[] = [];
+  // Parallel to `failed`: the original entries, so callers can offer a retry
+  // without guessing which of the inputs failed.
+  const failedEntries: UploadEntry[] = [];
   let uploaded = 0;
   let aborted = false;
   const uploadedEntries: UploadEntry[] = [];
@@ -124,6 +127,7 @@ export async function uploadEntriesToFolder(
         }
         console.error("Folder creation failed for", segment, err);
         failed.push(entry.file.name);
+        failedEntries.push(entry);
         targetFolderId = null;
         break;
       }
@@ -143,7 +147,8 @@ export async function uploadEntriesToFolder(
       console.error("Upload failed for", entry.file.name, err);
       const message = err instanceof Error ? err.message.trim() : "";
       failed.push(message && message !== "Upload failed" ? `${entry.file.name} (${message})` : entry.file.name);
+      failedEntries.push(entry);
     }
   }
-  return { uploaded, failed, uploadedEntries };
+  return { uploaded, failed, failedEntries, uploadedEntries };
 }

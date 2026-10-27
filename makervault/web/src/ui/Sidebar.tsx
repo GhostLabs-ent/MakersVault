@@ -17,10 +17,10 @@ import {
 } from "lucide-react";
 import { Folder, UnauthorizedError, createFolder, downloadFolderZip, listFolders, updateFolder } from "../lib/api";
 import { flattenFolderTree } from "../lib/folderTree";
-import { entriesFromDataTransfer, uploadEntriesToFolder } from "../lib/uploadTree";
-import { buildUploadEntriesFromZip, isZipFile, readZipEntries } from "../lib/zipUtils";
+import { entriesFromDataTransfer } from "../lib/uploadTree";
+import { notifyError } from "../lib/toast";
 import TagInput from "./TagInput";
-import { useZipImportPrompt } from "./ZipImportModal";
+import { useUpload } from "./useUpload";
 import FolderDeleteDialog from "./FolderDeleteDialog";
 
 type Props = {
@@ -61,55 +61,10 @@ export default function Sidebar({
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const [query, setQuery] = useState("");
   const [activeFolderId, setActiveFolderId] = useState<string | null>(selectedId ?? null);
-  const zipPrompt = useZipImportPrompt();
-
-  const uploadWithZipPrompt = async (entries: Awaited<ReturnType<typeof entriesFromDataTransfer>>, folderId: string | null) => {
-    const normalEntries = entries.filter(entry => !isZipFile(entry.file.name));
-    const zipEntries = entries.filter(entry => isZipFile(entry.file.name));
-    let uploaded = 0;
-    const failed: string[] = [];
-    const applyResult = (result: { uploaded: number; failed: string[] }) => {
-      uploaded += result.uploaded;
-      failed.push(...result.failed);
-    };
-    if (normalEntries.length) {
-      const result = await uploadEntriesToFolder(normalEntries, folderId, onUnauthorized);
-      applyResult(result);
-    }
-    for (const entry of zipEntries) {
-      let zipData: Record<string, Uint8Array> | null = null;
-      const baseParts = entry.relativePath.split("/").filter(Boolean);
-      baseParts.pop();
-      const basePath = baseParts.join("/");
-      await zipPrompt.prompt({
-        label: entry.file.name,
-        onImportAsZip: async () => {
-          const result = await uploadEntriesToFolder([entry], folderId, onUnauthorized);
-          applyResult(result);
-        },
-        loadEntries: async () => {
-          const result = await readZipEntries(entry.file);
-          zipData = result.data;
-          return result.entries;
-        },
-        onImportSelected: async (selectedPaths: string[]) => {
-          if (!zipData) {
-            const result = await readZipEntries(entry.file);
-            zipData = result.data;
-          }
-          const unzipEntries = buildUploadEntriesFromZip(zipData || {}, selectedPaths, basePath);
-          const result = await uploadEntriesToFolder(unzipEntries, folderId, onUnauthorized);
-          applyResult(result);
-        },
-      });
-    }
-    if (uploaded) {
-      onAssetsChanged?.();
-    }
-    if (failed.length) {
-      alert(`Failed to upload: ${failed.join(", ")}`);
-    }
-  };
+  const uploader = useUpload({
+    onUnauthorized,
+    onUploaded: () => onAssetsChanged?.(),
+  });
 
   const isFileDrag = (e: React.DragEvent<HTMLElement>) => {
     const types = Array.from(e.dataTransfer?.types || []);
@@ -140,7 +95,7 @@ export default function Sidebar({
       setDropUploading(false);
       return;
     }
-    await uploadWithZipPrompt(entries, folderId);
+    await uploader.upload(entries, { folderId });
     setDropUploading(false);
   };
 
@@ -172,7 +127,7 @@ export default function Sidebar({
         setDropUploading(false);
         return;
       }
-      await uploadWithZipPrompt(entries, targetFolderId);
+      await uploader.upload(entries, { folderId: targetFolderId });
       setDropUploading(false);
     })();
   };
@@ -202,7 +157,7 @@ export default function Sidebar({
       return;
     }
     console.error(err);
-    alert(message);
+    notifyError(message);
   };
 
   const refresh = async () => {
@@ -790,7 +745,7 @@ export default function Sidebar({
           onUnauthorized={onUnauthorized}
         />
       )}
-      {zipPrompt.modal}
+      {uploader.modal}
     </aside>
   );
 }

@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from "react";
 import type { ZipEntry } from "../lib/zipUtils";
 import { formatBytes } from "../lib/format";
 
-type ZipPromptConfig = {
+export type ZipPromptConfig = {
   label: string;
   onImportAsZip: () => Promise<void>;
   loadEntries: () => Promise<ZipEntry[]>;

@@ -49,9 +49,10 @@ import { previewQueue } from "../lib/previewQueue";
 import { useVirtualRows } from "./useVirtualRows";
 import { formatBytes } from "../lib/format";
 import { EngravingSettings, PreviewSettings, ResolvedTheme, SlicerSettings, engraverLabelFor, slicerLabelFor } from "../lib/settings";
-import { entriesFromDataTransfer, uploadEntriesToFolder } from "../lib/uploadTree";
-import { buildUploadEntriesFromZip, isZipFile, readZipEntries } from "../lib/zipUtils";
-import { useZipImportPrompt } from "./ZipImportModal";
+import { entriesFromDataTransfer } from "../lib/uploadTree";
+import { notifyError, notifyInfo } from "../lib/toast";
+import { useUpload } from "./useUpload";
+import ConfirmDialog, { type ConfirmRequest } from "./ConfirmDialog";
 
 function extOf(name: string) {
   const m = /\.([^.]+)$/.exec(name);
@@ -208,11 +209,13 @@ export default function AssetGrid({
   const dragDepth = useRef(0);
   const [dragActive, setDragActive] = useState(false);
   const [dropUploading, setDropUploading] = useState(false);
+  const [pendingConfirm, setPendingConfirm] = useState<ConfirmRequest | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const confirmRunningRef = useRef(false);
   const slicerEnabled = Boolean(slicerSettings?.enabled);
   const slicerLabel = slicerLabelFor(slicerSettings?.selected);
   const engravingEnabled = Boolean(engravingSettings?.enabled);
   const engraverLabel = engraverLabelFor(engravingSettings?.selected);
-  const zipPrompt = useZipImportPrompt();
 
   const handleApiError = useStableCallback((err: unknown, message?: string) => {
     if (err instanceof UnauthorizedError) {
@@ -220,7 +223,7 @@ export default function AssetGrid({
       return true;
     }
     console.error(err);
-    if (message) alert(message);
+    if (message) notifyError(message);
     return false;
   });
 
@@ -269,6 +272,34 @@ export default function AssetGrid({
     }
 
     setLoading(false);
+  });
+
+  const uploader = useUpload({
+    folderId,
+    onUnauthorized,
+    onUploaded: () => {
+      void refresh({ keepLoadedPages: true });
+    },
+  });
+
+  // One parent-owned dialog serves every confirmation (card deletes, forgets,
+  // supporting-file removals, prepared-print clears). Stable so memoised cards
+  // can request one without re-rendering.
+  const requestConfirm = useStableCallback((request: ConfirmRequest) => {
+    setPendingConfirm(request);
+  });
+
+  const runPendingConfirm = useStableCallback(async () => {
+    if (!pendingConfirm || confirmRunningRef.current) return;
+    confirmRunningRef.current = true;
+    setConfirmBusy(true);
+    try {
+      await pendingConfirm.run();
+    } finally {
+      confirmRunningRef.current = false;
+      setConfirmBusy(false);
+      setPendingConfirm(null);
+    }
   });
 
   const loadMore = useStableCallback(async () => {
@@ -329,57 +360,13 @@ export default function AssetGrid({
     dragDepth.current = 0;
     setDragActive(false);
     setDropUploading(true);
-    const entries = await entriesFromDataTransfer(e.dataTransfer);
-    if (!entries.length) {
+    try {
+      const entries = await entriesFromDataTransfer(e.dataTransfer);
+      if (!entries.length) return;
+      await uploader.upload(entries);
+    } finally {
       setDropUploading(false);
-      return;
     }
-    const normalEntries = entries.filter(entry => !isZipFile(entry.file.name));
-    const zipEntries = entries.filter(entry => isZipFile(entry.file.name));
-    let uploaded = 0;
-    const failed: string[] = [];
-    const applyResult = (result: { uploaded: number; failed: string[] }) => {
-      uploaded += result.uploaded;
-      failed.push(...result.failed);
-    };
-    if (normalEntries.length) {
-      const result = await uploadEntriesToFolder(normalEntries, folderId || null, onUnauthorized);
-      applyResult(result);
-    }
-    for (const entry of zipEntries) {
-      let zipData: Record<string, Uint8Array> | null = null;
-      const baseParts = entry.relativePath.split("/").filter(Boolean);
-      baseParts.pop();
-      const basePath = baseParts.join("/");
-      await zipPrompt.prompt({
-        label: entry.file.name,
-        onImportAsZip: async () => {
-          const result = await uploadEntriesToFolder([entry], folderId || null, onUnauthorized);
-          applyResult(result);
-        },
-        loadEntries: async () => {
-          const result = await readZipEntries(entry.file);
-          zipData = result.data;
-          return result.entries;
-        },
-        onImportSelected: async (selectedPaths: string[]) => {
-          if (!zipData) {
-            const result = await readZipEntries(entry.file);
-            zipData = result.data;
-          }
-          const unzipEntries = buildUploadEntriesFromZip(zipData || {}, selectedPaths, basePath);
-          const result = await uploadEntriesToFolder(unzipEntries, folderId || null, onUnauthorized);
-          applyResult(result);
-        },
-      });
-    }
-    if (uploaded) {
-      await refresh({ keepLoadedPages: true });
-    }
-    if (failed.length) {
-      alert(`Failed to upload: ${failed.join(", ")}`);
-    }
-    setDropUploading(false);
   };
 
   useEffect(() => { refresh(); }, [folderId, refresh]);
@@ -801,9 +788,7 @@ export default function AssetGrid({
       await updateAssetFolder(id, folder_id);
       await refresh();
     } catch (err) {
-      if (!handleApiError(err)) {
-        alert(err instanceof Error ? err.message : "Folder update failed. Please try again.");
-      }
+      handleApiError(err, err instanceof Error ? err.message : "Folder update failed. Please try again.");
     } finally {
       setMovingId(null);
     }
@@ -814,16 +799,12 @@ export default function AssetGrid({
       setDownloadingId(asset.id);
       const res = await fetch(fileUrl(asset.url));
       if (res.status === 401) {
-        onUnauthorized?.();
-        throw new Error("Unauthorized");
+        throw new UnauthorizedError();
       }
       if (!res.ok) throw new Error("Download failed");
       await saveResponseToDisk(res, asset.filename || "download");
     } catch (err) {
-      if (!handleApiError(err)) {
-        console.error(err);
-        alert("Download failed. Please try again.");
-      }
+      handleApiError(err, "Download failed. Please try again.");
     } finally {
       setDownloadingId(null);
     }
@@ -855,7 +836,7 @@ export default function AssetGrid({
 
   const downloadSelected = useStableCallback(async () => {
     if (!selectedIds.size) {
-      alert("Select at least one item to download.");
+      notifyInfo("Select at least one item to download.");
       return;
     }
     try {
@@ -863,9 +844,7 @@ export default function AssetGrid({
       const res = await downloadZip({ asset_ids: Array.from(selectedIds) });
       await saveResponseToDisk(res, "makersvault-selected.zip");
     } catch (err) {
-      if (!handleApiError(err, "Bulk download failed.")) {
-        console.error(err);
-      }
+      handleApiError(err, "Bulk download failed.");
     } finally {
       setBulkDownloading(null);
     }
@@ -878,58 +857,65 @@ export default function AssetGrid({
       const res = await downloadZip({ tag });
       await saveResponseToDisk(res, `${tag}.zip`);
     } catch (err) {
-      if (!handleApiError(err, "Download by tag failed.")) {
-        console.error(err);
-      }
+      handleApiError(err, "Download by tag failed.");
     } finally {
       setBulkDownloading(null);
     }
   });
 
-  const removeAsset = useStableCallback(async (asset: Asset) => {
+  const removeAsset = useStableCallback((asset: Asset) => {
     const targets = selectedIds.has(asset.id) && selectedIds.size > 1
       ? Array.from(selectedIds)
       : [asset.id];
-    const confirmLabel = targets.length > 1
+    const title = targets.length > 1
       ? `Delete ${targets.length} selected items? This cannot be undone.`
       : `Delete "${asset.title || asset.filename}"? This cannot be undone.`;
-    if (!confirm(confirmLabel)) {
-      return;
-    }
-    // A multi-card delete is one batch request; the single-card path is the
-    // pre-existing per-asset call.
-    if (targets.length > 1) {
-      await bulkDelete();
-      return;
-    }
-    setDeletingId(asset.id);
-    try {
-      await deleteAsset(asset.id);
-      await refresh();
-    } catch (err) {
-      handleApiError(err, "Delete failed.");
-    } finally {
-      setDeletingId(null);
-    }
+    requestConfirm({
+      title,
+      danger: true,
+      confirmLabel: "Delete",
+      run: async () => {
+        // A multi-card delete is one batch request; the single-card path is the
+        // pre-existing per-asset call.
+        if (targets.length > 1) {
+          await bulkDelete();
+          return;
+        }
+        setDeletingId(asset.id);
+        try {
+          await deleteAsset(asset.id);
+          await refresh();
+        } catch (err) {
+          handleApiError(err, "Delete failed.");
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   });
 
-  const forgetMissingAsset = useStableCallback(async (asset: Asset) => {
-    const label = `Forget "${asset.title || asset.filename}"? The file is already gone; this removes the library entry, thumbnail and sidecars.`;
-    if (!confirm(label)) return;
-    setDeletingId(asset.id);
-    try {
-      await deleteAsset(asset.id);
-      await refresh();
-    } catch (err) {
-      if (err instanceof UnauthorizedError) {
-        onUnauthorized?.();
-        return;
-      }
-      console.error(err);
-      alert(`Forget failed for: ${asset.filename}`);
-    } finally {
-      setDeletingId(null);
-    }
+  const forgetMissingAsset = useStableCallback((asset: Asset) => {
+    requestConfirm({
+      title: `Forget "${asset.title || asset.filename}"? The file is already gone; this removes the library entry, thumbnail and sidecars.`,
+      danger: true,
+      confirmLabel: "Forget",
+      run: async () => {
+        setDeletingId(asset.id);
+        try {
+          await deleteAsset(asset.id);
+          await refresh();
+        } catch (err) {
+          if (err instanceof UnauthorizedError) {
+            onUnauthorized?.();
+            return;
+          }
+          console.error(err);
+          notifyError(`Forget failed for: ${asset.filename}`);
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   });
 
   const rescanMissing = useStableCallback(async (_asset: Asset) => {
@@ -949,7 +935,7 @@ export default function AssetGrid({
         onUnauthorized?.();
         return;
       }
-      alert(err instanceof Error ? err.message : "Re-scan failed.");
+      notifyError(err instanceof Error && err.message ? err.message : "Re-scan failed.");
     } finally {
       setRescanning(false);
     }
@@ -996,6 +982,7 @@ export default function AssetGrid({
       onForgetMissing={forgetMissingAsset}
       onRescanMissing={rescanMissing}
       rescanning={rescanning}
+      onRequestConfirm={requestConfirm}
     />
   );
 
@@ -1038,6 +1025,7 @@ export default function AssetGrid({
         onSelectAll={selectAllLoaded}
         onDismissFailures={dismissBulkFailures}
       />
+      {uploader.modal}
       <div className="flex items-center gap-3 flex-wrap">
         <AssetSearch
           onQueryChange={query => { queryRef.current = query; }}
@@ -1213,8 +1201,18 @@ export default function AssetGrid({
       {previewItem && (
         <AssetPreviewModal asset={previewItem} theme={theme} onClose={() => setPreviewItem(null)} />
       )}
-      {zipPrompt.modal}
       </div>
+      {pendingConfirm && (
+        <ConfirmDialog
+          title={pendingConfirm.title}
+          body={pendingConfirm.body}
+          confirmLabel={pendingConfirm.confirmLabel}
+          danger={pendingConfirm.danger}
+          busy={confirmBusy}
+          onCancel={() => setPendingConfirm(null)}
+          onConfirm={() => { void runPendingConfirm(); }}
+        />
+      )}
     </div>
   );
 }
@@ -1250,6 +1248,7 @@ type AssetCardProps = {
   onForgetMissing: (asset: Asset) => void;
   onRescanMissing: (asset: Asset) => void;
   rescanning: boolean;
+  onRequestConfirm: (request: ConfirmRequest) => void;
 };
 
 const AssetCard = React.memo(function AssetCard({
@@ -1283,6 +1282,7 @@ const AssetCard = React.memo(function AssetCard({
   onForgetMissing,
   onRescanMissing,
   rescanning,
+  onRequestConfirm,
 }: AssetCardProps) {
   const [editingTags, setEditingTags] = useState(false);
   const [tagList, setTagList] = useState<string[]>(item.tags);
@@ -1330,7 +1330,7 @@ const AssetCard = React.memo(function AssetCard({
       setSupportingFiles(await listAssetFiles(item.id));
     } catch (err) {
       console.error(err);
-      alert(err instanceof Error ? err.message : "Failed to load supporting files");
+      notifyError(err instanceof Error ? err.message : "Failed to load supporting files");
     } finally {
       setFilesLoading(false);
     }
@@ -1355,35 +1355,47 @@ const AssetCard = React.memo(function AssetCard({
       setFilesExpanded(true);
     } catch (err) {
       console.error(err);
-      alert(err instanceof Error ? err.message : "Failed to add files");
+      notifyError(err instanceof Error ? err.message : "Failed to add files");
     } finally {
       setFilesUploading(false);
     }
   };
 
-  const removeRelatedFile = async (file: AssetFile) => {
-    if (!window.confirm(`Remove ${file.filename} from this model?`)) return;
-    try {
-      const updated = await deleteAssetFile(item.id, file.id);
-      onAssetChanged(updated);
-      setSupportingFiles(current => current.filter(entry => entry.id !== file.id));
-    } catch (err) {
-      console.error(err);
-      alert(err instanceof Error ? err.message : "Failed to remove file");
-    }
+  const removeRelatedFile = (file: AssetFile) => {
+    onRequestConfirm({
+      title: `Remove ${file.filename} from this model?`,
+      danger: true,
+      confirmLabel: "Remove",
+      run: async () => {
+        try {
+          const updated = await deleteAssetFile(item.id, file.id);
+          onAssetChanged(updated);
+          setSupportingFiles(current => current.filter(entry => entry.id !== file.id));
+        } catch (err) {
+          console.error(err);
+          notifyError(err instanceof Error ? err.message : "Failed to remove file");
+        }
+      },
+    });
   };
 
-  const clearPreparedPrint = async () => {
-    if (!window.confirm("Clear the attached prepared print from this model?")) return;
-    setPreparedClearing(true);
-    try {
-      onAssetChanged(await deletePreparedPrint(item.id));
-    } catch (err) {
-      console.error(err);
-      alert(err instanceof Error ? err.message : "Failed to clear prepared print");
-    } finally {
-      setPreparedClearing(false);
-    }
+  const clearPreparedPrint = () => {
+    onRequestConfirm({
+      title: "Clear the attached prepared print from this model?",
+      danger: true,
+      confirmLabel: "Clear",
+      run: async () => {
+        setPreparedClearing(true);
+        try {
+          onAssetChanged(await deletePreparedPrint(item.id));
+        } catch (err) {
+          console.error(err);
+          notifyError(err instanceof Error ? err.message : "Failed to clear prepared print");
+        } finally {
+          setPreparedClearing(false);
+        }
+      },
+    });
   };
 
   const startEditing = () => {
@@ -1432,9 +1444,8 @@ const AssetCard = React.memo(function AssetCard({
     }
     try {
       await onRename(item.id, next);
-    } catch (err) {
-      console.error(err);
-      alert("Rename failed");
+    } catch {
+      // `onRename` already reported the failure once; just revert the field.
       setNameValue(item.name);
     } finally {
       setRenaming(false);

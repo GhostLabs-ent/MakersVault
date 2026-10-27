@@ -6,9 +6,9 @@ import {
   inspectImportLink,
   listImportZipEntries,
 } from "../lib/api";
-import { entriesFromFileList, uploadEntriesToFolder } from "../lib/uploadTree";
-import { buildUploadEntriesFromZip, isZipFile, readZipEntries } from "../lib/zipUtils";
-import { useZipImportPrompt } from "./ZipImportModal";
+import { entriesFromFileList } from "../lib/uploadTree";
+import { dismissToast, notifyError } from "../lib/toast";
+import { useUpload } from "./useUpload";
 
 type Props = {
   onUploaded: () => void;
@@ -18,14 +18,30 @@ type Props = {
   onUnauthorized?: () => void;
 };
 
+/** The subset of the import payload a retry has to reproduce verbatim. */
+type LinkPayload = {
+  url: string;
+  folder_id?: string;
+  makerworld_cookie?: string;
+  thingiverse_cookie?: string;
+};
+
+function importErrorMessage(err: unknown): string {
+  if (err instanceof Error && err.message.trim()) return err.message;
+  return "Import failed";
+}
+
 export default function UploadBar({ onUploaded, folderId, makerworldCookie, thingiverseCookie, onUnauthorized }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [linkValue, setLinkValue] = useState("");
-  const zipPrompt = useZipImportPrompt();
-  const isBusy = uploading || importing || zipPrompt.isOpen;
+  const uploader = useUpload({
+    folderId,
+    onUnauthorized,
+    onUploaded: () => onUploaded(),
+  });
+  const isBusy = uploader.busy || importing;
 
   useEffect(() => {
     if (!folderInputRef.current) return;
@@ -33,82 +49,69 @@ export default function UploadBar({ onUploaded, folderId, makerworldCookie, thin
     folderInputRef.current.setAttribute("directory", "");
   }, []);
 
-  const uploadEntries = async (entries: ReturnType<typeof entriesFromFileList>) => {
-    if (!entries.length) return;
-    setUploading(true);
-    const normalEntries = entries.filter(entry => !isZipFile(entry.file.name));
-    const zipEntries = entries.filter(entry => isZipFile(entry.file.name));
-    let uploaded = 0;
-    const failed: string[] = [];
-    const applyResult = (result: { uploaded: number; failed: string[] }) => {
-      uploaded += result.uploaded;
-      failed.push(...result.failed);
-    };
-    if (normalEntries.length) {
-      const result = await uploadEntriesToFolder(normalEntries, folderId || null, onUnauthorized);
-      applyResult(result);
-    }
-    for (const entry of zipEntries) {
-      let zipData: Record<string, Uint8Array> | null = null;
-      const baseParts = entry.relativePath.split("/").filter(Boolean);
-      baseParts.pop();
-      const basePath = baseParts.join("/");
-      await zipPrompt.prompt({
-        label: entry.file.name,
-        onImportAsZip: async () => {
-          const result = await uploadEntriesToFolder([entry], folderId || null, onUnauthorized);
-          applyResult(result);
-        },
-        loadEntries: async () => {
-          const result = await readZipEntries(entry.file);
-          zipData = result.data;
-          return result.entries;
-        },
-        onImportSelected: async (selectedPaths: string[]) => {
-          if (!zipData) {
-            const result = await readZipEntries(entry.file);
-            zipData = result.data;
-          }
-          const unzipEntries = buildUploadEntriesFromZip(zipData || {}, selectedPaths, basePath);
-          const result = await uploadEntriesToFolder(unzipEntries, folderId || null, onUnauthorized);
-          applyResult(result);
-        },
-      });
-    }
-    if (uploaded) onUploaded();
-    if (failed.length) {
-      alert(`Failed to upload: ${failed.join(", ")}`);
-    }
-    setUploading(false);
-  };
-
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const entries = entriesFromFileList(e.target.files || []);
     if (!entries.length) return;
-    await uploadEntries(entries);
+    await uploader.upload(entries);
     if (inputRef.current) inputRef.current.value = "";
   };
 
   const onPickFolder = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const entries = entriesFromFileList(e.target.files || []);
     if (!entries.length) return;
-    await uploadEntries(entries);
+    await uploader.upload(entries);
     if (folderInputRef.current) folderInputRef.current.value = "";
   };
 
-  const onImport = async () => {
-    const url = linkValue.trim();
-    if (!url) return;
+  // Imports only the entries a previous zip import failed on, so a retry never
+  // duplicates the assets that already made it.
+  const retryZipEntries = (payload: LinkPayload, entries: string[]): void => {
+    void importZipEntries(payload, entries).then(imported => {
+      if (imported > 0) onUploaded();
+    }).catch(err => {
+      if (err instanceof UnauthorizedError) {
+        onUnauthorized?.();
+        return;
+      }
+      console.error("Import failed for", payload.url, err);
+      const id = notifyError(importErrorMessage(err), {
+        details: [payload.url],
+        retry: () => {
+          dismissToast(id);
+          retryZipEntries(payload, entries);
+        },
+      });
+    });
+  };
+
+  // Resolves with how many assets the import created; a retry refreshes the
+  // grid only when the second attempt actually added something.
+  const importZipEntries = async (payload: LinkPayload, entries: string[]): Promise<number> => {
+    const result = await importZipFromLink({ ...payload, entries });
+    if (!result.failed.length) return result.assets.length;
+    const failed = [...result.failed];
+    const count = failed.length;
+    const id = notifyError(`Failed to import ${count} file${count === 1 ? "" : "s"}`, {
+      details: failed,
+      retry: () => {
+        dismissToast(id);
+        retryZipEntries(payload, failed);
+      },
+    });
+    return result.assets.length;
+  };
+
+  // The URL is a parameter, not `linkValue`: a toast retry has to re-run the
+  // link that failed even after the input has moved on.
+  const importFromUrl = async (url: string): Promise<void> => {
+    const payload: LinkPayload = {
+      url,
+      folder_id: folderId || undefined,
+      makerworld_cookie: (makerworldCookie || "").trim() || undefined,
+      thingiverse_cookie: (thingiverseCookie || "").trim() || undefined,
+    };
     setImporting(true);
     try {
-      const cookie = (makerworldCookie || "").trim();
-      const thingiverse = (thingiverseCookie || "").trim();
-      const payload = {
-        url,
-        folder_id: folderId || undefined,
-        makerworld_cookie: cookie || undefined,
-        thingiverse_cookie: thingiverse || undefined,
-      };
       const inspect = await inspectImportLink(payload);
       if (!inspect.is_zip) {
         await importFromLink(payload);
@@ -117,7 +120,7 @@ export default function UploadBar({ onUploaded, folderId, makerworldCookie, thin
         return;
       }
       setImporting(false);
-      await zipPrompt.prompt({
+      await uploader.promptZip({
         label: inspect.filename,
         onImportAsZip: async () => {
           try {
@@ -145,10 +148,7 @@ export default function UploadBar({ onUploaded, folderId, makerworldCookie, thin
         },
         onImportSelected: async (entries: string[]) => {
           try {
-            const result = await importZipFromLink({ ...payload, entries });
-            if (result.failed.length) {
-              alert(`Failed to import: ${result.failed.join(", ")}`);
-            }
+            await importZipEntries(payload, entries);
           } catch (err) {
             if (err instanceof UnauthorizedError) {
               onUnauthorized?.();
@@ -166,11 +166,22 @@ export default function UploadBar({ onUploaded, folderId, makerworldCookie, thin
         return;
       }
       console.error("Import failed for", url, err);
-      const message = err instanceof Error ? err.message : "Import failed";
-      alert(message);
+      const id = notifyError(importErrorMessage(err), {
+        details: [url],
+        retry: () => {
+          dismissToast(id);
+          void importFromUrl(url);
+        },
+      });
     } finally {
       setImporting(false);
     }
+  };
+
+  const onImport = async () => {
+    const url = linkValue.trim();
+    if (!url) return;
+    await importFromUrl(url);
   };
 
   return (
@@ -196,14 +207,14 @@ export default function UploadBar({ onUploaded, folderId, makerworldCookie, thin
         disabled={isBusy}
         onClick={() => inputRef.current?.click()}
       >
-        {uploading ? "Uploading..." : "Upload"}
+        {uploader.busy ? "Uploading..." : "Upload"}
       </button>
       <button
         className="px-3 py-2 rounded-md border border-panel-strong disabled:opacity-60"
         disabled={isBusy}
         onClick={() => folderInputRef.current?.click()}
       >
-        {uploading ? "Uploading..." : "Upload folder"}
+        {uploader.busy ? "Uploading..." : "Upload folder"}
       </button>
       <div className="flex items-center gap-2">
         <input
@@ -213,7 +224,7 @@ export default function UploadBar({ onUploaded, folderId, makerworldCookie, thin
           onKeyDown={e => {
             if (e.key === "Enter") {
               e.preventDefault();
-              onImport();
+              void onImport();
             }
           }}
           placeholder="Paste model link (MakerWorld, Printables, Thingiverse...)"
@@ -229,8 +240,7 @@ export default function UploadBar({ onUploaded, folderId, makerworldCookie, thin
         </button>
       </div>
     </div>
-    {zipPrompt.modal}
+    {uploader.modal}
     </>
   );
 }
-

@@ -5,6 +5,8 @@ import Sidebar from "./Sidebar";
 import Login from "./Login";
 import Settings from "./Settings";
 import { apiHealth, getApiBase, refreshToken, type HealthInfo } from "../lib/api";
+import { notifyError } from "../lib/toast";
+import ConfirmDialog from "./ConfirmDialog";
 import { clearToken, readToken, storeToken } from "../lib/auth";
 import { type AppSettings, type ResolvedTheme, loadSettings, resolveTheme, saveSettings } from "../lib/settings";
 const DEFAULT_REFRESH_SECONDS = 6 * 60 * 60; // 6 hours
@@ -37,6 +39,7 @@ export default function App() {
   const [sessionExpired, setSessionExpired] = React.useState(false);
   const [activeView, setActiveView] = React.useState<"library" | "settings">("library");
   const [settings, setSettings] = React.useState<AppSettings>(() => loadSettings());
+  const [confirmingLogout, setConfirmingLogout] = React.useState(false);
   // Scroll container for the asset grid's virtualization (see useVirtualRows).
   const mainScrollRef = React.useRef<HTMLElement | null>(null);
   const resolvedTheme = React.useMemo(
@@ -76,7 +79,7 @@ export default function App() {
     setToken(null);
     setTokenTtl(null);
     setSessionExpired(true);
-    alert("Your session has expired. Please sign in again.");
+    notifyError("Your session has expired. Please sign in again.");
   }, [sessionExpired]);
 
   const handleFoldersChanged = React.useCallback(() => {
@@ -190,11 +193,7 @@ export default function App() {
               </button>
             )}
             <button
-              onClick={() => {
-                if (confirm("Are you sure you want to log out?")) {
-                  handleLogout();
-                }
-              }}
+              onClick={() => setConfirmingLogout(true)}
               className="px-3 py-2 rounded-md border border-panel-strong text-sm"
             >
               Log out
@@ -225,6 +224,18 @@ export default function App() {
           />
         )}
       </main>
+      {confirmingLogout && (
+        <ConfirmDialog
+          title="Log out?"
+          body="Are you sure you want to log out?"
+          confirmLabel="Log out"
+          onConfirm={() => {
+            handleLogout();
+            setConfirmingLogout(false);
+          }}
+          onCancel={() => setConfirmingLogout(false)}
+        />
+      )}
     </div>
   );
 }

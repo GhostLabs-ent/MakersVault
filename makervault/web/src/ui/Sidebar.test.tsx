@@ -18,7 +18,9 @@ vi.mock("../lib/api", () => ({
 }));
 
 import Sidebar from "./Sidebar";
+import Toaster from "./Toaster";
 import { deleteFolder, getFolderDeletePreview, listFolders } from "../lib/api";
+import { resetToasts } from "../lib/toast";
 
 const listFoldersMock = vi.mocked(listFolders);
 const deleteFolderMock = vi.mocked(deleteFolder);
@@ -52,6 +54,7 @@ async function openDeleteDialog(folderName: string) {
 
 describe("Sidebar folder deletion", () => {
   beforeEach(() => {
+    resetToasts();
     listFoldersMock.mockReset();
     listFoldersMock.mockResolvedValue(folders);
     deleteFolderMock.mockClear();
@@ -313,5 +316,38 @@ describe("Sidebar keyboard tree", () => {
 
     expect(within(treeRow("f1")).getByRole("button", { name: "Keep" }).tabIndex).toBe(-1);
     expect(within(treeRow("f1")).getByRole("button", { name: "Collapse" }).tabIndex).toBe(-1);
+  });
+});
+
+describe("Sidebar error reporting", () => {
+  let consoleError: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    resetToasts();
+    // `handleError` logs before it toasts; keep test output clean.
+    consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    cleanup();
+    consoleError.mockRestore();
+  });
+
+  it("raises a toast instead of a native alert when folders fail to load", async () => {
+    listFoldersMock.mockReset();
+    listFoldersMock.mockRejectedValue(new Error("nope"));
+
+    render(
+      <>
+        <Sidebar selectedId={null} onSelect={vi.fn()} />
+        <Toaster />
+      </>,
+    );
+
+    await waitFor(() => {
+      const toaster = within(screen.getByTestId("toaster"));
+      expect(toaster.getAllByRole("alert")).toHaveLength(1);
+      expect(toaster.getByText("Unable to load folders.")).toBeTruthy();
+    });
   });
 });
