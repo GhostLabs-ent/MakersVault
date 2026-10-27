@@ -619,3 +619,30 @@ export async function updateStorageSettings(payload: {
   }
   return res.json();
 }
+
+export type LibraryScanStatus = {
+  running: boolean;
+  started_at: number | null;
+  finished_at: number | null;
+  registered: number;
+  known: number;
+  ignored: number;
+  missing: number;
+  failed: number;
+  errors: string[];
+};
+
+export async function getLibraryScanStatus(): Promise<LibraryScanStatus> {
+  const res = await fetch(`${apiBase()}/library/scan`, { headers: authHeaders() });
+  assertOk(res, "Failed to read library scan status");
+  return res.json();
+}
+
+export async function startLibraryScan(): Promise<LibraryScanStatus> {
+  const res = await fetch(`${apiBase()}/library/scan`, { method: "POST", headers: authHeaders() });
+  if (res.status === 409) {
+    throw new Error("A scan is already running");
+  }
+  assertOk(res, "Failed to start library scan");
+  return res.json();
+}

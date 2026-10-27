@@ -158,3 +158,15 @@ class StorageSettingsOut(BaseModel):
   sample_path: str
   moved: int = 0
   skipped: int = 0
+
+
+class LibraryScanStatusOut(BaseModel):
+  running: bool
+  started_at: Optional[float] = None
+  finished_at: Optional[float] = None
+  registered: int = 0
+  known: int = 0
+  ignored: int = 0
+  missing: int = 0
+  failed: int = 0
+  errors: List[str] = []

@@ -21,4 +21,11 @@ for suffix in ("", "-wal", "-shm"):
     if db_path.exists():
         db_path.unlink()
 
-Path(os.environ["FILE_STORAGE"]).mkdir(parents=True, exist_ok=True)
+# storage is owned by the test run: start from an empty tree so scans and
+# uploads only ever see what the current test created
+import shutil
+
+storage_root = Path(os.environ["FILE_STORAGE"])
+if storage_root.exists():
+    shutil.rmtree(storage_root)
+storage_root.mkdir(parents=True, exist_ok=True)

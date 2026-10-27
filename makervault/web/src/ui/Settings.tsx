@@ -4,7 +4,10 @@ import {
   UnauthorizedError,
   createFolder,
   getMountImportSettings,
+  getLibraryScanStatus,
   getStorageSettings,
+  startLibraryScan,
+  type LibraryScanStatus,
   updateMountImportSettings,
   updateStorageSettings,
 } from "../lib/api";
@@ -141,6 +144,35 @@ export default function Settings({
   const [storageLoading, setStorageLoading] = React.useState(false);
   const [storageSaving, setStorageSaving] = React.useState(false);
   const [storageStatus, setStorageStatus] = React.useState<string | null>(null);
+  const [libraryScan, setLibraryScan] = React.useState<LibraryScanStatus | null>(null);
+  const [libraryScanBusy, setLibraryScanBusy] = React.useState(false);
+  const [libraryScanError, setLibraryScanError] = React.useState<string | null>(null);
+
+  const refreshLibraryScan = React.useCallback(async () => {
+    try {
+      setLibraryScan(await getLibraryScanStatus());
+    } catch {
+      // scan status is advisory; a failure must not break the settings page
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!libraryScan?.running) return;
+    const timer = window.setTimeout(refreshLibraryScan, 1500);
+    return () => window.clearTimeout(timer);
+  }, [libraryScan, refreshLibraryScan]);
+
+  const runLibraryScan = async () => {
+    setLibraryScanBusy(true);
+    setLibraryScanError(null);
+    try {
+      setLibraryScan(await startLibraryScan());
+    } catch (err) {
+      setLibraryScanError(err instanceof Error ? err.message : "Failed to start scan");
+    } finally {
+      setLibraryScanBusy(false);
+    }
+  };
   const [scanRawEntries, setScanRawEntries] = React.useState<UploadEntry[]>([]);
   const [scanEntries, setScanEntries] = React.useState<UploadEntry[]>([]);
   const [scanRoot, setScanRoot] = React.useState("");
@@ -797,6 +829,39 @@ export default function Settings({
             </button>
             {storageStatus && <span className="text-xs opacity-80">{storageStatus}</span>}
           </div>
+        </div>
+
+        <div className="rounded-lg border border-panel bg-panel-soft p-4 flex flex-col gap-3">
+          <div>
+            <div className="text-lg font-semibold">Files added from outside MakersVault</div>
+            <p className="text-sm opacity-70">
+              Scan the storage folder and register files you copied in with rsync, cp or another tool.
+              Nothing is moved or deleted: files are registered where they already sit, and folders are created from the directory tree.
+              Files that have disappeared are counted only, never removed from the library.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              className="text-sm px-3 py-2 rounded-md border border-panel-strong disabled:opacity-60"
+              disabled={libraryScanBusy || Boolean(libraryScan?.running)}
+              onClick={runLibraryScan}
+            >
+              {libraryScan?.running ? "Scanning..." : "Rescan storage folder"}
+            </button>
+            {libraryScan && (
+              <span className="text-xs opacity-80">
+                {libraryScan.running
+                  ? "Scan in progress"
+                  : `Last scan: ${libraryScan.registered} new, ${libraryScan.known} known, ${libraryScan.missing} missing, ${libraryScan.failed} failed`}
+              </span>
+            )}
+            {libraryScanError && <span className="text-xs text-red-400">{libraryScanError}</span>}
+          </div>
+          {Boolean(libraryScan?.errors?.length) && (
+            <div className="rounded-md border border-dashed border-panel-strong p-3 font-mono text-[11px] break-all">
+              {libraryScan?.errors.map((message, index) => <div key={index}>{message}</div>)}
+            </div>
+          )}
         </div>
       </div>
     );

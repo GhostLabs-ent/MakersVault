@@ -63,6 +63,7 @@ from file_utils import (
 )
 from folder_service import validate_parent_folder
 from import_service import download_import_to_temp, import_asset_from_url, open_import_response
+from library_scan import scan_status, start_scan
 from mount_import import scan_mount_imports
 from models import Asset, AssetFile, Folder
 from migrations import run_migrations
@@ -98,6 +99,7 @@ from schemas import (
     MountImportSettingsOut,
     StorageSettings,
     StorageSettingsOut,
+    LibraryScanStatusOut,
 )
 from zip_service import extract_zip_entries_to_assets, list_zip_entries
 from url_utils import normalize_import_url
@@ -333,6 +335,18 @@ def update_storage_settings(body: StorageSettings, _: Optional[str] = Depends(re
     set_storage_template(template)
     moved, skipped = reorganize_managed_assets(template) if body.apply_existing else (0, 0)
     return storage_settings_out(template, moved, skipped)
+
+
+@app.get("/library/scan", response_model=LibraryScanStatusOut)
+def library_scan_status(_: Optional[str] = Depends(require_auth)):
+    return scan_status()
+
+
+@app.post("/library/scan", response_model=LibraryScanStatusOut, status_code=202)
+def library_scan_start(_: Optional[str] = Depends(require_auth)):
+    if not start_scan():
+        raise HTTPException(status_code=409, detail="A library scan is already running")
+    return scan_status()
 
 
 @app.post("/login", response_model=LoginResponse)
