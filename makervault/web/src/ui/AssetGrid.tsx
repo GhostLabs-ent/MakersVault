@@ -25,6 +25,7 @@ import TagBadge from "./TagBadge";
 import TagInput from "./TagInput";
 import { colorForTag } from "./tagColors";
 import { refreshWindow } from "../lib/assetPaging";
+import { useStableCallback } from "../lib/useStableCallback";
 import { EngravingSettings, PreviewSettings, ResolvedTheme, SlicerSettings, engraverLabelFor, slicerLabelFor } from "../lib/settings";
 import { entriesFromDataTransfer, uploadEntriesToFolder } from "../lib/uploadTree";
 import { buildUploadEntriesFromZip, isZipFile, readZipEntries } from "../lib/zipUtils";
@@ -80,6 +81,48 @@ type Props = {
 type RefreshOpts = { tags?: string[]; search?: string; keepLoadedPages?: boolean };
 type GroupBucket = { id: string; title: string; items: Asset[] };
 
+/**
+ * Search box + button.
+ *
+ * Defined at module scope (and owning its own `value` state) so typing never
+ * re-renders the grid or the cards, and so the input instance survives grid
+ * re-renders (refetches) instead of being remounted.
+ */
+function AssetSearch({
+  onQueryChange,
+  onSearch,
+  disabled,
+}: {
+  onQueryChange: (query: string) => void;
+  onSearch: (query: string) => void;
+  disabled: boolean;
+}) {
+  const [value, setValue] = useState("");
+  return (
+    <>
+      <input
+        value={value}
+        onChange={e => {
+          setValue(e.target.value);
+          onQueryChange(e.target.value);
+        }}
+        onKeyDown={e => {
+          if (e.key === "Enter") onSearch(value);
+        }}
+        placeholder="Search title, filename, notes..."
+        className="px-3 py-2 rounded-md border border-panel-strong bg-panel-soft w-80"
+      />
+      <button
+        className="px-3 py-2 rounded-md border border-panel-strong disabled:opacity-60"
+        onClick={() => onSearch(value)}
+        disabled={disabled}
+      >
+        Search
+      </button>
+    </>
+  );
+}
+
 export default function AssetGrid({
   folderId,
   foldersVersion = 0,
@@ -93,7 +136,9 @@ export default function AssetGrid({
   const [items, setItems] = useState<Asset[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  const [q, setQ] = useState("");
+  // Latest typed query. Held in a ref (not state) so typing does not re-render
+  // the grid; only submitting a search refetches.
+  const queryRef = useRef("");
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -121,7 +166,7 @@ export default function AssetGrid({
   const engraverLabel = engraverLabelFor(engravingSettings?.selected);
   const zipPrompt = useZipImportPrompt();
 
-  const handleApiError = (err: unknown, message?: string) => {
+  const handleApiError = useStableCallback((err: unknown, message?: string) => {
     if (err instanceof UnauthorizedError) {
       onUnauthorized?.();
       return true;
@@ -129,20 +174,20 @@ export default function AssetGrid({
     console.error(err);
     if (message) alert(message);
     return false;
-  };
+  });
 
-  const replaceAsset = (updated: Asset) => {
+  const replaceAsset = useStableCallback((updated: Asset) => {
     setItems(current => current.map(item => item.id === updated.id ? updated : item));
     setPreviewItem(current => current?.id === updated.id ? updated : current);
-  };
+  });
 
-  const refresh = async (opts: RefreshOpts = {}) => {
+  const refresh = useStableCallback(async (opts: RefreshOpts = {}) => {
     setLoading(true);
     if (!opts.keepLoadedPages) {
       setHasMore(false);
       setOffset(0);
     }
-    const search = opts.search ?? q;
+    const search = opts.search ?? queryRef.current;
     const tags = opts.tags ?? activeTags;
     const targetFolderId = folderId || undefined;
     const paging = refreshWindow(offset, pageSize, opts.keepLoadedPages);
@@ -176,14 +221,14 @@ export default function AssetGrid({
     }
 
     setLoading(false);
-  };
+  });
 
-  const loadMore = async () => {
+  const loadMore = useStableCallback(async () => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
     try {
       const data = await listAssets({
-        q,
+        q: queryRef.current,
         tags: activeTags,
         folder_id: folderId || undefined,
         limit: pageSize,
@@ -197,7 +242,7 @@ export default function AssetGrid({
     } finally {
       setLoadingMore(false);
     }
-  };
+  });
 
   const isFileDrag = (e: React.DragEvent<HTMLDivElement>) => {
     const types = Array.from(e.dataTransfer?.types || []);
@@ -289,13 +334,14 @@ export default function AssetGrid({
     setDropUploading(false);
   };
 
-  useEffect(() => { refresh(); }, [folderId]);
+  useEffect(() => { refresh(); }, [folderId, refresh]);
   // `assetsVersion` bumps when another view (upload, folder scan) changed
   // assets. Refetch in place instead of remounting: the ref is seeded with the
   // current version so mounting performs no extra fetch, and comparing values
   // makes the effect idempotent under StrictMode's double mount.
-  // NOTE: `refresh` must NOT be added to this dep array (it is recreated every
-  // render and would loop); refetching on the version value alone is the point.
+  // The refetch is keyed on the version value; `refresh` is referentially
+  // stable (useStableCallback), so listing it as a dependency cannot loop, and
+  // the ref guard keeps the effect idempotent under StrictMode.
   // Invariant: no call site bumps `assetsVersion` and `folderId` in the same
   // commit; if one ever does, that is two refreshes.
   const seenAssetsVersion = useRef(assetsVersion);
@@ -303,7 +349,7 @@ export default function AssetGrid({
     if (seenAssetsVersion.current === assetsVersion) return;
     seenAssetsVersion.current = assetsVersion;
     refresh({ keepLoadedPages: true });
-  }, [assetsVersion]);
+  }, [assetsVersion, refresh]);
   useEffect(() => {
     (async () => {
       try {
@@ -447,14 +493,14 @@ export default function AssetGrid({
     refresh({ tags: next });
   };
 
-  const toggleSelected = (id: string) => {
+  const toggleSelected = useStableCallback((id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  };
+  });
 
   const filenameFromDisposition = (res: Response, fallback: string) => {
     const dispo = res.headers.get("content-disposition") || "";
@@ -475,7 +521,7 @@ export default function AssetGrid({
     URL.revokeObjectURL(blobUrl);
   };
 
-  const onSaveTags = async (id: string, tags: string[]) => {
+  const onSaveTags = useStableCallback(async (id: string, tags: string[]) => {
     const bulkEdit = selectedIds.has(id) && selectedIds.size > 1;
     const targets = bulkEdit ? Array.from(selectedIds) : [id];
     const failed: string[] = [];
@@ -499,18 +545,18 @@ export default function AssetGrid({
     if (failed.length) {
       alert(`Tag update failed for: ${failed.join(", ")}`);
     }
-  };
+  });
 
-  const onSaveDetails = async (id: string, payload: { notes: string; creator: string; collection: string }) => {
+  const onSaveDetails = useStableCallback(async (id: string, payload: { notes: string; creator: string; collection: string }) => {
     try {
       await updateAssetMeta(id, payload);
       await refresh();
     } catch (err) {
       handleApiError(err, err instanceof Error ? err.message : "Failed to save model details.");
     }
-  };
+  });
 
-  const onRename = async (id: string, name: string) => {
+  const onRename = useStableCallback(async (id: string, name: string) => {
     try {
       await updateAssetMeta(id, { name });
       await refresh();
@@ -518,9 +564,9 @@ export default function AssetGrid({
       handleApiError(err, err instanceof Error ? err.message : "Rename failed. Please try again.");
       throw err;
     }
-  };
+  });
 
-  const onMoveFolder = async (id: string, folder_id: string | null) => {
+  const onMoveFolder = useStableCallback(async (id: string, folder_id: string | null) => {
     try {
       setMovingId(id);
       await updateAssetFolder(id, folder_id);
@@ -532,9 +578,9 @@ export default function AssetGrid({
     } finally {
       setMovingId(null);
     }
-  };
+  });
 
-  const downloadAsset = async (asset: Asset) => {
+  const downloadAsset = useStableCallback(async (asset: Asset) => {
     try {
       setDownloadingId(asset.id);
       const res = await fetch(fileUrl(asset.url));
@@ -552,9 +598,9 @@ export default function AssetGrid({
     } finally {
       setDownloadingId(null);
     }
-  };
+  });
 
-  const openInSlicer = (asset: Asset) => {
+  const openInSlicer = useStableCallback((asset: Asset) => {
     if (!slicerEnabled) return;
     const url = fileUrl(asset.slicer_url || asset.url);
     const params = new URLSearchParams({
@@ -564,9 +610,9 @@ export default function AssetGrid({
     });
     const target = `makersvault-slicer://open?${params.toString()}`;
     window.location.href = target;
-  };
+  });
 
-  const openInEngraving = (asset: Asset) => {
+  const openInEngraving = useStableCallback((asset: Asset) => {
     if (!engravingEnabled) return;
     const url = fileUrl(asset.url);
     const params = new URLSearchParams({
@@ -576,9 +622,9 @@ export default function AssetGrid({
     });
     const target = `makersvault-engrave://open?${params.toString()}`;
     window.location.href = target;
-  };
+  });
 
-  const downloadSelected = async () => {
+  const downloadSelected = useStableCallback(async () => {
     if (!selectedIds.size) {
       alert("Select at least one item to download.");
       return;
@@ -594,9 +640,9 @@ export default function AssetGrid({
     } finally {
       setBulkDownloading(null);
     }
-  };
+  });
 
-  const downloadByTag = async (tag: string) => {
+  const downloadByTag = useStableCallback(async (tag: string) => {
     if (!tag) return;
     try {
       setBulkDownloading(`tag:${tag}`);
@@ -609,9 +655,9 @@ export default function AssetGrid({
     } finally {
       setBulkDownloading(null);
     }
-  };
+  });
 
-  const removeAsset = async (asset: Asset) => {
+  const removeAsset = useStableCallback(async (asset: Asset) => {
     const targets = selectedIds.has(asset.id) && selectedIds.size > 1
       ? Array.from(selectedIds)
       : [asset.id];
@@ -644,7 +690,7 @@ export default function AssetGrid({
       alert(`Delete failed for: ${failed.join(", ")}`);
     }
     setDeletingId(null);
-  };
+  });
 
   const showDropOverlay = dragActive || dropUploading;
   const dropMessage = dropUploading
@@ -668,25 +714,11 @@ export default function AssetGrid({
       )}
       <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3 flex-wrap">
-        <input
-          value={q}
-          onChange={e=>setQ(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === "Enter") {
-              const val = (e.currentTarget as HTMLInputElement).value;
-              refresh({ search: val });
-            }
-          }}
-          placeholder="Search title, filename, notes..."
-          className="px-3 py-2 rounded-md border border-panel-strong bg-panel-soft w-80"
-        />
-        <button
-          className="px-3 py-2 rounded-md border border-panel-strong disabled:opacity-60"
-          onClick={() => refresh({ search: q })}
+        <AssetSearch
+          onQueryChange={query => { queryRef.current = query; }}
+          onSearch={query => { refresh({ search: query }); }}
           disabled={loading}
-        >
-          Search
-        </button>
+        />
         {loading && <span className="text-sm opacity-70">Loading...</span>}
         <div className="flex items-center gap-2 text-sm">
           <span className="opacity-70">Sort</span>
@@ -783,7 +815,7 @@ export default function AssetGrid({
                             onDownloadByTag={downloadByTag}
                             onDownloadSelected={downloadSelected}
                             selected={selectedIds.has(it.id)}
-                            onToggleSelected={() => toggleSelected(it.id)}
+                            onToggleSelected={toggleSelected}
                             hasSelection={selectedIds.size > 0}
                             bulkDownloading={Boolean(bulkDownloading)}
                             slicerEnabled={slicerEnabled}
@@ -828,7 +860,7 @@ export default function AssetGrid({
               onDownloadByTag={downloadByTag}
               onDownloadSelected={downloadSelected}
               selected={selectedIds.has(it.id)}
-              onToggleSelected={() => toggleSelected(it.id)}
+              onToggleSelected={toggleSelected}
               hasSelection={selectedIds.size > 0}
               bulkDownloading={Boolean(bulkDownloading)}
               slicerEnabled={slicerEnabled}
@@ -864,7 +896,37 @@ export default function AssetGrid({
   );
 }
 
-function AssetCard({
+type AssetCardProps = {
+  item: Asset;
+  onSaveTags: (id: string, tags: string[]) => void;
+  onSaveDetails: (id: string, payload: { notes: string; creator: string; collection: string }) => void;
+  onRename: (id: string, filename: string) => void;
+  onPreview: (asset: Asset | null) => void;
+  onDownloadSingle: (asset: Asset) => void;
+  onDownloadByTag: (tag: string) => void;
+  onDownloadSelected: () => void;
+  downloading: boolean;
+  onDelete: (asset: Asset) => void;
+  deleting: boolean;
+  onMoveFolder: (id: string, folder_id: string | null) => void;
+  folderOptions: { id: string | null; name: string }[];
+  moving: boolean;
+  selected: boolean;
+  onToggleSelected: (id: string) => void;
+  hasSelection: boolean;
+  bulkDownloading: boolean;
+  slicerEnabled: boolean;
+  slicerLabel: string;
+  onOpenInSlicer: (asset: Asset) => void;
+  engravingEnabled: boolean;
+  engraverLabel: string;
+  onOpenInEngraving: (asset: Asset) => void;
+  theme: ResolvedTheme;
+  previewMode: PreviewSettings["mode"];
+  onAssetChanged: (asset: Asset) => void;
+};
+
+const AssetCard = React.memo(function AssetCard({
   item,
   onSaveTags,
   onSaveDetails,
@@ -892,35 +954,7 @@ function AssetCard({
   theme,
   previewMode,
   onAssetChanged,
-}: {
-  item: Asset;
-  onSaveTags: (id: string, tags: string[]) => void;
-  onSaveDetails: (id: string, payload: { notes: string; creator: string; collection: string }) => void;
-  onRename: (id: string, filename: string) => void;
-  onPreview: (asset: Asset | null) => void;
-  onDownloadSingle: (asset: Asset) => void;
-  onDownloadByTag: (tag: string) => void;
-  onDownloadSelected: () => void;
-  downloading: boolean;
-  onDelete: (asset: Asset) => void;
-  deleting: boolean;
-  onMoveFolder: (id: string, folder_id: string | null) => void;
-  folderOptions: { id: string | null; name: string }[];
-  moving: boolean;
-  selected: boolean;
-  onToggleSelected: () => void;
-  hasSelection: boolean;
-  bulkDownloading: boolean;
-  slicerEnabled: boolean;
-  slicerLabel: string;
-  onOpenInSlicer: (asset: Asset) => void;
-  engravingEnabled: boolean;
-  engraverLabel: string;
-  onOpenInEngraving: (asset: Asset) => void;
-  theme: ResolvedTheme;
-  previewMode: PreviewSettings["mode"];
-  onAssetChanged: (asset: Asset) => void;
-}) {
+}: AssetCardProps) {
   const [editingTags, setEditingTags] = useState(false);
   const [tagList, setTagList] = useState<string[]>(item.tags);
   const [editingNotes, setEditingNotes] = useState(false);
@@ -1139,7 +1173,7 @@ function AssetCard({
             <input
               type="checkbox"
               checked={selected}
-              onChange={onToggleSelected}
+              onChange={() => onToggleSelected(item.id)}
               className="w-4 h-4"
             />
             <span>Select</span>
@@ -1402,7 +1436,7 @@ function AssetCard({
       </div>
     </div>
   );
-}
+});
 
 function formatPreparedDuration(totalSeconds?: number | null) {
   if (!totalSeconds || totalSeconds < 1) return null;

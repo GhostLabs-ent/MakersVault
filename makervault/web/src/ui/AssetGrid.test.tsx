@@ -10,7 +10,7 @@ vi.mock("../lib/api", () => ({
   deleteAssetFile: vi.fn(),
   deletePreparedPrint: vi.fn(),
   downloadZip: vi.fn(),
-  fileUrl: (rel: string) => rel,
+  fileUrl: vi.fn((rel: string) => rel),
   listAssetFiles: vi.fn(async () => []),
   listAssets: vi.fn(),
   listFolders: vi.fn(async () => []),
@@ -31,9 +31,10 @@ vi.mock("./LightBurnPreview", () => ({
 }));
 
 import AssetGrid from "./AssetGrid";
-import { listAssets } from "../lib/api";
+import { fileUrl, listAssets } from "../lib/api";
 
 const listAssetsMock = vi.mocked(listAssets);
+const fileUrlMock = vi.mocked(fileUrl);
 
 /** Query arguments of the `index`th `listAssets` call, with paging made explicit. */
 function callQuery(index: number) {
@@ -115,6 +116,7 @@ describe("AssetGrid asset refresh", () => {
   beforeEach(() => {
     listAssetsMock.mockReset();
     listAssetsMock.mockResolvedValue({ items: assets, hasMore: false });
+    fileUrlMock.mockClear();
   });
 
   afterEach(cleanup);
@@ -228,5 +230,84 @@ describe("AssetGrid asset refresh", () => {
     expect(screen.getByText(`Page 1 item ${pageSize}`)).toBeTruthy();
     expect(screen.getByText(`Page 2 item ${pageSize}`)).toBeTruthy();
     expect(screen.getAllByText(/^Page [12] item \d+$/).length).toBe(pageSize * 2);
+  });
+
+  // `renderPreviewContent` runs on every card render and unconditionally calls
+  // `fileUrl(asset.url)`, so a per-URL call count is a faithful render counter.
+  describe("card render probe", () => {
+    /** Flat grid order: cards are sorted by filename ascending. */
+    const flatOrder = [...assets].sort((a, b) => a.filename.localeCompare(b.filename));
+
+    function renderCounts(): Record<string, number> {
+      const counts: Record<string, number> = {};
+      for (const asset of assets) {
+        counts[asset.id] = fileUrlMock.mock.calls.filter(([url]) => url === asset.url).length;
+      }
+      return counts;
+    }
+
+    async function renderFirstBatch(): Promise<HTMLInputElement> {
+      render(<AssetGrid theme="dark" />);
+      await waitFor(() => expect(listAssets).toHaveBeenCalledTimes(1));
+      await screen.findByText("Calibration cube");
+      await waitFor(() => expect(screen.queryByText("Loading...")).toBeNull());
+      return screen.getByPlaceholderText(
+        "Search title, filename, notes...",
+      ) as HTMLInputElement;
+    }
+
+    it("does not re-render existing cards while typing in the search box", async () => {
+      const searchInput = await renderFirstBatch();
+      const before = renderCounts();
+      expect(before[flatOrder[0].id]).toBeGreaterThan(0);
+
+      fireEvent.change(searchInput, { target: { value: "c" } });
+      fireEvent.change(searchInput, { target: { value: "cu" } });
+
+      expect(searchInput.value).toBe("cu");
+      expect(renderCounts()).toEqual(before);
+      // Typing alone never refetches, same as before.
+      expect(listAssets).toHaveBeenCalledTimes(1);
+    });
+
+    it("re-renders only the card whose selection changed", async () => {
+      await renderFirstBatch();
+      const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+      expect(checkboxes.length).toBe(flatOrder.length);
+
+      // The first click flips `hasSelection` false -> true, which may legally
+      // re-render every card; take the baseline after it settles.
+      fireEvent.click(checkboxes[0]);
+      expect(checkboxes[0].checked).toBe(true);
+      const baseline = renderCounts();
+
+      fireEvent.click(checkboxes[1]);
+      expect(checkboxes[1].checked).toBe(true);
+
+      const after = renderCounts();
+      expect(after[flatOrder[1].id]).toBe(baseline[flatOrder[1].id] + 1);
+      expect(after[flatOrder[0].id]).toBe(baseline[flatOrder[0].id]);
+      expect(after[flatOrder[2].id]).toBe(baseline[flatOrder[2].id]);
+    });
+
+    it("search still refetches with the typed query", async () => {
+      const searchInput = await renderFirstBatch();
+
+      fireEvent.change(searchInput, { target: { value: "cube" } });
+      fireEvent.keyDown(searchInput, { key: "Enter" });
+
+      await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(2));
+      const enterCall = callQuery(1);
+      expect(enterCall.q).toBe("cube");
+      expect(enterCall.offset).toBe(0);
+
+      fireEvent.change(searchInput, { target: { value: "spool" } });
+      fireEvent.click(screen.getByRole("button", { name: "Search" }));
+
+      await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(3));
+      const buttonCall = callQuery(2);
+      expect(buttonCall.q).toBe("spool");
+      expect(buttonCall.offset).toBe(0);
+    });
   });
 });
