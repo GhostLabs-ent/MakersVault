@@ -47,12 +47,12 @@ deployment guidance required by Gate 1.
 
 | Variable | Current default | Effect |
 |---|---|---|
-| `IMPORT_MOUNT_PATH` | empty in canonical production manifest | Container path eligible for scanning. Legacy alias `MOUNT_IMPORT_PATH` is also read by the API. |
+| `IMPORT_MOUNT_PATH` | empty in canonical production manifest | Container path eligible for scanning. Legacy alias `MOUNT_IMPORT_PATH` is also read by the API. A mount that contains or sits inside the storage root is refused (copy mode tolerates an identical root by registering in place), and the skip is logged at startup. |
 | `IMPORT_MOUNT_PATH_HOST` | `./imports` | Read-only host path mounted at `/imports` by production Compose. |
 | `IMPORT_MOUNT_EXTS` | built-in supported list | Comma-separated eligible extensions. |
 | `IMPORT_MOUNT_INCLUDE_HIDDEN` | `false` | Whether hidden paths are scanned. |
-| `IMPORT_MOUNT_ON_STARTUP` | `false` in canonical production manifest | Enables the current startup scan. The code default remains `true` when a path exists. |
-| `IMPORT_MOUNT_COPY` | `true` | Copy into managed storage instead of indexing in place. |
+| `IMPORT_MOUNT_ON_STARTUP` | `false` in canonical production manifest | Enables the startup scan. The code default remains `true` when a path is configured, so configuring a mount path is what opts a deployment in. |
+| `IMPORT_MOUNT_COPY` | `true` | Copy into managed storage instead of indexing in place. Copy mode mirrors the mount's relative directory structure into the storage root (a mount holding `a/b/c.stl` registers `a/b/c.stl` and the folder chain `a` -> `a/b`); reference mode registers `is_reference` rows that point at the mount and copy nothing. |
 
 ## Web runtime settings
 

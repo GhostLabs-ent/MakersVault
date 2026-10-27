@@ -67,7 +67,7 @@ from import_service import download_import_to_temp, import_asset_from_url, open_
 from library_scan import scan_status, start_scan
 from migrations import run_migrations
 from models import Asset, AssetFile, Folder
-from mount_import import scan_mount_imports
+from mount_import import mount_import_should_run, scan_mount_imports
 from prepared_print import prepared_filename
 from schemas import (
     AssetFileOut,
@@ -116,7 +116,7 @@ async def lifespan(_app: FastAPI):
     run_migrations(engine)
     threading.Thread(target=backfill_embedded_thumbnails, daemon=True).start()
     threading.Thread(target=backfill_prepared_print_metadata, daemon=True).start()
-    if MOUNT_IMPORT_PATH and get_mount_import_enabled(MOUNT_IMPORT_ENABLED):
+    if mount_import_should_run():
         threading.Thread(target=scan_mount_imports, daemon=True).start()
     yield
 

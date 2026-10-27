@@ -13,8 +13,8 @@ Missing files are flagged, never purged:
   noticed the absence, not when the file disappeared;
 * rows and files are never deleted, moved or renamed by a scan - losing a row
   because a network mount hiccuped would be worse than showing a stale entry;
-* ``disk_mtime`` stays reserved and unwritten; ``is_reference`` is owned by
-  migration 004 / Mf-k0kf and a scan leaves it untouched;
+* ``disk_mtime`` stays reserved and unwritten; ``is_reference`` is written by
+  mount import (migration 004 / Mf-k0kf) and a scan leaves it untouched;
 * ``thumbs/`` and ``bundles/`` are app-owned and skipped.
 
 The flag scope is wider than the ``missing`` counter scope: reference rows
@@ -43,17 +43,27 @@ How a scan behaves:
   that were actually committed; a row that failed and was rolled back is
   ``failed``, never ``registered``;
 * folder rows are created only for a directory that had a file to register in
-  this run - never eagerly on directory entry - and they stay metadata-only
-  (``storage_path`` is ``None``; migration 004 gave folders a directory
-  identity for runtime-created ones, scan-created rows are converged later).
-  A directory name that sanitises differently from its folder row can therefore
-  still collide, which is surfaced as an error rather than a silent overwrite;
+  this run - never eagerly on directory entry. For the storage scan they stay
+  metadata-only (``storage_path`` is ``None``; migration 004 gave folders a
+  directory identity for runtime-created ones, scan-created rows are converged
+  later), while a plan that materialises directories (mount copy mode) gives its
+  folder rows their real relative path, because folder rename and delete have to
+  move the real directory. A directory name that sanitises differently from its
+  folder row can therefore still collide, which is surfaced as an error rather
+  than a silent overwrite;
 * prepared-print metadata is inspected inline on a best-effort basis; a file
   that cannot be read registers anyway and is not counted as a failure (the
   startup backfill retries it);
 * a same-stem collision (``gear.stl`` + ``gear.3mf`` in one folder derive the
   same model name) fails exactly that one row with ``"<rel_path>: <error>"``
   while the rest of the batch still lands.
+
+Two registration writers share this machinery: the storage scan
+(``scan_storage_root``, which also owns the missing-flag pass) and mount import
+(``mount_import`` via ``register_tree``). They are serialised by
+``_write_lock``, because both create folder rows. Only the storage scan flags
+files missing, so pointing a registration walk at a mount can never mark the
+library missing.
 """
 import json
 import os
@@ -61,8 +71,9 @@ import threading
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
+from functools import partial
 from pathlib import Path
-from typing import Iterator, List, Optional, Tuple
+from typing import Callable, Iterator, List, Optional, Sequence, Tuple
 
 from sqlalchemy import or_, update
 from sqlmodel import Session, select
@@ -107,7 +118,7 @@ class ScanState:
 
 
 @dataclass(eq=False)
-class _PendingAsset:
+class PendingAsset:
     """A file found on disk that is not tracked yet.
 
     Compared by identity (``eq=False``) so a batch can drop the rows it rejected.
@@ -118,8 +129,46 @@ class _PendingAsset:
     rel_dir: str
 
 
+@dataclass
+class TreePlan:
+    """What one registration walk over ``root`` registers, and how.
+
+    The walk and the batch machinery are shared; everything that differs between
+    the storage scan and a mounted source lives here. Callables are supplied by
+    the caller so this module keeps no policy of its own beyond the walk.
+    """
+
+    root: Path
+    tracked: set  # dedupe keys already in the database
+    keys_for: Callable[[str], Sequence[str]]  # relative path -> its dedupe keys
+    accept: Callable[[str, int], bool]  # relative path + size -> register it?
+    build: Callable[[str, int], Asset]  # relative path + size -> unsaved row
+    dest_root: Optional[Path] = None  # copy target; None registers files in place
+    prepare: Optional[Callable[[Session, List[PendingAsset], dict], None]] = None
+    include_hidden: bool = False
+
+
 _state = ScanState()
 _state_lock = threading.Lock()
+
+# Only one registration run writes at a time: folder rows are looked up and then
+# created, and there is no unique index on (name, parent_id), so two writers can
+# duplicate a whole branch. Lock order is always _write_lock -> _state_lock.
+_write_lock = threading.Lock()
+# Run-scoped counters and plan for the walk active in this thread. The batch
+# helpers below are entered from several call sites with frozen signatures, so
+# the active run is resolved here instead of being threaded through arguments.
+_local = threading.local()
+
+
+def _active_state() -> ScanState:
+    """Counters of the registration run active in this thread, else the scan's."""
+    return getattr(_local, "state", None) or _state
+
+
+def _active_plan() -> Optional["TreePlan"]:
+    """The plan of the registration run active in this thread, if any."""
+    return getattr(_local, "plan", None)
 
 
 def scan_status() -> dict:
@@ -152,22 +201,25 @@ def _run_scan() -> None:
             _state.finished_at = time.time()
 
 
-def _note_error(message: str) -> None:
+def note_error(message: str) -> None:
+    """Count one failed file against the active registration run."""
+    state = _active_state()
     with _state_lock:
-        _state.failed += 1
-        if len(_state.errors) < 200:
-            _state.errors.append(message)
+        state.failed += 1
+        if len(state.errors) < 200:
+            state.errors.append(message)
 
 
 def _note_batch_failure(message: str, count: int) -> None:
     """One note for a whole rolled-back batch; every file in it is failed."""
+    state = _active_state()
     with _state_lock:
-        _state.failed += count
-        if len(_state.errors) < 200:
-            _state.errors.append(message)
+        state.failed += count
+        if len(state.errors) < 200:
+            state.errors.append(message)
 
 
-def _walk_storage(root: Path) -> Iterator[Tuple[str, List[os.DirEntry], int]]:
+def _walk_storage(root: Path, *, include_hidden: bool = False) -> Iterator[Tuple[str, List[os.DirEntry], int]]:
     """Yield ``(rel_dir, file_entries, ignored_entries)`` per directory.
 
     Iterative on purpose: a deep tree must not hit the recursion limit. One
@@ -177,8 +229,10 @@ def _walk_storage(root: Path) -> Iterator[Tuple[str, List[os.DirEntry], int]]:
     library policy (hidden names) and does the single ``stat`` per file.
 
     Directories that cannot be read are skipped, exactly like ``os.walk`` with
-    the default ``onerror``. Symlinked directories, hidden directories and the
-    root-level app-owned directories are pruned silently and not counted.
+    the default ``onerror``. Symlinked directories and the root-level app-owned
+    directories are always pruned silently and not counted; so are hidden
+    directories, unless the caller passes ``include_hidden=True`` for a source
+    whose dot-directories are real content.
     """
     stack: List[Tuple[str, Path]] = [("", root)]
     while stack:
@@ -200,7 +254,7 @@ def _walk_storage(root: Path) -> Iterator[Tuple[str, List[os.DirEntry], int]]:
                     ignored += 1
                     continue
                 if entry.is_dir(follow_symlinks=False):
-                    if entry.name.startswith("."):
+                    if not include_hidden and entry.name.startswith("."):
                         continue
                     if rel_dir == "" and entry.name in RESERVED_DIRS:
                         continue
@@ -333,7 +387,13 @@ def _flag_missing_assets(session: Session, root: Path, seen: set, now: str) -> N
     flush()
 
 
-def _resolve_dir_folder(session: Session, rel_dir: str, cache: dict) -> Optional[str]:
+def resolve_dir_folder(
+    session: Session,
+    rel_dir: str,
+    cache: dict,
+    *,
+    with_storage_path: bool = False,
+) -> Optional[str]:
     """Return the folder id for a scanned directory, creating missing rows.
 
     Mirrors ``zip_service.resolve_zip_folder_id`` for the scan's case (no base
@@ -343,12 +403,20 @@ def _resolve_dir_folder(session: Session, rel_dir: str, cache: dict) -> Optional
     asset row can never roll back a folder that its siblings still reference.
     There is also no unique index on ``folder(name, parent_id)``, so an unflushed
     duplicate would silently duplicate a whole branch.
+
+    ``with_storage_path=True`` is for a caller that materialises directories
+    (mount copy mode): its folder rows carry the real, unsanitised relative path
+    so that renaming or deleting such a folder can move the actual directory.
+    The storage scan leaves it False, keeping its rows metadata-only. Rows reused
+    by ``(parent_id, name)`` keep whatever ``storage_path`` they already have.
     """
     parent_id: Optional[str] = None
     parent_key = "root"
+    consumed: List[str] = []
     for segment in rel_dir.split("/"):
         if not segment:
             continue
+        consumed.append(segment)
         name = sanitize_folder_name(segment)
         key = f"{parent_key}/{name}"
         folder_id = cache.get(key)
@@ -359,7 +427,8 @@ def _resolve_dir_folder(session: Session, rel_dir: str, cache: dict) -> Optional
             if existing:
                 folder_id = existing.id
             else:
-                folder = Folder(name=name, tags_json="[]", parent_id=parent_id, storage_path=None)
+                storage_path = "/".join(consumed) if with_storage_path else None
+                folder = Folder(name=name, tags_json="[]", parent_id=parent_id, storage_path=storage_path)
                 session.add(folder)
                 session.flush()
                 folder_id = folder.id
@@ -380,7 +449,7 @@ def _prepared_metadata(path: Path, filename: str) -> Optional[str]:
     return json.dumps(metadata) if metadata else None
 
 
-def _build_asset(root: Path, rel_path: str, size: int) -> Asset:
+def build_asset(root: Path, rel_path: str, size: int) -> Asset:
     """Build the whole row up front, so the write phase needs no extra reads."""
     file_path = Path(rel_path)
     filename = file_path.name
@@ -397,16 +466,16 @@ def _build_asset(root: Path, rel_path: str, size: int) -> Asset:
     )
 
 
-def _assign_folders(session: Session, pending: List[_PendingAsset], cache: dict) -> None:
+def _assign_folders(session: Session, pending: List[PendingAsset], cache: dict) -> None:
     """Resolve every folder id before any of these assets enters the session."""
-    folder_ids = [_resolve_dir_folder(session, item.rel_dir, cache) for item in pending]
+    folder_ids = [resolve_dir_folder(session, item.rel_dir, cache) for item in pending]
     for item, folder_id in zip(pending, folder_ids, strict=True):
         item.asset.folder_id = folder_id
 
 
 def _commit_batch(
     session: Session,
-    pending: List[_PendingAsset],
+    pending: List[PendingAsset],
     cache: dict,
 ) -> List[Tuple[str, str, str]]:
     """Insert one batch in a single transaction and return its thumbnail work.
@@ -416,8 +485,15 @@ def _commit_batch(
     the batch transaction itself fails; ``pending`` then only holds the rows
     that were not individually rejected.
     """
+    plan = _active_plan()
+    if plan is not None and plan.prepare is not None:
+        # mount-only side effects (materialise folders, copy bytes) have to run on
+        # every attempt: _flush_batch retries _commit_batch after a failed commit,
+        # and a retry with a cleared folder cache must not fall back to
+        # metadata-only folders.
+        plan.prepare(session, pending, cache)
     _assign_folders(session, pending, cache)
-    rejected: List[_PendingAsset] = []
+    rejected: List[PendingAsset] = []
     for item in pending:
         asset = item.asset
         try:
@@ -427,7 +503,7 @@ def _commit_batch(
         except Exception as exc:
             if asset in session:
                 session.expunge(asset)
-            _note_error(f"{item.rel_path}: {exc}")
+            note_error(f"{item.rel_path}: {exc}")
             rejected.append(item)
     for item in rejected:
         pending.remove(item)
@@ -456,7 +532,7 @@ def _save_thumbnails(root: Path, thumbnails: List[Tuple[str, str, str]]) -> None
 
 def _flush_batch(
     session: Session,
-    pending: List[_PendingAsset],
+    pending: List[PendingAsset],
     cache: dict,
     root: Path,
 ) -> Optional[List[str]]:
@@ -484,6 +560,94 @@ def _flush_batch(
     return [rel_path for _asset_id, rel_path, _mime in thumbnails]
 
 
+def _register_tree(session: Session, plan: TreePlan, state: ScanState, seen: set) -> None:
+    """Walk ``plan.root`` and register what the plan accepts, in batches.
+
+    Registers only: it never stamps or clears ``missing_since``, so a caller can
+    point it at a root that is not the library (a mounted source) without
+    flagging the whole library. Counters and error notes go to ``state`` via the
+    thread-local active run.
+    """
+    previous_state = getattr(_local, "state", None)
+    previous_plan = getattr(_local, "plan", None)
+    _local.state = state
+    _local.plan = plan
+
+    folder_cache: dict = {}
+    pending: List[PendingAsset] = []
+    consecutive_failures = 0
+
+    def flush() -> None:
+        """Commit what is pending and account for it."""
+        nonlocal consecutive_failures
+        if not pending:
+            return
+        committed = _flush_batch(session, pending, folder_cache, plan.root)
+        pending.clear()
+        if committed is None:
+            consecutive_failures += 1
+            if consecutive_failures >= MAX_CONSECUTIVE_BATCH_FAILURES:
+                raise RuntimeError(f"{consecutive_failures} consecutive batches failed to commit")
+            return
+        consecutive_failures = 0
+        for rel_path in committed:
+            plan.tracked.update(plan.keys_for(rel_path))
+        with _state_lock:
+            state.registered += len(committed)
+
+    try:
+        walk = _walk_storage(plan.root, include_hidden=True) if plan.include_hidden else _walk_storage(plan.root)
+        for rel_dir, file_entries, ignored in walk:
+            if ignored:
+                with _state_lock:
+                    state.ignored += ignored
+            for entry in file_entries:
+                if entry.name in IGNORED_FILENAMES or (not plan.include_hidden and entry.name.startswith(".")):
+                    with _state_lock:
+                        state.ignored += 1
+                    continue
+                rel_path = f"{rel_dir}/{entry.name}" if rel_dir else entry.name
+                # everything this run actually saw, so the missing pass never
+                # has to look at a present file twice
+                seen.add(rel_path)
+                try:
+                    size = entry.stat(follow_symlinks=False).st_size
+                except OSError as exc:
+                    note_error(f"{rel_path}: {exc}")
+                    continue
+                if not plan.accept(rel_path, size):
+                    with _state_lock:
+                        state.ignored += 1
+                    continue
+                if any(key in plan.tracked for key in plan.keys_for(rel_path)):
+                    with _state_lock:
+                        state.known += 1
+                    continue
+                pending.append(PendingAsset(asset=plan.build(rel_path, size), rel_path=rel_path, rel_dir=rel_dir))
+                if len(pending) >= BATCH_SIZE:
+                    flush()
+
+        flush()
+    finally:
+        _local.state = previous_state
+        _local.plan = previous_plan
+
+
+def _self_key(rel_path: str) -> Tuple[str, ...]:
+    """A storage file is tracked by the relative path it lies at."""
+    return (rel_path,)
+
+
+def _accept_every_file(_rel_path: str, _size: int) -> bool:
+    """The storage scan takes every file the walk offers."""
+    return True
+
+
+def _storage_plan(root: Path, tracked: set) -> TreePlan:
+    """The plan for the library itself: register every file where it lies."""
+    return TreePlan(root=root, tracked=tracked, keys_for=_self_key, accept=_accept_every_file, build=partial(build_asset, root))
+
+
 def scan_storage_root() -> ScanState:
     """Walk the storage root and register unknown files. Safe to call directly.
 
@@ -500,14 +664,14 @@ def scan_storage_root() -> ScanState:
 
     root = STORAGE.resolve()
     if not root.exists() or not root.is_dir():
-        _note_error(f"storage root not found: {root}")
+        note_error(f"storage root not found: {root}")
         return _state
 
     # one timestamp per run: every asset the scan first notices as missing this
     # pass shares it, so the value is stable and order-independent.
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
-    with Session(engine) as session:
+    with _write_lock, Session(engine) as session:
         tracked = set(
             session.exec(
                 select(Asset.storage_path).where(Asset.storage_path.is_not(None))
@@ -515,54 +679,7 @@ def scan_storage_root() -> ScanState:
         )
 
         seen: set = set()
-        folder_cache: dict = {}
-        pending: List[_PendingAsset] = []
-        consecutive_failures = 0
-
-        def flush() -> None:
-            """Commit what is pending and account for it."""
-            nonlocal consecutive_failures
-            if not pending:
-                return
-            committed = _flush_batch(session, pending, folder_cache, root)
-            pending.clear()
-            if committed is None:
-                consecutive_failures += 1
-                if consecutive_failures >= MAX_CONSECUTIVE_BATCH_FAILURES:
-                    raise RuntimeError(f"{consecutive_failures} consecutive batches failed to commit")
-                return
-            consecutive_failures = 0
-            tracked.update(committed)
-            with _state_lock:
-                _state.registered += len(committed)
-
-        for rel_dir, file_entries, ignored in _walk_storage(root):
-            if ignored:
-                with _state_lock:
-                    _state.ignored += ignored
-            for entry in file_entries:
-                if entry.name.startswith(".") or entry.name in IGNORED_FILENAMES:
-                    with _state_lock:
-                        _state.ignored += 1
-                    continue
-                rel_path = f"{rel_dir}/{entry.name}" if rel_dir else entry.name
-                # everything this scan actually saw, so the missing pass never
-                # has to look at a present file twice
-                seen.add(rel_path)
-                try:
-                    size = entry.stat(follow_symlinks=False).st_size
-                except OSError as exc:
-                    _note_error(f"{rel_path}: {exc}")
-                    continue
-                if rel_path in tracked:
-                    with _state_lock:
-                        _state.known += 1
-                    continue
-                pending.append(_PendingAsset(asset=_build_asset(root, rel_path, size), rel_path=rel_path, rel_dir=rel_dir))
-                if len(pending) >= BATCH_SIZE:
-                    flush()
-
-        flush()
+        _register_tree(session, _storage_plan(root, tracked), _state, seen)
 
         # registers nothing and deletes nothing: it only stamps or clears
         # ``missing_since``. The ``missing`` counter covers managed rows only,
@@ -570,3 +687,24 @@ def scan_storage_root() -> ScanState:
         _flag_missing_assets(session, root, seen, now)
 
     return _state
+
+
+def register_tree(plan: TreePlan) -> ScanState:
+    """Register what ``plan`` accepts under its root, in batches.
+
+    Every counter belongs to the returned state, so a mounted import never
+    clobbers the library-scan status and never stamps ``missing_since``. Runs are
+    serialised with the storage scan, because both create folder rows.
+    """
+    state = ScanState(started_at=time.time())
+    if not plan.root.exists() or not plan.root.is_dir():
+        with _state_lock:
+            state.failed += 1
+            state.errors.append(f"root not found: {plan.root}")
+        return state
+    try:
+        with _write_lock, Session(engine) as session:
+            _register_tree(session, plan, state, set())
+    finally:
+        state.finished_at = time.time()
+    return state
