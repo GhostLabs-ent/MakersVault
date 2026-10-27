@@ -15,13 +15,13 @@
   "dependencies": {
     "fflate": "0.8.3",
     "lucide-react": "^0.441.0",
-    "react": "^18.2.0",
+    "react": "^19.2.8",
     "react-dom": "^18.2.0",
     "three": "^0.160.0",
     "occt-import-js": "0.0.23"
   },
   "devDependencies": {
-    "@types/react": "^18.2.15",
+    "@types/react": "^19.2.18",
     "@types/react-dom": "^18.2.7",
     "@types/three": "^0.160.0",
     "autoprefixer": "^10.4.16",
