@@ -3,6 +3,8 @@ import * as THREE from "three";
 import occtWasmUrl from "occt-import-js/dist/occt-import-js.wasm?url";
 import occtWorkerUrl from "occt-import-js/dist/occt-import-js-worker.js?url";
 import { uploadGeneratedThumbnail } from "../lib/api";
+import { PREVIEW_MAX_ATTEMPTS, PREVIEW_RETRY_MS, PREVIEW_SETTLE_MS, previewQueue } from "../lib/previewQueue";
+import type { PreviewQueue, PreviewQueueStats } from "../lib/previewQueue";
 import { ResolvedTheme } from "../lib/settings";
 
 type ModelViewerProps = { url: string; ext: string; assetId?: string; theme: ResolvedTheme };
@@ -242,19 +244,38 @@ export default function ModelViewer({ url, ext, assetId, theme }: ModelViewerPro
   );
 }
 
-type SnapshotState = "idle" | "loading" | "error";
-type ModelSnapshotProps = ModelViewerProps & { mode?: "automatic" | "on-demand" };
+type SnapshotState = "idle" | "loading" | "error" | "skipped";
+
+type SnapshotJob = (
+  url: string,
+  ext: string,
+  width: number,
+  height: number,
+  theme: ResolvedTheme,
+  signal: AbortSignal,
+) => Promise<string>;
+
+type ModelSnapshotProps = ModelViewerProps & {
+  mode?: "automatic" | "on-demand";
+  queue?: PreviewQueue;
+  job?: SnapshotJob;
+};
+
+/** Thrown by snapshot generation when its card is gone; not a real failure. */
+export class PreviewCancelledError extends Error {
+  constructor() {
+    super("Preview generation cancelled");
+    this.name = "PreviewCancelledError";
+  }
+}
+
+function ensureNotCancelled(signal?: AbortSignal) {
+  if (signal?.aborted) throw new PreviewCancelledError();
+}
 
 const snapshotCache = new Map<string, string>();
 let snapshotRenderer: THREE.WebGLRenderer | null = null;
 let snapshotLock: Promise<void> = Promise.resolve();
-let snapshotJobQueue: Promise<void> = Promise.resolve();
-
-function queueSnapshotJob<T>(job: () => Promise<T>): Promise<T> {
-  const result = snapshotJobQueue.then(job, job);
-  snapshotJobQueue = result.then(() => undefined, () => undefined);
-  return result;
-}
 
 function createSnapshotRenderer() {
   const renderer = new THREE.WebGLRenderer({
@@ -284,7 +305,14 @@ async function acquireSnapshotRenderer() {
   return { renderer, release: unlock };
 }
 
-export function ModelSnapshot({ url, ext, assetId, mode = "automatic" }: ModelSnapshotProps) {
+export function ModelSnapshot({
+  url,
+  ext,
+  assetId,
+  mode = "automatic",
+  queue = previewQueue,
+  job = generateModelSnapshot,
+}: ModelSnapshotProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [snapshot, setSnapshot] = useState<string | null>(null);
   const [state, setState] = useState<SnapshotState>("idle");
@@ -295,62 +323,101 @@ export function ModelSnapshot({ url, ext, assetId, mode = "automatic" }: ModelSn
   }, [mode]);
 
   useEffect(() => {
-    let disposed = false;
     let observer: IntersectionObserver | null = null;
+    let settleTimer: ReturnType<typeof setTimeout> | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let attempts = 0;
+    const controller = new AbortController();
     const cacheKey = assetId ? `asset:${assetId}` : url;
-    if (snapshotCache.has(cacheKey)) {
-      setSnapshot(snapshotCache.get(cacheKey)!);
-      return;
+    const cached = snapshotCache.get(cacheKey);
+    if (cached !== undefined) {
+      setSnapshot(cached);
+      return () => controller.abort();
     }
+    /** A dropped-but-visible card retries a bounded number of times instead of stranding. */
+    const handleNoResult = (before: PreviewQueueStats) => {
+      const stats = queue.getStats();
+      if (stats.exhausted) {
+        setState("skipped");
+        return;
+      }
+      if (stats.timedOut > before.timedOut) {
+        // A pathological model must not be re-run and burn the session budget.
+        // Safe because drop/deny/abort all resolve synchronously (or are
+        // pre-filtered above), so a `timedOut` delta across this await can only
+        // be this job's own timeout.
+        setState("error");
+        return;
+      }
+      if (attempts >= PREVIEW_MAX_ATTEMPTS) {
+        setState("error");
+        return;
+      }
+      attempts += 1;
+      setState("idle");
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        void load();
+      }, PREVIEW_RETRY_MS * attempts);
+    };
     const load = async () => {
-      if (!containerRef.current) return;
+      const container = containerRef.current;
+      if (!container) return;
       setState("loading");
       try {
-        const rect = containerRef.current.getBoundingClientRect();
+        const rect = container.getBoundingClientRect();
         const width = Math.max(120, Math.floor(rect.width || 240));
         const height = Math.max(120, Math.floor(rect.height || 180));
-        const image = await queueSnapshotJob(async () => {
-          if (disposed) return null;
-          return generateModelSnapshot(url, ext, width, height, "light");
+        const before = queue.getStats();
+        const image = await queue.enqueue({
+          signal: controller.signal,
+          run: signal => job(url, ext, width, height, "light", signal),
         });
-        if (disposed || !image) return;
+        if (controller.signal.aborted) return;
+        if (image === null) {
+          handleNoResult(before);
+          return;
+        }
         snapshotCache.set(cacheKey, image);
         setSnapshot(image);
         setState("idle");
         if (assetId) {
           try {
             const imageBlob = await fetch(image).then(response => response.blob());
+            if (controller.signal.aborted) return;
             await uploadGeneratedThumbnail(assetId, imageBlob);
           } catch (err) {
             console.warn("Generated preview could not be persisted:", err);
           }
         }
       } catch (err) {
+        if (controller.signal.aborted || err instanceof PreviewCancelledError) return;
         console.warn("Snapshot generation failed:", err);
-        if (!disposed) {
-          setState("error");
-        }
+        setState("error");
       }
     };
     if (!requested) {
       setState("idle");
-      return () => { disposed = true; };
+      return () => controller.abort();
     }
     if (mode === "automatic" && typeof IntersectionObserver !== "undefined") {
       observer = new IntersectionObserver(entries => {
         if (!entries.some(entry => entry.isIntersecting)) return;
         observer?.disconnect();
-        void load();
+        // Dwell: a card that scrolls away before this fires never enqueues.
+        settleTimer = setTimeout(() => { void load(); }, PREVIEW_SETTLE_MS);
       }, { rootMargin: "240px" });
       if (containerRef.current) observer.observe(containerRef.current);
     } else {
       void load();
     }
     return () => {
-      disposed = true;
+      controller.abort();
       observer?.disconnect();
+      if (settleTimer !== null) clearTimeout(settleTimer);
+      if (retryTimer !== null) clearTimeout(retryTimer);
     };
-  }, [url, ext, assetId, mode, requested]);
+  }, [url, ext, assetId, mode, requested, queue, job]);
 
   return (
     <div
@@ -361,6 +428,10 @@ export function ModelSnapshot({ url, ext, assetId, mode = "automatic" }: ModelSn
         <img src={snapshot} alt="Preview" className="w-full h-full object-cover" />
       ) : state === "loading" ? (
         <span className="text-xs text-muted">Generating preview...</span>
+      ) : state === "skipped" ? (
+        <span className="text-xs text-muted">Preview budget reached</span>
+      ) : state === "error" ? (
+        <span className="text-xs text-muted">Preview unavailable</span>
       ) : mode === "on-demand" && !requested ? (
         <button
           type="button"
@@ -409,8 +480,8 @@ type NamespacedNode = {
   getElementsByTagNameNS: (namespaceURI: string, localName: string) => NodeListOf<Element>;
 };
 
-async function loadSimple3MFGroup(url: string): Promise<THREE.Group> {
-  const resp = await fetch(url);
+async function loadSimple3MFGroup(url: string, signal?: AbortSignal): Promise<THREE.Group> {
+  const resp = await fetch(url, { signal });
   if (!resp.ok) {
     throw new Error(`3MF fetch failed with status ${resp.status}`);
   }
@@ -718,50 +789,67 @@ function findFirstElement(node: Document | Element, localName: string) {
   return findElements(node, localName)[0] ?? null;
 }
 
+/**
+ * Renders a snapshot for one asset. Cancellation is cooperative: it is checked
+ * at await boundaries (asset load, renderer-lock wait), so it cannot interrupt
+ * occt WASM parsing, a renderer draw, a `toDataURL` readback, or the
+ * STL/OBJ XHR loads (three's loaders take no signal).
+ */
 async function generateModelSnapshot(
   url: string,
   ext: string,
   width: number,
   height: number,
-  theme: ResolvedTheme
+  theme: ResolvedTheme,
+  signal?: AbortSignal
 ) {
   const normalized = (ext || "").toLowerCase();
-  const object = await loadObjectFromAsset(normalized, url);
+  ensureNotCancelled(signal);
+  const object = await loadObjectFromAsset(normalized, url, signal);
   if (!object) {
     throw new Error(`Unsupported snapshot extension: ${ext}`);
   }
-  applyThemeToObject(object, paletteForTheme(theme));
-  const scene = new THREE.Scene();
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
-  scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-  const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-  const { renderer, release } = await acquireSnapshotRenderer();
-  renderer.setSize(width, height, false);
-  scene.add(object);
-
-  const box = new THREE.Box3().setFromObject(object);
-  if (!box.isEmpty()) {
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    const radius = Math.max(size.x, size.y, size.z) || 1;
-    camera.position.copy(center).add(new THREE.Vector3(radius * 1.8, radius * 1.3, radius * 1.6));
-    camera.lookAt(center);
-  } else {
-    camera.position.set(1, 1, 3);
-    camera.lookAt(new THREE.Vector3(0, 0, 0));
-  }
-
   try {
-    renderer.render(scene, camera);
-    const dataUrl = renderer.domElement.toDataURL("image/png");
-    disposeObject3D(object);
-    return dataUrl;
+    ensureNotCancelled(signal);
+    applyThemeToObject(object, paletteForTheme(theme));
+    const scene = new THREE.Scene();
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    ensureNotCancelled(signal);
+    const { renderer, release } = await acquireSnapshotRenderer();
+    try {
+      ensureNotCancelled(signal);
+      renderer.setSize(width, height, false);
+      scene.add(object);
+
+      const box = new THREE.Box3().setFromObject(object);
+      if (!box.isEmpty()) {
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+        const radius = Math.max(size.x, size.y, size.z) || 1;
+        camera.position.copy(center).add(new THREE.Vector3(radius * 1.8, radius * 1.3, radius * 1.6));
+        camera.lookAt(center);
+      } else {
+        camera.position.set(1, 1, 3);
+        camera.lookAt(new THREE.Vector3(0, 0, 0));
+      }
+
+      renderer.render(scene, camera);
+      return renderer.domElement.toDataURL("image/png");
+    } finally {
+      release();
+    }
   } finally {
-    release();
+    disposeObject3D(object);
   }
 }
 
-async function loadObjectFromAsset(ext: string, url: string): Promise<THREE.Object3D | null> {
+async function loadObjectFromAsset(
+  ext: string,
+  url: string,
+  signal?: AbortSignal
+): Promise<THREE.Object3D | null> {
   if (ext === "stl") {
     const { STLLoader } = await import("three/examples/jsm/loaders/STLLoader.js");
     const geometry = await new Promise<THREE.BufferGeometry>((resolve, reject) => {
@@ -778,7 +866,7 @@ async function loadObjectFromAsset(ext: string, url: string): Promise<THREE.Obje
     return mesh;
   }
   if (ext === "3mf") {
-    return await load3MFObject(url);
+    return await load3MFObject(url, signal);
   }
   if (ext === "obj") {
     const { OBJLoader } = await import("three/examples/jsm/loaders/OBJLoader.js");
@@ -787,12 +875,12 @@ async function loadObjectFromAsset(ext: string, url: string): Promise<THREE.Obje
     });
   }
   if (ext === "step" || ext === "stp") {
-    return await loadStepGroup(url);
+    return await loadStepGroup(url, signal);
   }
   return null;
 }
 
-async function loadStepGroup(url: string) {
+async function loadStepGroup(url: string, signal?: AbortSignal) {
   type OcctMesh = {
     color?: [number, number, number];
     attributes: {
@@ -803,8 +891,9 @@ async function loadStepGroup(url: string) {
   };
 
   const initOcct = (await import("occt-import-js")).default;
-  const resp = await fetch(url);
+  const resp = await fetch(url, { signal });
   const buf = new Uint8Array(await resp.arrayBuffer());
+  ensureNotCancelled(signal);
   const occt = await initOcct({
     locateFile: (file: string) => {
       if (file.endsWith(".wasm")) return occtWasmUrl;
@@ -855,10 +944,11 @@ async function loadStepGroup(url: string) {
   return group;
 }
 
-async function load3MFObject(url: string) {
+async function load3MFObject(url: string, signal?: AbortSignal) {
   try {
-    return await loadSimple3MFGroup(url);
+    return await loadSimple3MFGroup(url, signal);
   } catch (err) {
+    ensureNotCancelled(signal);
     console.warn("Simple 3MF parse failed, falling back to ThreeMFLoader", err);
     return await loadViaThreeMFLoader(url);
   }
