@@ -1,15 +1,29 @@
 """Tests for the storage-root scanner (filesystem-authoritative library, phase 1)."""
 import time
+from math import ceil
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import event
 from sqlmodel import Session, select
 
+import library_scan
 import main
 from db import STORAGE, engine
 from library_scan import scan_storage_root
+from migrations import run_migrations
 from models import Asset, Folder
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _scan_schema() -> None:
+    """Create the schema the way the app lifespan does.
+
+    The database is normally migrated when the app starts; running this module on
+    its own must not depend on some other test having started it first.
+    """
+    run_migrations(engine)
 
 
 def _write(rel_path: str, payload: bytes = b"data") -> Path:
@@ -129,3 +143,393 @@ def test_scan_endpoint_runs_in_background(library_root):
         assert status["registered"] >= 1
 
     assert rel in _assets_by_path()
+
+
+# --- batched, bounded-memory scanning (Mf-025u) ------------------------------
+#
+# Everything below scans a temp root instead of the shared test storage. The
+# database is shared for the whole session, so rows created here are removed at
+# teardown and `missing` is only ever asserted as a delta: a scan of a temp root
+# makes every other test's rows look absent.
+
+
+def _write_under(root: Path, rel_path: str, payload: bytes = b"data") -> Path:
+    path = root / rel_path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(payload)
+    return path
+
+
+def _library_rows(prefix: str) -> dict:
+    """Assets whose storage_path starts with `prefix`, keyed by storage path."""
+    with Session(engine) as session:
+        return {
+            asset.storage_path: asset
+            for asset in session.exec(select(Asset)).all()
+            if (asset.storage_path or "").startswith(prefix)
+        }
+
+
+def _folders_named(name: str) -> list:
+    with Session(engine) as session:
+        return [
+            (folder.id, folder.storage_path)
+            for folder in session.exec(select(Folder)).all()
+            if folder.name == name
+        ]
+
+
+def _delete_folders_named(name: str) -> None:
+    with Session(engine) as session:
+        for folder in list(session.exec(select(Folder))):
+            if folder.name == name:
+                session.delete(folder)
+        session.commit()
+
+
+@pytest.fixture
+def temp_library(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Scan a temp storage root, then delete every row the test created."""
+    storage = tmp_path / "storage"
+    storage.mkdir()
+    monkeypatch.setattr(library_scan, "STORAGE", storage)
+    # The schema is created by the app lifespan; a single-file run needs it first.
+    run_migrations(engine)
+    with Session(engine) as session:
+        folders_before = {folder.id for folder in session.exec(select(Folder))}
+        assets_before = {asset.id for asset in session.exec(select(Asset))}
+    yield storage
+    with Session(engine) as session:
+        for folder in list(session.exec(select(Folder))):
+            if folder.id not in folders_before:
+                session.delete(folder)
+        for asset in list(session.exec(select(Asset))):
+            if asset.id not in assets_before:
+                session.delete(asset)
+        session.commit()
+
+
+def test_scan_commits_in_batches(temp_library: Path) -> None:
+    total = 450
+    for index in range(total):
+        _write_under(temp_library, f"batched/dir-{index // 50:02d}/part-{index:03d}.stl", b"solid x\n")
+
+    commits = []
+
+    def count_commit(_connection) -> None:
+        commits.append(1)
+
+    event.listen(engine, "commit", count_commit)
+    try:
+        status = scan_storage_root()
+    finally:
+        event.remove(engine, "commit", count_commit)
+
+    assert status.registered == total
+    assert len(_library_rows("batched/")) == total
+    # One commit per batch, with slack for folder lookups and stray threads.
+    assert len(commits) <= ceil(total / library_scan.BATCH_SIZE) + 2
+
+
+def test_scan_fails_only_the_row_that_collides(temp_library: Path) -> None:
+    # Same stem in one folder: both derive the model name "part", and the unique
+    # (folder, name) index makes exactly one of them impossible to insert.
+    _write_under(temp_library, "collision/part.stl", b"solid a\n")
+    _write_under(temp_library, "collision/part.step", b"step a\n")
+    _write_under(temp_library, "collision/other.stl", b"solid b\n")
+    _write_under(temp_library, "collision/another.stl", b"solid c\n")
+
+    status = scan_storage_root()
+
+    rows = _library_rows("collision/")
+    assert len(rows) == 3
+    assert {"collision/other.stl", "collision/another.stl"} <= set(rows)
+    assert len(set(rows) & {"collision/part.stl", "collision/part.step"}) == 1
+    assert status.registered == 3
+    assert status.failed == 1
+    assert len(status.errors) == 1
+    assert status.errors[0].split(":")[0] in {"collision/part.stl", "collision/part.step"}
+
+
+def test_interrupted_scan_leaves_whole_committed_batches(temp_library: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    storage = temp_library
+    total = library_scan.BATCH_SIZE * 4
+    for index in range(total):
+        _write_under(storage, f"interrupted/dir-{index // 100:02d}/part-{index:03d}.stl", b"solid x\n")
+
+    real_walk = library_scan._walk_storage
+    walked = 0
+
+    def interrupting_walk(root):
+        nonlocal walked
+        for item in real_walk(root):
+            yield item
+            walked += len(item[1])
+            if walked >= library_scan.BATCH_SIZE * 1.5:
+                raise RuntimeError("walker interrupted")
+
+    monkeypatch.setattr(library_scan, "_walk_storage", interrupting_walk)
+    with pytest.raises(RuntimeError, match="walker interrupted"):
+        scan_storage_root()
+    monkeypatch.setattr(library_scan, "_walk_storage", real_walk)
+
+    rows = _library_rows("interrupted/")
+    # Exactly one whole batch landed; the in-flight batch was rolled back.
+    assert len(rows) == library_scan.BATCH_SIZE
+    for rel_path, asset in rows.items():
+        assert (storage / rel_path).stat().st_size == asset.size
+
+    status = scan_storage_root()
+    assert status.known == library_scan.BATCH_SIZE
+    assert status.registered == total - library_scan.BATCH_SIZE
+    assert len(_library_rows("interrupted/")) == total
+
+
+def test_missing_counts_only_files_that_are_really_gone(temp_library: Path) -> None:
+    storage = temp_library
+    for name in ("one", "two", "three"):
+        _write_under(storage, f"missing-parity/{name}.stl", b"solid x\n")
+    first = scan_storage_root()
+    assert first.registered == 3
+    baseline = first.missing
+
+    (storage / "missing-parity" / "two.stl").unlink()
+    second = scan_storage_root()
+    assert second.missing == baseline + 1
+    assert second.known == 2
+    assert second.registered == 0
+    # Counted, never purged.
+    assert "missing-parity/two.stl" in _library_rows("missing-parity/")
+
+    # A tracked row under a pruned location is not missing while the file is there.
+    _write_under(storage, "thumbs/present.jpg", b"junk")
+    with Session(engine) as session:
+        session.add(
+            Asset(
+                filename="present.jpg",
+                mime="image/jpeg",
+                size=4,
+                name="missing-parity-thumb",
+                storage_path="thumbs/present.jpg",
+            )
+        )
+        session.commit()
+
+    third = scan_storage_root()
+    assert third.missing == baseline + 1
+
+
+def test_counters_account_for_every_library_file(temp_library: Path) -> None:
+    storage = temp_library
+    files = ["counters/a.stl", "counters/nested/b.stl", "counters/nested/deep/c.stl"]
+    for rel_path in files:
+        _write_under(storage, rel_path, b"solid x\n")
+    _write_under(storage, "counters/.hidden.stl", b"hidden")
+    _write_under(storage, "counters/nested/.hidden.stl", b"hidden")
+
+    first = scan_storage_root()
+    assert first.registered == len(files)
+    assert first.registered + first.known + first.failed == len(files)
+    assert first.ignored == 2
+
+    second = scan_storage_root()
+    assert second.registered == 0
+    assert second.known == len(files)
+    assert second.registered + second.known + second.failed == len(files)
+
+
+def test_folders_come_only_from_directories_that_register_files(temp_library: Path) -> None:
+    storage = temp_library
+    _write_under(storage, "revisited/kept.stl", b"solid kept\n")
+    _write_under(storage, "hidden-only/.secret.stl", b"hidden")
+    first = scan_storage_root()
+    assert first.registered == 1
+    assert len(_folders_named("revisited")) == 1
+    _delete_folders_named("revisited")
+
+    second = scan_storage_root()
+    assert second.registered == 0
+    assert second.known == 1
+    # Neither a directory holding only tracked files nor one holding only a
+    # hidden file gets a folder row.
+    assert _folders_named("revisited") == []
+    assert _folders_named("hidden-only") == []
+
+    for index in range(library_scan.BATCH_SIZE + 50):
+        _write_under(storage, f"fresh/part-{index:03d}.stl", b"solid new\n")
+    third = scan_storage_root()
+    assert third.registered == library_scan.BATCH_SIZE + 50
+    # One row for the directory, even though its files span two batches.
+    folders = _folders_named("fresh")
+    assert len(folders) == 1
+    assert folders[0][1] is None
+
+
+def test_unreadable_3mf_still_registers_without_prepared_metadata(temp_library: Path) -> None:
+    # inspect_prepared_print swallows BadZipFile, so a corrupt archive is not a
+    # registration failure - the startup backfill retries the metadata later.
+    _write_under(temp_library, "prepared/broken.3mf", b"not a zip at all")
+
+    status = scan_storage_root()
+
+    rows = _library_rows("prepared/")
+    assert set(rows) == {"prepared/broken.3mf"}
+    assert rows["prepared/broken.3mf"].prepared_metadata_json is None
+    assert status.registered == 1
+    assert status.failed == 0
+    assert status.errors == []
+
+
+def test_only_root_level_app_owned_dirs_are_pruned(temp_library: Path) -> None:
+    """`thumbs`/`bundles` are app-owned at the storage root only, not below it."""
+    _write_under(temp_library, "Props/thumbs/reference.jpg", b"jpeg data\n")
+    _write_under(temp_library, "thumbs/ignored.jpg", b"junk")
+
+    with Session(engine) as session:
+        folders_before = {folder.id for folder in session.exec(select(Folder))}
+
+    status = scan_storage_root()
+
+    # The nested directory holds ordinary library content; the root one is pruned.
+    assert set(_library_rows("Props/")) == {"Props/thumbs/reference.jpg"}
+    assert set(_library_rows("thumbs/")) == set()
+    assert status.registered == 1
+    # Root-level app-owned directories are pruned silently, not counted as debris.
+    assert status.ignored == 0
+
+    with Session(engine) as session:
+        created = [folder for folder in session.exec(select(Folder)) if folder.id not in folders_before]
+    props = next(folder for folder in created if folder.name == "Props")
+    created_pairs = {(folder.parent_id, folder.name) for folder in created}
+    assert (props.id, "thumbs") in created_pairs
+    assert (None, "thumbs") not in created_pairs
+
+
+# --- batch failure recovery (Mf-025u) ----------------------------------------
+#
+# `_commit_batch` is replaced through the module global, because `_flush_batch`
+# resolves it at call time. The replacement keeps the positional signature
+# `_commit_batch(session, pending, cache)`.
+
+
+def test_transient_batch_failure_is_retried_once(temp_library: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    storage = temp_library
+    total = library_scan.BATCH_SIZE // 4
+    for index in range(total):
+        _write_under(storage, f"retried/part-{index:03d}.stl", f"solid {index}\n".encode())
+
+    real_commit = library_scan._commit_batch
+    batches = []
+
+    def flaky_commit(session, pending, cache):
+        batches.append(len(pending))
+        if len(batches) == 1:
+            raise RuntimeError("database is locked")
+        return real_commit(session, pending, cache)
+
+    monkeypatch.setattr(library_scan, "_commit_batch", flaky_commit)
+    status = scan_storage_root()
+
+    expected = {f"retried/part-{index:03d}.stl" for index in range(total)}
+    rows = _library_rows("retried/")
+    assert status.registered == total
+    assert status.failed == 0
+    assert status.errors == []
+    assert set(rows) == expected
+    for rel_path, asset in rows.items():
+        assert asset.id
+        assert (storage / rel_path).stat().st_size == asset.size
+    # One batch: the failure was retried once, not looped over every file.
+    assert batches == [total, total]
+    # The retried batch still created the directory row exactly once.
+    assert len(_folders_named("retried")) == 1
+
+
+def test_commit_time_batch_failure_reinserts_without_duplicates(
+    temp_library: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A failure *after* the row savepoints flushed must roll back and re-insert.
+
+    `test_transient_batch_failure_is_retried_once` fails `_commit_batch` before
+    anything reaches the database; here every row has already been flushed into
+    the transaction when `Session.commit` refuses, so the retry has to undo the
+    rows and the folder row and insert them again - once, not twice.
+    """
+    storage = temp_library
+    total = library_scan.BATCH_SIZE // 4
+    for index in range(total):
+        _write_under(storage, f"commit-retried/part-{index:03d}.stl", f"solid {index}\n".encode())
+
+    real_commit = Session.commit
+    attempts = []
+    # A dict, so the closure can flip the flag without a `nonlocal` declaration.
+    state = {"raised": False}
+
+    def flaky_commit(session) -> None:
+        attempts.append(1)
+        if not state["raised"]:
+            state["raised"] = True
+            raise RuntimeError("database is locked")
+        real_commit(session)
+
+    monkeypatch.setattr(Session, "commit", flaky_commit)
+    status = scan_storage_root()
+    commit_attempts = len(attempts)
+
+    expected = {f"commit-retried/part-{index:03d}.stl" for index in range(total)}
+    rows = _library_rows("commit-retried/")
+    assert status.registered == total
+    assert status.failed == 0
+    assert status.errors == []
+    assert set(rows) == expected
+    for rel_path, asset in rows.items():
+        assert asset.size == (storage / rel_path).stat().st_size
+        assert asset.folder_id is not None
+    # Exactly one directory row, created metadata-only by the retried attempt.
+    folders = _folders_named("commit-retried")
+    assert len(folders) == 1
+    assert folders[0][1] is None
+    # One raise plus one real commit: rolled back and re-inserted, not duplicated.
+    assert commit_attempts == 2
+
+
+def test_permanent_batch_failure_fails_the_whole_batch(temp_library: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    storage = temp_library
+    total = library_scan.BATCH_SIZE // 4
+    for index in range(total):
+        _write_under(storage, f"uncommittable/part-{index:03d}.stl", b"solid x\n")
+
+    attempts = []
+
+    def failing_commit(session, pending, cache):
+        attempts.append(len(pending))
+        raise RuntimeError("database is locked")
+
+    monkeypatch.setattr(library_scan, "_commit_batch", failing_commit)
+    status = scan_storage_root()
+
+    assert status.registered == 0
+    # The whole batch is accounted for as failed, not a single counter bump.
+    assert status.failed == total
+    assert len(status.errors) == 1
+    assert status.errors[0].startswith(f"batch of {total} rolled back:")
+    # Tried once, retried once, then given up on.
+    assert attempts == [total, total]
+    assert _library_rows("uncommittable/") == {}
+
+
+def test_consecutive_batch_failures_stop_the_scan(temp_library: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    storage = temp_library
+    total = library_scan.MAX_CONSECUTIVE_BATCH_FAILURES * library_scan.BATCH_SIZE
+    for index in range(total):
+        _write_under(storage, f"circuit/dir-{index // 100:03d}/part-{index:03d}.stl", b"solid x\n")
+
+    def failing_commit(session, pending, cache):
+        raise RuntimeError("database is locked")
+
+    monkeypatch.setattr(library_scan, "_commit_batch", failing_commit)
+    # The third consecutive failed batch trips the breaker instead of scanning on.
+    with pytest.raises(RuntimeError, match="consecutive batches failed to commit"):
+        scan_storage_root()
+
+    assert _library_rows("circuit/") == {}
