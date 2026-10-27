@@ -22,7 +22,7 @@
 </ul>
 
 <h2>Road Map</h2>
-<h4>Version 5.1</h4>
+<h4>Version 5.2</h4>
 <ul>
   <li>Bounded, cached previews that cannot freeze the library.</li>
   <li>Visible bulk organization workflows and clearer folder navigation.</li>
