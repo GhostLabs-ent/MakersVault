@@ -481,7 +481,13 @@ export function fileUrl(rel: string) {
 
 // Folders -------------------------------------------------------
 
-export type Folder = { id: string; name: string; tags: string[]; parent_id?: string | null };
+export type Folder = {
+  id: string;
+  name: string;
+  tags: string[];
+  parent_id?: string | null;
+  storage_path?: string | null;
+};
 
 export async function listFolders(): Promise<Folder[]> {
   const res = await fetch(`${apiBase()}/folders`, { headers: authHeaders() });

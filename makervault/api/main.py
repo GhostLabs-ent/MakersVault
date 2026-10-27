@@ -16,6 +16,7 @@ from sqlmodel import Session, select
 from starlette.concurrency import run_in_threadpool
 from starlette.middleware.cors import CORSMiddleware
 
+import folder_service
 from asset_file_service import (
     backfill_prepared_print_metadata,
     delete_all_asset_files,
@@ -62,7 +63,6 @@ from file_utils import (
     sanitize_filename,
     sanitize_path_segment,
 )
-from folder_service import validate_parent_folder
 from import_service import download_import_to_temp, import_asset_from_url, open_import_response
 from library_scan import scan_status, start_scan
 from migrations import run_migrations
@@ -185,7 +185,13 @@ def resolve_asset_file(asset: Asset) -> Optional[Path]:
 
 
 def folder_to_out(f: Folder) -> "FolderOut":
-    return FolderOut(id=f.id, name=f.name, tags=json.loads(f.tags_json or "[]"), parent_id=f.parent_id)
+    return FolderOut(
+        id=f.id,
+        name=f.name,
+        tags=json.loads(f.tags_json or "[]"),
+        parent_id=f.parent_id,
+        storage_path=f.storage_path,
+    )
 
 
 def to_out(a: Asset) -> AssetOut:
@@ -850,11 +856,7 @@ def list_folders(_: Optional[str] = Depends(require_auth)):
 @app.post("/folders", response_model=FolderOut)
 def create_folder(body: FolderIn, _: Optional[str] = Depends(require_auth)):
     with Session(engine) as s:
-        parent_id = validate_parent_folder(s, body.parent_id)
-        f = Folder(name=body.name, tags_json=json.dumps(body.tags), parent_id=parent_id)
-        s.add(f)
-        s.commit()
-        s.refresh(f)
+        f = folder_service.create_folder(s, body.name, json.dumps(body.tags), body.parent_id)
     return folder_to_out(f)
 
 
@@ -864,15 +866,8 @@ def update_folder(folder_id: str, body: FolderIn, _: Optional[str] = Depends(req
         f = s.get(Folder, folder_id)
         if not f:
             raise HTTPException(404)
-        parent_id = validate_parent_folder(s, body.parent_id, folder_id)
-        f.name = body.name
-        f.tags_json = json.dumps(body.tags)
-        f.parent_id = parent_id
-        s.add(f)
-        s.commit()
-        s.refresh(f)
+        f = folder_service.move_folder(s, f, body.name, json.dumps(body.tags), body.parent_id)
         result = folder_to_out(f)
-    reorganize_managed_assets()
     return result
 
 

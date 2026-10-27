@@ -99,6 +99,7 @@ class FolderOut(BaseModel):
   name: str
   tags: List[str]
   parent_id: Optional[str]
+  storage_path: Optional[str] = None
 
 
 class LoginRequest(BaseModel):
