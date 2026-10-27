@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from sqlmodel import Session, select
 
 from asset_service import cleanup_asset, create_asset_record, ensure_model_thumbnail, finalize_asset_record, managed_asset_path, save_thumb
-from config import IMPORT_MAX_BYTES
+from config import IMPORT_MAX_BYTES, IMPORT_ZIP_MAX_BYTES
 from db import engine
 from file_utils import mime_from_content_type, sanitize_filename
 from folder_service import validate_parent_folder
@@ -89,19 +89,43 @@ def extract_zip_entries_to_assets(zip_path: Path, selections: List[str], body: I
         raise HTTPException(status_code=400, detail="No zip entries selected")
     assets: List[Asset] = []
     failed: List[str] = []
+    created_ids: List[str] = []
+    total_written = 0
     with ZipFile(zip_path) as zf, Session(engine) as session:
-        if body.folder_id:
-            validate_parent_folder(session, body.folder_id)
-        folder_cache: dict = {}
         entries = {}
         for info in zf.infolist():
             name = normalize_zip_entry_path(info.filename)
             if not name:
                 continue
             entries[name] = info
+        # Declared sizes come from the archive and are not trusted: this preflight
+        # rejects an oversized selection before anything is written, and the write
+        # loop below re-checks the bytes it actually streams.
+        oversized: set[str] = set()
+        declared_total = 0
         for entry_name in ordered:
             info = entries.get(entry_name)
             if not info or info.is_dir():
+                continue
+            declared = int(info.file_size or 0)
+            if declared > IMPORT_MAX_BYTES:
+                oversized.add(entry_name)
+                continue
+            declared_total += declared
+        if declared_total > IMPORT_ZIP_MAX_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=(
+                    f"Selected zip entries expand to {declared_total} bytes; "
+                    f"the limit is {IMPORT_ZIP_MAX_BYTES} bytes (IMPORT_ZIP_MAX_MB)"
+                ),
+            )
+        if body.folder_id:
+            validate_parent_folder(session, body.folder_id)
+        folder_cache: dict = {}
+        for entry_name in ordered:
+            info = entries.get(entry_name)
+            if not info or info.is_dir() or entry_name in oversized:
                 failed.append(entry_name)
                 continue
             target_folder_id = resolve_zip_folder_id(session, body.folder_id, entry_name, folder_cache)
@@ -110,6 +134,7 @@ def extract_zip_entries_to_assets(zip_path: Path, selections: List[str], body: I
             asset: Optional[Asset] = None
             try:
                 asset = create_asset_record(filename, mime, body.title, body.notes, body.tags, target_folder_id)
+                created_ids.append(asset.id)
                 dest = managed_asset_path(asset)
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 size = 0
@@ -121,6 +146,19 @@ def extract_zip_entries_to_assets(zip_path: Path, selections: List[str], body: I
                         size += len(chunk)
                         if size > IMPORT_MAX_BYTES:
                             raise ValueError("Extracted file exceeds size limit")
+                        total_written += len(chunk)
+                        if total_written > IMPORT_ZIP_MAX_BYTES:
+                            # The archive lied about its declared sizes; abandon the
+                            # whole selection rather than keep filling the storage.
+                            for created_id in created_ids:
+                                cleanup_asset(created_id)
+                            raise HTTPException(
+                                status_code=413,
+                                detail=(
+                                    f"Selected zip entries expand beyond {total_written} bytes; "
+                                    f"the limit is {IMPORT_ZIP_MAX_BYTES} bytes (IMPORT_ZIP_MAX_MB)"
+                                ),
+                            )
                         out.write(chunk)
                 if (mime or "").startswith("image/") and dest.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}:
                     save_thumb(asset.id, dest)
