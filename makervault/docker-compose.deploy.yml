@@ -5,6 +5,9 @@ services:
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
+      # The API refuses to start while these are the published sample values,
+      # so a deployment without a real .env fails loudly instead of serving a
+      # publicly-known login.
       - AUTH_USERNAME=${AUTH_USERNAME:-admin}
       - AUTH_PASSWORD=${AUTH_PASSWORD:-super-secret}
       - AUTH_SECRET=${AUTH_SECRET:-changeme-secret}

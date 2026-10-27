@@ -9,6 +9,13 @@ services:
       - FILE_STORAGE=/app/storage
       - DB_URL=sqlite:////app/data/app.db
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173}
+      # Local source build only. The published sample credentials are accepted
+      # here so `docker compose up` works out of the box; never expose this
+      # manifest to a network you do not control.
+      - AUTH_USERNAME=${AUTH_USERNAME:-admin}
+      - AUTH_PASSWORD=${AUTH_PASSWORD:-super-secret}
+      - AUTH_SECRET=${AUTH_SECRET:-changeme-secret}
+      - AUTH_ALLOW_INSECURE_DEFAULTS=${AUTH_ALLOW_INSECURE_DEFAULTS:-1}
     volumes:
       - ./data/storage:/app/storage
       - ./data/db:/app/data

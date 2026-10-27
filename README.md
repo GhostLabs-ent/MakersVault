@@ -42,7 +42,7 @@ docker compose -f docker-compose.deploy.yml up -d
 ```
 
 <p><code>makervault/docker-compose.deploy.yml</code> is the canonical production manifest. <code>makervault/docker-compose.yml</code> is the canonical local source-build manifest. The historical <code>docker-deploy.yml</code> filename is retained only as a compatibility alias.</p>
-<p><strong>Security notice:</strong> the current beta authentication defaults are suitable only for a trusted local test deployment. Do not expose the current build directly to the Internet. Secure first-run configuration is a v5.1 release gate.</p>
+<p><strong>Security notice:</strong> the current beta authentication defaults are suitable only for a trusted local test deployment. Do not expose the current build directly to the Internet. The API refuses to start if <code>AUTH_PASSWORD</code> or <code>AUTH_SECRET</code> are still the published sample values; set your own in <code>.env</code>.</p>
 
 <h3>Setting up the .env file</h3>
 <p>Create a <strong>.env</strong> file in the same folder as <code>docker-compose.yml</code>. Start with this baseline:</p>
@@ -60,7 +60,7 @@ CORS_ORIGINS=
 VITE_API_URL=
 VITE_ALLOWED_HOSTS=
 AUTH_USERNAME=admin
-AUTH_PASSWORD=super-secret
+AUTH_PASSWORD=replace-with-a-strong-password
 AUTH_SECRET=replace-with-random-secret
 AUTH_TOKEN_TTL=43200
 IMPORT_MOUNT_PATH=/imports
