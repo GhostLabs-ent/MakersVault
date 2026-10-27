@@ -37,6 +37,8 @@ export default function App() {
   const [sessionExpired, setSessionExpired] = React.useState(false);
   const [activeView, setActiveView] = React.useState<"library" | "settings">("library");
   const [settings, setSettings] = React.useState<AppSettings>(() => loadSettings());
+  // Scroll container for the asset grid's virtualization (see useVirtualRows).
+  const mainScrollRef = React.useRef<HTMLElement | null>(null);
   const resolvedTheme = React.useMemo(
     () => resolveTheme(settings.theme.selected),
     [settings.theme.selected]
@@ -146,7 +148,8 @@ export default function App() {
         onOpenSettings={() => setActiveView("settings")}
         activeView={activeView}
       />
-      <main className="flex-1 p-4 overflow-auto">
+      {/* The asset grid's virtualizer compensates row-height changes itself (see useVirtualRows), so native scroll anchoring must not apply a second adjustment. */}
+      <main ref={mainScrollRef} className="flex-1 p-4 overflow-auto" style={{ overflowAnchor: "none" }}>
         {apiUp === false && (
           <div className="mb-3 p-2 rounded-md bg-red-100 text-red-900 dark:bg-red-900/30 dark:text-red-100 flex flex-wrap items-center gap-2">
             <span>API unreachable at {getApiBase()}. Ensure the API container is running and reachable.</span>
@@ -208,6 +211,7 @@ export default function App() {
             engravingSettings={settings.engraving}
             previewSettings={settings.previews}
             theme={resolvedTheme}
+            scrollElementRef={mainScrollRef}
           />
         ) : (
           <Settings

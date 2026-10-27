@@ -1,8 +1,17 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { createRef } from "react";
 
 import type { Asset } from "../lib/api";
+import {
+  ESTIMATED_ROW_HEIGHT,
+  GRID_GAP_PX,
+  OVERSCAN_ROWS,
+  colsForWidth,
+  rowOffsets,
+  rowsTotal,
+} from "../lib/virtualGrid";
 
 vi.mock("../lib/api", () => ({
   UnauthorizedError: class UnauthorizedError extends Error {},
@@ -152,6 +161,158 @@ function sortSelect(): HTMLSelectElement {
   return found as HTMLSelectElement;
 }
 
+/**
+ * jsdom has no layout, so a `DOMRect`-shaped value has to be supplied by hand.
+ * Only `top` (offset math) and `height` (scroll extent) are meaningful.
+ */
+function rectOf(top: number, height: number): DOMRect {
+  return {
+    top,
+    bottom: top + height,
+    height,
+    left: 0,
+    right: 0,
+    width: 0,
+    x: 0,
+    y: top,
+    toJSON: () => ({}),
+  } as DOMRect;
+}
+
+type HarnessProps = {
+  folderId?: string | null;
+  foldersVersion?: number;
+  assetsVersion?: number;
+};
+
+/**
+ * Renders the grid inside a real scroll container and gives jsdom the two
+ * numbers a browser would provide: a 768px-tall scroller (`clientHeight`) and
+ * an emulated scroll position. `stubGridRect` supplies the grid wrapper's rect
+ * so `offset` is derived purely from `scrollTop`.
+ */
+function renderHarness(initialProps: HarnessProps = {}) {
+  const scrollerRef = createRef<HTMLDivElement>();
+  const tree = (props: HarnessProps) => (
+    <div ref={scrollerRef} data-testid="asset-scroller">
+      <AssetGrid theme="dark" scrollElementRef={scrollerRef} {...props} />
+    </div>
+  );
+  const utils = render(tree(initialProps));
+  const scroller = scrollerRef.current;
+  if (!scroller) throw new Error("scroll harness did not mount");
+  Object.defineProperty(scroller, "clientHeight", { value: 768, configurable: true });
+  vi.spyOn(scroller, "getBoundingClientRect").mockReturnValue(rectOf(0, 768));
+  return {
+    ...utils,
+    scroller,
+    rerenderGrid: (props: HarnessProps) => utils.rerender(tree(props)),
+  };
+}
+
+/**
+ * Makes the grid wrapper's rect track the scroller's `scrollTop`, which is
+ * exactly what the browser reports for a real scroll (and what jsdom cannot
+ * do by itself). Call after the first paint.
+ */
+function stubGridRect(scroller: HTMLDivElement): HTMLElement {
+  const gridWrap = document.querySelector<HTMLElement>("[data-virtual-grid]");
+  if (!gridWrap) throw new Error("virtual grid wrapper not rendered");
+  vi.spyOn(gridWrap, "getBoundingClientRect").mockImplementation(() =>
+    rectOf(-scroller.scrollTop, 0),
+  );
+  return gridWrap;
+}
+
+function scrollGrid(scroller: HTMLElement, top: number) {
+  scroller.scrollTop = top;
+  fireEvent.scroll(scroller);
+}
+
+function mountedRowIndexes(): number[] {
+  return Array.from(document.querySelectorAll("[data-row-index]")).map(el =>
+    Number(el.getAttribute("data-row-index")),
+  );
+}
+
+function checkboxCount(): number {
+  return screen.queryAllByRole("checkbox").length;
+}
+
+/** Observers still observing `target` (a `disconnect` empties the target list). */
+function liveObserversFor(target: Element): FakeResizeObserver[] {
+  return FakeResizeObserver.instances.filter(entry => entry.targets.includes(target));
+}
+
+/** Cards rendered inside the row wrapper at `rowIndex` (0 when unmounted). */
+function rowCardCount(rowIndex: number): number {
+  const row = document.querySelector(`[data-row-index="${rowIndex}"]`);
+  if (!row) return 0;
+  return row.querySelectorAll('input[type="checkbox"]').length;
+}
+
+/** Vendor-free, WebGL-free fixture: a png with a thumbnail. */
+function makeSyntheticAsset(index: number, overrides: Partial<Asset> = {}): Asset {
+  const id = `asset-${index}`;
+  return {
+    id,
+    name: `Asset ${index}`,
+    filename: `asset-${String(index).padStart(5, "0")}.png`,
+    mime: "image/png",
+    size: 10_000_000 - index,
+    tags: [],
+    url: `/api/assets/${id}/file`,
+    thumb_url: `/api/assets/${id}/thumb`,
+    supporting_file_count: 0,
+    ...overrides,
+  };
+}
+
+function makeSyntheticBatch(count: number, namePrefix = "Asset"): Asset[] {
+  return Array.from({ length: count }, (_, i) => {
+    const asset = makeSyntheticAsset(i + 1);
+    const label = `${namePrefix} ${i + 1}`;
+    return { ...asset, name: label };
+  });
+}
+
+/**
+ * Minimal stand-in for `ResizeObserver` (absent in jsdom). Tests drive it by
+ * hand, mirroring the `FakeIntersectionObserver` in LightBurnPreview.test.tsx.
+ */
+class FakeResizeObserver {
+  static instances: FakeResizeObserver[] = [];
+  targets: Element[] = [];
+  constructor(private readonly callback: ResizeObserverCallback) {
+    FakeResizeObserver.instances.push(this);
+  }
+  observe(target: Element) {
+    this.targets.push(target);
+  }
+  unobserve(target: Element) {
+    this.targets = this.targets.filter(entry => entry !== target);
+  }
+  disconnect() {
+    this.targets = [];
+  }
+  takeRecords(): ResizeObserverEntry[] {
+    return [];
+  }
+  static trigger(target: Element, sizes: { height?: number; width?: number }) {
+    const observer = FakeResizeObserver.instances.find(entry => entry.targets.includes(target));
+    if (!observer) throw new Error("target is not observed");
+    observer.callback(
+      [
+        {
+          target,
+          contentRect: { height: sizes.height ?? 0, width: sizes.width ?? 0 },
+        } as ResizeObserverEntry,
+      ],
+      observer as unknown as ResizeObserver,
+    );
+  }
+}
+
 describe("AssetGrid asset refresh", () => {
   beforeEach(() => {
     listAssetsMock.mockReset();
@@ -236,7 +397,7 @@ describe("AssetGrid asset refresh", () => {
       return { items: loaded.slice(offset, offset + limit), hasMore: false };
     });
 
-    const { rerender } = render(<AssetGrid theme="dark" />);
+    const { scroller, rerenderGrid } = renderHarness();
 
     await waitFor(() => expect(listAssets).toHaveBeenCalledTimes(1));
     await screen.findByText("Page 1 item 1");
@@ -248,15 +409,13 @@ describe("AssetGrid asset refresh", () => {
     fireEvent.click(screen.getByRole("button", { name: "Load more" }));
 
     await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(2));
-    await screen.findByText("Page 2 item 1");
-    await waitFor(() => expect(screen.getByText(`Page 1 item ${pageSize}`)).toBeTruthy());
     const loadMoreCall = callQuery(1);
     expect(loadMoreCall.offset).toBe(pageSize);
     expect(loadMoreCall.limit).toBe(pageSize);
 
     const callsBefore = listAssetsMock.mock.calls.length;
 
-    rerender(<AssetGrid theme="dark" assetsVersion={1} />);
+    rerenderGrid({ assetsVersion: 1 });
 
     await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(callsBefore + 1));
     await waitFor(() => expect(screen.queryByText("Loading...")).toBeNull());
@@ -266,10 +425,22 @@ describe("AssetGrid asset refresh", () => {
     expect(refreshCall.offset).toBe(0);
     expect(refreshCall.limit).toBe(pageSize * 2);
 
+    // The grid is virtualized, so "both pages survived" is proven by their
+    // contents: page 1 is mounted at the top, and page 2 is reachable by
+    // scrolling to the end of the (now two-page tall) content.
     expect(screen.getByText("Page 1 item 1")).toBeTruthy();
-    expect(screen.getByText(`Page 1 item ${pageSize}`)).toBeTruthy();
-    expect(screen.getByText(`Page 2 item ${pageSize}`)).toBeTruthy();
-    expect(screen.getAllByText(/^Page [12] item \d+$/).length).toBe(pageSize * 2);
+    expect(screen.queryByText(`Page 2 item ${pageSize}`)).toBeNull();
+    expect(checkboxCount()).toBeLessThan(pageSize * 2);
+
+    const cols = colsForWidth(window.innerWidth);
+    const rows = Math.ceil((pageSize * 2) / cols);
+    const contentHeight = rows * ESTIMATED_ROW_HEIGHT + (rows - 1) * GRID_GAP_PX;
+
+    stubGridRect(scroller);
+    scrollGrid(scroller, contentHeight);
+
+    await screen.findByText(`Page 2 item ${pageSize}`);
+    expect(screen.queryByText("Page 1 item 1")).toBeNull();
   });
 
   // `renderPreviewContent` runs on every card render and unconditionally calls
@@ -402,6 +573,327 @@ describe("AssetGrid asset refresh", () => {
       expect(modalImage.getAttribute("loading")).toBeNull();
       expect(modalImage.getAttribute("decoding")).toBe("async");
     });
+  });
+});
+
+describe("virtualized flat grid", () => {
+  beforeEach(() => {
+    listAssetsMock.mockReset();
+    listAssetsMock.mockResolvedValue({ items: [], hasMore: false });
+    fileUrlMock.mockClear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    FakeResizeObserver.instances = [];
+    cleanup();
+  });
+
+  it("bounds the DOM to the visible rows for a 2000-asset library", async () => {
+    const total = 2000;
+    listAssetsMock.mockResolvedValue({ items: makeSyntheticBatch(total), hasMore: false });
+
+    const { scroller } = renderHarness();
+
+    await waitFor(() => expect(listAssetsMock).toHaveBeenCalledTimes(1));
+    await screen.findByText("Asset 1");
+    stubGridRect(scroller);
+
+    // Derive the expectation from the shipped constants instead of hardcoding:
+    // a 768px viewport covers 3 rows of 360 + 16, and the window never renders
+    // more than that plus overscan on the far side.
+    const cols = colsForWidth(window.innerWidth);
+    expect(cols).toBe(3);
+    const stride = ESTIMATED_ROW_HEIGHT + GRID_GAP_PX;
+    const visibleRows = Math.ceil(768 / stride);
+    const expectedTopRows = Math.min(Math.ceil(total / cols), visibleRows + OVERSCAN_ROWS);
+
+    expect(checkboxCount()).toBe(expectedTopRows * cols);
+    expect(checkboxCount()).toBeLessThan(100);
+    expect(mountedRowIndexes()).toEqual(
+      Array.from({ length: expectedTopRows }, (_, i) => i),
+    );
+
+    // A row deep in the list is not in the DOM at all, yet the content below is
+    // accounted for by the bottom spacer.
+    expect(screen.queryByText("Asset 1000")).toBeNull();
+    const bottomSpacer = document.querySelector<HTMLElement>('[data-virtual-spacer="bottom"]');
+    expect(bottomSpacer).toBeTruthy();
+    expect(Number.parseFloat(bottomSpacer?.style.height ?? "0")).toBeGreaterThan(0);
+
+    const middleOffset = 125_000;
+    scrollGrid(scroller, middleOffset);
+
+    await waitFor(() => expect(screen.queryByText("Asset 1")).toBeNull());
+    const firstVisibleRow = Math.floor(middleOffset / stride);
+    expect(screen.getByText(`Asset ${firstVisibleRow * cols + 1}`)).toBeTruthy();
+    expect(mountedRowIndexes()[0]).toBe(firstVisibleRow - OVERSCAN_ROWS);
+    // Same bound in the middle: overscan on both sides, still nowhere near 2000.
+    expect(checkboxCount()).toBe((visibleRows + OVERSCAN_ROWS * 2) * cols);
+    expect(checkboxCount()).toBeLessThan(100);
+  });
+
+  it("keeps the scroll position across sort and search changes", async () => {
+    const total = 60;
+    listAssetsMock.mockResolvedValue({ items: makeSyntheticBatch(total), hasMore: false });
+
+    const { scroller } = renderHarness();
+
+    await screen.findByText("Asset 1");
+    stubGridRect(scroller);
+
+    const cols = colsForWidth(window.innerWidth);
+    const stride = ESTIMATED_ROW_HEIGHT + GRID_GAP_PX;
+    const visibleRows = Math.ceil(768 / stride);
+    const bounded = (visibleRows + OVERSCAN_ROWS * 2) * cols;
+
+    const offset = 1400;
+    scrollGrid(scroller, offset);
+
+    await waitFor(() => expect(screen.queryByText("Asset 1")).toBeNull());
+    const firstVisibleRow = Math.floor(offset / stride);
+    expect(firstVisibleRow).toBe(3);
+    expect(screen.getByText(`Asset ${firstVisibleRow * cols + 1}`)).toBeTruthy();
+    expect(checkboxCount()).toBe(bounded);
+
+    // Sorting re-chunks the same items (sizes are the reverse of the names), so
+    // the window must stay at the same offset and re-render from the new order.
+    fireEvent.change(sortSelect(), { target: { value: "size" } });
+
+    await waitFor(() => expect(screen.getByText("Asset 57")).toBeTruthy());
+    expect(scroller.scrollTop).toBe(offset);
+    expect(screen.queryByText("Asset 60")).toBeNull();
+    expect(screen.queryByText("Asset 1")).toBeNull();
+    expect(checkboxCount()).toBe(bounded);
+
+    // A filtered result set of the same size must not snap the list back to the
+    // top either.
+    const filtered = makeSyntheticBatch(total, "Filtered").map((asset, index) => ({
+      ...asset,
+      id: `filtered-${index + 1}`,
+      url: `/api/assets/filtered-${index + 1}/file`,
+    }));
+    listAssetsMock.mockResolvedValue({ items: filtered, hasMore: false });
+
+    const searchInput = screen.getByPlaceholderText(
+      "Search title, filename, notes...",
+    ) as HTMLInputElement;
+    fireEvent.change(searchInput, { target: { value: "needle" } });
+    fireEvent.keyDown(searchInput, { key: "Enter" });
+
+    await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(2));
+    await waitFor(() => expect(screen.queryByText("Loading...")).toBeNull());
+    // The "size" sort is still active, so the window is unchanged: the same
+    // mid-list position now holds the filtered set's 57th item.
+    await waitFor(() => expect(screen.getByText("Filtered 57")).toBeTruthy());
+
+    expect(scroller.scrollTop).toBe(offset);
+    expect(screen.queryByText("Filtered 60")).toBeNull();
+    expect(screen.queryByText("Asset 57")).toBeNull();
+    expect(checkboxCount()).toBeLessThan(100);
+  });
+
+  it("keeps selection when a selected card scrolls out of the window", async () => {
+    const total = 60;
+    listAssetsMock.mockResolvedValue({ items: makeSyntheticBatch(total), hasMore: false });
+
+    const { scroller } = renderHarness();
+
+    await screen.findByText("Asset 1");
+    stubGridRect(scroller);
+
+    const topRow = document.querySelector('[data-row-index="0"]');
+    if (!topRow) throw new Error("first row was not rendered");
+    const topBoxes = Array.from(
+      topRow.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
+    );
+    expect(topBoxes.length).toBeGreaterThanOrEqual(2);
+
+    fireEvent.click(topBoxes[0]);
+    // The first click flips `hasSelection`, which legally re-renders every card.
+    fireEvent.click(topRow.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[1]);
+    expect(topBoxes[0].checked).toBe(true);
+    expect(topBoxes[1].checked).toBe(true);
+
+    scrollGrid(scroller, 1400);
+    await waitFor(() => expect(screen.queryByText("Asset 1")).toBeNull());
+    expect(screen.queryAllByText("Asset 2")).toHaveLength(0);
+
+    scrollGrid(scroller, 0);
+    await waitFor(() => expect(screen.getByText("Asset 1")).toBeTruthy());
+
+    const restoredRow = document.querySelector('[data-row-index="0"]');
+    if (!restoredRow) throw new Error("first row was not rendered after scrolling back");
+    const restoredBoxes = Array.from(
+      restoredRow.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
+    );
+    expect(restoredBoxes[0].checked).toBe(true);
+    expect(restoredBoxes[1].checked).toBe(true);
+    expect(restoredBoxes[2].checked).toBe(false);
+  });
+
+  it("keeps the focused row mounted while the window moves", async () => {
+    const total = 60;
+    listAssetsMock.mockResolvedValue({ items: makeSyntheticBatch(total), hasMore: false });
+
+    const { scroller } = renderHarness();
+
+    await screen.findByText("Asset 1");
+    stubGridRect(scroller);
+
+    const stride = ESTIMATED_ROW_HEIGHT + GRID_GAP_PX;
+    scrollGrid(scroller, 1400);
+    await waitFor(() => expect(screen.queryByText("Asset 1")).toBeNull());
+
+    // Row 1 is rendered (overscan) but not visible; it is the first row that a
+    // three-row scroll would leave behind.
+    const bootRow = document.querySelector('[data-row-index="1"]');
+    if (!bootRow) throw new Error("overscan row was not rendered");
+    const focused = bootRow.querySelector<HTMLButtonElement>("button");
+    if (!focused) throw new Error("row has no button");
+    focused.focus();
+    expect(document.activeElement).toBe(focused);
+
+    scrollGrid(scroller, 1400 + stride * 3);
+    await waitFor(() => expect(mountedRowIndexes()[0]).toBe(1));
+    const pinnedRow = document.querySelector('[data-row-index="1"]');
+    expect(pinnedRow?.contains(document.activeElement)).toBe(true);
+
+    // A long jump drops the pin (the DOM must stay bounded by the viewport) and
+    // the row - with the focus inside it - is unmounted as usual.
+    scrollGrid(scroller, 6000);
+    await waitFor(() => expect(mountedRowIndexes()[0]).toBe(13));
+    expect(document.querySelector('[data-row-index="1"]')).toBeNull();
+    expect(document.activeElement).not.toBe(focused);
+
+    const cols = colsForWidth(window.innerWidth);
+    expect(checkboxCount()).toBe(
+      (Math.ceil(768 / stride) + OVERSCAN_ROWS * 2) * cols,
+    );
+  });
+
+  it("measures rows, keeps the viewport anchored and keeps the spacers exact", async () => {
+    vi.stubGlobal("ResizeObserver", FakeResizeObserver);
+    const total = 60;
+    listAssetsMock.mockResolvedValue({ items: makeSyntheticBatch(total), hasMore: false });
+
+    const { scroller } = renderHarness();
+
+    await screen.findByText("Asset 1");
+    stubGridRect(scroller);
+
+    const offset = 1400;
+    scrollGrid(scroller, offset);
+    await waitFor(() => expect(screen.queryByText("Asset 1")).toBeNull());
+
+    const rowIndexes = mountedRowIndexes();
+    const firstVisibleRow = Math.floor(offset / (ESTIMATED_ROW_HEIGHT + GRID_GAP_PX));
+    expect(rowIndexes[0]).toBe(firstVisibleRow - OVERSCAN_ROWS);
+
+    // Every mounted row reports itself taller than the estimate. Rows above the
+    // first visible row must be compensated by scrollTop so the content does
+    // not jump; the spacers are then recomputed from the mixed heights.
+    const measuredHeight = 500;
+    act(() => {
+      for (const rowIndex of rowIndexes) {
+        const element = document.querySelector(`[data-row-index="${rowIndex}"]`);
+        if (!element) throw new Error(`row ${rowIndex} is not rendered`);
+        FakeResizeObserver.trigger(element, { height: measuredHeight });
+      }
+    });
+
+    const rowsAboveViewport = firstVisibleRow - rowIndexes[0];
+    expect(scroller.scrollTop).toBe(offset + rowsAboveViewport * (measuredHeight - ESTIMATED_ROW_HEIGHT));
+
+    const cols = colsForWidth(window.innerWidth);
+    const heights = new Array<number>(Math.ceil(total / cols)).fill(0);
+    for (const rowIndex of rowIndexes) heights[rowIndex] = measuredHeight;
+    const tops = rowOffsets(heights);
+    const expectedTotal = rowsTotal(heights);
+    const renderedRange = mountedRowIndexes();
+    const lastRow = renderedRange[renderedRange.length - 1];
+
+    const topSpacer = document.querySelector<HTMLElement>('[data-virtual-spacer="top"]');
+    const bottomSpacer = document.querySelector<HTMLElement>('[data-virtual-spacer="bottom"]');
+    expect(Number.parseFloat(topSpacer?.style.height ?? "-1")).toBe(
+      tops[renderedRange[0]] - GRID_GAP_PX,
+    );
+    expect(Number.parseFloat(bottomSpacer?.style.height ?? "-1")).toBe(
+      expectedTotal - (tops[lastRow] + heights[lastRow] + GRID_GAP_PX),
+    );
+  });
+
+  it("re-observes the grid wrapper width after a grouped sort remounts it", async () => {
+    vi.stubGlobal("ResizeObserver", FakeResizeObserver);
+    const total = 12;
+    listAssetsMock.mockResolvedValue({ items: makeSyntheticBatch(total), hasMore: false });
+
+    const { scroller } = renderHarness();
+
+    await screen.findByText("Asset 1");
+    stubGridRect(scroller);
+
+    // A 1200px wrapper fits four columns: 12 assets chunk into three rows.
+    const fourColsWidth = 1200;
+    expect(colsForWidth(fourColsWidth)).toBe(4);
+    const firstWrap = document.querySelector<HTMLElement>("[data-virtual-grid]");
+    if (!firstWrap) throw new Error("virtual grid wrapper not rendered");
+    const mountObservers = liveObserversFor(firstWrap);
+    expect(mountObservers).toHaveLength(1);
+    act(() => FakeResizeObserver.trigger(firstWrap, { width: fourColsWidth }));
+
+    await waitFor(() => expect(rowCardCount(0)).toBe(4));
+    expect(mountedRowIndexes()).toEqual([0, 1, 2]);
+
+    // Grouped sorts never render `[data-virtual-grid]`, and the ref detaches...
+    fireEvent.change(sortSelect(), { target: { value: "type" } });
+    await waitFor(() => expect(document.querySelector("[data-virtual-grid]")).toBeNull());
+    expect(liveObserversFor(firstWrap)).toHaveLength(0);
+
+    // ...and switching back attaches the ref to the wrapper again (whether or
+    // not React reuses the DOM node). That attachment must observe the width
+    // afresh: a one-shot effect at mount would leave `cols` frozen at four.
+    fireEvent.change(sortSelect(), { target: { value: "name" } });
+    const remountedWrap = await waitFor(() => {
+      const element = document.querySelector<HTMLElement>("[data-virtual-grid]");
+      if (!element) throw new Error("virtual grid wrapper did not remount");
+      return element;
+    });
+    const remountObservers = liveObserversFor(remountedWrap);
+    expect(remountObservers).toHaveLength(1);
+    expect(mountObservers).not.toContain(remountObservers[0]);
+
+    const twoColsWidth = 600;
+    expect(colsForWidth(twoColsWidth)).toBe(2);
+    act(() => FakeResizeObserver.trigger(remountedWrap, { width: twoColsWidth }));
+
+    await waitFor(() => expect(rowCardCount(0)).toBe(2));
+    expect(rowCardCount(1)).toBe(2);
+    expect(screen.getByText("Asset 3")).toBeTruthy();
+    expect(screen.getByText("Asset 4")).toBeTruthy();
+  });
+
+  it("caps each grouped row and expands it on demand", async () => {
+    listAssetsMock.mockResolvedValue({ items: makeSyntheticBatch(30), hasMore: false });
+
+    render(<AssetGrid theme="dark" />);
+
+    await screen.findByText("Asset 1");
+    fireEvent.change(sortSelect(), { target: { value: "type" } });
+
+    const showAll = await screen.findByRole("button", { name: "Show all 30" });
+    // 30 png assets collapse into one type group, capped at GROUP_CARD_CAP.
+    expect(checkboxCount()).toBe(24);
+    expect(screen.queryByText("Asset 30")).toBeNull();
+
+    fireEvent.click(showAll);
+    expect(await screen.findByRole("button", { name: "Show fewer" })).toBeTruthy();
+    expect(screen.getByText("Asset 30")).toBeTruthy();
+    expect(checkboxCount()).toBe(30);
+
+    fireEvent.click(screen.getByRole("button", { name: "Show fewer" }));
+    expect(await screen.findByRole("button", { name: "Show all 30" })).toBeTruthy();
+    expect(checkboxCount()).toBe(24);
   });
 });
 

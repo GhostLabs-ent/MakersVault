@@ -28,6 +28,8 @@ import TagInput from "./TagInput";
 import { colorForTag } from "./tagColors";
 import { refreshWindow } from "../lib/assetPaging";
 import { useStableCallback } from "../lib/useStableCallback";
+import { GRID_GAP_PX, chunkRows, colsForWidth } from "../lib/virtualGrid";
+import { useVirtualRows } from "./useVirtualRows";
 import { formatBytes } from "../lib/format";
 import { EngravingSettings, PreviewSettings, ResolvedTheme, SlicerSettings, engraverLabelFor, slicerLabelFor } from "../lib/settings";
 import { entriesFromDataTransfer, uploadEntriesToFolder } from "../lib/uploadTree";
@@ -62,8 +64,8 @@ const ENGRAVING_EXTS = new Set([
 ]);
 
 const ROWS_PER_BATCH = 5;
-const CARD_MIN_WIDTH_PX = 260;
-const GRID_GAP_PX = 16;
+/** Cards rendered per group before the "Show all" affordance is offered. */
+const GROUP_CARD_CAP = 24;
 /** Upper bound on how long a re-scan triggered from a card is polled. */
 const RESCAN_TIMEOUT_MS = 10 * 60 * 1000;
 const RESCAN_POLL_INTERVAL_MS = 1000;
@@ -73,9 +75,13 @@ function formatMissingSince(value: string): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
+/**
+ * First-load page size: a handful of card rows. Uses the same `colsForWidth`
+ * as the virtualization so the page size and the rendered row width can never
+ * disagree.
+ */
 function rowsBatchSizeForWidth(width: number) {
-  const cols = Math.max(1, Math.floor((width + GRID_GAP_PX) / (CARD_MIN_WIDTH_PX + GRID_GAP_PX)));
-  return cols * ROWS_PER_BATCH;
+  return colsForWidth(width) * ROWS_PER_BATCH;
 }
 
 type Props = {
@@ -87,6 +93,8 @@ type Props = {
   engravingSettings?: EngravingSettings;
   previewSettings?: PreviewSettings;
   theme: ResolvedTheme;
+  /** Scroll container the grid lives in (the app's `<main>`). */
+  scrollElementRef?: React.RefObject<HTMLElement | null>;
 };
 
 type RefreshOpts = { tags?: string[]; search?: string; keepLoadedPages?: boolean };
@@ -143,10 +151,12 @@ export default function AssetGrid({
   engravingSettings,
   previewSettings,
   theme,
+  scrollElementRef,
 }: Props) {
   const [items, setItems] = useState<Asset[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   // Latest typed query. Held in a ref (not state) so typing does not re-render
   // the grid; only submitting a search refetches.
   const queryRef = useRef("");
@@ -444,6 +454,20 @@ export default function AssetGrid({
     return copy;
   }, [items, sortKey, sortDir, folderNames]);
 
+  // Flat-grid virtualization: chunk `sortedItems` into rows and render only
+  // those covering the viewport. `colsForWidth(window.innerWidth)` is the seed;
+  // the hook refines it from the container's measured width when it can.
+  const virtual = useVirtualRows({
+    scrollElementRef,
+    items: sortedItems,
+    cols: colsForWidth(typeof window === "undefined" ? 0 : window.innerWidth),
+  });
+  const virtualRows = useMemo(
+    () => chunkRows(sortedItems, virtual.cols),
+    [sortedItems, virtual.cols],
+  );
+  const renderedRows = virtualRows.slice(virtual.startRow, virtual.endRow + 1);
+
   const folderGroups = useMemo<GroupBucket[]>(() => {
     if (sortKey !== "folder") return [];
     const grouping: Record<string, GroupBucket> = {};
@@ -492,6 +516,15 @@ export default function AssetGrid({
 
   const toggleGroup = (id: string) => {
     setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleGroupExpanded = (id: string) => {
+    setExpandedGroups(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -751,6 +784,45 @@ export default function AssetGrid({
     ? `Uploading to ${dropTargetName}...`
     : `Drop files or folders to upload to ${dropTargetName}`;
 
+  // Single source of truth for card props so the virtualized flat grid and the
+  // grouped rows render exactly the same cards. All callbacks are stable, so
+  // `AssetCard`'s memo still skips untouched cards.
+  const renderCard = (item: Asset) => (
+    <AssetCard
+      key={item.id}
+      item={item}
+      onSaveTags={onSaveTags}
+      onSaveDetails={onSaveDetails}
+      onRename={onRename}
+      onPreview={setPreviewItem}
+      onDownloadSingle={downloadAsset}
+      downloading={downloadingId === item.id}
+      onDelete={removeAsset}
+      deleting={deletingId === item.id}
+      onMoveFolder={onMoveFolder}
+      folderOptions={folderOptions}
+      moving={movingId === item.id}
+      onDownloadByTag={downloadByTag}
+      onDownloadSelected={downloadSelected}
+      selected={selectedIds.has(item.id)}
+      onToggleSelected={toggleSelected}
+      hasSelection={selectedIds.size > 0}
+      bulkDownloading={Boolean(bulkDownloading)}
+      slicerEnabled={slicerEnabled}
+      slicerLabel={slicerLabel}
+      onOpenInSlicer={openInSlicer}
+      engravingEnabled={engravingEnabled}
+      engraverLabel={engraverLabel}
+      onOpenInEngraving={openInEngraving}
+      theme={theme}
+      previewMode={previewSettings?.mode || "automatic"}
+      onAssetChanged={replaceAsset}
+      onForgetMissing={forgetMissingAsset}
+      onRescanMissing={rescanMissing}
+      rescanning={rescanning}
+    />
+  );
+
   return (
     <div
       className="relative"
@@ -833,6 +905,10 @@ export default function AssetGrid({
         <div className="space-y-4">
           {(sortKey === "folder" ? folderGroups : typeGroups).map(group => {
             const collapsed = collapsedGroups.has(group.id);
+            const expanded = expandedGroups.has(group.id);
+            const visibleItems = expanded
+              ? group.items
+              : group.items.slice(0, GROUP_CARD_CAP);
             return (
               <div
                 key={group.id}
@@ -851,42 +927,22 @@ export default function AssetGrid({
                 {!collapsed && (
                   <div className="px-4 pb-4 overflow-x-auto">
                     <div className="flex gap-4 min-h-[280px]">
-                      {group.items.map(it => (
+                      {visibleItems.map(it => (
                         <div key={it.id} className="min-w-[260px] max-w-[320px]">
-                          <AssetCard
-                            item={it}
-                            onSaveTags={onSaveTags}
-                            onSaveDetails={onSaveDetails}
-                            onRename={onRename}
-                            onPreview={setPreviewItem}
-                            onDownloadSingle={downloadAsset}
-                            downloading={downloadingId === it.id}
-                            onDelete={removeAsset}
-                            deleting={deletingId === it.id}
-                            onMoveFolder={onMoveFolder}
-                            folderOptions={folderOptions}
-                            moving={movingId === it.id}
-                            onDownloadByTag={downloadByTag}
-                            onDownloadSelected={downloadSelected}
-                            selected={selectedIds.has(it.id)}
-                            onToggleSelected={toggleSelected}
-                            hasSelection={selectedIds.size > 0}
-                            bulkDownloading={Boolean(bulkDownloading)}
-                            slicerEnabled={slicerEnabled}
-                            slicerLabel={slicerLabel}
-                            onOpenInSlicer={openInSlicer}
-                            engravingEnabled={engravingEnabled}
-                            engraverLabel={engraverLabel}
-                            onOpenInEngraving={openInEngraving}
-                            theme={theme}
-                            previewMode={previewSettings?.mode || "automatic"}
-                            onAssetChanged={replaceAsset}
-                            onForgetMissing={forgetMissingAsset}
-                            onRescanMissing={rescanMissing}
-                            rescanning={rescanning}
-                          />
+                          {renderCard(it)}
                         </div>
                       ))}
+                      {group.items.length > GROUP_CARD_CAP && (
+                        <div className="min-w-[140px] shrink-0 flex items-center justify-center">
+                          <button
+                            type="button"
+                            className="px-3 py-2 rounded-md border border-panel-strong text-sm"
+                            onClick={() => toggleGroupExpanded(group.id)}
+                          >
+                            {expanded ? "Show fewer" : `Show all ${group.items.length}`}
+                          </button>
+                        </div>
+                      )}
                       {!group.items.length && (
                         <div className="px-2 py-4 text-sm opacity-60">No assets in this folder</div>
                       )}
@@ -898,42 +954,35 @@ export default function AssetGrid({
           })}
         </div>
       ) : (
-        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
-          {sortedItems.map(it => (
-            <AssetCard
-              key={it.id}
-              item={it}
-              onSaveTags={onSaveTags}
-              onSaveDetails={onSaveDetails}
-              onRename={onRename}
-              onPreview={setPreviewItem}
-              onDownloadSingle={downloadAsset}
-              downloading={downloadingId === it.id}
-              onDelete={removeAsset}
-              deleting={deletingId === it.id}
-              onMoveFolder={onMoveFolder}
-              folderOptions={folderOptions}
-              moving={movingId === it.id}
-              onDownloadByTag={downloadByTag}
-              onDownloadSelected={downloadSelected}
-              selected={selectedIds.has(it.id)}
-              onToggleSelected={toggleSelected}
-              hasSelection={selectedIds.size > 0}
-              bulkDownloading={Boolean(bulkDownloading)}
-              slicerEnabled={slicerEnabled}
-              slicerLabel={slicerLabel}
-              onOpenInSlicer={openInSlicer}
-              engravingEnabled={engravingEnabled}
-              engraverLabel={engraverLabel}
-              onOpenInEngraving={openInEngraving}
-              theme={theme}
-              previewMode={previewSettings?.mode || "automatic"}
-              onAssetChanged={replaceAsset}
-              onForgetMissing={forgetMissingAsset}
-              onRescanMissing={rescanMissing}
-              rescanning={rescanning}
+        <div
+          ref={virtual.setGridWrapRef}
+          data-virtual-grid
+          style={{ display: "flex", flexDirection: "column", gap: GRID_GAP_PX }}
+        >
+          {virtual.startRow > 0 && (
+            <div data-virtual-spacer="top" aria-hidden="true" style={{ height: virtual.topSpacer }} />
+          )}
+          {renderedRows.map((row, offset) => {
+            const rowIndex = virtual.startRow + offset;
+            return (
+              <div
+                key={rowIndex}
+                data-row-index={rowIndex}
+                ref={virtual.setRowRef(rowIndex)}
+                className="grid gap-4"
+                style={{ gridTemplateColumns: `repeat(${virtual.cols}, minmax(0, 1fr))` }}
+              >
+                {row.map(item => renderCard(item))}
+              </div>
+            );
+          })}
+          {virtual.endRow >= 0 && virtual.endRow < virtual.rowCount - 1 && (
+            <div
+              data-virtual-spacer="bottom"
+              aria-hidden="true"
+              style={{ height: virtual.bottomSpacer }}
             />
-          ))}
+          )}
         </div>
       )}
       {hasMore && (
