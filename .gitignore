@@ -1,3 +1,6 @@
+# Local ticket store (tk)
+.tickets/
+
 # Local secrets and environment overrides
 .env
 .env.*
