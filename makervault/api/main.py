@@ -1,5 +1,6 @@
 from fastapi import BackgroundTasks, Depends, FastAPI, UploadFile, File, Form, HTTPException, Query, Response
 from fastapi.responses import FileResponse
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 from typing import List, Optional
@@ -16,18 +17,19 @@ from jwt import PyJWTError
 
 from auth import (
     AUTH_ENABLED,
-    AUTH_PASSWORD,
-    AUTH_USERNAME,
     AUTH_TOKEN_TTL,
     AUTH_SECRET,
     AUTH_ALGO,
     create_token,
+    credentials_match,
     require_auth,
+    validate_auth_configuration,
 )
 from asset_service import (
     STORAGE_TEMPLATE_TOKENS,
     available_model_name,
     backfill_embedded_thumbnails,
+    cleanup_asset,
     create_asset_record,
     filename_for_model_name,
     ensure_model_thumbnail,
@@ -51,9 +53,14 @@ from asset_file_service import (
     managed_asset_file_path,
     save_asset_file,
 )
-from config import MOUNT_IMPORT_ENABLED, MOUNT_IMPORT_PATH, MOUNT_IMPORT_COPY
+from config import MOUNT_IMPORT_ENABLED, MOUNT_IMPORT_PATH, MOUNT_IMPORT_COPY, MAX_UPLOAD_BYTES
 from db import THUMBS, engine
-from file_utils import build_import_filename, mime_from_content_type, sanitize_filename
+from file_utils import (
+    build_import_filename,
+    mime_from_content_type,
+    sanitize_filename,
+    sanitize_path_segment,
+)
 from folder_service import validate_parent_folder
 from import_service import download_import_to_temp, import_asset_from_url, open_import_response
 from mount_import import scan_mount_imports
@@ -98,6 +105,7 @@ from url_utils import normalize_import_url
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    validate_auth_configuration()
     run_migrations(engine)
     threading.Thread(target=backfill_embedded_thumbnails, daemon=True).start()
     threading.Thread(target=backfill_prepared_print_metadata, daemon=True).start()
@@ -228,7 +236,9 @@ def arcname_for_asset(asset: Asset, folder_label_map: Optional[dict] = None) -> 
     folder_part = "unassigned"
     if asset.folder_id:
         folder_part = (folder_label_map or {}).get(asset.folder_id, asset.folder_id)
-    return f"{folder_part}/{asset.filename}"
+    # folder labels are user input: an unsanitised "../.." here becomes a
+    # traversal entry for whoever extracts the downloaded zip
+    return f"{sanitize_path_segment(folder_part, 'unassigned')}/{sanitize_path_segment(asset.filename, 'file')}"
 
 
 def zip_assets_response(assets: List[Asset], download_name: str, background: BackgroundTasks, folder_label_map: Optional[dict] = None):
@@ -252,7 +262,12 @@ def zip_assets_response(assets: List[Asset], download_name: str, background: Bac
         for related in supporting.get(a.id, []):
             related_path = managed_asset_file_path(related)
             if related_path.exists():
-                files.append((f"{folder_part}/{a.name}/supporting/{related.filename}", related_path))
+                files.append((
+                    f"{sanitize_path_segment(folder_part, 'unassigned')}/"
+                    f"{sanitize_path_segment(a.name, 'model')}/supporting/"
+                    f"{sanitize_path_segment(related.filename, 'file')}",
+                    related_path,
+                ))
     if not files:
         raise HTTPException(status_code=404, detail="No files available for download")
 
@@ -324,7 +339,7 @@ def update_storage_settings(body: StorageSettings, _: Optional[str] = Depends(re
 def login(body: LoginRequest):
     if not AUTH_ENABLED:
         raise HTTPException(status_code=503, detail="Authentication is not configured on the server")
-    if body.username != AUTH_USERNAME or body.password != AUTH_PASSWORD:
+    if not credentials_match(body.username, body.password):
         raise HTTPException(status_code=401, detail="Invalid username or password")
     token = create_token(body.username)
     return LoginResponse(token=token, expires_in=AUTH_TOKEN_TTL)
@@ -345,6 +360,34 @@ def refresh_token(token: Optional[str] = Depends(require_auth)):
         raise HTTPException(status_code=401, detail="Invalid token payload")
     new_token = create_token(username)
     return LoginResponse(token=new_token, expires_in=AUTH_TOKEN_TTL)
+
+
+class UploadTooLarge(Exception):
+    def __init__(self, limit: int):
+        super().__init__(f"upload exceeds {limit} bytes")
+        self.limit = limit
+
+
+def persist_upload_to_disk(upload: UploadFile, dest: Path, max_bytes: int) -> int:
+    """Write an uploaded body to disk, off the event loop.
+
+    Every byte here is file I/O against storage that may be a network mount, so
+    doing it inline in an ``async def`` handler stalls every other request. This
+    runs in a worker thread instead. Raises UploadTooLarge if the body exceeds
+    ``max_bytes`` (0 disables the check).
+    """
+    upload.file.seek(0)
+    total = 0
+    with open(dest, "wb") as f:
+        while True:
+            chunk = upload.file.read(1024 * 1024)
+            if not chunk:
+                break
+            total += len(chunk)
+            if max_bytes and total > max_bytes:
+                raise UploadTooLarge(max_bytes)
+            f.write(chunk)
+    return total
 
 
 @app.post("/upload", response_model=AssetOut)
@@ -368,20 +411,31 @@ async def upload(
 
     # persist file
     dest = managed_asset_path(asset)
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    with open(dest, "wb") as f:
-        while True:
-            chunk = await file.read(1024 * 1024)
-            if not chunk:
-                break
-            f.write(chunk)
-    size = dest.stat().st_size
+    try:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        size = await run_in_threadpool(persist_upload_to_disk, file, dest, MAX_UPLOAD_BYTES)
+    except UploadTooLarge:
+        # the row was committed before any bytes were written; drop it so a
+        # rejected upload does not leave a phantom asset behind
+        cleanup_asset(asset.id)
+        if MAX_UPLOAD_BYTES >= 1024 * 1024:
+            detail = f"Upload exceeds the {MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit"
+        else:
+            detail = f"Upload exceeds the {MAX_UPLOAD_BYTES} byte limit"
+        raise HTTPException(status_code=413, detail=detail)
+    except Exception:
+        cleanup_asset(asset.id)
+        raise HTTPException(status_code=500, detail="Failed to store uploaded file")
 
-    # make a thumbnail for common image formats
-    if (asset.mime or "").lower().startswith("image/") and dest.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}:
-        save_thumb(asset.id, dest)
-    elif dest.suffix.lower() == ".3mf":
-        ensure_model_thumbnail(asset.id, dest)
+    # make a thumbnail for common image formats (best effort: a thumbnail
+    # failure must not discard a file that is already safely on disk)
+    try:
+        if (asset.mime or "").lower().startswith("image/") and dest.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}:
+            save_thumb(asset.id, dest)
+        elif dest.suffix.lower() == ".3mf":
+            ensure_model_thumbnail(asset.id, dest)
+    except Exception:
+        pass
 
     asset = finalize_asset_record(asset.id, size, asset.mime) or asset
 

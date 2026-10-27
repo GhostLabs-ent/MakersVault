@@ -453,6 +453,16 @@ def is_printables_page_host(host: str) -> bool:
     return host in {"printables.com", "www.printables.com"}
 
 
+def is_makerworld_page_host(host: str) -> bool:
+    """Exact/subdomain match only.
+
+    ``host.endswith("makerworld.com")`` also matches ``evil-makerworld.com`` and
+    ``notmakerworld.com``, which would send the user's session cookie there.
+    """
+    host = (host or "").lower()
+    return host == "makerworld.com" or host.endswith(".makerworld.com")
+
+
 def printables_html_headers(referer: Optional[str] = None) -> dict:
     headers = {
         "User-Agent": IMPORT_BROWSER_USER_AGENT,

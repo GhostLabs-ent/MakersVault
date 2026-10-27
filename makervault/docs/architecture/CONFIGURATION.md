@@ -25,6 +25,7 @@ deployment guidance required by Gate 1.
 | `AUTH_USERNAME` | `admin` | Current single-admin identity. Gate 1 must remove unsafe production fallback behavior. |
 | `AUTH_PASSWORD` | `super-secret` | Current single-admin secret. Confirmed Gate 1 blocker. |
 | `AUTH_SECRET` | `changeme-secret` | JWT signing secret. Confirmed Gate 1 blocker. |
+| `AUTH_ALLOW_INSECURE_DEFAULTS` | unset (false) | Opts out of the startup guard that refuses the published sample credentials while auth is enabled. |
 | `AUTH_TOKEN_TTL` | `43200` seconds | JWT lifetime. |
 | `PUBLIC_URL` | empty | Public browser origin; also allows web runtime API derivation. |
 | `CORS_ORIGINS` | derived or localhost | Comma-separated browser origins accepted by API CORS middleware. |
@@ -36,7 +37,8 @@ deployment guidance required by Gate 1.
 | Variable | Current default | Effect |
 |---|---|---|
 | `IMPORT_TIMEOUT_SECONDS` | `30` | Remote request time budget. |
-| `IMPORT_MAX_MB` | `512` | Maximum remote response size; does not yet cover every direct-upload path. |
+| `IMPORT_MAX_MB` | `512` | Maximum remote response size for link imports and zip entries. |
+| `MAX_UPLOAD_MB` | `4096` | Direct upload cap enforced by the API; the reverse proxy needs a matching `client_max_body_size`. |
 | `IMPORT_HTML_MAX_KB` | `4096` | Maximum resolver HTML size. |
 | `MAKERWORLD_COOKIE` | empty | Optional server-side source credential. Browser-provided values are not persisted by the API. |
 | `THINGIVERSE_COOKIE` | empty | Optional server-side source credential. Browser-provided values are not persisted by the API. |

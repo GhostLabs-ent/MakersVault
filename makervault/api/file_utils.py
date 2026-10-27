@@ -16,6 +16,17 @@ def sanitize_filename(name: str) -> str:
     return name or "imported-file"
 
 
+def sanitize_path_segment(value: str, fallback: str = "item") -> str:
+    """Make a value safe to use as a single path component in a zip arcname.
+
+    Folder and model names are user input; without this a name like ``../../x``
+    produces a zip that escapes whatever directory it is extracted into.
+    """
+    value = (value or "").replace("\x00", "").replace("/", "_").replace("\\", "_")
+    value = value.strip().strip(".").strip()
+    return value or fallback
+
+
 def parse_content_disposition(cd: str) -> Optional[str]:
     if not cd:
         return None

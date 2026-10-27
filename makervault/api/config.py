@@ -45,6 +45,12 @@ IMPORT_MAX_MB = env_int("IMPORT_MAX_MB", 512)
 IMPORT_MAX_BYTES = max(1, IMPORT_MAX_MB) * 1024 * 1024
 IMPORT_HTML_MAX_KB = env_int("IMPORT_HTML_MAX_KB", 4096)
 IMPORT_HTML_MAX_BYTES = max(64, IMPORT_HTML_MAX_KB) * 1024
+
+# Direct (non-import) upload cap. The reverse proxy in front of this API should
+# enforce the same ceiling; nginx defaults to 1 MB unless configured otherwise.
+# 0 disables the check (not recommended).
+MAX_UPLOAD_MB = env_int("MAX_UPLOAD_MB", 4096)
+MAX_UPLOAD_BYTES = max(0, MAX_UPLOAD_MB) * 1024 * 1024
 IMPORT_USER_AGENT = "MakerVault/1.0"
 IMPORT_BROWSER_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "

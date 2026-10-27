@@ -12,6 +12,7 @@ from config import IMPORT_HTML_MAX_BYTES, IMPORT_TIMEOUT_SECONDS, IMPORT_USER_AG
 from file_utils import build_import_filename, is_html_content_type, mime_from_content_type
 from import_resolvers import (
     find_download_url,
+    is_makerworld_page_host,
     is_printables_page_host,
     is_thingiverse_page_host,
     makerworld_html_headers,
@@ -35,7 +36,7 @@ def open_import_response(url: str, body: ImportRequest, referer: Optional[str] =
     host = (urlparse(url).hostname or "").lower()
     makerworld_cookie = None
     thingiverse_cookie = None
-    if host.endswith("makerworld.com"):
+    if is_makerworld_page_host(host):
         makerworld_cookie = resolve_makerworld_cookie(body)
         headers = makerworld_html_headers(referer or url, cookie=makerworld_cookie)
     elif is_thingiverse_page_host(host):
@@ -66,7 +67,7 @@ def open_import_response(url: str, body: ImportRequest, referer: Optional[str] =
         resp.close()
         download_url = None
         host = urlparse(final_url).hostname or ""
-        if host.lower().endswith("makerworld.com"):
+        if is_makerworld_page_host(host):
             if not makerworld_cookie:
                 makerworld_cookie = resolve_makerworld_cookie(body)
             download_url = resolve_makerworld_download_url(html, final_url, makerworld_cookie)
