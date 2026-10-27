@@ -1502,10 +1502,10 @@ function renderPreviewContent(
 
   if (variant === "card") {
     if (thumbUrl) {
-      return <img src={thumbUrl} alt={asset.filename} className={imgClass} />;
+      return <img src={thumbUrl} alt={asset.filename} loading="lazy" decoding="async" className={imgClass} />;
     }
     if (ext === "svg") {
-      return <img src={assetUrl} alt={asset.filename} className={imgClass} />;
+      return <img src={assetUrl} alt={asset.filename} loading="lazy" decoding="async" className={imgClass} />;
     }
     if (is3d) {
       if (previewMode === "disabled") {
@@ -1535,7 +1535,7 @@ function renderPreviewContent(
   }
   if (thumbUrl || ext === "svg") {
     const src = thumbUrl || assetUrl;
-    return <img src={src} alt={asset.filename} className={imgClass} />;
+    return <img src={src} alt={asset.filename} decoding="async" className={imgClass} />;
   }
   if (isLightBurn) {
     return (

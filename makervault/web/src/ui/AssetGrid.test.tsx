@@ -310,4 +310,57 @@ describe("AssetGrid asset refresh", () => {
       expect(buttonCall.offset).toBe(0);
     });
   });
+
+  // `img.loading` / `img.decoding` are undefined in jsdom 26, so only the
+  // serialized attributes can be asserted here.
+  describe("thumbnail loading hints", () => {
+    it("marks card thumbnails lazy and async", async () => {
+      render(<AssetGrid theme="dark" />);
+      await screen.findByText("Calibration cube");
+      await waitFor(() => expect(screen.queryByText("Loading...")).toBeNull());
+
+      for (const asset of assets) {
+        const img = screen.getByAltText(asset.filename);
+        expect(img.getAttribute("loading")).toBe("lazy");
+        expect(img.getAttribute("decoding")).toBe("async");
+      }
+    });
+
+    it("marks svg fallback images lazy and async", async () => {
+      const svgAsset: Asset = {
+        id: "s4",
+        name: "Logo",
+        filename: "logo.svg",
+        mime: "image/svg+xml",
+        size: 10,
+        tags: [],
+        url: "/api/assets/s4/file",
+        thumb_url: null,
+        supporting_file_count: 0,
+      };
+      listAssetsMock.mockResolvedValue({ items: [svgAsset], hasMore: false });
+
+      render(<AssetGrid theme="dark" />);
+
+      const img = await screen.findByAltText("logo.svg");
+      expect(img.getAttribute("loading")).toBe("lazy");
+      expect(img.getAttribute("decoding")).toBe("async");
+    });
+
+    it("keeps the modal preview image eager with async decoding", async () => {
+      render(<AssetGrid theme="dark" />);
+      await screen.findByText("Engraved sign");
+
+      // The double-click handler lives on the card's preview wrapper, so it bubbles.
+      fireEvent.doubleClick(screen.getByAltText("engraved-sign.png"));
+
+      const modalImage = await waitFor(() => {
+        const img = document.querySelector("img.object-contain");
+        if (!img) throw new Error("modal preview image not rendered");
+        return img;
+      });
+      expect(modalImage.getAttribute("loading")).toBeNull();
+      expect(modalImage.getAttribute("decoding")).toBe("async");
+    });
+  });
 });

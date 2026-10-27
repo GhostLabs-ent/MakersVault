@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
-type PreviewState = "idle" | "loading" | "error";
+type PreviewState = "waiting" | "idle" | "loading" | "error";
 
 type PreviewPayload = {
   data: Uint8Array;
@@ -40,10 +40,32 @@ const MIME_BY_EXT: Record<string, string> = {
 };
 
 export default function LightBurnPreview({ url, assetId, filename, imgClass }: LightBurnPreviewProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [state, setState] = useState<PreviewState>("idle");
+  const [state, setState] = useState<PreviewState>("waiting");
+  const [shouldLoad, setShouldLoad] = useState(false);
 
   useEffect(() => {
+    const cacheKey = assetId ? `asset:${assetId}` : url;
+    if (
+      previewCache.has(cacheKey) ||
+      typeof IntersectionObserver === "undefined" ||
+      !containerRef.current
+    ) {
+      setShouldLoad(true);
+      return;
+    }
+    const observer = new IntersectionObserver(entries => {
+      if (!entries.some(entry => entry.isIntersecting)) return;
+      observer.disconnect();
+      setShouldLoad(true);
+    }, { rootMargin: "240px" });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [url, assetId]);
+
+  useEffect(() => {
+    if (!shouldLoad) return;
     let alive = true;
     const cacheKey = assetId ? `asset:${assetId}` : url;
     const cached = previewCache.get(cacheKey);
@@ -85,12 +107,14 @@ export default function LightBurnPreview({ url, assetId, filename, imgClass }: L
     return () => {
       alive = false;
     };
-  }, [url, assetId]);
+  }, [url, assetId, shouldLoad]);
 
   return (
-    <div className="w-full h-full bg-panel-soft flex items-center justify-center rounded-md overflow-hidden">
+    <div ref={containerRef} className="w-full h-full bg-panel-soft flex items-center justify-center rounded-md overflow-hidden">
       {preview ? (
-        <img src={preview} alt={filename} className={imgClass} />
+        <img src={preview} alt={filename} decoding="async" className={imgClass} />
+      ) : state === "waiting" ? (
+        <span className="text-xs text-muted">Waiting to generate preview...</span>
       ) : state === "loading" ? (
         <span className="text-xs text-muted">Generating preview...</span>
       ) : (
