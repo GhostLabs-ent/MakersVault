@@ -56,6 +56,8 @@ export type Asset = {
   prepared_print?: PreparedPrint | null;
   slicer_url?: string | null;
   slicer_filename?: string | null;
+  /** UTC ISO-8601 timestamp of when the file was first found missing, if it is. */
+  missing_since?: string | null;
 };
 
 export type PreparedPrint = {

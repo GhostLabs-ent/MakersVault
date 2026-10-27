@@ -228,6 +228,7 @@ def to_out(a: Asset) -> AssetOut:
         ),
         folder_id=a.folder_id,
         storage_path=a.storage_path,
+        missing_since=a.missing_since,
         supporting_file_count=int(a.supporting_file_count or 0),
         prepared_print=prepared,
         slicer_url=slicer_url,

@@ -11,11 +11,13 @@ vi.mock("../lib/api", () => ({
   deletePreparedPrint: vi.fn(),
   downloadZip: vi.fn(),
   fileUrl: vi.fn((rel: string) => rel),
+  getLibraryScanStatus: vi.fn(),
   listAssetFiles: vi.fn(async () => []),
   listAssets: vi.fn(),
   listFolders: vi.fn(async () => []),
   listTags: vi.fn(async () => []),
   setTags: vi.fn(),
+  startLibraryScan: vi.fn(),
   updateAssetFolder: vi.fn(),
   updateAssetMeta: vi.fn(),
   uploadAssetFile: vi.fn(),
@@ -31,10 +33,34 @@ vi.mock("./LightBurnPreview", () => ({
 }));
 
 import AssetGrid from "./AssetGrid";
-import { fileUrl, listAssets } from "../lib/api";
+import {
+  deleteAsset,
+  fileUrl,
+  getLibraryScanStatus,
+  listAssets,
+  startLibraryScan,
+} from "../lib/api";
 
 const listAssetsMock = vi.mocked(listAssets);
 const fileUrlMock = vi.mocked(fileUrl);
+const deleteAssetMock = vi.mocked(deleteAsset);
+const startLibraryScanMock = vi.mocked(startLibraryScan);
+const getLibraryScanStatusMock = vi.mocked(getLibraryScanStatus);
+
+/** Status payload of an idle library scan, as the API reports it. */
+function idleScanStatus(): Awaited<ReturnType<typeof getLibraryScanStatus>> {
+  return {
+    running: false,
+    started_at: null,
+    finished_at: null,
+    registered: 0,
+    known: 0,
+    ignored: 0,
+    missing: 1,
+    failed: 0,
+    errors: [],
+  };
+}
 
 /** Query arguments of the `index`th `listAssets` call, with paging made explicit. */
 function callQuery(index: number) {
@@ -81,6 +107,20 @@ const assets: Asset[] = [
     supporting_file_count: 0,
   },
 ];
+
+/** Asset whose backing file is gone from storage but whose entry still exists. */
+const missingAsset: Asset = {
+  id: "m4",
+  name: "Lost model",
+  filename: "lost-model.stl",
+  mime: "model/stl",
+  size: 2200,
+  tags: [],
+  url: "/api/assets/m4/file",
+  thumb_url: "/api/assets/m4/thumb",
+  supporting_file_count: 0,
+  missing_since: "2026-10-27T11:31:34+00:00",
+};
 
 /** Fixture asset for paged batches: no 3D extensions and a thumb, so no WebGL path. */
 function makeAsset(batch: number, index: number): Asset {
@@ -362,5 +402,57 @@ describe("AssetGrid asset refresh", () => {
       expect(modalImage.getAttribute("loading")).toBeNull();
       expect(modalImage.getAttribute("decoding")).toBe("async");
     });
+  });
+});
+
+describe("AssetGrid missing assets", () => {
+  beforeEach(() => {
+    listAssetsMock.mockReset();
+    listAssetsMock.mockResolvedValue({ items: [missingAsset, ...assets], hasMore: false });
+    deleteAssetMock.mockReset();
+    startLibraryScanMock.mockReset();
+    getLibraryScanStatusMock.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    cleanup();
+  });
+
+  it("shows a missing-file banner without hiding the asset", async () => {
+    render(<AssetGrid theme="dark" />);
+
+    await screen.findByText(/File missing/i);
+    expect(screen.getByText(missingAsset.name)).toBeTruthy();
+    expect(screen.getByText("Calibration cube")).toBeTruthy();
+  });
+
+  it("Forget entry deletes only that asset", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => true));
+
+    render(<AssetGrid theme="dark" />);
+
+    await screen.findByText(/File missing/i);
+    fireEvent.click(screen.getByRole("button", { name: "Forget entry" }));
+
+    await waitFor(() => expect(deleteAssetMock).toHaveBeenCalledWith(missingAsset.id));
+    for (const other of assets) {
+      expect(deleteAssetMock).not.toHaveBeenCalledWith(other.id);
+    }
+  });
+
+  it("Re-scan starts a scan and refreshes when idle", async () => {
+    startLibraryScanMock.mockResolvedValue(idleScanStatus());
+    getLibraryScanStatusMock.mockResolvedValue(idleScanStatus());
+
+    render(<AssetGrid theme="dark" />);
+
+    await screen.findByText(/File missing/i);
+    const callsBefore = listAssetsMock.mock.calls.length;
+
+    fireEvent.click(screen.getByRole("button", { name: "Re-scan" }));
+
+    await waitFor(() => expect(startLibraryScanMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(callsBefore + 1));
   });
 });

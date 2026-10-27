@@ -16,7 +16,9 @@ import {
   downloadZip,
   deleteAssetFile,
   deletePreparedPrint,
+  getLibraryScanStatus,
   listAssetFiles,
+  startLibraryScan,
   uploadAssetFile,
 } from "../lib/api";
 import ModelViewer, { ModelSnapshot } from "./ModelViewer";
@@ -62,6 +64,14 @@ const ENGRAVING_EXTS = new Set([
 const ROWS_PER_BATCH = 5;
 const CARD_MIN_WIDTH_PX = 260;
 const GRID_GAP_PX = 16;
+/** Upper bound on how long a re-scan triggered from a card is polled. */
+const RESCAN_TIMEOUT_MS = 10 * 60 * 1000;
+const RESCAN_POLL_INTERVAL_MS = 1000;
+
+function formatMissingSince(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+}
 
 function rowsBatchSizeForWidth(width: number) {
   const cols = Math.max(1, Math.floor((width + GRID_GAP_PX) / (CARD_MIN_WIDTH_PX + GRID_GAP_PX)));
@@ -149,6 +159,7 @@ export default function AssetGrid({
   const [previewItem, setPreviewItem] = useState<Asset | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [rescanning, setRescanning] = useState(false);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<"name" | "size" | "type" | "folder">("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -693,6 +704,48 @@ export default function AssetGrid({
     setDeletingId(null);
   });
 
+  const forgetMissingAsset = useStableCallback(async (asset: Asset) => {
+    const label = `Forget "${asset.title || asset.filename}"? The file is already gone; this removes the library entry, thumbnail and sidecars.`;
+    if (!confirm(label)) return;
+    setDeletingId(asset.id);
+    try {
+      await deleteAsset(asset.id);
+      await refresh();
+    } catch (err) {
+      if (err instanceof UnauthorizedError) {
+        onUnauthorized?.();
+        return;
+      }
+      console.error(err);
+      alert(`Forget failed for: ${asset.filename}`);
+    } finally {
+      setDeletingId(null);
+    }
+  });
+
+  const rescanMissing = useStableCallback(async (_asset: Asset) => {
+    if (rescanning) return;
+    setRescanning(true);
+    try {
+      await startLibraryScan();
+      const deadline = Date.now() + RESCAN_TIMEOUT_MS;
+      let status = await getLibraryScanStatus();
+      while (status.running && Date.now() < deadline) {
+        await new Promise(resolve => setTimeout(resolve, RESCAN_POLL_INTERVAL_MS));
+        status = await getLibraryScanStatus();
+      }
+      await refresh();
+    } catch (err) {
+      if (err instanceof UnauthorizedError) {
+        onUnauthorized?.();
+        return;
+      }
+      alert(err instanceof Error ? err.message : "Re-scan failed.");
+    } finally {
+      setRescanning(false);
+    }
+  });
+
   const showDropOverlay = dragActive || dropUploading;
   const dropMessage = dropUploading
     ? `Uploading to ${dropTargetName}...`
@@ -828,6 +881,9 @@ export default function AssetGrid({
                             theme={theme}
                             previewMode={previewSettings?.mode || "automatic"}
                             onAssetChanged={replaceAsset}
+                            onForgetMissing={forgetMissingAsset}
+                            onRescanMissing={rescanMissing}
+                            rescanning={rescanning}
                           />
                         </div>
                       ))}
@@ -873,6 +929,9 @@ export default function AssetGrid({
               theme={theme}
               previewMode={previewSettings?.mode || "automatic"}
               onAssetChanged={replaceAsset}
+              onForgetMissing={forgetMissingAsset}
+              onRescanMissing={rescanMissing}
+              rescanning={rescanning}
             />
           ))}
         </div>
@@ -925,6 +984,9 @@ type AssetCardProps = {
   theme: ResolvedTheme;
   previewMode: PreviewSettings["mode"];
   onAssetChanged: (asset: Asset) => void;
+  onForgetMissing: (asset: Asset) => void;
+  onRescanMissing: (asset: Asset) => void;
+  rescanning: boolean;
 };
 
 const AssetCard = React.memo(function AssetCard({
@@ -955,6 +1017,9 @@ const AssetCard = React.memo(function AssetCard({
   theme,
   previewMode,
   onAssetChanged,
+  onForgetMissing,
+  onRescanMissing,
+  rescanning,
 }: AssetCardProps) {
   const [editingTags, setEditingTags] = useState(false);
   const [tagList, setTagList] = useState<string[]>(item.tags);
@@ -1161,6 +1226,33 @@ const AssetCard = React.memo(function AssetCard({
       >
         {renderPreviewContent(item, "card", theme, previewMode)}
       </div>
+      {item.missing_since && (
+        <div
+          role="status"
+          className="m-3 mb-0 rounded-md border border-red-300 bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm"
+        >
+          <div className="font-semibold text-red-700 dark:text-red-300">File missing</div>
+          <div className="text-xs opacity-80">
+            Not found in storage since {formatMissingSince(item.missing_since)}.
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              className="text-sm px-2 py-1 rounded-md border border-panel-strong disabled:opacity-60"
+              onClick={() => onRescanMissing(item)}
+              disabled={rescanning}
+            >
+              {rescanning ? "Scanning..." : "Re-scan"}
+            </button>
+            <button
+              className="text-sm px-2 py-1 rounded-md border border-red-300 text-red-700 dark:text-red-300 disabled:opacity-60"
+              onClick={() => onForgetMissing(item)}
+              disabled={deleting}
+            >
+              {deleting ? "Forgetting..." : "Forget entry"}
+            </button>
+          </div>
+        </div>
+      )}
       <div className="p-3 flex flex-col gap-2">
         {item.prepared_print && (
           <PreparedPrintSummary

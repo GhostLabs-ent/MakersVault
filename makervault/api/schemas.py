@@ -77,6 +77,7 @@ class AssetOut(BaseModel):
   thumb_url: Optional[str]
   folder_id: Optional[str]
   storage_path: Optional[str]
+  missing_since: Optional[str] = None
   supporting_file_count: int = 0
   prepared_print: Optional[PreparedPrintOut] = None
   slicer_url: Optional[str] = None

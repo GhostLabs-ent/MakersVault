@@ -6,14 +6,29 @@ lie* instead of being re-templated into a new location. Folders are created from
 the directory tree, so ``rsync``/``cp`` followed by "rescan" is a supported way
 to add files.
 
-Deliberately not done here (later phases):
+Missing files are flagged, never purged:
 
-* no file is moved, renamed or deleted;
-* missing files are counted, never purged or mutated - losing a row because a
-  network mount hiccuped would be worse than showing a stale entry;
-* ``thumbs/`` and ``bundles/`` are app-owned and skipped;
-* ``missing_since``, ``disk_mtime`` and ``is_reference`` are owned by later
-  work (Mf-itr4); a scan leaves them at their defaults.
+* a scan sets ``missing_since`` when it first notices that an asset's file is
+  gone and clears it when the file reappears. The timestamp is when the scan
+  noticed the absence, not when the file disappeared;
+* rows and files are never deleted, moved or renamed by a scan - losing a row
+  because a network mount hiccuped would be worse than showing a stale entry;
+* ``disk_mtime`` stays reserved and unwritten; ``is_reference`` is owned by
+  migration 004 / Mf-k0kf and a scan leaves it untouched;
+* ``thumbs/`` and ``bundles/`` are app-owned and skipped.
+
+The flag scope is wider than the ``missing`` counter scope: reference rows
+(``source_path`` set) are flagged when their source is gone, but only managed
+rows (``source_path`` NULL, ``storage_path`` set) are counted in ``missing``.
+The flag answers "are the bytes gone?" and deliberately does not apply
+``main.is_mount_source_allowed``: a source that exists but is outside the
+current mount allowlist is present on disk and stays unflagged, even though
+``/file`` will still refuse to serve it. Degenerate rows with both
+``storage_path`` and ``source_path`` NULL are skipped by the candidate query.
+Scanning a non-standard root (as the tests do) flags every managed asset that
+is absent from that root. Thumbnails are untouched: a cached sidecar keeps
+rendering, and ``/thumb`` / ``/file`` return 404 (never 500) when the bytes are
+gone.
 
 How a scan behaves:
 
@@ -45,9 +60,11 @@ import os
 import threading
 import time
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator, List, Optional, Tuple
 
+from sqlalchemy import or_, update
 from sqlmodel import Session, select
 
 from asset_service import ensure_model_thumbnail, save_thumb
@@ -197,6 +214,123 @@ def _walk_storage(root: Path) -> Iterator[Tuple[str, List[os.DirEntry], int]]:
                 continue
             file_entries.append(entry)
         yield rel_dir, file_entries, ignored
+
+
+def _asset_file_is_present(
+    asset_id: str,
+    filename: str,
+    storage_path: Optional[str],
+    source_path: Optional[str],
+    root: Path,
+    seen: set,
+) -> bool:
+    """Whether the bytes an asset row points at still exist on disk.
+
+    The walk's ``seen`` set covers ordinary library files; the direct existence
+    checks cover paths the walk prunes or filters (``thumbs/``, dotfiles, debris)
+    and reference rows whose ``source_path`` lives outside the storage root.
+    """
+    managed_rel = storage_path or f"{asset_id}/{filename}"
+    if managed_rel in seen:
+        return True
+    if (root / managed_rel).exists():
+        return True
+    if source_path and Path(source_path).exists():
+        return True
+    return False
+
+
+def _apply_missing_flags(session: Session, flag_ids: List[str], clear_ids: List[str], now: str) -> None:
+    """Write one batch of ``missing_since`` changes and commit it once.
+
+    Bulk ``UPDATE`` statements are used so a concurrent ``DELETE`` between the
+    candidate read and the write does not raise ``StaleDataError``. The caller
+    owns rollback and retry.
+    """
+    if flag_ids:
+        session.execute(update(Asset).where(Asset.id.in_(flag_ids)).values(missing_since=now))
+    if clear_ids:
+        session.execute(update(Asset).where(Asset.id.in_(clear_ids)).values(missing_since=None))
+    session.commit()
+
+
+def _flag_missing_assets(session: Session, root: Path, seen: set, now: str) -> None:
+    """Set or clear ``missing_since`` for every candidate row, in bounded batches.
+
+    Candidates are keyset-paginated by id and written with at most one commit per
+    ``BATCH_SIZE`` changes, so neither the candidate set nor the dirty ids are
+    held in memory for a whole tree.
+    """
+    flag_ids: List[str] = []
+    clear_ids: List[str] = []
+    consecutive_failures = 0
+    last_id = ""
+
+    def flush() -> None:
+        """Commit the accumulated ids, retrying once after a transaction failure."""
+        nonlocal consecutive_failures
+        if not flag_ids and not clear_ids:
+            return
+        try:
+            _apply_missing_flags(session, flag_ids, clear_ids, now)
+        except Exception:
+            session.rollback()
+            try:
+                _apply_missing_flags(session, flag_ids, clear_ids, now)
+            except Exception as exc:
+                session.rollback()
+                # not a registration failure: these rows simply stay un-flagged
+                # (or flagged) and the next scan converges.
+                with _state_lock:
+                    if len(_state.errors) < 200:
+                        _state.errors.append(
+                            f"missing-flag batch of {len(flag_ids) + len(clear_ids)} rolled back: {exc}"
+                        )
+                flag_ids.clear()
+                clear_ids.clear()
+                consecutive_failures += 1
+                if consecutive_failures >= MAX_CONSECUTIVE_BATCH_FAILURES:
+                    raise RuntimeError(
+                        f"{consecutive_failures} consecutive flag batches failed to commit"
+                    ) from exc
+                return
+        flag_ids.clear()
+        clear_ids.clear()
+        consecutive_failures = 0
+
+    while True:
+        rows = session.exec(
+            select(Asset.id, Asset.filename, Asset.storage_path, Asset.source_path, Asset.missing_since)
+            .where(
+                or_(Asset.storage_path.is_not(None), Asset.source_path.is_not(None)),
+                Asset.id > last_id,
+            )
+            .order_by(Asset.id)
+            .limit(BATCH_SIZE)
+        ).all()
+        if not rows:
+            break
+
+        page_missing = 0
+        for asset_id, filename, storage_path, source_path, missing_since in rows:
+            last_id = asset_id
+            present = _asset_file_is_present(asset_id, filename, storage_path, source_path, root, seen)
+            if present:
+                if missing_since is not None:
+                    clear_ids.append(asset_id)
+                continue
+            if source_path is None and storage_path is not None:
+                page_missing += 1
+            # never re-stamp an already-flagged row: its timestamp must stay stable
+            if missing_since is None:
+                flag_ids.append(asset_id)
+        if page_missing:
+            with _state_lock:
+                _state.missing += page_missing
+        if len(flag_ids) + len(clear_ids) >= BATCH_SIZE:
+            flush()
+
+    flush()
 
 
 def _resolve_dir_folder(session: Session, rel_dir: str, cache: dict) -> Optional[str]:
@@ -369,19 +503,16 @@ def scan_storage_root() -> ScanState:
         _note_error(f"storage root not found: {root}")
         return _state
 
+    # one timestamp per run: every asset the scan first notices as missing this
+    # pass shares it, so the value is stable and order-independent.
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
     with Session(engine) as session:
         tracked = set(
             session.exec(
                 select(Asset.storage_path).where(Asset.storage_path.is_not(None))
             ).all()
         )
-        # only managed assets own a file in the storage root; mount references
-        # point at paths outside it and must not be reported as missing
-        managed_paths = session.exec(
-            select(Asset.storage_path).where(
-                Asset.source_path.is_(None), Asset.storage_path.is_not(None)
-            )
-        ).all()
 
         seen: set = set()
         folder_cache: dict = {}
@@ -433,11 +564,9 @@ def scan_storage_root() -> ScanState:
 
         flush()
 
-        with _state_lock:
-            _state.missing = sum(
-                1
-                for storage_path in managed_paths
-                if storage_path not in seen and not (root / storage_path).exists()
-            )
+        # registers nothing and deletes nothing: it only stamps or clears
+        # ``missing_since``. The ``missing`` counter covers managed rows only,
+        # while reference rows may be flagged too.
+        _flag_missing_assets(session, root, seen, now)
 
     return _state

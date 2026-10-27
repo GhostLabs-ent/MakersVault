@@ -819,7 +819,7 @@ export default function Settings({
             <p className="text-sm opacity-70">
               Scan the storage folder and register files you copied in with rsync, cp or another tool.
               Nothing is moved or deleted: files are registered where they already sit, and folders are created from the directory tree.
-              Files that have disappeared are counted only, never removed from the library.
+              Files that have disappeared are counted and flagged in the grid, but never removed from the library.
             </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">

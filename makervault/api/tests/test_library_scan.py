@@ -1,7 +1,9 @@
 """Tests for the storage-root scanner (filesystem-authoritative library, phase 1)."""
 import time
+from datetime import datetime, timedelta
 from math import ceil
 from pathlib import Path
+from typing import Optional
 
 import pytest
 from fastapi.testclient import TestClient
@@ -120,6 +122,7 @@ def test_missing_files_are_counted_not_deleted(library_root):
     assert status.missing >= 1
     # the row survives: a mount hiccup must not silently lose the catalogue entry
     assert rel in _assets_by_path()
+    assert _assets_by_path()[rel].missing_since is not None
     library_root.remove(rel)
 
 
@@ -187,6 +190,14 @@ def _delete_folders_named(name: str) -> None:
         session.commit()
 
 
+def _asset_by_id(asset_id: str) -> Optional[Asset]:
+    with Session(engine) as session:
+        asset = session.get(Asset, asset_id)
+        if asset is not None:
+            session.expunge(asset)
+    return asset
+
+
 @pytest.fixture
 def temp_library(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Scan a temp storage root, then delete every row the test created."""
@@ -211,6 +222,9 @@ def temp_library(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 def test_scan_commits_in_batches(temp_library: Path) -> None:
     total = 450
+    # Converge rows left absent by earlier tests first: the counted scan below
+    # must do zero flag writes, so its commit count stays deterministic.
+    scan_storage_root()
     for index in range(total):
         _write_under(temp_library, f"batched/dir-{index // 50:02d}/part-{index:03d}.stl", b"solid x\n")
 
@@ -317,6 +331,218 @@ def test_missing_counts_only_files_that_are_really_gone(temp_library: Path) -> N
 
     third = scan_storage_root()
     assert third.missing == baseline + 1
+
+
+# --- missing_since flagging (Mf-itr4) ----------------------------------------
+#
+# A scan never deletes rows or files: it stamps `missing_since` when it first
+# notices an asset's bytes are gone and clears the flag when they come back.
+# The flag pass covers every candidate row in the session database, so these
+# tests scope their assertions to their own storage paths.
+
+
+def test_scan_flags_missing_files_without_deleting(temp_library: Path) -> None:
+    storage = temp_library
+    rel = "flagged/gone.stl"
+    path = _write_under(storage, rel, b"solid gone\n")
+
+    first = scan_storage_root()
+    rows = _library_rows("flagged/")
+    assert set(rows) == {rel}
+    asset_id = rows[rel].id
+    assert rows[rel].missing_since is None
+    baseline = first.missing
+
+    path.unlink()
+    second = scan_storage_root()
+
+    rows = _library_rows("flagged/")
+    assert set(rows) == {rel}
+    assert rows[rel].id == asset_id
+    stamped = rows[rel].missing_since
+    assert stamped is not None
+    parsed = datetime.fromisoformat(stamped)
+    assert parsed.tzinfo is not None
+    assert parsed.utcoffset() == timedelta(0)
+    assert not (storage / rel).exists()
+    assert second.missing == baseline + 1
+
+
+def test_scan_clears_missing_flag_when_file_returns(temp_library: Path) -> None:
+    storage = temp_library
+    rel = "returned/model.stl"
+    path = _write_under(storage, rel, b"solid gone\n")
+
+    scan_storage_root()
+    asset_id = _library_rows("returned/")[rel].id
+
+    path.unlink()
+    scan_storage_root()
+    assert _library_rows("returned/")[rel].missing_since is not None
+
+    _write_under(storage, rel, b"solid back\n")
+    status = scan_storage_root()
+
+    with Session(engine) as session:
+        matching = session.exec(select(Asset).where(Asset.storage_path == rel)).all()
+    assert len(matching) == 1
+    restored = matching[0]
+    assert restored.id == asset_id
+    assert restored.missing_since is None
+    assert status.known >= 1
+
+
+def test_scan_does_not_flag_reference_assets_when_only_storage_path_is_absent(
+    temp_library: Path, tmp_path: Path
+) -> None:
+    # A mount no-copy row owns no managed file; only its source path matters.
+    source = tmp_path / "mount" / "Thing.3mf"
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"3mf")
+
+    with Session(engine) as session:
+        asset = Asset(
+            filename="Thing.3mf",
+            mime="model/3mf",
+            size=3,
+            name="reference-thing",
+            storage_path="ref-no-copy/Thing.3mf",
+            source_path=str(source),
+            is_reference=1,
+        )
+        session.add(asset)
+        session.commit()
+        session.refresh(asset)
+        asset_id = asset.id
+
+    # MOUNT_IMPORT_PATH is deliberately unset: presence must not depend on the
+    # mount allowlist that governs serving.
+    scan_storage_root()
+    assert _asset_by_id(asset_id).missing_since is None
+
+    source.unlink()
+    scan_storage_root()
+    assert _asset_by_id(asset_id).missing_since is not None
+
+
+def test_asset_list_exposes_missing_since(temp_library: Path) -> None:
+    stamped = "2026-01-02T03:04:05+00:00"
+    with Session(engine) as session:
+        asset = Asset(
+            filename="flagged.stl",
+            mime="model/stl",
+            size=1,
+            name="api-flagged",
+            storage_path="api-flag/flagged.stl",
+            missing_since=stamped,
+        )
+        session.add(asset)
+        session.commit()
+        session.refresh(asset)
+        asset_id = asset.id
+
+    with TestClient(main.app) as client:
+        headers = _auth_header(client)
+        response = client.get("/assets?limit=1000", headers=headers)
+    assert response.status_code == 200, response.text
+    entries = {item["id"]: item for item in response.json()}
+    assert entries[asset_id]["missing_since"] == stamped
+
+
+def test_delete_asset_with_missing_file_succeeds(temp_library: Path) -> None:
+    with Session(engine) as session:
+        asset = Asset(
+            filename="missing.stl",
+            mime="model/stl",
+            size=1,
+            name="deletable",
+            storage_path="deleted/missing.stl",
+        )
+        session.add(asset)
+        session.commit()
+        session.refresh(asset)
+        asset_id = asset.id
+
+    with TestClient(main.app) as client:
+        headers = _auth_header(client)
+        response = client.delete(f"/asset/{asset_id}", headers=headers)
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {"ok": True}
+    assert _asset_by_id(asset_id) is None
+
+
+def test_missing_flag_writes_are_batched(temp_library: Path) -> None:
+    storage = temp_library
+    # Converge rows left absent by earlier tests, so the second scan only writes
+    # the flags of the 450 rows this test creates.
+    scan_storage_root()
+
+    total = 450
+    for index in range(total):
+        _write_under(storage, f"flagged-batched/dir-{index // 50:02d}/part-{index:03d}.stl", b"solid x\n")
+
+    first = scan_storage_root()
+    assert first.registered == total
+    assert all(asset.missing_since is None for asset in _library_rows("flagged-batched/").values())
+
+    for path in storage.rglob("*.stl"):
+        path.unlink()
+
+    commits = []
+
+    def count_commit(_connection) -> None:
+        commits.append(1)
+
+    event.listen(engine, "commit", count_commit)
+    try:
+        status = scan_storage_root()
+    finally:
+        event.remove(engine, "commit", count_commit)
+
+    rows = _library_rows("flagged-batched/")
+    assert len(rows) == total
+    assert all(asset.missing_since is not None for asset in rows.values())
+    assert status.failed == 0
+    assert len(commits) <= ceil(total / library_scan.BATCH_SIZE) + 2
+
+
+def test_folder_move_of_missing_asset_keeps_flag(temp_library: Path) -> None:
+    storage = temp_library
+    rel = "move-missing/model.stl"
+    path = _write_under(storage, rel, b"solid gone\n")
+
+    scan_storage_root()
+    asset_id = _library_rows("move-missing/")[rel].id
+    path.unlink()
+    scan_storage_root()
+    stamped = _asset_by_id(asset_id).missing_since
+    assert stamped is not None
+
+    with TestClient(main.app) as client:
+        headers = _auth_header(client)
+        created = client.post("/folders", json={"name": "move-missing-target"}, headers=headers)
+        assert created.status_code == 200, created.text
+        folder_id = created.json()["id"]
+        moved = client.post(f"/asset/{asset_id}/folder", json={"folder_id": folder_id}, headers=headers)
+        assert moved.status_code == 200, moved.text
+        moved_path = moved.json()["storage_path"]
+        assert moved.json()["missing_since"] == stamped
+
+    assert moved_path != rel
+    # The moved row points at a new path under the app's real storage root; the
+    # move rewrote storage_path without creating the (still missing) file.
+    assert not (storage / moved_path).exists()
+    assert not (STORAGE / moved_path).exists()
+    assert _asset_by_id(asset_id).missing_since == stamped
+
+    scan_storage_root()
+
+    rescanned = _asset_by_id(asset_id)
+    assert rescanned.storage_path == moved_path
+    assert rescanned.missing_since == stamped
+    assert not (storage / moved_path).exists()
+    assert not (STORAGE / moved_path).exists()
 
 
 def test_counters_account_for_every_library_file(temp_library: Path) -> None:
