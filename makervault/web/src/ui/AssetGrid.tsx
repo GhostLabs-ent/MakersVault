@@ -24,6 +24,7 @@ import LightBurnPreview from "./LightBurnPreview";
 import TagBadge from "./TagBadge";
 import TagInput from "./TagInput";
 import { colorForTag } from "./tagColors";
+import { refreshWindow } from "../lib/assetPaging";
 import { EngravingSettings, PreviewSettings, ResolvedTheme, SlicerSettings, engraverLabelFor, slicerLabelFor } from "../lib/settings";
 import { entriesFromDataTransfer, uploadEntriesToFolder } from "../lib/uploadTree";
 import { buildUploadEntriesFromZip, isZipFile, readZipEntries } from "../lib/zipUtils";
@@ -68,6 +69,7 @@ function rowsBatchSizeForWidth(width: number) {
 type Props = {
   folderId?: string | null;
   foldersVersion?: number;
+  assetsVersion?: number;
   onUnauthorized?: () => void;
   slicerSettings?: SlicerSettings;
   engravingSettings?: EngravingSettings;
@@ -75,12 +77,13 @@ type Props = {
   theme: ResolvedTheme;
 };
 
-type RefreshOpts = { tags?: string[]; search?: string };
+type RefreshOpts = { tags?: string[]; search?: string; keepLoadedPages?: boolean };
 type GroupBucket = { id: string; title: string; items: Asset[] };
 
 export default function AssetGrid({
   folderId,
   foldersVersion = 0,
+  assetsVersion = 0,
   onUnauthorized,
   slicerSettings,
   engravingSettings,
@@ -135,18 +138,21 @@ export default function AssetGrid({
 
   const refresh = async (opts: RefreshOpts = {}) => {
     setLoading(true);
-    setHasMore(false);
-    setOffset(0);
+    if (!opts.keepLoadedPages) {
+      setHasMore(false);
+      setOffset(0);
+    }
     const search = opts.search ?? q;
     const tags = opts.tags ?? activeTags;
     const targetFolderId = folderId || undefined;
+    const paging = refreshWindow(offset, pageSize, opts.keepLoadedPages);
     const [assetsResult, tagsResult] = await Promise.allSettled([
       listAssets({
         q: search,
         tags,
         folder_id: targetFolderId,
-        limit: pageSize,
-        offset: 0,
+        limit: paging.limit,
+        offset: paging.offset,
       }),
       listTags({
         q: search,
@@ -275,7 +281,7 @@ export default function AssetGrid({
       });
     }
     if (uploaded) {
-      await refresh();
+      await refresh({ keepLoadedPages: true });
     }
     if (failed.length) {
       alert(`Failed to upload: ${failed.join(", ")}`);
@@ -284,6 +290,20 @@ export default function AssetGrid({
   };
 
   useEffect(() => { refresh(); }, [folderId]);
+  // `assetsVersion` bumps when another view (upload, folder scan) changed
+  // assets. Refetch in place instead of remounting: the ref is seeded with the
+  // current version so mounting performs no extra fetch, and comparing values
+  // makes the effect idempotent under StrictMode's double mount.
+  // NOTE: `refresh` must NOT be added to this dep array (it is recreated every
+  // render and would loop); refetching on the version value alone is the point.
+  // Invariant: no call site bumps `assetsVersion` and `folderId` in the same
+  // commit; if one ever does, that is two refreshes.
+  const seenAssetsVersion = useRef(assetsVersion);
+  useEffect(() => {
+    if (seenAssetsVersion.current === assetsVersion) return;
+    seenAssetsVersion.current = assetsVersion;
+    refresh({ keepLoadedPages: true });
+  }, [assetsVersion]);
   useEffect(() => {
     (async () => {
       try {
@@ -422,11 +442,9 @@ export default function AssetGrid({
   };
 
   const toggleTag = (t: string) => {
-    setActiveTags(prev => {
-      const next = prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t];
-      refresh({ tags: next });
-      return next;
-    });
+    const next = activeTags.includes(t) ? activeTags.filter(x => x !== t) : [...activeTags, t];
+    setActiveTags(next);
+    refresh({ tags: next });
   };
 
   const toggleSelected = (id: string) => {
@@ -476,10 +494,7 @@ export default function AssetGrid({
       }
     }
     if (!aborted) {
-      await refresh();
-      if (bulkEdit) {
-        setSelectedIds(new Set());
-      }
+      await refresh({ keepLoadedPages: true });
     }
     if (failed.length) {
       alert(`Tag update failed for: ${failed.join(", ")}`);

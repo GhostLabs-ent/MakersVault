@@ -257,7 +257,15 @@ export default function Sidebar({
       await deleteFolder(id);
       await refresh();
       onFoldersChanged?.();
-      if (selectedId === id) onSelect(null);
+      if (selectedId === id) {
+        // Selecting the root refetches assets through the grid's folderId effect.
+        onSelect(null);
+      } else {
+        // Deleting another folder unassigns (and may rename) its assets, so the
+        // grid needs an explicit refetch; the selected-folder branch above must
+        // not also bump this counter or the grid would fetch twice.
+        onAssetsChanged?.();
+      }
     }
     catch (err) {
       handleError(err, "Failed to delete folder.");

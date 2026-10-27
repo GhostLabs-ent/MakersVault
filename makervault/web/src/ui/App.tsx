@@ -26,7 +26,10 @@ const logoForTheme = (theme: ResolvedTheme) => {
 
 export default function App() {
   const [token, setToken] = React.useState<string | null>(() => readToken());
-  const [nonce, setNonce] = React.useState(0);
+  // Generation counter for "assets changed". The grid consumes it to refetch in
+  // place; it no longer remounts the grid, so view state (search, sort,
+  // selection, loaded pages, scroll) survives uploads and mutations.
+  const [assetsVersion, setAssetsVersion] = React.useState(0);
   const [folderId, setFolderId] = React.useState<string | null>(null);
   const [folderVersion, setFolderVersion] = React.useState(0);
   const [health, setHealth] = React.useState<HealthInfo | null>(null);
@@ -79,7 +82,7 @@ export default function App() {
   }, []);
 
   const handleAssetsChanged = React.useCallback(() => {
-    setNonce(n => n + 1);
+    setAssetsVersion(n => n + 1);
   }, []);
 
   const handleSelectFolder = React.useCallback((id: string | null) => {
@@ -197,9 +200,9 @@ export default function App() {
         </header>
         {activeView === "library" ? (
           <AssetGrid
-            key={`${nonce + (folderId||'')}-${folderVersion}`}
             folderId={folderId}
             foldersVersion={folderVersion}
+            assetsVersion={assetsVersion}
             onUnauthorized={handleUnauthorized}
             slicerSettings={settings.slicer}
             engravingSettings={settings.engraving}
