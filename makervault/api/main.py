@@ -18,12 +18,12 @@ from sqlmodel import Session, select
 from starlette.concurrency import run_in_threadpool
 from starlette.middleware.cors import CORSMiddleware
 
+import bulk_service
 import folder_service
 import login_throttle as login_throttle_module
 import trash_service
 from asset_file_service import (
     backfill_prepared_print_metadata,
-    delete_all_asset_files,
     delete_prepared_file,
     delete_supporting_file,
     list_supporting_files,
@@ -35,12 +35,12 @@ from asset_service import (
     backfill_embedded_thumbnails,
     cleanup_asset,
     create_asset_record,
+    delete_asset_permanently,
     ensure_model_thumbnail,
     filename_for_model_name,
     finalize_asset_record,
     managed_asset_path,
-    move_asset_to_folder,
-    prune_empty_storage_dirs,
+    move_asset_to_folder_by_id,
     raise_asset_conflict,
     rename_asset_in_place,
     restore_moved_file,
@@ -80,6 +80,12 @@ from schemas import (
     AssetMetaUpdate,
     AssetOut,
     AssetRename,
+    BatchDeleteOut,
+    BatchDeleteRequest,
+    BatchFolderOut,
+    BatchFolderRequest,
+    BatchTagsOut,
+    BatchTagsRequest,
     DownloadRequest,
     FolderDeletePreviewOut,
     FolderIn,
@@ -768,6 +774,51 @@ def download_zip(body: DownloadRequest, background: BackgroundTasks, _: Optional
     return zip_assets_response(assets, download_name, background, folder_map)
 
 
+# Batch endpoints -----------------------------------------------
+# One request, one result per id. A failing item is reported in `failed` and the
+# rest still apply, so a partial success is a 200; only a request that could
+# change nothing at all (no ids, nothing to change, unknown folder) is a 400.
+
+
+def require_asset_ids(raw: List[str]) -> List[str]:
+    asset_ids = bulk_service.unique_asset_ids(raw)
+    if not asset_ids:
+        raise HTTPException(status_code=400, detail="asset_ids is required")
+    return asset_ids
+
+
+@app.post("/assets/batch/tags", response_model=BatchTagsOut)
+def batch_set_tags(body: BatchTagsRequest, _: Optional[str] = Depends(require_auth)):
+    asset_ids = require_asset_ids(body.asset_ids)
+    add_tags = [t.strip() for t in body.add_tags if t and t.strip()]
+    remove_tags = [t.strip() for t in body.remove_tags if t and t.strip()]
+    if not add_tags and not remove_tags:
+        raise HTTPException(status_code=400, detail="Provide add_tags or remove_tags")
+    updated, failed = bulk_service.update_tags(asset_ids, add_tags, remove_tags)
+    return BatchTagsOut(updated=[to_out(a) for a in updated], failed=failed)
+
+
+@app.post("/assets/batch/folder", response_model=BatchFolderOut)
+def batch_move_to_folder(body: BatchFolderRequest, _: Optional[str] = Depends(require_auth)):
+    asset_ids = require_asset_ids(body.asset_ids)
+    folder_id = body.folder_id or None
+    if folder_id:
+        # Validate once for the whole request: an unknown target is a bad request,
+        # not one failure per asset.
+        with Session(engine) as s:
+            if not s.get(Folder, folder_id):
+                raise HTTPException(status_code=400, detail="Folder not found")
+    updated, failed = bulk_service.move_to_folder(asset_ids, folder_id)
+    return BatchFolderOut(updated=[to_out(a) for a in updated], failed=failed)
+
+
+@app.post("/assets/batch/delete", response_model=BatchDeleteOut)
+def batch_delete_assets(body: BatchDeleteRequest, _: Optional[str] = Depends(require_auth)):
+    asset_ids = require_asset_ids(body.asset_ids)
+    deleted, failed = bulk_service.delete_assets(asset_ids)
+    return BatchDeleteOut(deleted=deleted, failed=failed)
+
+
 @app.post("/asset/{asset_id}/tags", response_model=AssetOut)
 def set_tags(asset_id: str, body: TagUpdate, _: Optional[str] = Depends(require_auth)):
     with Session(engine) as s:
@@ -866,28 +917,7 @@ def rename_asset(asset_id: str, body: AssetRename, _: Optional[str] = Depends(re
 
 @app.delete("/asset/{asset_id}")
 def delete_asset(asset_id: str, _: Optional[str] = Depends(require_auth)):
-    managed_path: Optional[Path] = None
-    with Session(engine) as s:
-        a = s.get(Asset, asset_id)
-        if not a:
-            raise HTTPException(404)
-        managed_path = managed_asset_path(a)
-    delete_all_asset_files(asset_id)
-    with Session(engine) as s:
-        a = s.get(Asset, asset_id)
-        if not a:
-            raise HTTPException(404)
-        s.delete(a)
-        s.commit()
-    # best-effort cleanup
-    try:
-        if managed_path and managed_path.exists():
-            parent = managed_path.parent
-            managed_path.unlink(missing_ok=True)
-            prune_empty_storage_dirs(parent)
-        (THUMBS / f"{asset_id}.jpg").unlink(missing_ok=True)
-    except Exception:
-        pass
+    delete_asset_permanently(asset_id)
     return {"ok": True}
 
 
@@ -983,33 +1013,4 @@ def purge_trash(older_than_days: Optional[int] = Query(None, ge=0), _: Optional[
 
 @app.post("/asset/{asset_id}/folder", response_model=AssetOut)
 def update_asset_folder(asset_id: str, body: AssetFolderUpdate, _: Optional[str] = Depends(require_auth)):
-    with Session(engine) as s:
-        asset = s.get(Asset, asset_id)
-        if not asset:
-            raise HTTPException(404)
-        old_path = managed_asset_path(asset)
-        folder_id = body.folder_id or None
-        if folder_id:
-            folder = s.get(Folder, folder_id)
-            if not folder:
-                raise HTTPException(status_code=400, detail="Folder not found")
-            unique_model_name(s, asset.name, folder.id, exclude_id=asset.id)
-        else:
-            unique_model_name(s, asset.name, None, exclude_id=asset.id)
-        # Move before assigning folder_id: an autoflush must not expose the moving
-        # asset as a witness for its own target directory.
-        moved = move_asset_to_folder(asset, s, old_path, folder_id)
-        asset.folder_id = folder_id
-        new_path = managed_asset_path(asset)
-        # Rollback expires the row, so the conflict classifier gets locals.
-        conflict_name = asset.name
-        new_relative = asset.storage_path if moved else None
-        s.add(asset)
-        try:
-            s.commit()
-        except IntegrityError:
-            s.rollback()
-            restore_moved_file(moved, old_path, new_path)
-            raise_asset_conflict(conflict_name, folder_id, new_relative, exclude_id=asset_id)
-        s.refresh(asset)
-        return to_out(asset)
+    return to_out(move_asset_to_folder_by_id(asset_id, body.folder_id))

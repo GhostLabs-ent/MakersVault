@@ -264,6 +264,7 @@ In the future there are plans to add support for more websites, but in this curr
 
 <h3>Batch Tagging and Deleting</h3>
 <p>The batch tagging and batch deleting feature utilizes the available select button on each individual render tile. Simply select as many models as needed and applying a tag to one will apply the tag to all selected. The same logic applies to batch deleting, any selected models will be deleted by utilizing the single delete button on any tile. </p>
+<p>Selecting one or more models also reveals a bulk action bar above the grid. It applies to exactly the models that are selected and offers move to folder, add tags, remove tags, download as a single ZIP, and permanent deletion behind an explicit confirmation. Each action is one batched request rather than one per model, shows progress while it runs, and lists any per-model failures inline; the models that succeeded stay changed and nothing is retried automatically.</p>
 <h4>Batch Tagging</h4>
 
 <img width="1892" height="930" alt="Screenshot 2025-12-31 103532" src="https://github.com/user-attachments/assets/20b104e6-53ad-4019-b6e7-252a5e3a2cbf" />

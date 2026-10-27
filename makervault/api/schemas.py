@@ -198,3 +198,40 @@ class LibraryScanStatusOut(BaseModel):
   missing: int = 0
   failed: int = 0
   errors: List[str] = []
+
+
+class BatchFailure(BaseModel):
+  id: str
+  code: str      # stable slug: not_found | conflict | invalid | error
+  status: int    # mirrors the equivalent single-item HTTP status
+  error: str     # human-readable detail
+
+
+class BatchTagsRequest(BaseModel):
+  asset_ids: List[str] = []
+  add_tags: List[str] = []
+  remove_tags: List[str] = []
+
+
+class BatchTagsOut(BaseModel):
+  updated: List[AssetOut] = []
+  failed: List[BatchFailure] = []
+
+
+class BatchFolderRequest(BaseModel):
+  asset_ids: List[str] = []
+  folder_id: Optional[str] = None
+
+
+class BatchFolderOut(BaseModel):
+  updated: List[AssetOut] = []
+  failed: List[BatchFailure] = []
+
+
+class BatchDeleteRequest(BaseModel):
+  asset_ids: List[str] = []
+
+
+class BatchDeleteOut(BaseModel):
+  deleted: List[str] = []
+  failed: List[BatchFailure] = []

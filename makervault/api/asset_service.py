@@ -16,6 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 import folder_paths
+from asset_file_service import delete_all_asset_files
 from config import IMPORT_MAX_BYTES
 from db import STORAGE, THUMBS, engine
 from file_utils import build_import_filename, mime_from_content_type, sanitize_filename
@@ -354,6 +355,78 @@ def move_asset_to_folder(asset: Asset, session: Session, old_path: Path, folder_
     moved = move_managed_file(old_path, new_path)
     asset.storage_path = _relative_storage_path(new_path)
     return moved
+
+
+def move_asset_to_folder_by_id(asset_id: str, folder_id: Optional[str]) -> Asset:
+    """Move one asset into a folder: the single-item and batch routes share this.
+
+    Order matters and is why this is not inlined in the routes: the no-clobber
+    move must happen before ``folder_id`` is assigned, otherwise an autoflush
+    exposes the moving asset as a witness for its own target directory, and a
+    row update that loses a uniqueness race must put the moved bytes back.
+    """
+    with Session(engine) as s:
+        asset = s.get(Asset, asset_id)
+        if not asset:
+            raise HTTPException(404)
+        old_path = managed_asset_path(asset)
+        folder_id = folder_id or None
+        if folder_id:
+            folder = s.get(Folder, folder_id)
+            if not folder:
+                raise HTTPException(status_code=400, detail="Folder not found")
+            unique_model_name(s, asset.name, folder.id, exclude_id=asset.id)
+        else:
+            unique_model_name(s, asset.name, None, exclude_id=asset.id)
+        # Move before assigning folder_id: an autoflush must not expose the moving
+        # asset as a witness for its own target directory.
+        moved = move_asset_to_folder(asset, s, old_path, folder_id)
+        asset.folder_id = folder_id
+        new_path = managed_asset_path(asset)
+        # Rollback expires the row, so the conflict classifier gets locals.
+        conflict_name = asset.name
+        new_relative = asset.storage_path if moved else None
+        s.add(asset)
+        try:
+            s.commit()
+        except IntegrityError:
+            s.rollback()
+            restore_moved_file(moved, old_path, new_path)
+            raise_asset_conflict(conflict_name, folder_id, new_relative, exclude_id=asset_id)
+        s.refresh(asset)
+        return asset
+
+
+def delete_asset_permanently(asset_id: str) -> None:
+    """Delete one asset and its files: the single-item and batch routes share this.
+
+    Two sessions on purpose: the dependent ``AssetFile`` rows go first, and the
+    row is re-read before deletion so a concurrent delete surfaces as a 404
+    rather than deleting a row this call never saw. The unlink/prune is
+    best-effort - bytes that cannot be removed must not stop the row from going.
+    """
+    managed_path: Optional[Path] = None
+    with Session(engine) as s:
+        a = s.get(Asset, asset_id)
+        if not a:
+            raise HTTPException(404)
+        managed_path = managed_asset_path(a)
+    delete_all_asset_files(asset_id)
+    with Session(engine) as s:
+        a = s.get(Asset, asset_id)
+        if not a:
+            raise HTTPException(404)
+        s.delete(a)
+        s.commit()
+    # best-effort cleanup
+    try:
+        if managed_path and managed_path.exists():
+            parent = managed_path.parent
+            managed_path.unlink(missing_ok=True)
+            prune_empty_storage_dirs(parent)
+        (THUMBS / f"{asset_id}.jpg").unlink(missing_ok=True)
+    except Exception:
+        pass
 
 
 def save_thumb_image(asset_id: str, image: Image.Image) -> Optional[str]:

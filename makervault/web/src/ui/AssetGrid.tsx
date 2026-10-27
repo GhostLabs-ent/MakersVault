@@ -2,9 +2,13 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Asset,
   AssetFile,
+  BatchFailure,
   PreparedPrint,
   Folder,
   UnauthorizedError,
+  batchDeleteAssets,
+  batchMoveAssets,
+  batchSetTags,
   deleteAsset,
   fileUrl,
   listAssets,
@@ -25,9 +29,19 @@ import ModelViewer, { ModelSnapshot } from "./ModelViewer";
 import LightBurnPreview from "./LightBurnPreview";
 import TagBadge from "./TagBadge";
 import TagInput from "./TagInput";
+import BulkActionBar from "./BulkActionBar";
 import { colorForTag } from "./tagColors";
 import { refreshWindow } from "../lib/assetPaging";
 import { useStableCallback } from "../lib/useStableCallback";
+import {
+  BatchOutcome,
+  applyBatchOutcome,
+  applyFolderLocally,
+  applyTagsLocally,
+  dropIds,
+  failureLines,
+  unionTags,
+} from "../lib/bulkUi";
 import { GRID_GAP_PX, chunkRows, colsForWidth } from "../lib/virtualGrid";
 import { useVirtualRows } from "./useVirtualRows";
 import { formatBytes } from "../lib/format";
@@ -175,6 +189,9 @@ export default function AssetGrid({
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDownloading, setBulkDownloading] = useState<string | null>(null);
+  const [bulkBusy, setBulkBusy] = useState<{ label: string; count: number } | null>(null);
+  const [bulkFailures, setBulkFailures] = useState<BatchFailure[] | null>(null);
+  const [bulkRequestError, setBulkRequestError] = useState<string | null>(null);
   const [pageSize] = useState<number>(() => {
     if (typeof window === "undefined") return ROWS_PER_BATCH;
     return rowsBatchSizeForWidth(window.innerWidth);
@@ -393,6 +410,11 @@ export default function AssetGrid({
     return map;
   }, [items]);
 
+  const bulkFailureLabels = useMemo(
+    () => failureLines(bulkFailures ?? [], items),
+    [bulkFailures, items],
+  );
+
   const folderById = useMemo(() => {
     const map: Record<string, Folder> = {};
     folders.forEach(f => { map[f.id] = f; });
@@ -547,6 +569,156 @@ export default function AssetGrid({
     });
   });
 
+  const clearSelection = useStableCallback(() => {
+    setSelectedIds(new Set());
+  });
+
+  const selectAllLoaded = useStableCallback(() => {
+    setSelectedIds(new Set(items.map(item => item.id)));
+  });
+
+  const dismissBulkFailures = useStableCallback(() => {
+    setBulkFailures(null);
+    setBulkRequestError(null);
+  });
+
+  // Snapshot-based: the loaded window and the paging cursor are recomputed from
+  // what was on screen before the action, so rollback cannot drift. Failures
+  // stay selected so their per-asset explanation remains visible.
+  const finishBulk = (before: Asset[], startOffset: number, outcome: BatchOutcome) => {
+    const { items: next, offsetDelta } = applyBatchOutcome(before, outcome);
+    setItems(next);
+    setOffset(Math.max(0, startOffset - offsetDelta));
+    setBulkFailures(outcome.failed.length ? outcome.failed : null);
+    if (outcome.kind !== "delete") setAllTags(prev => unionTags(prev, outcome.updated));
+    const failedIds = outcome.failed
+      .map(failure => failure.id)
+      .filter(id => next.some(item => item.id === id));
+    if (failedIds.length) {
+      setSelectedIds(prev => new Set([...prev, ...failedIds]));
+    }
+  };
+
+  // A whole-request failure (bad body, 400, network) rewinds to the snapshot and
+  // reports through the bar instead of an alert.
+  const rollbackBulk = (
+    before: Asset[],
+    startOffset: number,
+    ids: string[],
+    err: unknown,
+    fallback: string,
+  ) => {
+    console.error(err);
+    setItems(before);
+    setOffset(startOffset);
+    const present = new Set(before.map(item => item.id));
+    setSelectedIds(new Set(ids.filter(id => present.has(id))));
+    setBulkRequestError(err instanceof Error ? err.message : fallback);
+  };
+
+  const bulkDelete = useStableCallback(async () => {
+    if (bulkBusy || selectedIds.size === 0) return;
+    const before = items;
+    const startOffset = offset;
+    const ids = Array.from(selectedIds);
+    const droppedCount = before.filter(item => selectedIds.has(item.id)).length;
+    setBulkFailures(null);
+    setBulkRequestError(null);
+    setBulkBusy({ label: "Deleting", count: ids.length });
+    setItems(dropIds(before, ids));
+    setOffset(Math.max(0, startOffset - droppedCount));
+    try {
+      const result = await batchDeleteAssets(ids);
+      finishBulk(before, startOffset, {
+        kind: "delete",
+        deleted: result.deleted,
+        failed: result.failed,
+        view: { folderId, activeTags },
+      });
+    } catch (err) {
+      if (err instanceof UnauthorizedError) {
+        onUnauthorized?.();
+        setBulkRequestError("You were signed out. The delete may still have been applied.");
+      } else {
+        rollbackBulk(before, startOffset, ids, err, "Bulk delete failed.");
+      }
+    } finally {
+      setBulkBusy(null);
+    }
+  });
+
+  const bulkMoveAssets = useStableCallback(async (targetFolderId: string | null) => {
+    if (bulkBusy || selectedIds.size === 0) return;
+    const before = items;
+    const startOffset = offset;
+    const ids = Array.from(selectedIds);
+    setBulkFailures(null);
+    setBulkRequestError(null);
+    setBulkBusy({ label: "Moving", count: ids.length });
+    setItems(applyFolderLocally(before, ids, targetFolderId));
+    setOffset(startOffset);
+    try {
+      const result = await batchMoveAssets(ids, targetFolderId);
+      finishBulk(before, startOffset, {
+        kind: "folder",
+        updated: result.updated,
+        failed: result.failed,
+        view: { folderId, activeTags },
+      });
+    } catch (err) {
+      if (err instanceof UnauthorizedError) {
+        onUnauthorized?.();
+        setBulkRequestError("You were signed out. The move may still have been applied.");
+      } else {
+        rollbackBulk(before, startOffset, ids, err, "Bulk move failed.");
+      }
+    } finally {
+      setBulkBusy(null);
+    }
+  });
+
+  const bulkSetTags = useStableCallback(async (add: string[], remove: string[]) => {
+    if (bulkBusy || selectedIds.size === 0) return;
+    const before = items;
+    const startOffset = offset;
+    const ids = Array.from(selectedIds);
+    setBulkFailures(null);
+    setBulkRequestError(null);
+    setBulkBusy({ label: "Updating tags", count: ids.length });
+    setItems(applyTagsLocally(before, ids, add, remove));
+    setOffset(startOffset);
+    try {
+      const result = await batchSetTags(ids, { add, remove });
+      finishBulk(before, startOffset, {
+        kind: "tags",
+        updated: result.updated,
+        failed: result.failed,
+        view: { folderId, activeTags },
+      });
+    } catch (err) {
+      if (err instanceof UnauthorizedError) {
+        onUnauthorized?.();
+        setBulkRequestError("You were signed out. The tag change may still have been applied.");
+      } else {
+        rollbackBulk(before, startOffset, ids, err, "Bulk tag update failed.");
+      }
+    } finally {
+      setBulkBusy(null);
+    }
+  });
+
+  const bulkMoveToFolder = useStableCallback(async (targetFolderId: string | null) => {
+    await bulkMoveAssets(targetFolderId);
+  });
+
+  const bulkAddTags = useStableCallback(async (tags: string[]) => {
+    await bulkSetTags(tags, []);
+  });
+
+  const bulkRemoveTags = useStableCallback(async (tags: string[]) => {
+    await bulkSetTags([], tags);
+  });
+
   const filenameFromDisposition = (res: Response, fallback: string) => {
     const dispo = res.headers.get("content-disposition") || "";
     const match = dispo.match(/filename="?([^";]+)"?/i);
@@ -567,28 +739,21 @@ export default function AssetGrid({
   };
 
   const onSaveTags = useStableCallback(async (id: string, tags: string[]) => {
-    const bulkEdit = selectedIds.has(id) && selectedIds.size > 1;
-    const targets = bulkEdit ? Array.from(selectedIds) : [id];
-    const failed: string[] = [];
-    let aborted = false;
-    for (const targetId of targets) {
-      try {
-        await setTags(targetId, tags);
-      } catch (err) {
-        if (err instanceof UnauthorizedError) {
-          onUnauthorized?.();
-          aborted = true;
-          break;
-        }
-        console.error(err);
-        failed.push(itemById[targetId]?.filename || targetId);
-      }
+    const item = itemById[id];
+    // Editing the tags of a selected card while several cards are selected is a
+    // bulk edit: one request for the whole selection, not one per card.
+    if (item && selectedIds.has(id) && selectedIds.size > 1) {
+      const add = tags.filter(tag => !item.tags.includes(tag));
+      const remove = item.tags.filter(tag => !tags.includes(tag));
+      if (!add.length && !remove.length) return;
+      await bulkSetTags(add, remove);
+      return;
     }
-    if (!aborted) {
+    try {
+      await setTags(id, tags);
       await refresh({ keepLoadedPages: true });
-    }
-    if (failed.length) {
-      alert(`Tag update failed for: ${failed.join(", ")}`);
+    } catch (err) {
+      handleApiError(err, "Tag update failed.");
     }
   });
 
@@ -712,29 +877,21 @@ export default function AssetGrid({
     if (!confirm(confirmLabel)) {
       return;
     }
+    // A multi-card delete is one batch request; the single-card path is the
+    // pre-existing per-asset call.
+    if (targets.length > 1) {
+      await bulkDelete();
+      return;
+    }
     setDeletingId(asset.id);
-    const failed: string[] = [];
-    let aborted = false;
-    for (const targetId of targets) {
-      try {
-        await deleteAsset(targetId);
-      } catch (err) {
-        if (err instanceof UnauthorizedError) {
-          onUnauthorized?.();
-          aborted = true;
-          break;
-        }
-        console.error(err);
-        failed.push(itemById[targetId]?.filename || targetId);
-      }
-    }
-    if (!aborted) {
+    try {
+      await deleteAsset(asset.id);
       await refresh();
+    } catch (err) {
+      handleApiError(err, "Delete failed.");
+    } finally {
+      setDeletingId(null);
     }
-    if (failed.length) {
-      alert(`Delete failed for: ${failed.join(", ")}`);
-    }
-    setDeletingId(null);
   });
 
   const forgetMissingAsset = useStableCallback(async (asset: Asset) => {
@@ -839,6 +996,22 @@ export default function AssetGrid({
         </div>
       )}
       <div className="flex flex-col gap-4">
+      <BulkActionBar
+        count={selectedIds.size}
+        folderOptions={folderOptions}
+        busy={bulkBusy}
+        failures={bulkFailures}
+        failureLabels={bulkFailureLabels}
+        requestError={bulkRequestError}
+        onMove={bulkMoveToFolder}
+        onAddTags={bulkAddTags}
+        onRemoveTags={bulkRemoveTags}
+        onDownload={downloadSelected}
+        onDelete={bulkDelete}
+        onClear={clearSelection}
+        onSelectAll={selectAllLoaded}
+        onDismissFailures={dismissBulkFailures}
+      />
       <div className="flex items-center gap-3 flex-wrap">
         <AssetSearch
           onQueryChange={query => { queryRef.current = query; }}

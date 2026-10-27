@@ -100,6 +100,29 @@ export type ListAssetsResult = {
   nextOffset?: number;
 };
 
+/** Per-asset failure from one of the bulk endpoints (`code` is a stable slug). */
+export type BatchFailure = {
+  id: string;
+  code: string;
+  status: number;
+  error: string;
+};
+
+export type BatchTagsResult = {
+  updated: Asset[];
+  failed: BatchFailure[];
+};
+
+export type BatchFolderResult = {
+  updated: Asset[];
+  failed: BatchFailure[];
+};
+
+export type BatchDeleteResult = {
+  deleted: string[];
+  failed: BatchFailure[];
+};
+
 export type MountImportSettings = {
   enabled: boolean;
   copy_files: boolean;
@@ -373,6 +396,30 @@ export async function setTags(id: string, tags: string[]) {
   return res.json();
 }
 
+/**
+ * Adds and/or removes tags on many assets in one request. The server answers
+ * 200 with per-asset results, so a partial failure is not a thrown error.
+ */
+export async function batchSetTags(
+  asset_ids: string[],
+  change: { add?: string[]; remove?: string[] },
+): Promise<BatchTagsResult> {
+  const res = await fetch(`${apiBase()}/assets/batch/tags`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      asset_ids,
+      add_tags: change.add ?? [],
+      remove_tags: change.remove ?? [],
+    }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Bulk tag update failed"));
+  }
+  return res.json();
+}
+
 export async function uploadGeneratedThumbnail(id: string, image: Blob): Promise<Asset> {
   const body = new FormData();
   body.set("file", image, "thumbnail.png");
@@ -452,6 +499,20 @@ export async function deleteAsset(id: string) {
   return res.json();
 }
 
+/** Deletes many assets in one request; per-asset results are reported, not thrown. */
+export async function batchDeleteAssets(asset_ids: string[]): Promise<BatchDeleteResult> {
+  const res = await fetch(`${apiBase()}/assets/batch/delete`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ asset_ids }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Bulk delete failed"));
+  }
+  return res.json();
+}
+
 export async function renameAsset(id: string, filename: string) {
   const res = await fetch(`${apiBase()}/asset/${id}/rename`, {
     method: "POST",
@@ -471,6 +532,23 @@ export async function updateAssetFolder(id: string, folder_id: string | null) {
   if (res.status === 401) throw new UnauthorizedError();
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Folder update failed"));
+  }
+  return res.json();
+}
+
+/** Moves many assets to a folder (or to unassigned with `null`) in one request. */
+export async function batchMoveAssets(
+  asset_ids: string[],
+  folder_id: string | null,
+): Promise<BatchFolderResult> {
+  const res = await fetch(`${apiBase()}/assets/batch/folder`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ asset_ids, folder_id }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Bulk folder update failed"));
   }
   return res.json();
 }

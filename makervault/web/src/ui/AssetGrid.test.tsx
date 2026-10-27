@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createRef } from "react";
 
 import type { Asset } from "../lib/api";
@@ -15,6 +15,9 @@ import {
 
 vi.mock("../lib/api", () => ({
   UnauthorizedError: class UnauthorizedError extends Error {},
+  batchDeleteAssets: vi.fn(),
+  batchMoveAssets: vi.fn(),
+  batchSetTags: vi.fn(),
   deleteAsset: vi.fn(),
   deleteAssetFile: vi.fn(),
   deletePreparedPrint: vi.fn(),
@@ -43,14 +46,24 @@ vi.mock("./LightBurnPreview", () => ({
 
 import AssetGrid from "./AssetGrid";
 import {
+  batchDeleteAssets,
+  batchMoveAssets,
+  batchSetTags,
   deleteAsset,
   fileUrl,
   getLibraryScanStatus,
   listAssets,
+  listFolders,
+  setTags,
   startLibraryScan,
 } from "../lib/api";
 
 const listAssetsMock = vi.mocked(listAssets);
+const listFoldersMock = vi.mocked(listFolders);
+const batchDeleteAssetsMock = vi.mocked(batchDeleteAssets);
+const batchMoveAssetsMock = vi.mocked(batchMoveAssets);
+const batchSetTagsMock = vi.mocked(batchSetTags);
+const setTagsMock = vi.mocked(setTags);
 const fileUrlMock = vi.mocked(fileUrl);
 const deleteAssetMock = vi.mocked(deleteAsset);
 const startLibraryScanMock = vi.mocked(startLibraryScan);
@@ -946,5 +959,218 @@ describe("AssetGrid missing assets", () => {
 
     await waitFor(() => expect(startLibraryScanMock).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(callsBefore + 1));
+  });
+});
+
+describe("AssetGrid bulk actions", () => {
+  beforeEach(() => {
+    listAssetsMock.mockReset();
+    listAssetsMock.mockResolvedValue({ items: assets, hasMore: false });
+    listFoldersMock.mockReset();
+    listFoldersMock.mockResolvedValue([]);
+    batchDeleteAssetsMock.mockReset();
+    batchMoveAssetsMock.mockReset();
+    batchSetTagsMock.mockReset();
+    deleteAssetMock.mockReset();
+    setTagsMock.mockReset();
+    fileUrlMock.mockClear();
+  });
+
+  afterEach(cleanup);
+
+  /** Clicks the first `count` card checkboxes (flat grid order: filename asc). */
+  function selectCards(count: number): HTMLInputElement[] {
+    const boxes = (screen.getAllByRole("checkbox") as HTMLInputElement[]).slice(0, count);
+    for (const box of boxes) fireEvent.click(box);
+    return boxes;
+  }
+
+  function bulkBar() {
+    return within(screen.getByTestId("bulk-action-bar"));
+  }
+
+  async function waitForGrid() {
+    await screen.findByText("Calibration cube");
+    await waitFor(() => expect(screen.queryByText("Loading...")).toBeNull());
+  }
+
+  it("bulk delete issues one request for the whole selection", async () => {
+    batchDeleteAssetsMock.mockImplementation(async ids => ({ deleted: ids, failed: [] }));
+
+    render(<AssetGrid theme="dark" />);
+    await waitForGrid();
+    const callsBefore = listAssetsMock.mock.calls.length;
+
+    selectCards(3);
+    fireEvent.click(bulkBar().getByRole("button", { name: "Delete" }));
+    fireEvent.click(bulkBar().getByRole("button", { name: "Delete permanently" }));
+
+    await waitFor(() => expect(batchDeleteAssetsMock).toHaveBeenCalledTimes(1));
+    const requested = batchDeleteAssetsMock.mock.calls[0][0];
+    expect(requested).toHaveLength(3);
+    expect(requested).toEqual(expect.arrayContaining(["a1", "b2", "c3"]));
+    expect(deleteAssetMock).not.toHaveBeenCalled();
+
+    await waitFor(() => expect(screen.queryByText("Calibration cube")).toBeNull());
+    expect(screen.queryByText("Spool holder")).toBeNull();
+    expect(screen.queryByText("Engraved sign")).toBeNull();
+    // The O(1) proof: no refetch, and no per-asset calls.
+    expect(listAssetsMock.mock.calls.length).toBe(callsBefore);
+  });
+
+  it("bulk delete rolls back only the failed asset and lists it", async () => {
+    batchDeleteAssetsMock.mockResolvedValue({
+      deleted: ["a1"],
+      failed: [
+        { id: "b2", code: "conflict", status: 409, error: "Storage path already exists: X" },
+      ],
+    });
+
+    render(<AssetGrid theme="dark" />);
+    await waitForGrid();
+    const callsBefore = listAssetsMock.mock.calls.length;
+
+    selectCards(3);
+    fireEvent.click(bulkBar().getByRole("button", { name: "Delete" }));
+    fireEvent.click(bulkBar().getByRole("button", { name: "Delete permanently" }));
+
+    await waitFor(() => expect(screen.queryByText("Calibration cube")).toBeNull());
+    expect(screen.getByText("Spool holder")).toBeTruthy();
+
+    const failures = await screen.findByTestId("bulk-failures");
+    const lines = within(failures).getAllByRole("listitem");
+    expect(lines).toHaveLength(1);
+    expect(lines[0].getAttribute("data-failed-id")).toBe("b2");
+    expect(lines[0].textContent).toBe("spool-holder.stl — Storage path already exists: X");
+
+    expect(listAssetsMock.mock.calls.length).toBe(callsBefore);
+  });
+
+  it("a rejected bulk delete restores the optimistic rows", async () => {
+    batchDeleteAssetsMock.mockRejectedValue(new Error("Bulk delete failed: server exploded"));
+
+    render(<AssetGrid theme="dark" />);
+    await waitForGrid();
+    const callsBefore = listAssetsMock.mock.calls.length;
+
+    selectCards(3);
+    fireEvent.click(bulkBar().getByRole("button", { name: "Delete" }));
+    fireEvent.click(bulkBar().getByRole("button", { name: "Delete permanently" }));
+
+    await waitFor(() => expect(batchDeleteAssetsMock).toHaveBeenCalledTimes(1));
+
+    // The optimistic drop is undone: every row is back on screen.
+    await waitFor(() => expect(screen.getByText("Calibration cube")).toBeTruthy());
+    expect(screen.getByText("Spool holder")).toBeTruthy();
+    expect(screen.getByText("Engraved sign")).toBeTruthy();
+
+    // The whole-request failure is reported in the bar, not via alert().
+    await waitFor(() =>
+      expect(bulkBar().getByRole("alert").textContent).toBe("Bulk delete failed: server exploded"),
+    );
+
+    // Rollback is local: no refetch, and no per-asset deletes.
+    expect(listAssetsMock.mock.calls.length).toBe(callsBefore);
+    expect(deleteAssetMock).not.toHaveBeenCalled();
+  });
+
+  it("a bulk delete rewinds the paging cursor", async () => {
+    const loaded = makeSyntheticBatch(5);
+    listAssetsMock.mockImplementation(async params => {
+      if ((params?.offset ?? 0) === 0) return { items: loaded, hasMore: true };
+      return { items: [], hasMore: false };
+    });
+    batchDeleteAssetsMock.mockImplementation(async ids => ({ deleted: ids, failed: [] }));
+
+    render(<AssetGrid theme="dark" />);
+    await screen.findByText("Asset 1");
+    await waitFor(() => expect(screen.queryByText("Loading...")).toBeNull());
+    expect(callQuery(0).offset).toBe(0);
+
+    selectCards(2);
+    fireEvent.click(bulkBar().getByRole("button", { name: "Delete" }));
+    fireEvent.click(bulkBar().getByRole("button", { name: "Delete permanently" }));
+    await waitFor(() => expect(batchDeleteAssetsMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.queryByText("Asset 1")).toBeNull());
+
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+
+    await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(2));
+    expect(callQuery(1).offset).toBe(3);
+    expect(callQuery(1).limit).toBe(callQuery(0).limit);
+  });
+
+  it("bulk tag add is one request and updates rows in place", async () => {
+    batchSetTagsMock.mockImplementation(async (ids, change) => ({
+      updated: assets
+        .filter(item => ids.includes(item.id))
+        .map(item => ({ ...item, tags: [...item.tags, ...(change.add ?? [])] })),
+      failed: [],
+    }));
+
+    render(<AssetGrid theme="dark" />);
+    await waitForGrid();
+    const callsBefore = listAssetsMock.mock.calls.length;
+
+    selectCards(3);
+    const bar = bulkBar();
+    fireEvent.change(bar.getByRole("textbox", { name: "Tags" }), {
+      target: { value: "bulk" },
+    });
+    fireEvent.click(bar.getByRole("button", { name: "Add tags" }));
+
+    await waitFor(() => expect(batchSetTagsMock).toHaveBeenCalledTimes(1));
+    const [ids, change] = batchSetTagsMock.mock.calls[0];
+    expect(ids).toHaveLength(3);
+    expect(ids).toEqual(expect.arrayContaining(["a1", "b2", "c3"]));
+    expect(change).toEqual({ add: ["bulk"], remove: [] });
+    expect(setTagsMock).not.toHaveBeenCalled();
+
+    // One badge per card (the filter chip row also gains the new tag, so count
+    // card badges only).
+    await waitFor(() =>
+      expect(screen.getAllByText("bulk").filter(el => el.tagName === "SPAN")).toHaveLength(3),
+    );
+    expect(listAssetsMock.mock.calls.length).toBe(callsBefore);
+  });
+
+  it("moving the selection out of the viewed folder hides the rows without a refetch", async () => {
+    const folderAssets: Asset[] = [
+      { ...assets[0], folder_id: "f1" },
+      { ...assets[1], folder_id: "f1" },
+    ];
+    listAssetsMock.mockResolvedValue({ items: folderAssets, hasMore: false });
+    listFoldersMock.mockResolvedValue([
+      { id: "f1", name: "One", tags: [] },
+      { id: "f2", name: "Two", tags: [] },
+    ]);
+    batchMoveAssetsMock.mockImplementation(async (ids, folderId) => ({
+      updated: folderAssets
+        .filter(item => ids.includes(item.id))
+        .map(item => ({ ...item, folder_id: folderId })),
+      failed: [],
+    }));
+
+    renderHarness({ folderId: "f1" });
+    await screen.findByText("Calibration cube");
+    await waitFor(() => expect(listFoldersMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.queryByText("Loading...")).toBeNull());
+    const callsBefore = listAssetsMock.mock.calls.length;
+
+    selectCards(2);
+    const bar = bulkBar();
+    await waitFor(() => expect(bar.getByRole("option", { name: "Two" })).toBeTruthy());
+    fireEvent.change(bar.getByRole("combobox", { name: "Target folder" }), {
+      target: { value: "f2" },
+    });
+    fireEvent.click(bar.getByRole("button", { name: "Move" }));
+
+    await waitFor(() => expect(batchMoveAssetsMock).toHaveBeenCalledTimes(1));
+    expect(batchMoveAssetsMock.mock.calls[0][1]).toBe("f2");
+    expect(batchMoveAssetsMock.mock.calls[0][0]).toEqual(expect.arrayContaining(["a1", "b2"]));
+
+    await waitFor(() => expect(screen.queryByText("Calibration cube")).toBeNull());
+    expect(screen.queryByText("Spool holder")).toBeNull();
+    expect(listAssetsMock.mock.calls.length).toBe(callsBefore);
   });
 });
