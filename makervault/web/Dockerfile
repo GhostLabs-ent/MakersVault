@@ -4,8 +4,11 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --no-audit --no-fund
 
-FROM dependencies AS test
+FROM dependencies AS lint
 COPY . .
+RUN npm run lint
+
+FROM lint AS test
 RUN npm run verify
 CMD ["npm", "run", "verify"]
 

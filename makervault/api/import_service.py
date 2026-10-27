@@ -19,9 +19,9 @@ from import_resolvers import (
     printables_html_headers,
     resolve_makerworld_cookie,
     resolve_makerworld_download_url,
+    resolve_printables_download_url,
     resolve_thingiverse_cookie,
     resolve_thingiverse_download_url,
-    resolve_printables_download_url,
     thingiverse_html_headers,
 )
 from schemas import ImportRequest
@@ -50,9 +50,9 @@ def open_import_response(url: str, body: ImportRequest, referer: Optional[str] =
     try:
         resp = urlopen(req, timeout=IMPORT_TIMEOUT_SECONDS)
     except HTTPError as err:
-        raise HTTPException(status_code=err.code or 400, detail=f"Failed to fetch URL: {err.reason}")
-    except URLError:
-        raise HTTPException(status_code=400, detail="Failed to reach the provided URL")
+        raise HTTPException(status_code=err.code or 400, detail=f"Failed to fetch URL: {err.reason}") from err
+    except URLError as err:
+        raise HTTPException(status_code=400, detail="Failed to reach the provided URL") from err
 
     final_url = resp.geturl()
     validate_remote_url(final_url)

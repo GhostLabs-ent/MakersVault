@@ -10,10 +10,10 @@ from asset_service import cleanup_asset, create_asset_record, ensure_model_thumb
 from config import (
     DEFAULT_MOUNT_IMPORT_EXTS,
     IMPORT_MAX_BYTES,
+    MOUNT_IMPORT_COPY,
     MOUNT_IMPORT_EXTS_RAW,
     MOUNT_IMPORT_INCLUDE_HIDDEN,
     MOUNT_IMPORT_PATH,
-    MOUNT_IMPORT_COPY,
 )
 from db import STORAGE, engine
 from file_utils import guess_mime_from_path, sanitize_filename

@@ -175,7 +175,7 @@ export default function Sidebar({
 
   const filenameFromDisposition = (res: Response, fallback: string) => {
     const dispo = res.headers.get("content-disposition") || "";
-    const match = dispo.match(/filename="?([^\";]+)"?/i);
+    const match = dispo.match(/filename="?([^";]+)"?/i);
     return (match && match[1]) || fallback;
   };
 

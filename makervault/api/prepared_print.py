@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Optional
 from zipfile import BadZipFile, ZipFile
 
-
 _TEXT_LIMIT = 2 * 1024 * 1024
 _PREPARED_SUFFIXES = (".gcode.3mf", ".gcode", ".gco", ".bgcode")
 

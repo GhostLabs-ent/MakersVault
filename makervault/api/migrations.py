@@ -6,7 +6,6 @@ from sqlalchemy.engine import Connection, Engine
 
 from db import engine
 
-
 MigrationCallable = Callable[[Connection], None]
 
 

@@ -1,29 +1,29 @@
-from fastapi import BackgroundTasks, Depends, FastAPI, UploadFile, File, Form, HTTPException, Query, Response
-from fastapi.responses import FileResponse
-from starlette.concurrency import run_in_threadpool
-from starlette.middleware.cors import CORSMiddleware
-from sqlmodel import Session, select
-from typing import List, Optional
-from pathlib import Path
-from zipfile import ZipFile, ZIP_DEFLATED, BadZipFile
-from contextlib import asynccontextmanager
-import tempfile
-import threading
-from urllib.parse import quote, urlparse
 import json
 import os
-import jwt
-from jwt import PyJWTError
+import tempfile
+import threading
+from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import List, Optional
+from urllib.parse import quote, urlparse
+from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile
 
-from auth import (
-    AUTH_ENABLED,
-    AUTH_TOKEN_TTL,
-    AUTH_SECRET,
-    AUTH_ALGO,
-    create_token,
-    credentials_match,
-    require_auth,
-    validate_auth_configuration,
+import jwt
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Query, Response, UploadFile
+from fastapi.responses import FileResponse
+from jwt import PyJWTError
+from sqlmodel import Session, select
+from starlette.concurrency import run_in_threadpool
+from starlette.middleware.cors import CORSMiddleware
+
+from asset_file_service import (
+    backfill_prepared_print_metadata,
+    delete_all_asset_files,
+    delete_prepared_file,
+    delete_supporting_file,
+    list_supporting_files,
+    managed_asset_file_path,
+    save_asset_file,
 )
 from asset_service import (
     STORAGE_TEMPLATE_TOKENS,
@@ -31,8 +31,8 @@ from asset_service import (
     backfill_embedded_thumbnails,
     cleanup_asset,
     create_asset_record,
-    filename_for_model_name,
     ensure_model_thumbnail,
+    filename_for_model_name,
     finalize_asset_record,
     managed_asset_path,
     prune_empty_storage_dirs,
@@ -44,16 +44,17 @@ from asset_service import (
     unique_model_name,
     validate_storage_template,
 )
-from asset_file_service import (
-    backfill_prepared_print_metadata,
-    delete_all_asset_files,
-    delete_prepared_file,
-    delete_supporting_file,
-    list_supporting_files,
-    managed_asset_file_path,
-    save_asset_file,
+from auth import (
+    AUTH_ALGO,
+    AUTH_ENABLED,
+    AUTH_SECRET,
+    AUTH_TOKEN_TTL,
+    create_token,
+    credentials_match,
+    require_auth,
+    validate_auth_configuration,
 )
-from config import MOUNT_IMPORT_ENABLED, MOUNT_IMPORT_PATH, MOUNT_IMPORT_COPY, MAX_UPLOAD_BYTES
+from config import MAX_UPLOAD_BYTES, MOUNT_IMPORT_COPY, MOUNT_IMPORT_ENABLED, MOUNT_IMPORT_PATH
 from db import THUMBS, engine
 from file_utils import (
     build_import_filename,
@@ -64,10 +65,34 @@ from file_utils import (
 from folder_service import validate_parent_folder
 from import_service import download_import_to_temp, import_asset_from_url, open_import_response
 from library_scan import scan_status, start_scan
-from mount_import import scan_mount_imports
-from models import Asset, AssetFile, Folder
 from migrations import run_migrations
+from models import Asset, AssetFile, Folder
+from mount_import import scan_mount_imports
 from prepared_print import prepared_filename
+from schemas import (
+    AssetFileOut,
+    AssetFolderUpdate,
+    AssetMetaUpdate,
+    AssetOut,
+    AssetRename,
+    DownloadRequest,
+    FolderIn,
+    FolderOut,
+    ImportInspectOut,
+    ImportRequest,
+    ImportZipEntriesOut,
+    ImportZipEntriesRequest,
+    ImportZipExtractRequest,
+    ImportZipResult,
+    LibraryScanStatusOut,
+    LoginRequest,
+    LoginResponse,
+    MountImportSettings,
+    MountImportSettingsOut,
+    StorageSettings,
+    StorageSettingsOut,
+    TagUpdate,
+)
 from settings_service import (
     DEFAULT_STORAGE_TEMPLATE,
     get_mount_import_copy,
@@ -77,32 +102,8 @@ from settings_service import (
     set_mount_import_enabled,
     set_storage_template,
 )
-from schemas import (
-    AssetOut,
-    AssetFileOut,
-    FolderIn,
-    FolderOut,
-    LoginRequest,
-    LoginResponse,
-    DownloadRequest,
-    TagUpdate,
-    AssetMetaUpdate,
-    AssetRename,
-    AssetFolderUpdate,
-    ImportRequest,
-    ImportInspectOut,
-    ImportZipEntriesRequest,
-    ImportZipEntriesOut,
-    ImportZipExtractRequest,
-    ImportZipResult,
-    MountImportSettings,
-    MountImportSettingsOut,
-    StorageSettings,
-    StorageSettingsOut,
-    LibraryScanStatusOut,
-)
-from zip_service import extract_zip_entries_to_assets, list_zip_entries
 from url_utils import normalize_import_url
+from zip_service import extract_zip_entries_to_assets, list_zip_entries
 
 
 @asynccontextmanager
@@ -368,7 +369,7 @@ def refresh_token(token: Optional[str] = Depends(require_auth)):
     try:
         payload = jwt.decode(token, AUTH_SECRET, algorithms=[AUTH_ALGO])
     except PyJWTError:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(status_code=401, detail="Invalid or expired token") from None
     username = payload.get("sub")
     if not username:
         raise HTTPException(status_code=401, detail="Invalid token payload")
@@ -436,10 +437,10 @@ async def upload(
             detail = f"Upload exceeds the {MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit"
         else:
             detail = f"Upload exceeds the {MAX_UPLOAD_BYTES} byte limit"
-        raise HTTPException(status_code=413, detail=detail)
-    except Exception:
+        raise HTTPException(status_code=413, detail=detail) from None
+    except Exception as exc:
         cleanup_asset(asset.id)
-        raise HTTPException(status_code=500, detail="Failed to store uploaded file")
+        raise HTTPException(status_code=500, detail="Failed to store uploaded file") from exc
 
     # make a thumbnail for common image formats (best effort: a thumbnail
     # failure must not discard a file that is already safely on disk)
@@ -484,7 +485,7 @@ def list_import_zip_entries(body: ImportZipEntriesRequest, _: Optional[str] = De
         try:
             entries = list_zip_entries(tmp_path)
         except BadZipFile:
-            raise HTTPException(status_code=400, detail="Invalid zip file")
+            raise HTTPException(status_code=400, detail="Invalid zip file") from None
         if not entries:
             raise HTTPException(status_code=400, detail="No files found in zip")
         return ImportZipEntriesOut(filename=filename, entries=entries)
@@ -502,7 +503,7 @@ def import_zip_entries(body: ImportZipExtractRequest, _: Optional[str] = Depends
         try:
             assets, failed = extract_zip_entries_to_assets(tmp_path, body.entries, body)
         except BadZipFile:
-            raise HTTPException(status_code=400, detail="Invalid zip file")
+            raise HTTPException(status_code=400, detail="Invalid zip file") from None
         return ImportZipResult(assets=[to_out(asset) for asset in assets], failed=failed)
     finally:
         tmp_path.unlink(missing_ok=True)

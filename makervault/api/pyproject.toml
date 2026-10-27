@@ -1,0 +1,20 @@
+[tool.ruff]
+line-length = 140
+target-version = "py311"
+# modules are top-level siblings, so the api directory is the import root
+src = ["."]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+# E501: long URLs and SQL strings are clearer unbroken
+ignore = ["E501"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency-injection idiom is a call in a default argument
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.File",
+    "fastapi.Form",
+    "fastapi.Header",
+]

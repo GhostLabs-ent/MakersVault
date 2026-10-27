@@ -1,5 +1,5 @@
-import json
 import io
+import json
 import re
 import tempfile
 from pathlib import Path
@@ -16,8 +16,7 @@ from file_utils import build_import_filename, mime_from_content_type, sanitize_f
 from models import Asset, Folder
 from prepared_print import inspect_prepared_print
 from schemas import ImportRequest
-from settings_service import DEFAULT_STORAGE_TEMPLATE, get_storage_template
-
+from settings_service import get_storage_template
 
 STORAGE_TEMPLATE_TOKENS = ("folder", "collection", "tags", "creator", "model", "name", "filename", "id")
 _TOKEN_RE = re.compile(r"\{([a-z_]+)\}")
@@ -403,4 +402,4 @@ def persist_asset_from_response(resp, final_url: str, body: ImportRequest) -> As
         raise
     except Exception as exc:
         cleanup_asset(asset.id)
-        raise HTTPException(status_code=500, detail=f"Import failed: {exc}")
+        raise HTTPException(status_code=500, detail=f"Import failed: {exc}") from exc

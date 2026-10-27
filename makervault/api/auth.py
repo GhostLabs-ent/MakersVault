@@ -1,11 +1,12 @@
 import hmac
 import os
 import time
+from typing import Optional
+
 import jwt
-from jwt import PyJWTError
 from fastapi import Depends, HTTPException, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from typing import Optional
+from jwt import PyJWTError
 
 from config import env_bool
 
@@ -69,5 +70,5 @@ def require_auth(
   try:
     jwt.decode(token, AUTH_SECRET, algorithms=[AUTH_ALGO])
   except PyJWTError:
-    raise HTTPException(status_code=401, detail="Invalid or expired token")
+    raise HTTPException(status_code=401, detail="Invalid or expired token") from None
   return token

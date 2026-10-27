@@ -1,5 +1,4 @@
 """Tests for the storage-root scanner (filesystem-authoritative library, phase 1)."""
-import shutil
 import time
 from pathlib import Path
 

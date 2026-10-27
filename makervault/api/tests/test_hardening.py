@@ -13,7 +13,6 @@ from file_utils import sanitize_path_segment
 from import_resolvers import is_makerworld_page_host
 from models import Asset
 
-
 # --- C1: published sample credentials must not be usable by default ----------
 
 def test_startup_refuses_published_sample_credentials(monkeypatch):

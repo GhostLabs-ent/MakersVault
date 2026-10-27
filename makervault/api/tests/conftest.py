@@ -1,5 +1,5 @@
 import os
-import tempfile
+import shutil
 from pathlib import Path
 
 # Tests must not depend on the developer's environment, and they must run
@@ -23,8 +23,6 @@ for suffix in ("", "-wal", "-shm"):
 
 # storage is owned by the test run: start from an empty tree so scans and
 # uploads only ever see what the current test created
-import shutil
-
 storage_root = Path(os.environ["FILE_STORAGE"])
 if storage_root.exists():
     shutil.rmtree(storage_root)

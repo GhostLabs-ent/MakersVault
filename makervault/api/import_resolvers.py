@@ -4,7 +4,7 @@ import re
 from html.parser import HTMLParser
 from typing import Any, List, Optional
 from urllib.error import HTTPError, URLError
-from urllib.parse import unquote, urljoin, urlparse
+from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
 
 from fastapi import HTTPException
@@ -504,7 +504,7 @@ def fetch_printables_graphql(query: str, variables: dict, referer: Optional[str]
         except Exception:
             message = None
         if err.code in {401, 403, 429}:
-            raise HTTPException(status_code=err.code or 400, detail=message or "Printables request failed")
+            raise HTTPException(status_code=err.code or 400, detail=message or "Printables request failed") from err
         return None
     except URLError:
         return None
@@ -717,7 +717,7 @@ def fetch_thingiverse_json(
         except Exception:
             message = None
         if err.code in {401, 403, 429}:
-            raise HTTPException(status_code=err.code or 400, detail=message or "Thingiverse request failed")
+            raise HTTPException(status_code=err.code or 400, detail=message or "Thingiverse request failed") from err
         return None
     except URLError:
         return None
@@ -753,7 +753,7 @@ def fetch_thingiverse_view_token(page_url: str, thingiverse_cookie: Optional[str
                 "Thingiverse blocked the request. Paste the Cookie header from your browser session "
                 "in Settings to import."
             )
-            raise HTTPException(status_code=err.code or 400, detail=detail)
+            raise HTTPException(status_code=err.code or 400, detail=detail) from err
         return None
     except URLError:
         return None

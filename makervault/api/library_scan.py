@@ -26,7 +26,6 @@ from typing import List, Optional
 from sqlmodel import Session, select
 
 from asset_service import (
-    cleanup_asset,
     ensure_model_thumbnail,
     finalize_asset_record,
     managed_asset_path,

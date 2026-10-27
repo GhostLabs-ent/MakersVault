@@ -25,6 +25,7 @@ make verify
 
 This performs:
 
+0. Ruff (API) and ESLint (web) gates; `make verify-lint` runs them alone.
 1. API migration tests under Python 3.11.
 2. Web TypeScript checking, Vitest tests, and the production Vite build under
    Node 20.

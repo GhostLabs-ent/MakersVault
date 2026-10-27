@@ -26,7 +26,7 @@ def validate_remote_host(host: str) -> None:
     try:
         infos = socket.getaddrinfo(host, None)
     except socket.gaierror:
-        raise HTTPException(status_code=400, detail="Unable to resolve host")
+        raise HTTPException(status_code=400, detail="Unable to resolve host") from None
 
     for info in infos:
         ip = ipaddress.ip_address(info[4][0])

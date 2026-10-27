@@ -1,6 +1,14 @@
-.PHONY: verify verify-api verify-web verify-bridge verify-compose verify-smoke
+.PHONY: verify verify-lint lint-api lint-web verify-api verify-web verify-bridge verify-compose verify-smoke
 
-verify: verify-api verify-web verify-bridge verify-compose verify-smoke
+verify: verify-lint verify-api verify-web verify-bridge verify-compose verify-smoke
+
+verify-lint: lint-api lint-web
+
+lint-api:
+	docker build --target lint -t makersvault-api-lint makervault/api
+
+lint-web:
+	docker build --target lint -t makersvault-web-lint makervault/web
 
 verify-api:
 	docker build --target test -t makersvault-api-gate0-test makervault/api

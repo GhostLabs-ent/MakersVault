@@ -4,10 +4,15 @@ WORKDIR /app
 COPY requirements.txt requirements.lock ./
 RUN pip install --no-cache-dir -r requirements.lock
 
-FROM base AS test
+FROM base AS testdeps
 COPY requirements-dev.txt requirements-dev.lock ./
 RUN pip install --no-cache-dir -r requirements-dev.lock
+
+FROM testdeps AS lint
 COPY . .
+RUN ruff check .
+
+FROM lint AS test
 ENV DB_URL=sqlite:////tmp/makersvault-test.db \
     FILE_STORAGE=/tmp/makersvault-storage \
     IMPORT_MOUNT_ON_STARTUP=false
