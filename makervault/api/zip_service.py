@@ -107,10 +107,11 @@ def extract_zip_entries_to_assets(zip_path: Path, selections: List[str], body: I
             target_folder_id = resolve_zip_folder_id(session, body.folder_id, entry_name, folder_cache)
             filename = sanitize_filename(os.path.basename(entry_name))
             mime = mime_from_content_type("", filename)
-            asset = create_asset_record(filename, mime, body.title, body.notes, body.tags, target_folder_id)
-            dest = managed_asset_path(asset)
-            dest.parent.mkdir(parents=True, exist_ok=True)
+            asset: Optional[Asset] = None
             try:
+                asset = create_asset_record(filename, mime, body.title, body.notes, body.tags, target_folder_id)
+                dest = managed_asset_path(asset)
+                dest.parent.mkdir(parents=True, exist_ok=True)
                 size = 0
                 with zf.open(info) as src, open(dest, "wb") as out:
                     while True:
@@ -127,7 +128,17 @@ def extract_zip_entries_to_assets(zip_path: Path, selections: List[str], body: I
                     ensure_model_thumbnail(asset.id, dest)
                 refreshed = finalize_asset_record(asset.id, size, mime)
                 assets.append(refreshed or asset)
+            except HTTPException as exc:
+                # A name or path conflict is one bad entry, not a bad zip: report it
+                # in `failed` and keep extracting. Every other HTTPException (a bad
+                # storage template, say) applies to the whole request.
+                if asset is not None:
+                    cleanup_asset(asset.id)
+                if exc.status_code != 409:
+                    raise
+                failed.append(entry_name)
             except Exception:
-                cleanup_asset(asset.id)
+                if asset is not None:
+                    cleanup_asset(asset.id)
                 failed.append(entry_name)
     return assets, failed

@@ -1,5 +1,6 @@
 import io
 import json
+import logging
 import re
 import tempfile
 from pathlib import Path
@@ -8,6 +9,7 @@ from zipfile import BadZipFile, ZipFile
 
 from fastapi import HTTPException
 from PIL import Image
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 import folder_paths
@@ -18,6 +20,8 @@ from models import Asset, Folder
 from prepared_print import inspect_prepared_print
 from schemas import ImportRequest
 from settings_service import get_storage_template
+
+log = logging.getLogger(__name__)
 
 STORAGE_TEMPLATE_TOKENS = ("folder", "collection", "tags", "creator", "model", "name", "filename", "id")
 _TOKEN_RE = re.compile(r"\{([a-z_]+)\}")
@@ -118,14 +122,51 @@ def filename_for_model_name(name: str, current_filename: str) -> str:
     return sanitize_filename(f"{sanitize_path_segment(name, 'Model')}{extension}")
 
 
-def unique_model_name(session: Session, requested: str, folder_id: Optional[str], exclude_id: Optional[str] = None) -> str:
-    base = sanitize_path_segment(requested, "Model")
-    stmt = select(Asset).where(Asset.folder_id == folder_id)
-    existing = {
+def model_names_in_folder(session: Session, folder_id: Optional[str], exclude_id: Optional[str] = None) -> set[str]:
+    """Case-folded model names in one folder, matching the unique index's scope.
+
+    ``folder_id=None`` stays an ``IS NULL`` comparison because the index buckets
+    unfiled rows under COALESCE(folder_id, '') and the comparison happens in
+    Python so SQLite never has to agree about case folding.
+    """
+    statement = select(Asset).where(Asset.folder_id == folder_id)
+    return {
         (row.name or model_name_from_filename(row.filename)).casefold()
-        for row in session.exec(stmt)
+        for row in session.exec(statement)
         if row.id != exclude_id
     }
+
+
+def raise_asset_conflict(
+    requested_name: str,
+    folder_id: Optional[str],
+    storage_path: Optional[str],
+    exclude_id: Optional[str] = None,
+    error: Optional[BaseException] = None,
+) -> None:
+    """Map a unique-index collision to 409 using a fresh session.
+
+    The failed insert is rolled back and gone, so the collision is re-identified
+    from the database instead of parsed out of the IntegrityError text (SQLite
+    words the expression index and the partial index differently and has changed
+    that wording across versions).
+    """
+    with Session(engine) as session:
+        name_taken = requested_name.casefold() in model_names_in_folder(session, folder_id, exclude_id)
+    if name_taken:
+        raise HTTPException(status_code=409, detail=f'A model named "{requested_name}" already exists in this folder') from None
+    if storage_path:
+        raise HTTPException(status_code=409, detail=f"Storage path already exists: {storage_path}") from None
+    log.error(
+        "Unclassified asset uniqueness conflict: name=%r folder_id=%r storage_path=%r",
+        requested_name, folder_id, storage_path, exc_info=error,
+    )
+    raise HTTPException(status_code=409, detail="Asset conflicts with an existing record") from None
+
+
+def unique_model_name(session: Session, requested: str, folder_id: Optional[str], exclude_id: Optional[str] = None) -> str:
+    base = sanitize_path_segment(requested, "Model")
+    existing = model_names_in_folder(session, folder_id, exclude_id)
     if base.casefold() in existing:
         raise HTTPException(status_code=409, detail=f'A model named "{base}" already exists in this folder')
     return base
@@ -133,12 +174,7 @@ def unique_model_name(session: Session, requested: str, folder_id: Optional[str]
 
 def available_model_name(session: Session, requested: str, folder_id: Optional[str], exclude_id: Optional[str] = None) -> str:
     base = sanitize_path_segment(requested, "Model")
-    stmt = select(Asset).where(Asset.folder_id == folder_id)
-    existing = {
-        (row.name or model_name_from_filename(row.filename)).casefold()
-        for row in session.exec(stmt)
-        if row.id != exclude_id
-    }
+    existing = model_names_in_folder(session, folder_id, exclude_id)
     candidate = base
     suffix = 2
     while candidate.casefold() in existing:
@@ -191,6 +227,18 @@ def move_managed_file(old_path: Path, new_path: Path) -> bool:
     old_path.rename(new_path)
     prune_empty_storage_dirs(old_parent)
     return True
+
+
+def restore_moved_file(moved: bool, old_path: Path, new_path: Path) -> None:
+    """Best-effort undo of a file move whose row update did not commit."""
+    if not moved:
+        return
+    try:
+        old_path.parent.mkdir(parents=True, exist_ok=True)
+        new_path.rename(old_path)
+        prune_empty_storage_dirs(new_path.parent)
+    except OSError:
+        log.exception("Failed to undo asset move %s -> %s", old_path, new_path)
 
 
 def rename_asset_in_place(asset: Asset, old_path: Path, filename: str) -> bool:
@@ -368,8 +416,17 @@ def create_asset_record(
             source_path=source_path,
         )
         asset.storage_path = render_storage_path(asset, s)
+        # Rollback expires the instance, so every value the conflict classifier
+        # needs is captured here.
+        storage_path = asset.storage_path
         s.add(asset)
-        s.commit()
+        try:
+            s.commit()
+        except IntegrityError:
+            # two uploads can pass the pre-check together; the unique indexes are
+            # the real arbiter, so the loser is a 409 and never a 500
+            s.rollback()
+            raise_asset_conflict(name, folder_id, storage_path)
         s.refresh(asset)
     return asset
 

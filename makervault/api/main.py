@@ -12,6 +12,7 @@ import jwt
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Query, Response, UploadFile
 from fastapi.responses import FileResponse
 from jwt import PyJWTError
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 from starlette.concurrency import run_in_threadpool
 from starlette.middleware.cors import CORSMiddleware
@@ -38,7 +39,9 @@ from asset_service import (
     managed_asset_path,
     move_asset_to_folder,
     prune_empty_storage_dirs,
+    raise_asset_conflict,
     rename_asset_in_place,
+    restore_moved_file,
     sample_storage_path,
     save_thumb,
     save_thumb_bytes,
@@ -765,6 +768,8 @@ def update_asset_meta(asset_id: str, body: AssetMetaUpdate, _: Optional[str] = D
         if not a:
             raise HTTPException(404)
         old_path = managed_asset_path(a)
+        moved = False
+        new_path = old_path
         requested_name = body.name if body.name is not None else body.title
         if requested_name is not None:
             next_name = unique_model_name(s, requested_name, a.folder_id, exclude_id=a.id)
@@ -775,15 +780,25 @@ def update_asset_meta(asset_id: str, body: AssetMetaUpdate, _: Optional[str] = D
                 a.title = next_name
                 a.filename = filename_for_model_name(next_name, a.filename)
                 # A rename only changes the basename; the storage template is never rendered.
-                rename_asset_in_place(a, old_path, a.filename)
+                new_path = old_path.parent / a.filename
+                moved = rename_asset_in_place(a, old_path, a.filename)
         if body.notes is not None:
             a.notes = body.notes
         if body.creator is not None:
             a.creator = body.creator.strip() or None
         if body.collection is not None:
             a.collection = body.collection.strip() or None
+        # Rollback expires the row, so the conflict classifier gets locals.
+        conflict_name = a.name
+        folder_id = a.folder_id
+        new_relative = a.storage_path if moved else None
         s.add(a)
-        s.commit()
+        try:
+            s.commit()
+        except IntegrityError:
+            s.rollback()
+            restore_moved_file(moved, old_path, new_path)
+            raise_asset_conflict(conflict_name, folder_id, new_relative, exclude_id=asset_id)
         s.refresh(a)
         return to_out(a)
 
@@ -813,9 +828,18 @@ def rename_asset(asset_id: str, body: AssetRename, _: Optional[str] = Depends(re
         a.name = model_name
         a.title = model_name
         a.filename = new_name_only
-        rename_asset_in_place(a, old_path, a.filename)
+        moved = rename_asset_in_place(a, old_path, a.filename)
+        new_path = old_path.parent / a.filename
+        # Rollback expires the row, so the conflict classifier gets locals.
+        folder_id = a.folder_id
+        new_relative = a.storage_path
         s.add(a)
-        s.commit()
+        try:
+            s.commit()
+        except IntegrityError:
+            s.rollback()
+            restore_moved_file(moved, old_path, new_path)
+            raise_asset_conflict(model_name, folder_id, new_relative, exclude_id=asset_id)
         s.refresh(a)
         return to_out(a)
 
@@ -954,9 +978,18 @@ def update_asset_folder(asset_id: str, body: AssetFolderUpdate, _: Optional[str]
             unique_model_name(s, asset.name, None, exclude_id=asset.id)
         # Move before assigning folder_id: an autoflush must not expose the moving
         # asset as a witness for its own target directory.
-        move_asset_to_folder(asset, s, old_path, folder_id)
+        moved = move_asset_to_folder(asset, s, old_path, folder_id)
         asset.folder_id = folder_id
+        new_path = managed_asset_path(asset)
+        # Rollback expires the row, so the conflict classifier gets locals.
+        conflict_name = asset.name
+        new_relative = asset.storage_path if moved else None
         s.add(asset)
-        s.commit()
+        try:
+            s.commit()
+        except IntegrityError:
+            s.rollback()
+            restore_moved_file(moved, old_path, new_path)
+            raise_asset_conflict(conflict_name, folder_id, new_relative, exclude_id=asset_id)
         s.refresh(asset)
         return to_out(asset)
