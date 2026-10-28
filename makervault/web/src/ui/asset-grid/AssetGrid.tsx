@@ -4,9 +4,11 @@ import { type Asset } from "../../lib/api";
 import { chunkRows, colsForWidth } from "../../lib/virtualGrid";
 import { previewQueue } from "../../lib/previewQueue";
 import { EngravingSettings, PreviewSettings, ResolvedTheme, SlicerSettings, engraverLabelFor, slicerLabelFor } from "../../lib/settings";
+import { useStableCallback } from "../../lib/useStableCallback";
 import BulkActionBar from "../BulkActionBar";
 import ConfirmDialog from "../ConfirmDialog";
 import FolderBreadcrumbs, { FolderTiles } from "../FolderNav";
+import ProjectPickerDialog from "../ProjectPickerDialog";
 import { useUpload } from "../useUpload";
 import { useVirtualRows } from "../useVirtualRows";
 import AssetGridBody from "./AssetGridBody";
@@ -37,6 +39,11 @@ type Props = {
   scrollElementRef?: React.RefObject<HTMLElement | null>;
   /** Navigate to a folder (or the root) from the breadcrumbs/tiles. */
   onNavigateFolder?: (id: string | null) => void;
+  /**
+   * Fires after the project picker created a project or changed its membership,
+   * so App can refresh the counts it owns (it bumps `assetsVersion`).
+   */
+  onProjectsChanged?: () => void;
 };
 
 export default function AssetGrid({
@@ -52,6 +59,7 @@ export default function AssetGrid({
   theme,
   scrollElementRef,
   onNavigateFolder,
+  onProjectsChanged,
 }: Props) {
   const isProject = projectId != null;
   const [previewItem, setPreviewItem] = useState<Asset | null>(null);
@@ -59,6 +67,11 @@ export default function AssetGrid({
   const slicerLabel = slicerLabelFor(slicerSettings?.selected);
   const engravingEnabled = Boolean(engravingSettings?.enabled);
   const engraverLabel = engraverLabelFor(engravingSettings?.selected);
+
+  // "Add to project…" is offered in BOTH files and project mode: adding a
+  // project-A member to project-B is a legitimate thing to do.
+  const [projectPickerIds, setProjectPickerIds] = useState<string[] | null>(null);
+  const openProjectPicker = useStableCallback((ids: string[]) => setProjectPickerIds(ids));
 
   const {
     items,
@@ -107,6 +120,7 @@ export default function AssetGrid({
     bulkAddTags,
     bulkRemoveTags,
     bulkSetTags,
+    bulkAddToProject,
     bulkDownloading,
     downloadSelected,
     downloadByTag,
@@ -120,6 +134,7 @@ export default function AssetGrid({
     setAllTags,
     handleApiError,
     onUnauthorized,
+    onAddToProject: openProjectPicker,
   });
 
   const {
@@ -136,6 +151,7 @@ export default function AssetGrid({
     openInSlicer,
     openInEngraving,
     removeAsset,
+    addToProject,
     forgetMissingAsset,
     rescanMissing,
     pendingConfirm,
@@ -155,6 +171,7 @@ export default function AssetGrid({
     selectedIds,
     bulkSetTags,
     bulkDelete,
+    onAddToProject: openProjectPicker,
   });
 
   const {
@@ -221,6 +238,7 @@ export default function AssetGrid({
       onDownloadSingle={downloadSingle}
       downloading={downloadingId === item.id}
       onDelete={removeAsset}
+      onAddToProject={addToProject}
       deleting={deletingId === item.id}
       onMoveFolder={onMoveFolder}
       folderOptions={folderOptions}
@@ -286,6 +304,7 @@ export default function AssetGrid({
         onMove={bulkMoveToFolder}
         onAddTags={bulkAddTags}
         onRemoveTags={bulkRemoveTags}
+        onAddToProject={bulkAddToProject}
         onDownload={downloadSelected}
         onDelete={bulkDelete}
         onClear={clearSelection}
@@ -350,6 +369,14 @@ export default function AssetGrid({
           busy={confirmBusy}
           onCancel={() => setPendingConfirm(null)}
           onConfirm={() => { void runPendingConfirm(); }}
+        />
+      )}
+      {projectPickerIds && (
+        <ProjectPickerDialog
+          assetIds={projectPickerIds}
+          onClose={() => setProjectPickerIds(null)}
+          onChanged={onProjectsChanged}
+          onUnauthorized={onUnauthorized}
         />
       )}
     </div>

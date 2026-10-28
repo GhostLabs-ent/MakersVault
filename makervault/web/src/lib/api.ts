@@ -697,6 +697,22 @@ export type ProjectPatch = {
   licence_url?: string | null;
 };
 
+/**
+ * New-project payload for `createProject`. The server's `ProjectIn` is
+ * `extra="forbid"`, so only these fields may be sent; `origin` defaults to
+ * "own" server-side.
+ */
+export type ProjectCreate = {
+  name: string;
+  description?: string | null;
+  cover_asset_id?: string | null;
+  creator?: string | null;
+  source_url?: string | null;
+  licence?: string | null;
+  licence_url?: string | null;
+  origin?: "own" | "imported";
+};
+
 export type ProjectMembersResult = {
   added: string[];
   skipped: string[];
@@ -712,6 +728,20 @@ export type ProjectRemovalResult = {
 export async function listProjects(): Promise<Project[]> {
   const res = await fetch(`${apiBase()}/projects`, { headers: authHeaders() });
   assertOk(res, "Failed to list projects");
+  return res.json();
+}
+
+/** Creates a project. The route answers 201, which `res.ok` already covers. */
+export async function createProject(payload: ProjectCreate): Promise<Project> {
+  const res = await fetch(`${apiBase()}/projects`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Project creation failed"));
+  }
   return res.json();
 }
 

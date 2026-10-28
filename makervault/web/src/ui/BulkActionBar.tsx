@@ -15,6 +15,8 @@ export type BulkActionBarProps = {
   onMove: (folderId: string | null) => void;
   onAddTags: (tags: string[]) => void;
   onRemoveTags: (tags: string[]) => void;
+  /** Opens the project picker for the whole selection. */
+  onAddToProject: () => void;
   onDownload: () => void;
   onDelete: () => void;
   onClear: () => void;
@@ -52,6 +54,7 @@ export default function BulkActionBar({
   onMove,
   onAddTags,
   onRemoveTags,
+  onAddToProject,
   onDownload,
   onDelete,
   onClear,
@@ -145,6 +148,15 @@ export default function BulkActionBar({
           className="px-3 py-1 rounded-md border border-panel-strong disabled:opacity-60"
         >
           Remove tags
+        </button>
+
+        <button
+          type="button"
+          onClick={onAddToProject}
+          disabled={disabled}
+          className="px-3 py-1 rounded-md border border-panel-strong disabled:opacity-60"
+        >
+          Add to project…
         </button>
 
         <button

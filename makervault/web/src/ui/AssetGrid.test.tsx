@@ -15,9 +15,11 @@ import {
 
 vi.mock("../lib/api", () => ({
   UnauthorizedError: class UnauthorizedError extends Error {},
+  addProjectAssets: vi.fn(),
   batchDeleteAssets: vi.fn(),
   batchMoveAssets: vi.fn(),
   batchSetTags: vi.fn(),
+  createProject: vi.fn(),
   createFolder: vi.fn(),
   deleteAsset: vi.fn(),
   deleteAssetFile: vi.fn(),
@@ -28,6 +30,7 @@ vi.mock("../lib/api", () => ({
   listAssetFiles: vi.fn(async () => []),
   listAssets: vi.fn(),
   listFolders: vi.fn(async () => []),
+  listProjects: vi.fn(async () => []),
   listTags: vi.fn(async () => []),
   setTags: vi.fn(),
   startLibraryScan: vi.fn(),

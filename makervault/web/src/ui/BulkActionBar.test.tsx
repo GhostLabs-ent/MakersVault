@@ -19,6 +19,7 @@ function renderBar(overrides: Partial<BulkActionBarProps> = {}) {
     onMove: vi.fn(),
     onAddTags: vi.fn(),
     onRemoveTags: vi.fn(),
+    onAddToProject: vi.fn(),
     onDownload: vi.fn(),
     onDelete: vi.fn(),
     onClear: vi.fn(),
@@ -99,6 +100,14 @@ describe("BulkActionBar", () => {
     fireEvent.click(screen.getByRole("button", { name: "Download zip" }));
 
     expect(props.onDownload).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens the project picker for the selection", () => {
+    const { props } = renderBar();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add to project…" }));
+
+    expect(props.onAddToProject).toHaveBeenCalledTimes(1);
   });
 
   it("requires a second click before deleting and lets Cancel abort", () => {

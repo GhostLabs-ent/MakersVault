@@ -13,6 +13,7 @@ export type AssetCardProps = {
   onDownloadSelected: () => void;
   downloading: boolean;
   onDelete: (asset: Asset) => void;
+  onAddToProject: (asset: Asset) => void;
   deleting: boolean;
   onMoveFolder: (id: string, folder_id: string | null) => void;
   folderOptions: { id: string | null; name: string }[];

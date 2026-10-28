@@ -38,6 +38,7 @@ type BulkActionsOptions = {
   setAllTags: Dispatch<SetStateAction<string[]>>;
   handleApiError: (err: unknown, message?: string) => boolean;
   onUnauthorized?: () => void;
+  onAddToProject: (ids: string[]) => void;
 };
 
 export type BulkActionsApi = {
@@ -55,6 +56,7 @@ export type BulkActionsApi = {
   bulkAddTags: (tags: string[]) => Promise<void>;
   bulkRemoveTags: (tags: string[]) => Promise<void>;
   bulkSetTags: (add: string[], remove: string[]) => Promise<void>;
+  bulkAddToProject: () => void;
   bulkDownloading: string | null;
   downloadSelected: () => Promise<void>;
   downloadByTag: (tag: string) => Promise<void>;
@@ -75,6 +77,7 @@ export function useBulkActions({
   setAllTags,
   handleApiError,
   onUnauthorized,
+  onAddToProject,
 }: BulkActionsOptions): BulkActionsApi {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDownloading, setBulkDownloading] = useState<string | null>(null);
@@ -251,6 +254,14 @@ export function useBulkActions({
     await bulkSetTags([], tags);
   });
 
+  // Deliberately a thin passthrough: the bar's contract stays uniform (one
+  // callback per action) and the empty-selection guard stays here, next to the
+  // selection it protects.
+  const bulkAddToProject = useStableCallback(() => {
+    if (bulkBusy || selectedIds.size === 0) return;
+    onAddToProject(Array.from(selectedIds));
+  });
+
   const downloadSelected = useStableCallback(async () => {
     if (!selectedIds.size) {
       notifyInfo("Select at least one item to download.");
@@ -295,6 +306,7 @@ export function useBulkActions({
     bulkAddTags,
     bulkRemoveTags,
     bulkSetTags,
+    bulkAddToProject,
     bulkDownloading,
     downloadSelected,
     downloadByTag,

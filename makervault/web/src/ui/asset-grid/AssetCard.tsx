@@ -18,6 +18,7 @@ const AssetCard = React.memo(function AssetCard({
   onDownloadSelected,
   downloading,
   onDelete,
+  onAddToProject,
   deleting,
   onMoveFolder,
   folderOptions,
@@ -248,7 +249,10 @@ const AssetCard = React.memo(function AssetCard({
   const canOpenInEngraving = engravingEnabled && ENGRAVING_EXTS.has(extOf(item.filename));
 
   return (
-    <div className="rounded-lg border border-panel overflow-hidden bg-panel-soft">
+    <div
+      className="rounded-lg border border-panel overflow-hidden bg-panel-soft"
+      data-asset-id={item.id}
+    >
       <div
         className="h-40 relative cursor-pointer"
         onDoubleClick={() => onPreview(item)}
@@ -550,6 +554,13 @@ const AssetCard = React.memo(function AssetCard({
         ) : (
           <div className="flex items-center gap-2 flex-wrap">
             <button className="text-sm px-2 py-1 rounded-md border border-panel-strong" onClick={startEditing}>Edit tags</button>
+            <button
+              className="text-sm px-2 py-1 rounded-md border border-panel-strong"
+              onClick={() => onAddToProject(item)}
+              disabled={deleting}
+            >
+              Add to project…
+            </button>
             <button
               className="text-sm px-2 py-1 rounded-md border border-red-300 text-red-700 dark:text-red-300 disabled:opacity-60"
               onClick={() => onDelete(item)}

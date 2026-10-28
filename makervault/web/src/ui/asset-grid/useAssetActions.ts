@@ -44,6 +44,7 @@ type AssetActionsOptions = {
   selectedIds: Set<string>;
   bulkSetTags: (add: string[], remove: string[]) => Promise<void>;
   bulkDelete: () => Promise<void>;
+  onAddToProject: (ids: string[]) => void;
 };
 
 export type AssetActionsApi = {
@@ -63,6 +64,7 @@ export type AssetActionsApi = {
   openInSlicer: (asset: Asset) => void;
   openInEngraving: (asset: Asset) => void;
   removeAsset: (asset: Asset) => void;
+  addToProject: (asset: Asset) => void;
   forgetMissingAsset: (asset: Asset) => void;
   rescanMissing: (asset: Asset) => Promise<void>;
   pendingConfirm: ConfirmRequest | null;
@@ -88,6 +90,7 @@ export function useAssetActions({
   selectedIds,
   bulkSetTags,
   bulkDelete,
+  onAddToProject,
 }: AssetActionsOptions): AssetActionsApi {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -246,6 +249,16 @@ export function useAssetActions({
     });
   });
 
+  // The card's "Add to project" is a selection-scoped affordance exactly like
+  // delete: a card inside a multi-selection acts on the whole selection.
+  // Stable so memoised cards keep their props identity.
+  const addToProject = useStableCallback((asset: Asset) => {
+    const ids = selectedIds.has(asset.id) && selectedIds.size > 1
+      ? Array.from(selectedIds)
+      : [asset.id];
+    onAddToProject(ids);
+  });
+
   const forgetMissingAsset = useStableCallback((asset: Asset) => {
     requestConfirm({
       title: `Forget "${asset.title || asset.filename}"? The file is already gone; this removes the library entry, thumbnail and sidecars.`,
@@ -307,6 +320,7 @@ export function useAssetActions({
     openInSlicer,
     openInEngraving,
     removeAsset,
+    addToProject,
     forgetMissingAsset,
     rescanMissing,
     pendingConfirm,

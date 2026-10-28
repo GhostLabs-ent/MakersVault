@@ -373,6 +373,7 @@ export default function App() {
               theme={resolvedTheme}
               scrollElementRef={mainScrollRef}
               onNavigateFolder={handleSelectFolder}
+              onProjectsChanged={handleAssetsChanged}
             />
           </div>
         )}
