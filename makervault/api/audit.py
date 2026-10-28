@@ -53,6 +53,8 @@ ASSET_PREPARED_PRINT_DELETE = "asset.prepared_print.delete"
 FOLDER_DELETE = "folder.delete"
 FOLDER_RENAME = "folder.rename"
 FOLDER_MOVE = "folder.move"
+PROJECT_DELETE = "project.delete"
+PROJECT_RENAME = "project.rename"
 TRASH_PURGE = "trash.purge"
 SETTINGS_STORAGE_UPDATE = "settings.storage.update"
 SETTINGS_MOUNT_IMPORT_UPDATE = "settings.mount_import.update"
@@ -72,6 +74,8 @@ ACTIONS: frozenset[str] = frozenset({
     FOLDER_DELETE,
     FOLDER_RENAME,
     FOLDER_MOVE,
+    PROJECT_DELETE,
+    PROJECT_RENAME,
     TRASH_PURGE,
     SETTINGS_STORAGE_UPDATE,
     SETTINGS_MOUNT_IMPORT_UPDATE,
@@ -253,6 +257,8 @@ ROUTE_ACTIONS: dict[tuple[str, str], tuple[str, ...]] = {
     ("DELETE", "/asset/{asset_id}/prepared-print"): (ASSET_PREPARED_PRINT_DELETE,),
     ("PATCH", "/folder/{folder_id}"): (FOLDER_RENAME, FOLDER_MOVE),
     ("DELETE", "/folder/{folder_id}"): (FOLDER_DELETE,),
+    ("PATCH", "/project/{project_id}"): (PROJECT_RENAME,),
+    ("DELETE", "/project/{project_id}"): (PROJECT_DELETE,),
     ("POST", "/trash/purge"): (TRASH_PURGE,),
     ("POST", "/settings/storage"): (SETTINGS_STORAGE_UPDATE,),
     ("POST", "/settings/mount-import"): (SETTINGS_MOUNT_IMPORT_UPDATE,),
@@ -275,6 +281,9 @@ EXEMPT_ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/asset/{asset_id}/tags"): "metadata edit; rename and move are the audited edits",
     ("POST", "/assets/batch/tags"): "metadata edit; rename and move are the audited edits",
     ("POST", "/folders"): "creates a folder",
+    ("POST", "/projects"): "creates a project",
+    ("POST", "/project/{project_id}/assets"): "membership edit; deletes no files or asset rows",
+    ("DELETE", "/project/{project_id}/assets"): "membership edit; deletes no files or asset rows",
     ("POST", "/refresh"): "session-token bookkeeping; the abusable surface is POST /login",
     ("POST", "/logout"): "session-token bookkeeping",
     ("POST", "/download/zip"): "streams a temp zip; stores nothing",

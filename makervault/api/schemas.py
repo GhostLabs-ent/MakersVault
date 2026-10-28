@@ -287,6 +287,68 @@ class BatchDeleteOut(BaseModel):
   failed: List[BatchFailure] = []
 
 
+class ProjectIn(BaseModel):
+  """The three writable fields of a project; the rest is read-only for now."""
+
+  name: str
+  description: Optional[str] = None
+  cover_asset_id: Optional[str] = None
+
+
+class ProjectUpdate(BaseModel):
+  """A partial project patch (Mf-bl86).
+
+  Membership of `model_fields_set` decides what changed, not the values: an
+  explicit `null` clears `description` or `cover_asset_id`, so `{"description":
+  null}` is a real edit while `{}` is rejected instead of silently doing nothing.
+  """
+
+  model_config = ConfigDict(extra="forbid")
+  name: Optional[str] = None
+  description: Optional[str] = None
+  cover_asset_id: Optional[str] = None
+
+  @model_validator(mode="after")
+  def require_a_change(self) -> "ProjectUpdate":
+    if not self.model_fields_set:
+      raise ValueError("provide name, description and/or cover_asset_id")
+    return self
+
+
+class ProjectOut(BaseModel):
+  """One project; `creator`/`source_url`/`licence*`/`origin` are read-only here."""
+
+  id: str
+  name: str
+  description: Optional[str]
+  creator: Optional[str]
+  source_url: Optional[str]
+  licence: Optional[str]
+  licence_url: Optional[str]
+  origin: str
+  cover_asset_id: Optional[str] = None
+  cover_thumb_url: Optional[str] = None
+  asset_count: int = 0
+  created_at: str
+  updated_at: str
+
+
+class ProjectAssetsRequest(BaseModel):
+  asset_ids: List[str] = []
+
+
+class ProjectMembersOut(BaseModel):
+  added: List[str] = []
+  skipped: List[str] = []
+  failed: List[BatchFailure] = []
+
+
+class ProjectRemovalOut(BaseModel):
+  removed: List[str] = []
+  skipped: List[str] = []
+  failed: List[BatchFailure] = []
+
+
 class AuditEventOut(BaseModel):
   """One audit row; `detail` is parsed from the stored JSON, never a secret."""
 

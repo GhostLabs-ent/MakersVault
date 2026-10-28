@@ -63,7 +63,7 @@ could honestly reconstruct.
 
 ## The action taxonomy
 
-`audit.ACTIONS` holds exactly these 17 strings. Action names are stable and
+`audit.ACTIONS` holds exactly these 19 strings. Action names are stable and
 `namespace.verb`; a reader of a row does not need the code to know what it means.
 
 | Action | Route(s) that emit it | `target` | `detail` | Failure |
@@ -76,6 +76,8 @@ could honestly reconstruct.
 | `folder.delete` | `DELETE /folder/{folder_id}` | folder id | `{"name", "folders", "assets", "bytes"}` counted before the delete | fail-closed |
 | `folder.rename` | `PATCH /folder/{folder_id}` (only when the name changes) | folder id | `{"from", "to"}` names | fail-closed |
 | `folder.move` | `PATCH /folder/{folder_id}` (only when the parent changes) | folder id | `{"from", "to"}` parent ids | fail-closed |
+| `project.delete` | `DELETE /project/{project_id}` | project id | `{"name"}` | fail-closed |
+| `project.rename` | `PATCH /project/{project_id}` (only when the name changes) | project id | `{"from", "to"}` names | fail-closed |
 | `trash.purge` | `POST /trash/purge` | `"trash"` | `{"purged", "bytes", "failed"}` from `trash_service.purge()` | fail-loud |
 | `settings.storage.update` | `POST /settings/storage` | `"storage_path_template"` | `{"from", "to"}` templates | fail-closed |
 | `settings.mount_import.update` | `POST /settings/mount-import` | `"mount_import"` | `{"enabled", "copy_files"}` | fail-closed |
@@ -103,8 +105,8 @@ more than one fact:
 The rule `assert_audit_coverage()` enforces: **every route in
 `permissions.ROUTE_PERMISSIONS` whose method is not `GET` must be in
 `ROUTE_ACTIONS` or in `EXEMPT_ROUTES` with a non-empty reason.** `GET` routes are
-out of scope by construction: they change nothing. The matrix has 48 routes, 18
-of them `GET`; the remaining 30 split into 17 audited keys and 13 exempt keys.
+out of scope by construction: they change nothing. The matrix has 55 routes, 20
+of them `GET`; the remaining 35 split into 19 audited keys and 16 exempt keys.
 
 The guard also refuses stale keys (an entry for a route that no longer exists), a
 key in both tables, an action that is not in `ACTIONS`, and an exemption without
@@ -125,6 +127,9 @@ Exempt routes and why:
 | `POST /asset/{asset_id}/tags` | metadata edit; rename and move are the audited edits |
 | `POST /assets/batch/tags` | metadata edit; rename and move are the audited edits |
 | `POST /folders` | creates a folder |
+| `POST /projects` | creates a project |
+| `POST /project/{project_id}/assets` | membership edit; deletes no files or asset rows |
+| `DELETE /project/{project_id}/assets` | membership edit; deletes no files or asset rows |
 | `POST /refresh` | session-token bookkeeping; the abusable surface is `POST /login` |
 | `POST /logout` | session-token bookkeeping |
 | `POST /download/zip` | streams a temp zip; stores nothing |
@@ -150,6 +155,7 @@ and write no row:
 | `PATCH /users/{user_id}` re-sending the current role | nothing changed |
 | `PATCH /users/{user_id}` re-sending the current `disabled` value | nothing changed |
 | `PATCH /folder/{folder_id}` that changes only tags | tags are an exempt metadata class |
+| `PATCH /project/{project_id}` that changes only the description or the cover | neither is a rename |
 
 The services compare against the pre-change values they already hold
 (`asset_service.move_asset_to_folder_by_id` compares `folder_id`,
@@ -336,7 +342,7 @@ administration).
 | Parameter | Type | Semantics |
 |---|---|---|
 | `actor` | string | exact match, case-insensitive (both sides lowered, value stripped) |
-| `action` | string | exact match, case-sensitive - one of the 17 names above |
+| `action` | string | exact match, case-sensitive - one of the 19 names above |
 | `target` | string | case-sensitive substring match; `%`, `_` and `\` are escaped, so it is a literal substring |
 | `since` | string | `created_at >= value` |
 | `until` | string | `created_at <= value` |

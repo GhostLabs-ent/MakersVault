@@ -140,6 +140,8 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     # POST for a download: it builds a temp zip and streams it, nothing mutates.
     ("POST", "/download/zip"): READ,
     ("GET", "/folders"): READ,
+    ("GET", "/projects"): READ,
+    ("GET", "/project/{project_id}/assets"): READ,
     # A pure SELECT that counts what a delete would remove.
     ("GET", "/folder/{folder_id}/delete-preview"): READ,
     ("GET", "/folder/{folder_id}/download"): READ,
@@ -166,6 +168,11 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("POST", "/folders"): WRITE,
     ("PATCH", "/folder/{folder_id}"): WRITE,
     ("DELETE", "/folder/{folder_id}"): WRITE,
+    ("POST", "/projects"): WRITE,
+    ("PATCH", "/project/{project_id}"): WRITE,
+    ("DELETE", "/project/{project_id}"): WRITE,
+    ("POST", "/project/{project_id}/assets"): WRITE,
+    ("DELETE", "/project/{project_id}/assets"): WRITE,
     ("POST", "/asset/{asset_id}/folder"): WRITE,
     # admin: settings, user administration, library maintenance, destruction,
     # and the audit trail itself.

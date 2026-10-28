@@ -1,7 +1,7 @@
 """Per-route permission sweeps driven by `permissions.ROUTE_PERMISSIONS`.
 
 Why this file exists: Mf-2nbc enforces a level with a *per-route dependency*, and
-the only thing that keeps 48 hand-written declarations honest is a test that
+the only thing that keeps 55 hand-written declarations honest is a test that
 visits every route at every role. The sweeps below are parametrised from
 `permissions.ROUTE_PERMISSIONS`, so that table is both the documentation and the
 test plan: add a route without classifying it and
@@ -28,6 +28,7 @@ from dataclasses import dataclass, replace
 from functools import lru_cache
 from io import BytesIO
 from typing import Callable
+from uuid import uuid4
 
 import pytest
 from argon2 import PasswordHasher
@@ -51,7 +52,7 @@ import settings_service
 from config import MOUNT_IMPORT_COPY, MOUNT_IMPORT_ENABLED
 from db import engine
 from migrations import run_migrations
-from models import Asset, AssetFile, Folder, User, UserSession
+from models import Asset, AssetFile, Folder, Project, ProjectAsset, User, UserSession
 
 ADMIN_USERNAME = "root"
 ADMIN_PASSWORD = "root-password-1"
@@ -105,6 +106,7 @@ class Ids:
     viewer_id: str = ""
     folder_id: str = ""
     trash_folder_id: str = ""
+    project_id: str = ""
     asset_id: str = ""
     asset_filename: str = ""
     file_id: str = ""
@@ -175,6 +177,7 @@ def isolated_storage(tmp_path, monkeypatch: pytest.MonkeyPatch):
     with Session(engine) as session:
         folders_before = {folder.id for folder in session.exec(select(Folder))}
         assets_before = {asset.id for asset in session.exec(select(Asset))}
+        projects_before = {project.id for project in session.exec(select(Project))}
 
     yield storage
 
@@ -182,6 +185,14 @@ def isolated_storage(tmp_path, monkeypatch: pytest.MonkeyPatch):
     settings_service.set_mount_import_enabled(enabled_before)
     settings_service.set_mount_import_copy(copy_before)
     with Session(engine) as session:
+        # Projects first: the tables are new and the name index is case-
+        # insensitive, so a leaked row would 409 the next test's seed.
+        for membership in list(session.exec(select(ProjectAsset))):
+            if membership.project_id not in projects_before:
+                session.delete(membership)
+        for project in list(session.exec(select(Project))):
+            if project.id not in projects_before:
+                session.delete(project)
         for asset_file in list(session.exec(select(AssetFile))):
             if asset_file.asset_id not in assets_before:
                 session.delete(asset_file)
@@ -264,11 +275,21 @@ def seed_library(client: TestClient, headers: dict[str, str]) -> Ids:
             headers=headers,
         )
     )
+    project = client.post("/projects", json={"name": "Seed Project"}, headers=headers)
+    assert project.status_code == 201, project.text
+    ok(
+        client.post(
+            f"/project/{project.json()['id']}/assets",
+            json={"asset_ids": [cube["id"]]},
+            headers=headers,
+        )
+    )
     storage = ok(client.get("/settings/storage", headers=headers)).json()
     mount = ok(client.get("/settings/mount-import", headers=headers)).json()
     return Ids(
         folder_id=shelf["id"],
         trash_folder_id=doomed["id"],
+        project_id=project.json()["id"],
         asset_id=cube["id"],
         asset_filename=cube["filename"],
         file_id=supporting[0]["id"],
@@ -590,6 +611,54 @@ def call_purge_trash(client: TestClient, headers: dict[str, str], ids: Ids, monk
     return client.post("/trash/purge", headers=headers)
 
 
+def call_list_projects(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    return client.get("/projects", headers=headers)
+
+
+def call_create_project(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    # A unique name per call: the name index is case-insensitive and these sweeps
+    # run the same spec under several roles.
+    return client.post("/projects", json={"name": f"Probe {uuid4().hex}"}, headers=headers)
+
+
+def call_update_project(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    # A real rename every call, never a 409 and never a no-op.
+    return client.patch(f"/project/{ids.project_id}", json={"name": f"Renamed {uuid4().hex}"}, headers=headers)
+
+
+def call_delete_project(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    # Its own throwaway project: a shared victim would be a 404 on the next pass.
+    # A denied create means the delete is denied too, and the seeded project is
+    # then refused by the same guard without being touched.
+    created = client.post("/projects", json={"name": f"Doomed {uuid4().hex}"}, headers=headers)
+    if created.status_code != 201:
+        return client.delete(f"/project/{ids.project_id}", headers=headers)
+    return client.delete(f"/project/{created.json()['id']}", headers=headers)
+
+
+def call_project_assets(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    return client.get(f"/project/{ids.project_id}/assets", headers=headers)
+
+
+def call_add_project_assets(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    # Idempotent either way: the first pass adds, a repeat skips, both are a 200.
+    return client.post(
+        f"/project/{ids.project_id}/assets",
+        json={"asset_ids": [ids.asset_id, ids.spare_asset_id]},
+        headers=headers,
+    )
+
+
+def call_remove_project_assets(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    # A DELETE with a JSON body: send it through request() explicitly.
+    return client.request(
+        "DELETE",
+        f"/project/{ids.project_id}/assets",
+        json={"asset_ids": [ids.asset_id, ids.spare_asset_id]},
+        headers=headers,
+    )
+
+
 CALLS: dict[tuple[str, str], CallSpec] = {
     ("GET", "/health"): call_health,
     ("POST", "/login"): call_login,
@@ -639,6 +708,13 @@ CALLS: dict[tuple[str, str], CallSpec] = {
     ("PATCH", "/users/{user_id}"): call_update_user,
     ("GET", "/audit"): call_list_audit,
     ("POST", "/trash/purge"): call_purge_trash,
+    ("GET", "/projects"): call_list_projects,
+    ("POST", "/projects"): call_create_project,
+    ("PATCH", "/project/{project_id}"): call_update_project,
+    ("DELETE", "/project/{project_id}"): call_delete_project,
+    ("GET", "/project/{project_id}/assets"): call_project_assets,
+    ("POST", "/project/{project_id}/assets"): call_add_project_assets,
+    ("DELETE", "/project/{project_id}/assets"): call_remove_project_assets,
 }
 
 # What a permitted caller must get back. The four `/import*` routes are absent on
@@ -689,6 +765,13 @@ EXPECTED_STATUS: dict[tuple[str, str], int] = {
     ("PATCH", "/users/{user_id}"): 200,
     ("GET", "/audit"): 200,
     ("POST", "/trash/purge"): 200,
+    ("GET", "/projects"): 200,
+    ("POST", "/projects"): 201,
+    ("PATCH", "/project/{project_id}"): 200,
+    ("DELETE", "/project/{project_id}"): 200,
+    ("GET", "/project/{project_id}/assets"): 200,
+    ("POST", "/project/{project_id}/assets"): 200,
+    ("DELETE", "/project/{project_id}/assets"): 200,
 }
 
 
@@ -744,10 +827,10 @@ def test_every_api_route_has_a_level() -> None:
 
 
 def test_the_matrix_is_the_documented_size() -> None:
-    """The matrix is pinned at 48 routes; a new route means updating this and docs/PERMISSIONS.md."""
+    """The matrix is pinned at 55 routes; a new route means updating this and docs/PERMISSIONS.md."""
     counts = {level: len(keys_at(level)) for level in (permissions.PUBLIC, permissions.READ, permissions.WRITE, permissions.ADMIN)}
-    assert len(permissions.ROUTE_PERMISSIONS) == 48, counts
-    assert counts == {permissions.PUBLIC: 4, permissions.READ: 14, permissions.WRITE: 20, permissions.ADMIN: 10}, counts
+    assert len(permissions.ROUTE_PERMISSIONS) == 55, counts
+    assert counts == {permissions.PUBLIC: 4, permissions.READ: 16, permissions.WRITE: 25, permissions.ADMIN: 10}, counts
 
 
 def test_every_guarded_route_has_a_call_spec() -> None:

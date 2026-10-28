@@ -19,12 +19,14 @@ blank ranks as `public`, i.e. it is denied even reads - fail closed.
 | Capability                                   | admin | editor | viewer |
 |----------------------------------------------|:-----:|:------:|:------:|
 | Browse assets, folders, tags, trash          |  yes  |  yes   |  yes   |
+| Browse projects and their member assets      |  yes  |  yes   |  yes   |
 | Download files, thumbnails, prepared prints  |  yes  |  yes   |  yes   |
 | Download a zip of a selection/folder/tag     |  yes  |  yes   |  yes   |
 | Poll library scan status                     |  yes  |  yes   |  yes   |
 | Upload / import / rename / edit metadata     |  yes  |  yes   |   no   |
 | Delete assets, folders, supporting files     |  yes  |  yes   |   no   |
 | Bulk tag / move / delete                     |  yes  |  yes   |   no   |
+| Create / edit / delete projects, edit membership |  yes  |  yes   |   no   |
 | Start a library scan                         |  yes  |   no   |   no   |
 | Change storage / mount-import settings       |  yes  |   no   |   no   |
 | Create users, set roles, disable accounts    |  yes  |   no   |   no   |
@@ -79,8 +81,12 @@ mutating route is neither audited nor exempt with a reason. See
 
 ## The route matrix
 
-Paths are FastAPI templates exactly as declared. 48 routes: 4 public, 14 read,
-20 write, 10 admin.
+Paths are FastAPI templates exactly as declared. 55 routes: 4 public, 16 read,
+25 write, 10 admin.
+
+The collection/instance templates are deliberately asymmetric: the collection is
+`/projects` while one project is `/project/{project_id}`, exactly like `/folders`
+vs `/folder/{folder_id}`. Match on the template, not on the noun.
 
 ### public (no authentication)
 
@@ -108,6 +114,8 @@ Paths are FastAPI templates exactly as declared. 48 routes: 4 public, 14 read,
 | GET    | `/folders`                              | list folders |
 | GET    | `/folder/{folder_id}/delete-preview`    | pure SELECT that counts what a delete would remove |
 | GET    | `/folder/{folder_id}/download`          | download a folder as a zip |
+| GET    | `/projects`                             | list projects with their member counts |
+| GET    | `/project/{project_id}/assets`          | list one project's member assets |
 | GET    | `/trash`                                | list the trash |
 
 ### write (editor or admin)
@@ -134,6 +142,11 @@ Paths are FastAPI templates exactly as declared. 48 routes: 4 public, 14 read,
 | PATCH  | `/folder/{folder_id}`                       | rename/move/retag a folder |
 | DELETE | `/folder/{folder_id}`                       | delete a folder (to trash) |
 | POST   | `/asset/{asset_id}/folder`                  | move an asset into a folder |
+| POST   | `/projects`                                 | create a project (a row set, no files) |
+| PATCH  | `/project/{project_id}`                     | rename / describe / set the cover of a project |
+| DELETE | `/project/{project_id}`                     | delete a project and its memberships (never an asset) |
+| POST   | `/project/{project_id}/assets`              | add project memberships |
+| DELETE | `/project/{project_id}/assets`              | remove project memberships (the one DELETE with a JSON body) |
 
 ### admin (administrators only)
 

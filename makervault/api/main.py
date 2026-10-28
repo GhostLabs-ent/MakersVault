@@ -26,6 +26,7 @@ import folder_service
 import login_throttle as login_throttle_module
 import multipart_stream
 import permissions
+import project_service
 import sessions
 import trash_service
 from asset_file_service import (
@@ -68,7 +69,7 @@ from file_utils import (
 from import_service import download_import_to_temp, import_asset_from_url, open_import_response
 from library_scan import scan_status, start_scan
 from migrations import run_migrations
-from models import Asset, AssetFile, AuditEvent, Folder, User
+from models import Asset, AssetFile, AuditEvent, Folder, Project, ProjectAsset, User
 from mount_import import mount_import_should_run, scan_mount_imports
 from permissions import require_admin, require_read, require_write
 from prepared_print import prepared_filename
@@ -103,6 +104,12 @@ from schemas import (
     MeOut,
     MountImportSettings,
     MountImportSettingsOut,
+    ProjectAssetsRequest,
+    ProjectIn,
+    ProjectMembersOut,
+    ProjectOut,
+    ProjectRemovalOut,
+    ProjectUpdate,
     RefreshRequest,
     StorageSettings,
     StorageSettingsOut,
@@ -231,6 +238,21 @@ def folder_to_out(f: Folder) -> "FolderOut":
     )
 
 
+def thumb_url_for(asset_id: Optional[str]) -> Optional[str]:
+    """The versioned thumbnail URL for an asset, or None when nothing was generated.
+
+    One helper for every `thumb_url`/`cover_thumb_url` field, so the versioned form
+    (`?v=<st_mtime_ns>`, which makes the URL change when the thumbnail does) cannot
+    drift between the asset and project serializers.
+    """
+    if not asset_id:
+        return None
+    path = THUMBS / f"{asset_id}.jpg"
+    if not path.exists():
+        return None
+    return f"/thumb/{asset_id}.jpg?v={path.stat().st_mtime_ns}"
+
+
 def to_out(a: Asset) -> AssetOut:
     tags = json.loads(a.tags_json or "[]")
     safe_filename = quote(a.filename or "", safe="")
@@ -254,11 +276,7 @@ def to_out(a: Asset) -> AssetOut:
         collection=a.collection,
         tags=tags,
         url=primary_url,
-        thumb_url=(
-            f"/thumb/{a.id}.jpg?v={(THUMBS / f'{a.id}.jpg').stat().st_mtime_ns}"
-            if (THUMBS / f"{a.id}.jpg").exists()
-            else None
-        ),
+        thumb_url=thumb_url_for(a.id),
         folder_id=a.folder_id,
         storage_path=a.storage_path,
         missing_since=a.missing_since,
@@ -266,6 +284,24 @@ def to_out(a: Asset) -> AssetOut:
         prepared_print=prepared,
         slicer_url=slicer_url,
         slicer_filename=(prepared_filename(a.name, prepared) if a.prepared_file_id else a.filename),
+    )
+
+
+def project_to_out(project: Project, asset_count: int) -> ProjectOut:
+    return ProjectOut(
+        id=project.id,
+        name=project.name,
+        description=project.description,
+        creator=project.creator,
+        source_url=project.source_url,
+        licence=project.licence,
+        licence_url=project.licence_url,
+        origin=project.origin,
+        cover_asset_id=project.cover_asset_id,
+        cover_thumb_url=thumb_url_for(project.cover_asset_id),
+        asset_count=asset_count,
+        created_at=project.created_at,
+        updated_at=project.updated_at,
     )
 
 
@@ -950,6 +986,30 @@ def apply_asset_filters(stmt, q: Optional[str], tags: Optional[str], folder_id: 
     return stmt
 
 
+def asset_page(session: Session, stmt, response: Response, limit: Optional[int], offset: Optional[int]) -> List[Asset]:
+    """The one pagination contract: at most `limit` rows plus the two headers.
+
+    Shared by `GET /assets` and `GET /project/{project_id}/assets`, so the two
+    listings cannot disagree about `X-Has-More`, `X-Next-Offset`, or about sending
+    no pagination header at all when `limit` is absent. The extra `+ 1` row is how
+    `has_more` is known without a second count query.
+    """
+    if limit is not None:
+        stmt = stmt.limit(limit + 1)
+        if offset:
+            stmt = stmt.offset(offset)
+    assets = list(session.exec(stmt))
+
+    has_more = False
+    if limit is not None and len(assets) > limit:
+        has_more = True
+        assets = assets[:limit]
+    if limit is not None and response is not None:
+        response.headers["X-Has-More"] = "true" if has_more else "false"
+        response.headers["X-Next-Offset"] = str((offset or 0) + len(assets))
+    return assets
+
+
 @app.get("/assets", response_model=List[AssetOut])
 def list_assets(
     response: Response,
@@ -963,19 +1023,7 @@ def list_assets(
     with Session(engine) as s:
         stmt = apply_asset_filters(select(Asset), q, tags, folder_id)
         stmt = stmt.order_by(Asset.name, Asset.filename, Asset.id)
-        if limit is not None:
-            stmt = stmt.limit(limit + 1)
-            if offset:
-                stmt = stmt.offset(offset)
-        assets = list(s.exec(stmt))
-
-    has_more = False
-    if limit is not None and len(assets) > limit:
-        has_more = True
-        assets = assets[:limit]
-    if limit is not None and response is not None:
-        response.headers["X-Has-More"] = "true" if has_more else "false"
-        response.headers["X-Next-Offset"] = str((offset or 0) + len(assets))
+        assets = asset_page(s, stmt, response, limit, offset)
 
     out: List[AssetOut] = [to_out(a) for a in assets]
     return out
@@ -1311,6 +1359,114 @@ def download_folder(folder_id: str, background: BackgroundTasks, _: Optional[Aut
         folder_map = {folder_id: folder.name}
     download_name = f"{(folder.name or 'folder').replace(' ', '_')[:50] or 'folder'}.zip"
     return zip_assets_response(assets, download_name, background, folder_map)
+
+
+# Project endpoints ---------------------------------------------
+# A project is a row and a join table: it owns no storage path and no bytes, so
+# no route here creates, moves or deletes a file. The templates are deliberately
+# asymmetric (`/projects` for the collection, `/project/{project_id}` for one),
+# matching `/folders` vs `/folder/{folder_id}`.
+
+
+@app.get("/projects", response_model=List[ProjectOut])
+def list_projects(_: Optional[AuthContext] = Depends(require_read)):
+    with Session(engine) as s:
+        rows = project_service.list_projects(s)
+    return [project_to_out(project, count) for project, count in rows]
+
+
+@app.post("/projects", response_model=ProjectOut, status_code=201)
+def create_project(body: ProjectIn, _: Optional[AuthContext] = Depends(require_write)):
+    with Session(engine) as s:
+        project = project_service.create_project(s, body.name, body.description, body.cover_asset_id)
+        asset_count = project_service.count_members(s, project.id)
+    return project_to_out(project, asset_count)
+
+
+@app.patch("/project/{project_id}", response_model=ProjectOut)
+def update_project(
+    project_id: str,
+    body: ProjectUpdate,
+    request: Request,
+    context: Optional[AuthContext] = Depends(require_write),
+):
+    with Session(engine) as s:
+        project = project_service.update_project(
+            s,
+            project_service.get_project(s, project_id),
+            body.model_fields_set,
+            body.name,
+            body.description,
+            body.cover_asset_id,
+            audit_ctx=audit.context_for(request, context),
+        )
+        asset_count = project_service.count_members(s, project.id)
+        result = project_to_out(project, asset_count)
+    return result
+
+
+@app.delete("/project/{project_id}")
+def delete_project(project_id: str, request: Request, context: Optional[AuthContext] = Depends(require_write)):
+    with Session(engine) as s:
+        project_service.delete_project(
+            s,
+            project_service.get_project(s, project_id),
+            audit_ctx=audit.context_for(request, context),
+        )
+    return {"ok": True}
+
+
+@app.get("/project/{project_id}/assets", response_model=List[AssetOut])
+def list_project_assets(
+    project_id: str,
+    response: Response,
+    q: Optional[str] = None,
+    tags: Optional[str] = Query(default=None, description="Comma-separated tags"),
+    limit: Optional[int] = Query(default=None, ge=1, le=1000),
+    offset: Optional[int] = Query(default=None, ge=0),
+    _: Optional[AuthContext] = Depends(require_read),
+):
+    """The project's members, ordered and paged exactly like `GET /assets`.
+
+    `folder_id` is not a parameter here on purpose: membership, not location,
+    decides what is listed.
+    """
+    with Session(engine) as s:
+        project_service.get_project(s, project_id)
+        stmt = select(Asset).join(ProjectAsset, ProjectAsset.asset_id == Asset.id).where(ProjectAsset.project_id == project_id)
+        stmt = apply_asset_filters(stmt, q, tags, None)
+        stmt = stmt.order_by(Asset.name, Asset.filename, Asset.id)
+        assets = asset_page(s, stmt, response, limit, offset)
+    return [to_out(a) for a in assets]
+
+
+@app.post("/project/{project_id}/assets", response_model=ProjectMembersOut)
+def add_project_assets(
+    project_id: str,
+    body: ProjectAssetsRequest,
+    _: Optional[AuthContext] = Depends(require_write),
+):
+    """Add memberships; unknown asset ids are reported per id (200 partial)."""
+    asset_ids = require_asset_ids(body.asset_ids)
+    added, skipped, failed = project_service.add_assets(project_id, asset_ids)
+    return ProjectMembersOut(added=added, skipped=skipped, failed=failed)
+
+
+@app.delete("/project/{project_id}/assets", response_model=ProjectRemovalOut)
+def remove_project_assets(
+    project_id: str,
+    body: ProjectAssetsRequest,
+    _: Optional[AuthContext] = Depends(require_write),
+):
+    """Remove memberships; assets and files are never touched.
+
+    This is the one DELETE route in the API that carries a JSON body, so a client
+    must send it explicitly - `client.request("DELETE", path, json=...)` - because
+    some convenience helpers drop a body on DELETE.
+    """
+    asset_ids = require_asset_ids(body.asset_ids)
+    removed, skipped, failed = project_service.remove_assets(project_id, asset_ids)
+    return ProjectRemovalOut(removed=removed, skipped=skipped, failed=failed)
 
 
 # Trash endpoints -----------------------------------------------

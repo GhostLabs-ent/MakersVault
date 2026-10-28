@@ -37,7 +37,7 @@ import settings_service
 from config import MOUNT_IMPORT_COPY, MOUNT_IMPORT_ENABLED
 from db import engine
 from migrations import run_migrations
-from models import Asset, AssetFile, AuditEvent, Folder, User, UserSession
+from models import Asset, AssetFile, AuditEvent, Folder, Project, ProjectAsset, User, UserSession
 
 ADMIN_USERNAME = "root"
 ADMIN_PASSWORD = "root-password-1"
@@ -98,6 +98,7 @@ def isolated_storage(tmp_path, monkeypatch: pytest.MonkeyPatch):
     with Session(engine) as session:
         folders_before = {folder.id for folder in session.exec(select(Folder))}
         assets_before = {asset.id for asset in session.exec(select(Asset))}
+        projects_before = {project.id for project in session.exec(select(Project))}
 
     yield storage
 
@@ -105,6 +106,14 @@ def isolated_storage(tmp_path, monkeypatch: pytest.MonkeyPatch):
     settings_service.set_mount_import_enabled(enabled_before)
     settings_service.set_mount_import_copy(copy_before)
     with Session(engine) as session:
+        # Projects first: the tables are new and the name index is case-
+        # insensitive, so a leaked row would 409 the next test's seed.
+        for membership in list(session.exec(select(ProjectAsset))):
+            if membership.project_id not in projects_before:
+                session.delete(membership)
+        for project in list(session.exec(select(Project))):
+            if project.id not in projects_before:
+                session.delete(project)
         for asset_file in list(session.exec(select(AssetFile))):
             if asset_file.asset_id not in assets_before:
                 session.delete(asset_file)
@@ -139,6 +148,7 @@ class Ids:
     batch_asset_id: str
     file_id: str
     doomed_folder_id: str
+    project_id: str
     storage_template: str
     mount_enabled: bool
     mount_copy: bool
@@ -184,6 +194,9 @@ def seed_library(client: TestClient, headers: dict[str, str]) -> Ids:
     ok(client.post(f"/asset/{cube['id']}/files", files={"file": ("notes.txt", b"notes\n", "text/plain")}, headers=headers))
     ok(client.post(f"/asset/{cube['id']}/files", files={"file": ("cube.gcode", b"; cube\n", "text/plain")}, headers=headers))
     supporting = ok(client.get(f"/asset/{cube['id']}/files", headers=headers)).json()
+    project = client.post("/projects", json={"name": "Seed Project"}, headers=headers)
+    assert project.status_code == 201, project.text
+    ok(client.post(f"/project/{project.json()['id']}/assets", json={"asset_ids": [cube["id"]]}, headers=headers))
     storage = ok(client.get("/settings/storage", headers=headers)).json()
     mount = ok(client.get("/settings/mount-import", headers=headers)).json()
     return Ids(
@@ -200,6 +213,7 @@ def seed_library(client: TestClient, headers: dict[str, str]) -> Ids:
         batch_asset_id=batch["id"],
         file_id=supporting[0]["id"],
         doomed_folder_id=doomed["id"],
+        project_id=project.json()["id"],
         storage_template=storage["template"],
         mount_enabled=mount["enabled"],
         mount_copy=mount["copy_files"],
@@ -330,6 +344,17 @@ def call_start_scan(client, headers, ids, monkeypatch) -> Response:
     return client.post("/library/scan", headers=headers)
 
 
+def call_rename_project(client, headers, ids, monkeypatch) -> Response:
+    # A real rename: project.rename is only written when the name changes.
+    return client.patch(f"/project/{ids.project_id}", json={"name": f"Project {uuid4().hex}"}, headers=headers)
+
+
+def call_delete_project(client, headers, ids, monkeypatch) -> Response:
+    # Its own throwaway project, so the sweep never 404s on a second pass.
+    created = client.post("/projects", json={"name": f"Doomed {uuid4().hex}"}, headers=headers)
+    return client.request("DELETE", f"/project/{created.json()['id']}", headers=headers)
+
+
 CALLS: dict[tuple[str, str], CallSpec] = {
     ("POST", "/login"): call_login,
     ("DELETE", "/asset/{asset_id}"): call_delete_asset,
@@ -342,6 +367,8 @@ CALLS: dict[tuple[str, str], CallSpec] = {
     ("DELETE", "/asset/{asset_id}/prepared-print"): call_delete_prepared_print,
     ("PATCH", "/folder/{folder_id}"): call_rename_folder,
     ("DELETE", "/folder/{folder_id}"): call_delete_folder,
+    ("PATCH", "/project/{project_id}"): call_rename_project,
+    ("DELETE", "/project/{project_id}"): call_delete_project,
     ("POST", "/trash/purge"): call_purge,
     ("POST", "/settings/storage"): call_storage_settings,
     ("POST", "/settings/mount-import"): call_mount_import_settings,
