@@ -105,6 +105,15 @@ def _resolve_import(
         raise HTTPException(status_code=400, detail="Failed to reach the provided URL") from err
 
     final_url = resp.geturl()
+    # A redirect that lands on a paid or checkout URL is refused for the same
+    # reason the requested URL is: the documented promise is that no paid page is
+    # ever fetched, and the hop only becomes visible after the first request has
+    # been made. The body is already open here, so close it before refusing.
+    try:
+        refuse_paid_or_gated(final_url)
+    except HTTPException:
+        resp.close()
+        raise
     content_type = resp.headers.get("Content-Type", "")
     if is_html_content_type(content_type):
         html_bytes = resp.read(IMPORT_HTML_MAX_BYTES + 1)

@@ -145,6 +145,7 @@ def test_free_public_urls_are_not_refused(url):
     [
         ("/import", PAID_PAYLOAD),
         ("/import/inspect", PAID_PAYLOAD),
+        ("/import/project", PAID_PAYLOAD),
         ("/import/zip/entries", PAID_PAYLOAD),
         ("/import/zip", {**PAID_PAYLOAD, "entries": ["cube.stl"]}),
     ],
@@ -175,6 +176,43 @@ def test_open_import_response_refuses_purchase_state_at_any_depth(monkeypatch):
         import_service.open_import_response(url, body)
     assert excinfo.value.status_code == 403
     assert excinfo.value.detail == import_policy.PAID_IMPORT_DETAIL
+
+
+def test_a_redirect_to_a_paid_url_is_refused_and_closes_its_body(monkeypatch):
+    # The requested URL is free; only the hop is paid. The documented promise is
+    # that no paid page is fetched, and the hop is visible only after the first
+    # request, so the already-open body must be closed on refusal.
+    class PaidHopResponse:
+        """A free URL's response that redirected to a checkout page."""
+
+        def __init__(self) -> None:
+            self.closed = False
+            # Non-HTML, so reaching the body handling would end the refusal.
+            self.headers = {"Content-Type": "application/octet-stream"}
+
+        def geturl(self) -> str:
+            return "https://makerworld.com/en/checkout"
+
+        def close(self) -> None:
+            self.closed = True
+
+    def skip_url_validation(url: str) -> str:
+        """Skip URL validation, which resolves DNS - a network call."""
+        return url
+
+    response = PaidHopResponse()
+
+    def return_the_redirected_response(*args, **kwargs):
+        return response
+
+    monkeypatch.setattr(import_service, "validate_remote_url", skip_url_validation)
+    monkeypatch.setattr(import_service, "safe_urlopen", return_the_redirected_response)
+    body = ImportRequest(url="https://cdn.example.com/cube.stl", makerworld_cookie="S")
+    with pytest.raises(HTTPException) as excinfo:
+        import_service.open_import_response("https://cdn.example.com/cube.stl", body)
+    assert excinfo.value.status_code == 403
+    assert excinfo.value.detail == import_policy.PAID_IMPORT_DETAIL
+    assert response.closed is True
 
 
 def test_import_request_has_no_purchase_or_payment_fields():

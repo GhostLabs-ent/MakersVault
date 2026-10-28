@@ -26,6 +26,12 @@ from import_resolvers import (
 # itself sets on a model, so the page's own answer is the answer.
 GATED_FLAGS = frozenset({"is_purchasable", "purchasable", "paid", "is_paid", "requires_purchase", "is_premium"})
 
+# The real `__NEXT_DATA__` payload is camelCase (`isPremium`) while hand-written
+# JSON-LD may be snake_case, so the separator is normalised away before lookup.
+# The value stays the canonical snake_case name because `gated_reason` is built
+# from it and callers assert on that stored spelling.
+_GATED_FLAG_BY_NORMALISED = {flag.replace("_", ""): flag for flag in GATED_FLAGS}
+
 
 @dataclass(frozen=True)
 class PageMetadata:
@@ -259,12 +265,17 @@ def _gated_flag(data: Any) -> Optional[str]:
 
     Only a JSON boolean counts. A string "true" or a non-empty `price` object is
     not proof, and refusing on it would turn a free import into a gated one.
+
+    Both separator spellings resolve to the canonical snake_case name: the real
+    payload is camelCase (`isPremium`), and returning it verbatim would miss the
+    gate while storing a reason that does not match the documented flag.
     """
     if isinstance(data, dict):
         for key, value in data.items():
             lowered = (key or "").lower()
-            if lowered in GATED_FLAGS and value is True:
-                return lowered
+            canonical = _GATED_FLAG_BY_NORMALISED.get(lowered.replace("_", ""))
+            if canonical is not None and value is True:
+                return canonical
             found = _gated_flag(value)
             if found:
                 return found

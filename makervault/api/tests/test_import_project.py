@@ -238,6 +238,27 @@ def test_paid_printables_page_names_its_flag() -> None:
     assert "is_premium" in (metadata.gated_reason or "")
 
 
+@pytest.mark.parametrize(
+    "flag,canonical",
+    [("isPremium", "is_premium"), ("isPurchasable", "is_purchasable")],
+)
+def test_a_camel_case_gated_flag_is_gated_with_its_canonical_reason(flag: str, canonical: str) -> None:
+    # The real __NEXT_DATA__ payload is camelCase ("isPremium"), which the
+    # snake_case fixtures above never exercise. The stored reason stays
+    # snake_case, exactly as the paired snake_case test yields it.
+    next_data = {"props": {"pageProps": {"model": {"name": "CamelCase Model", flag: True}}}}
+    html = (
+        '<html><head><meta property="og:title" content="CamelCase Model">'
+        '<script id="__NEXT_DATA__" type="application/json">'
+        f"{json.dumps(next_data)}"
+        "</script></head></html>"
+    )
+    metadata = parse_page_metadata(html, "https://www.printables.com/model/8-camelcase")
+
+    assert metadata.gated is True
+    assert canonical in (metadata.gated_reason or "")
+
+
 def test_free_thingiverse_page_parses_its_details_and_is_not_gated() -> None:
     metadata = parse_page_metadata(THINGIVERSE_FREE_PAGE, "https://www.thingiverse.com/thing:5")
 
