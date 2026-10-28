@@ -1,4 +1,5 @@
 import { UnauthorizedError, createFolder, uploadAsset } from "./api";
+import { uploadQueue, type UploadJob, type UploadTransport } from "./uploadQueue";
 
 export type UploadEntry = {
   file: File;
@@ -86,17 +87,29 @@ export async function entriesFromDataTransfer(dataTransfer: DataTransfer): Promi
 export async function uploadEntriesToFolder(
   entries: UploadEntry[],
   parentFolderId: string | null,
-  onUnauthorized?: () => void
-) {
+  onUnauthorized?: () => void,
+): Promise<{
+  uploaded: number;
+  failed: string[];
+  failedEntries: UploadEntry[];
+  uploadedEntries: UploadEntry[];
+  cancelled: number;
+}> {
   const failed: string[] = [];
   // Parallel to `failed`: the original entries, so callers can offer a retry
   // without guessing which of the inputs failed.
   const failedEntries: UploadEntry[] = [];
-  let uploaded = 0;
-  let aborted = false;
-  const uploadedEntries: UploadEntry[] = [];
+  const jobs: UploadJob[] = [];
   const folderCache = new Map<string, string>();
   const baseKey = parentFolderId || "root";
+  // Phase 1 can report a 401 and phase 2 can too; the caller is only told once.
+  let notifiedUnauthorized = false;
+
+  const notifyUnauthorized = (): void => {
+    if (notifiedUnauthorized) return;
+    notifiedUnauthorized = true;
+    onUnauthorized?.();
+  };
 
   const getOrCreateFolder = async (parentId: string | null, parentKey: string, name: string) => {
     const key = `${parentKey}/${name}`;
@@ -108,6 +121,9 @@ export async function uploadEntriesToFolder(
     return folderId;
   };
 
+  // Sequential on purpose: the `createFolder` order (parents before children, in
+  // entry order) is observable by callers and by the folder tree the UI refreshes
+  // afterwards. Only the uploads below run concurrently.
   for (const entry of entries) {
     const normalized = normalizeRelativePath(entry.relativePath || entry.file.name);
     const segments = normalized.split("/").filter(Boolean);
@@ -115,40 +131,67 @@ export async function uploadEntriesToFolder(
     segments.pop();
     let targetFolderId = parentFolderId;
     let parentKey = baseKey;
+    let folderFailed = false;
+    let folderUnauthorized = false;
     for (const segment of segments) {
       try {
         targetFolderId = await getOrCreateFolder(targetFolderId, parentKey, segment);
         parentKey = `${parentKey}/${segment}`;
       } catch (err) {
         if (err instanceof UnauthorizedError) {
-          onUnauthorized?.();
-          aborted = true;
+          notifyUnauthorized();
+          folderUnauthorized = true;
           break;
         }
         console.error("Folder creation failed for", segment, err);
         failed.push(entry.file.name);
         failedEntries.push(entry);
-        targetFolderId = null;
+        folderFailed = true;
         break;
       }
     }
-    if (aborted) break;
-    if (targetFolderId === null && segments.length) continue;
-    try {
-      await uploadAsset(entry.file, { folder_id: targetFolderId || undefined });
-      uploaded += 1;
-      uploadedEntries.push(entry);
-    } catch (err) {
-      if (err instanceof UnauthorizedError) {
-        onUnauthorized?.();
-        aborted = true;
-        break;
-      }
-      console.error("Upload failed for", entry.file.name, err);
-      const message = err instanceof Error ? err.message.trim() : "";
-      failed.push(message && message !== "Upload failed" ? `${entry.file.name} (${message})` : entry.file.name);
-      failedEntries.push(entry);
-    }
+    // An auth abort ends the whole batch; a failed folder only skips its own entry.
+    if (folderUnauthorized) break;
+    if (folderFailed) continue;
+    jobs.push({ entry, folderId: targetFolderId });
   }
-  return { uploaded, failed, failedEntries, uploadedEntries };
+
+  const transport: UploadTransport = (job, ctx) =>
+    uploadAsset(
+      job.entry.file,
+      { folder_id: job.folderId || undefined },
+      { onProgress: (loaded, total) => ctx.onProgress({ loaded, total }), signal: ctx.signal },
+    ) as Promise<unknown>;
+
+  // The app singleton, never a private queue: the upload panel renders its tasks.
+  const result = await uploadQueue.run(jobs, {
+    transport,
+    isUnauthorized: err => err instanceof UnauthorizedError,
+  });
+
+  // Report failures in entry order, not the order the queue finished them in: the
+  // toast's detail list and its retry should read the same way they did while the
+  // uploads were sequential.
+  const failureMessages = new Map<UploadJob, string>();
+  for (const failure of result.failures) failureMessages.set(failure.job, failure.message);
+  for (const job of jobs) {
+    const failureMessage = failureMessages.get(job);
+    if (failureMessage === undefined) continue;
+    const name = job.entry.file.name;
+    const message = failureMessage.trim();
+    console.error("Upload failed for", name, failureMessage);
+    failed.push(message && message !== "Upload failed" ? `${name} (${message})` : name);
+    failedEntries.push(job.entry);
+  }
+
+  // An auth abort is not a user cancel: the queue tallies it as 0 cancellations.
+  if (result.aborted) notifyUnauthorized();
+
+  return {
+    uploaded: result.uploaded.length,
+    failed,
+    failedEntries,
+    uploadedEntries: result.uploaded.map(job => job.entry),
+    cancelled: result.cancelled,
+  };
 }

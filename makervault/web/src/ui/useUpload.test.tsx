@@ -19,6 +19,7 @@ vi.mock("../lib/api", () => ({
 
 import { createFolder, uploadAsset } from "../lib/api";
 import { resetToasts } from "../lib/toast";
+import { uploadQueue } from "../lib/uploadQueue";
 import type { UploadEntry } from "../lib/uploadTree";
 import Toaster from "./Toaster";
 import { useUpload, type UploadOutcome, type UploadRequestOptions } from "./useUpload";
@@ -253,6 +254,34 @@ describe("useUpload", () => {
     expect(
       uploadAssetMock.mock.calls.some(([, opts]) => opts?.folder_id === "default-folder"),
     ).toBe(false);
+  });
+
+  it("reports a cancellation with one info toast and no error toast", async () => {
+    // The first upload resolves on its own; the rest hang until cancelled.
+    uploadAssetMock.mockImplementation(async (uploadedFile: File) => {
+      if (uploadedFile.name === "a.stl") return { id: "asset" };
+      await new Promise<never>(() => {});
+      return { id: "asset" };
+    });
+    const results = start({}, [entry("a.stl"), entry("b.stl"), entry("c.stl"), entry("d.stl"), entry("e.stl")]);
+
+    await waitFor(() => expect(uploadAssetMock).toHaveBeenCalledTimes(4));
+
+    await act(async () => {
+      for (let i = 0; i < 20; i += 1) await Promise.resolve();
+      uploadQueue.cancel();
+    });
+
+    await waitFor(() => expect(results).toHaveLength(1));
+
+    expect(results[0].uploaded).toBe(1);
+    expect(results[0].failed).toEqual([]);
+    expect(results[0].failedEntries).toEqual([]);
+    expect(results[0].cancelled).toBe(4);
+
+    expect(toaster().getAllByRole("status")).toHaveLength(1);
+    expect(toaster().getByText("Upload cancelled — 1 of 5 files uploaded")).toBeTruthy();
+    expect(toaster().queryAllByRole("alert")).toHaveLength(0);
   });
 
   it("marks itself busy while the zip prompt is open", async () => {

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 
-import { dismissToast, notifyError } from "../lib/toast";
+import { dismissToast, notifyError, notifyInfo } from "../lib/toast";
 import { uploadEntriesToFolder, type UploadEntry } from "../lib/uploadTree";
 import { buildUploadEntriesFromZip, isZipFile, readZipEntries } from "../lib/zipUtils";
 import { useZipImportPrompt, type ZipPromptConfig } from "./ZipImportModal";
@@ -9,6 +9,7 @@ export type UploadOutcome = {
   uploaded: number;
   failed: string[];
   failedEntries: UploadEntry[];
+  cancelled: number;
 };
 
 export type UploadRequestOptions = {
@@ -43,16 +44,18 @@ export function useUpload(options: Options): Uploader {
     entries: UploadEntry[],
     requestOptions?: UploadRequestOptions,
   ): Promise<UploadOutcome> => {
-    if (!entries.length) return { uploaded: 0, failed: [], failedEntries: [] };
+    if (!entries.length) return { uploaded: 0, failed: [], failedEntries: [], cancelled: 0 };
     // Per-call override wins: a sidebar drag targets the folder it was dropped on.
     const effectiveFolderId = requestOptions?.folderId ?? folderId ?? null;
     const normalEntries = entries.filter(entry => !isZipFile(entry.file.name));
     const zipEntries = entries.filter(entry => isZipFile(entry.file.name));
     let uploaded = 0;
+    let cancelled = 0;
     const failed: string[] = [];
     const failedEntries: UploadEntry[] = [];
     const applyResult = (result: UploadOutcome): void => {
       uploaded += result.uploaded;
+      cancelled += result.cancelled;
       failed.push(...result.failed);
       failedEntries.push(...result.failedEntries);
     };
@@ -100,10 +103,14 @@ export function useUpload(options: Options): Uploader {
           },
         });
       }
+      if (cancelled > 0) {
+        // Info, not an error: the user asked for this by clicking Cancel.
+        notifyInfo(`Upload cancelled — ${uploaded} of ${uploaded + failed.length + cancelled} files uploaded`);
+      }
     } finally {
       setUploading(false);
     }
-    return { uploaded, failed, failedEntries };
+    return { uploaded, failed, failedEntries, cancelled };
   };
 
   const promptZip = (config: ZipPromptConfig): Promise<void> => prompt.prompt(config);

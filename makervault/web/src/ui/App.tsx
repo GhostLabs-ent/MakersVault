@@ -4,6 +4,7 @@ import AssetGrid from "./AssetGrid";
 import Sidebar from "./Sidebar";
 import Login from "./Login";
 import Settings from "./Settings";
+import UploadQueuePanel from "./UploadQueuePanel";
 import { apiHealth, getApiBase, refreshToken, type HealthInfo } from "../lib/api";
 import { notifyError } from "../lib/toast";
 import ConfirmDialog from "./ConfirmDialog";
@@ -236,6 +237,8 @@ export default function App() {
           onCancel={() => setConfirmingLogout(false)}
         />
       )}
+      {/* Fixed-position sibling of the layout: it never affects App's layout. */}
+      <UploadQueuePanel onUploaded={handleAssetsChanged} onUnauthorized={handleUnauthorized} />
     </div>
   );
 }
