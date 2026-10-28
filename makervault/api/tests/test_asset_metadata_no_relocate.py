@@ -268,6 +268,84 @@ def test_meta_name_change_renames_in_place(isolated_storage: Path) -> None:
     assert not (storage / "Untagged").exists()
 
 
+def test_meta_name_typed_with_the_matching_extension_does_not_double_it(isolated_storage: Path) -> None:
+    """Typing the whole file name is the UI's habit; keep one extension, not two."""
+    storage = isolated_storage
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        asset_id = insert_asset_row("Widget model", None, "Somewhere/model.stl")
+        write_placeholder_file(storage / "Somewhere" / "model.stl", b"widget bytes")
+
+        response = client.post(f"/asset/{asset_id}/meta", json={"name": "widget.stl"}, headers=headers)
+
+        assert response.status_code == 200, response.text
+        assert response.json()["name"] == "widget"
+        assert response.json()["filename"] == "widget.stl"
+
+    asset = read_asset(asset_id)
+    assert asset is not None
+    assert asset.name == "widget"
+    assert asset.storage_path == "Somewhere/widget.stl"
+    assert (storage / "Somewhere" / "widget.stl").read_bytes() == b"widget bytes"
+    assert not (storage / "Somewhere" / "widget.stl.stl").exists()
+    assert not (storage / "Somewhere" / "model.stl").exists()
+
+
+def test_meta_name_with_a_mismatched_extension_keeps_the_typed_text(isolated_storage: Path) -> None:
+    storage = isolated_storage
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        asset_id = insert_asset_row("Widget model", None, "Somewhere/model.stl")
+        write_placeholder_file(storage / "Somewhere" / "model.stl", b"widget bytes")
+
+        response = client.post(f"/asset/{asset_id}/meta", json={"name": "widget.gcode"}, headers=headers)
+
+        assert response.status_code == 200, response.text
+        assert response.json()["name"] == "widget.gcode"
+        # The stored file keeps its real extension; only the typed extension is kept in the name.
+        assert response.json()["filename"] == "widget.gcode.stl"
+
+    asset = read_asset(asset_id)
+    assert asset.storage_path == "Somewhere/widget.gcode.stl"
+    assert (storage / "Somewhere" / "widget.gcode.stl").read_bytes() == b"widget bytes"
+
+
+def test_meta_name_that_is_only_the_extension_is_rejected(isolated_storage: Path) -> None:
+    storage = isolated_storage
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        asset_id = insert_asset_row("Widget model", None, "Somewhere/model.stl")
+        write_placeholder_file(storage / "Somewhere" / "model.stl", b"widget bytes")
+
+        response = client.post(f"/asset/{asset_id}/meta", json={"name": ".stl"}, headers=headers)
+
+        assert response.status_code == 400, response.text
+        assert response.json()["detail"] == "Name cannot be empty"
+
+    asset = read_asset(asset_id)
+    assert asset.name == "Widget model"
+    assert asset.storage_path == "Somewhere/model.stl"
+    assert (storage / "Somewhere" / "model.stl").read_bytes() == b"widget bytes"
+
+
+def test_meta_name_validation_runs_before_sanitising(isolated_storage: Path) -> None:
+    """A separator is a 422 even though sanitising would happily rewrite it."""
+    storage = isolated_storage
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        asset_id = insert_asset_row("Widget model", None, "Somewhere/model.stl")
+        write_placeholder_file(storage / "Somewhere" / "model.stl", b"widget bytes")
+
+        response = client.post(f"/asset/{asset_id}/meta", json={"name": "../widget"}, headers=headers)
+
+        assert response.status_code == 422, response.text
+
+    asset = read_asset(asset_id)
+    assert asset.name == "Widget model"
+    assert asset.storage_path == "Somewhere/model.stl"
+    assert (storage / "Somewhere" / "model.stl").read_bytes() == b"widget bytes"
+
+
 def test_rename_onto_an_occupied_path_is_rejected(isolated_storage: Path) -> None:
     storage = isolated_storage
     with TestClient(app) as client:

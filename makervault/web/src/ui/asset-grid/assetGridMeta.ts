@@ -7,14 +7,24 @@ import {
 import { colsForWidth } from "../../lib/virtualGrid";
 
 /** Sort modes offered by the toolbar; the grouped sorts render section buckets. */
-export type SortKey = "name" | "size" | "type" | "folder";
+export type SortKey = "name" | "size" | "creator" | "type" | "folder";
 export type SortDir = "asc" | "desc";
+
+/** Keys the server orders the whole listing by; `type`/`folder` stay client-side. */
+export const SERVER_SORT_KEYS: readonly SortKey[] = ["name", "size", "creator"];
+
+export function serverSortKey(key: SortKey): "name" | "size" | "creator" | null {
+  return SERVER_SORT_KEYS.includes(key) ? (key as "name" | "size" | "creator") : null;
+}
 
 export type RefreshOpts = {
   tags?: string[];
   search?: string;
   keepLoadedPages?: boolean;
   notInProject?: boolean;
+  creator?: string | null;
+  sortKey?: SortKey;
+  sortDir?: SortDir;
 };
 export type GroupBucket = { id: string; title: string; items: Asset[] };
 export type PreviewVariant = "card" | "modal";
@@ -81,6 +91,9 @@ export function fetchAssetPage(opts: {
   tags?: string[];
   folderId?: string;
   notInProject?: boolean;
+  creator?: string;
+  sort?: "name" | "size" | "creator";
+  order?: "asc" | "desc";
   limit?: number;
   offset?: number;
 }): Promise<ListAssetsResult> {
@@ -89,6 +102,9 @@ export function fetchAssetPage(opts: {
       projectId: opts.projectId,
       q: opts.q,
       tags: opts.tags,
+      creator: opts.creator,
+      sort: opts.sort,
+      order: opts.order,
       limit: opts.limit,
       offset: opts.offset,
     });
@@ -98,6 +114,9 @@ export function fetchAssetPage(opts: {
     tags: opts.tags,
     folder_id: opts.folderId,
     not_in_project: opts.notInProject,
+    creator: opts.creator,
+    sort: opts.sort,
+    order: opts.order,
     limit: opts.limit,
     offset: opts.offset,
   });

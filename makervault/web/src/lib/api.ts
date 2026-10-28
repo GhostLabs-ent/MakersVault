@@ -143,6 +143,17 @@ export type BatchTagsResult = {
   failed: BatchFailure[];
 };
 
+/** A creator/notes bulk edit. Absent keys stay unchanged; null clears. */
+export type BatchMetaChange = {
+  creator?: string | null;
+  notes?: string | null;
+};
+
+export type BatchMetaResult = {
+  updated: Asset[];
+  failed: BatchFailure[];
+};
+
 export type BatchFolderResult = {
   updated: Asset[];
   failed: BatchFailure[];
@@ -258,6 +269,10 @@ export async function listAssets(params: {
   folder_id?: string;
   /** Only assets that belong to no project (the files-mode "unsorted pile"). */
   not_in_project?: boolean;
+  /** Exact creator, case-insensitive; blank is ignored by the server. */
+  creator?: string;
+  sort?: "name" | "size" | "creator";
+  order?: "asc" | "desc";
   limit?: number;
   offset?: number;
 } = {}): Promise<ListAssetsResult> {
@@ -266,6 +281,9 @@ export async function listAssets(params: {
   if (params.tags && params.tags.length) qs.set("tags", params.tags.join(","));
   if (params.folder_id) qs.set("folder_id", params.folder_id);
   if (params.not_in_project) qs.set("not_in_project", "true");
+  if (params.creator) qs.set("creator", params.creator);
+  if (params.sort) qs.set("sort", params.sort);
+  if (params.order) qs.set("order", params.order);
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
   if (typeof params.offset === "number") qs.set("offset", String(params.offset));
   const res = await fetch(`${apiBase()}/assets?${qs.toString()}`, {
@@ -298,6 +316,29 @@ export async function listTags(params: {
     headers: authHeaders(),
   });
   assertOk(res, "Failed to list tags");
+  return res.json();
+}
+
+/** Distinct non-empty creators, scoped exactly like the tag chips. */
+export async function listCreators(params: {
+  q?: string;
+  tags?: string[];
+  folder_id?: string;
+  /** Scope the facet to one project's members (project mode). */
+  project_id?: string;
+  /** Scope the facet to assets in no project (files-mode "unsorted pile"). */
+  not_in_project?: boolean;
+} = {}): Promise<string[]> {
+  const qs = new URLSearchParams();
+  if (params.q) qs.set("q", params.q);
+  if (params.tags && params.tags.length) qs.set("tags", params.tags.join(","));
+  if (params.folder_id) qs.set("folder_id", params.folder_id);
+  if (params.project_id) qs.set("project_id", params.project_id);
+  if (params.not_in_project) qs.set("not_in_project", "true");
+  const res = await fetch(`${apiBase()}/creators?${qs.toString()}`, {
+    headers: authHeaders(),
+  });
+  assertOk(res, "Failed to list creators");
   return res.json();
 }
 
@@ -603,6 +644,31 @@ export async function batchSetTags(
   return res.json();
 }
 
+/**
+ * Sets creator/notes on many assets in one request. Only the keys present in
+ * `change` are sent: `undefined` leaves a field alone, explicit `null` clears it.
+ */
+export async function batchSetMeta(
+  asset_ids: string[],
+  change: BatchMetaChange,
+): Promise<BatchMetaResult> {
+  const body: { asset_ids: string[]; creator?: string | null; notes?: string | null } = {
+    asset_ids,
+  };
+  if (change.creator !== undefined) body.creator = change.creator;
+  if (change.notes !== undefined) body.notes = change.notes;
+  const res = await fetch(`${apiBase()}/assets/batch/meta`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Bulk metadata update failed"));
+  }
+  return res.json();
+}
+
 export async function uploadGeneratedThumbnail(id: string, image: Blob): Promise<Asset> {
   const body = new FormData();
   body.set("file", image, "thumbnail.png");
@@ -889,12 +955,19 @@ export async function listProjectAssets(params: {
   projectId: string;
   q?: string;
   tags?: string[];
+  /** Exact creator, case-insensitive; blank is ignored by the server. */
+  creator?: string;
+  sort?: "name" | "size" | "creator";
+  order?: "asc" | "desc";
   limit?: number;
   offset?: number;
 }): Promise<ListAssetsResult> {
   const qs = new URLSearchParams();
   if (params.q) qs.set("q", params.q);
   if (params.tags && params.tags.length) qs.set("tags", params.tags.join(","));
+  if (params.creator) qs.set("creator", params.creator);
+  if (params.sort) qs.set("sort", params.sort);
+  if (params.order) qs.set("order", params.order);
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
   if (typeof params.offset === "number") qs.set("offset", String(params.offset));
   const res = await fetch(

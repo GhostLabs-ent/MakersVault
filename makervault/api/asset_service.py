@@ -148,6 +148,28 @@ def filename_for_model_name(name: str, current_filename: str) -> str:
     return sanitize_filename(f"{sanitize_path_segment(name, 'Model')}{extension}")
 
 
+def model_name_for_rename(name: str, current_filename: str) -> str:
+    """Base model name for a metadata edit, stripping one matching extension.
+
+    The metadata editor is the UI's rename path and users type the file name
+    they see ("widget.stl"). When that typed suffix matches the asset's own
+    extension it is stripped, so the rename yields "widget.stl" instead of
+    doubling it; a mismatched suffix ("widget.gcode" on an .stl file) is kept as
+    typed. A name that is only the extension collapses to empty and is a 400.
+
+    ``POST /asset/{asset_id}/rename`` keeps its own filename semantics (it
+    splits an extension off the typed filename); only this path is extension-
+    safe, so ``filename_for_model_name`` stays unchanged for creation paths.
+    """
+    candidate = name.strip()
+    extension = Path(current_filename or "").suffix
+    if extension and candidate.lower().endswith(extension.lower()):
+        candidate = candidate[: -len(extension)].strip()
+    if not candidate:
+        raise HTTPException(status_code=400, detail="Name cannot be empty")
+    return candidate
+
+
 def model_names_in_folder(session: Session, folder_id: Optional[str], exclude_id: Optional[str] = None) -> set[str]:
     """Case-folded model names in one folder, matching the unique index's scope.
 

@@ -31,7 +31,7 @@ import settings_service
 from db import engine
 from main import app
 from migrations import run_migrations
-from models import Asset, Folder
+from models import Asset, AuditEvent, Folder
 
 # --- infrastructure ---------------------------------------------------------
 
@@ -98,6 +98,11 @@ def listed_assets(client: TestClient, headers: dict) -> dict:
     response = client.get("/assets", headers=headers)
     assert response.status_code == 200, response.text
     return {asset["id"]: asset for asset in response.json()}
+
+
+def audit_rows_for(request_id: str) -> list[AuditEvent]:
+    with Session(engine) as session:
+        return list(session.exec(select(AuditEvent).where(AuditEvent.request_id == request_id)))
 
 
 # --- tags -------------------------------------------------------------------
@@ -176,6 +181,199 @@ def test_batch_tags_without_ids_is_400(isolated_storage: Path) -> None:
         response = client.post("/assets/batch/tags", json={"asset_ids": ["  "], "add_tags": ["batch"]}, headers=headers)
         assert response.status_code == 400, response.text
         assert response.json()["detail"] == "asset_ids is required"
+
+
+# --- metadata --------------------------------------------------------------
+
+
+def test_batch_meta_updates_every_asset(isolated_storage: Path) -> None:
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        ids = [upload(client, headers, f"{name}.stl", f"solid {name}\n".encode())["id"] for name in ("alpha", "beta", "gamma")]
+
+        response = client.post(
+            "/assets/batch/meta",
+            json={"asset_ids": ids, "creator": "  Ada   Lovelace  ", "notes": "batch note"},
+            headers=headers,
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["failed"] == []
+        assert [asset["id"] for asset in body["updated"]] == ids
+        assert all(asset["creator"] == "Ada Lovelace" for asset in body["updated"])
+        assert all(asset["notes"] == "batch note" for asset in body["updated"])
+
+        # Persisted, not just echoed: a fresh read sees both values on every asset.
+        listed = listed_assets(client, headers)
+        assert all(listed[asset_id]["creator"] == "Ada Lovelace" for asset_id in ids)
+        assert all(listed[asset_id]["notes"] == "batch note" for asset_id in ids)
+
+
+def test_batch_meta_clears_on_null_and_blank(isolated_storage: Path) -> None:
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        asset_id = upload(client, headers, "alpha.stl", b"solid alpha\n")["id"]
+        assert (
+            client.post(f"/asset/{asset_id}/meta", json={"creator": "Someone", "notes": "a note"}, headers=headers).status_code
+            == 200
+        )
+
+        # Explicit null clears creator (the batch contract), while an absent
+        # notes field leaves notes alone.
+        response = client.post("/assets/batch/meta", json={"asset_ids": [asset_id], "creator": None}, headers=headers)
+        assert response.status_code == 200, response.text
+        assert response.json()["updated"][0]["creator"] is None
+        assert response.json()["updated"][0]["notes"] == "a note"
+
+        # A blank string clears notes the same way.
+        response = client.post("/assets/batch/meta", json={"asset_ids": [asset_id], "notes": "   "}, headers=headers)
+        assert response.status_code == 200, response.text
+        assert response.json()["updated"][0]["creator"] is None
+        assert response.json()["updated"][0]["notes"] is None
+
+        listed = listed_assets(client, headers)
+        assert listed[asset_id]["creator"] is None
+        assert listed[asset_id]["notes"] is None
+
+
+def test_batch_meta_absent_field_is_unchanged(isolated_storage: Path) -> None:
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        asset_id = upload(client, headers, "alpha.stl", b"solid alpha\n")["id"]
+        assert (
+            client.post(f"/asset/{asset_id}/meta", json={"creator": "Someone", "notes": "a note"}, headers=headers).status_code
+            == 200
+        )
+
+        response = client.post("/assets/batch/meta", json={"asset_ids": [asset_id], "creator": "Else"}, headers=headers)
+
+        assert response.status_code == 200, response.text
+        assert response.json()["updated"][0]["creator"] == "Else"
+        assert response.json()["updated"][0]["notes"] == "a note"
+
+
+def test_batch_meta_reports_an_unknown_id_per_id(isolated_storage: Path) -> None:
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        first = upload(client, headers, "alpha.stl", b"solid alpha\n")["id"]
+        second = upload(client, headers, "beta.stl", b"solid beta\n")["id"]
+
+        response = client.post(
+            "/assets/batch/meta",
+            json={"asset_ids": [first, "does-not-exist", second], "creator": "Batch creator"},
+            headers=headers,
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert [asset["id"] for asset in body["updated"]] == [first, second]
+        assert len(body["failed"]) == 1
+        failure = body["failed"][0]
+        assert failure["id"] == "does-not-exist"
+        assert failure["code"] == "not_found"
+        assert failure["status"] == 404
+        assert failure["error"] == "Asset not found"
+
+        listed = listed_assets(client, headers)
+        assert listed[first]["creator"] == "Batch creator"
+        assert listed[second]["creator"] == "Batch creator"
+
+
+def test_batch_meta_without_ids_is_400(isolated_storage: Path) -> None:
+    with TestClient(app) as client:
+        headers = auth_header(client)
+
+        response = client.post("/assets/batch/meta", json={"asset_ids": ["  "], "creator": "Someone"}, headers=headers)
+
+        assert response.status_code == 400, response.text
+        assert response.json()["detail"] == "asset_ids is required"
+
+
+def test_batch_meta_without_a_change_is_400(isolated_storage: Path) -> None:
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        asset_id = upload(client, headers, "alpha.stl", b"solid alpha\n")["id"]
+
+        response = client.post("/assets/batch/meta", json={"asset_ids": [asset_id]}, headers=headers)
+
+        assert response.status_code == 400, response.text
+        assert response.json()["detail"] == "Provide creator or notes"
+
+
+def test_batch_meta_validates_once_for_the_whole_request(isolated_storage: Path) -> None:
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        ids = [upload(client, headers, f"{name}.stl", f"solid {name}\n".encode())["id"] for name in ("alpha", "beta")]
+
+        response = client.post(
+            "/assets/batch/meta",
+            json={"asset_ids": ids, "creator": "x" * 121},
+            headers=headers,
+        )
+
+        assert response.status_code == 422, response.text
+        listed = listed_assets(client, headers)
+        assert all(listed[asset_id]["creator"] is None for asset_id in ids)
+
+
+def test_batch_meta_refuses_title_and_name(isolated_storage: Path) -> None:
+    """A batch payload cannot alias a rename and mass-move files on disk."""
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        asset_id = upload(client, headers, "alpha.stl", b"solid alpha\n")["id"]
+
+        response = client.post(
+            "/assets/batch/meta",
+            json={"asset_ids": [asset_id], "title": "Mass rename"},
+            headers=headers,
+        )
+
+        assert response.status_code == 422, response.text
+        assert listed_assets(client, headers)[asset_id]["filename"] == "alpha.stl"
+
+
+def test_batch_meta_never_renames_on_disk(isolated_storage: Path) -> None:
+    storage = isolated_storage
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        uploaded = upload(client, headers, "alpha.stl", b"solid alpha\n")
+        before_path = storage / uploaded["storage_path"]
+        before_bytes = before_path.read_bytes()
+
+        response = client.post(
+            "/assets/batch/meta",
+            json={"asset_ids": [uploaded["id"]], "creator": "Someone", "notes": "note"},
+            headers=headers,
+        )
+
+        assert response.status_code == 200, response.text
+        assert response.json()["updated"][0]["filename"] == "alpha.stl"
+        assert response.json()["updated"][0]["storage_path"] == uploaded["storage_path"]
+        assert before_path.read_bytes() == before_bytes
+
+    listed_path = storage / uploaded["storage_path"]
+    assert listed_path.exists()
+    assert listed_path.read_bytes() == before_bytes
+
+
+def test_batch_meta_writes_no_audit_event(isolated_storage: Path) -> None:
+    """Creator/notes are the exempt metadata class, like tags."""
+    request_id = "batch-meta-no-audit"
+    with TestClient(app) as client:
+        headers = {**auth_header(client), "X-Request-ID": request_id}
+        asset_id = upload(client, headers, "alpha.stl", b"solid alpha\n")["id"]
+
+        response = client.post(
+            "/assets/batch/meta",
+            json={"asset_ids": [asset_id], "creator": "Someone"},
+            headers=headers,
+        )
+
+        assert response.status_code == 200, response.text
+        assert response.headers["X-Request-ID"] == request_id
+
+    assert audit_rows_for(request_id) == []
 
 
 # --- folder moves -----------------------------------------------------------

@@ -9,9 +9,11 @@ import {
 import {
   type Asset,
   type BatchFailure,
+  type BatchMetaChange,
   UnauthorizedError,
   batchDeleteAssets,
   batchMoveAssets,
+  batchSetMeta,
   batchSetTags,
   downloadZip,
 } from "../../lib/api";
@@ -19,6 +21,7 @@ import {
   type BatchOutcome,
   applyBatchOutcome,
   applyFolderLocally,
+  applyMetaLocally,
   applyTagsLocally,
   dropIds,
   failureLines,
@@ -31,6 +34,7 @@ import { useStableCallback } from "../../lib/useStableCallback";
 type BulkActionsOptions = {
   folderId?: string | null;
   activeTags: string[];
+  activeCreator?: string | null;
   items: Asset[];
   setItems: Dispatch<SetStateAction<Asset[]>>;
   offset: number;
@@ -61,6 +65,8 @@ export type BulkActionsApi = {
   bulkAddTags: (tags: string[]) => Promise<void>;
   bulkRemoveTags: (tags: string[]) => Promise<void>;
   bulkSetTags: (add: string[], remove: string[]) => Promise<void>;
+  /** Resolves with the request-level error, or null when the run was accepted. */
+  bulkSetMeta: (change: BatchMetaChange) => Promise<string | null>;
   bulkAddToProject: () => void;
   bulkDownloading: string | null;
   downloadSelected: () => Promise<void>;
@@ -75,6 +81,7 @@ export type BulkActionsApi = {
 export function useBulkActions({
   folderId,
   activeTags,
+  activeCreator,
   items,
   setItems,
   offset,
@@ -130,7 +137,9 @@ export function useBulkActions({
     setItems(next);
     setOffset(Math.max(0, startOffset - offsetDelta));
     setBulkFailures(outcome.failed.length ? outcome.failed : null);
-    if (outcome.kind !== "delete") setAllTags(prev => unionTags(prev, outcome.updated));
+    if (outcome.kind === "tags" || outcome.kind === "folder") {
+      setAllTags(prev => unionTags(prev, outcome.updated));
+    }
     const failedIds = outcome.failed
       .map(failure => failure.id)
       .filter(id => next.some(item => item.id === id));
@@ -173,7 +182,7 @@ export function useBulkActions({
         kind: "delete",
         deleted: result.deleted,
         failed: result.failed,
-        view: { folderId, activeTags },
+        view: { folderId, activeTags, activeCreator },
       });
       return result.failed;
     } catch (err) {
@@ -209,7 +218,7 @@ export function useBulkActions({
         kind: "folder",
         updated: result.updated,
         failed: result.failed,
-        view: { folderId, activeTags },
+        view: { folderId, activeTags, activeCreator },
       });
     } catch (err) {
       if (err instanceof UnauthorizedError) {
@@ -239,7 +248,7 @@ export function useBulkActions({
         kind: "tags",
         updated: result.updated,
         failed: result.failed,
-        view: { folderId, activeTags },
+        view: { folderId, activeTags, activeCreator },
       });
     } catch (err) {
       if (err instanceof UnauthorizedError) {
@@ -248,6 +257,40 @@ export function useBulkActions({
       } else {
         rollbackBulk(before, startOffset, ids, err, "Bulk tag update failed.");
       }
+    } finally {
+      setBulkBusy(null);
+    }
+  });
+
+  const bulkSetMeta = useStableCallback(async (change: BatchMetaChange): Promise<string | null> => {
+    if (bulkBusy) return "Another bulk action is still running.";
+    if (selectedIds.size === 0) return null;
+    const before = items;
+    const startOffset = offset;
+    const ids = Array.from(selectedIds);
+    setBulkFailures(null);
+    setBulkRequestError(null);
+    setBulkBusy({ label: "Updating metadata", count: ids.length });
+    setItems(applyMetaLocally(before, ids, change));
+    setOffset(startOffset);
+    try {
+      const result = await batchSetMeta(ids, change);
+      finishBulk(before, startOffset, {
+        kind: "meta",
+        updated: result.updated,
+        failed: result.failed,
+        view: { folderId, activeTags, activeCreator },
+      });
+      return null;
+    } catch (err) {
+      if (err instanceof UnauthorizedError) {
+        onUnauthorized?.();
+        const message = "You were signed out. The metadata change may still have been applied.";
+        setBulkRequestError(message);
+        return message;
+      }
+      rollbackBulk(before, startOffset, ids, err, "Bulk metadata update failed.");
+      return err instanceof Error ? err.message : "Bulk metadata update failed.";
     } finally {
       setBulkBusy(null);
     }
@@ -317,6 +360,7 @@ export function useBulkActions({
     bulkAddTags,
     bulkRemoveTags,
     bulkSetTags,
+    bulkSetMeta,
     bulkAddToProject,
     bulkDownloading,
     downloadSelected,

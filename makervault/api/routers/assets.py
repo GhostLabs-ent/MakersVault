@@ -2,7 +2,7 @@
 
 import json
 import os
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response
 from sqlalchemy.exc import IntegrityError
@@ -15,6 +15,7 @@ import trash_service
 from asset_service import (
     filename_for_model_name,
     managed_asset_path,
+    model_name_for_rename,
     move_asset_to_folder_by_id,
     raise_asset_conflict,
     rename_asset_in_place,
@@ -25,7 +26,7 @@ from auth import AuthContext
 from db import engine
 from models import Asset, Folder, Project, ProjectAsset
 from permissions import require_read, require_write
-from routers.asset_helpers import apply_asset_filters, asset_page, require_asset_ids
+from routers.asset_helpers import apply_asset_filters, apply_asset_order, asset_page, require_asset_ids
 from routers.presenters import to_out
 from schemas import (
     AssetFolderUpdate,
@@ -36,6 +37,8 @@ from schemas import (
     BatchDeleteRequest,
     BatchFolderOut,
     BatchFolderRequest,
+    BatchMetaOut,
+    BatchMetaRequest,
     BatchTagsOut,
     BatchTagsRequest,
     DownloadRequest,
@@ -52,14 +55,19 @@ def list_assets(
     q: Optional[str] = None,
     tags: Optional[str] = Query(default=None, description="Comma-separated tags"),
     folder_id: Optional[str] = None,
+    creator: Optional[str] = Query(default=None, description="Exact creator, case-insensitive"),
+    sort: Optional[Literal["name", "size", "creator"]] = Query(default=None, description="Optional sort key; omitted keeps the default order"),
+    order: Literal["asc", "desc"] = Query(default="asc", description="Sort direction"),
     not_in_project: bool = Query(default=False, description="Only assets that belong to no project"),
     limit: Optional[int] = Query(default=None, ge=1, le=1000),
     offset: Optional[int] = Query(default=None, ge=0),
     _: Optional[AuthContext] = Depends(require_read),
 ):
     with Session(engine) as s:
-        stmt = apply_asset_filters(select(Asset), q, tags, folder_id, not_in_project=not_in_project)
-        stmt = stmt.order_by(Asset.name, Asset.filename, Asset.id)
+        stmt = apply_asset_filters(
+            select(Asset), q, tags, folder_id, not_in_project=not_in_project, creator=creator
+        )
+        stmt = apply_asset_order(stmt, sort, order)
         assets = asset_page(s, stmt, response, limit, offset)
 
     out: List[AssetOut] = [to_out(a) for a in assets]
@@ -100,6 +108,42 @@ def list_tags(
                     found.add(cleaned)
 
     return sorted(found, key=lambda v: v.lower())
+
+
+@router.get("/creators", response_model=List[str])
+def list_creators(
+    q: Optional[str] = None,
+    tags: Optional[str] = Query(default=None, description="Comma-separated tags"),
+    folder_id: Optional[str] = None,
+    project_id: Optional[str] = Query(default=None, description="Only creators on this project's assets"),
+    not_in_project: bool = Query(default=False, description="Only creators on assets that belong to no project"),
+    _: Optional[AuthContext] = Depends(require_read),
+):
+    """Distinct non-empty creators, deduped and sorted case-insensitively.
+
+    Takes the same scoping filters as `GET /assets` and `GET /tags`, so the
+    facet works in library mode, folder mode and project mode. An unknown
+    project is a 404 like every other project route.
+    """
+    with Session(engine) as s:
+        if project_id:
+            project_service.get_project(s, project_id)
+        stmt = apply_asset_filters(
+            select(Asset.creator), q, tags, folder_id, project_id=project_id, not_in_project=not_in_project
+        )
+        rows = list(s.exec(stmt))
+
+    # Dedupe on casefold and keep the lexicographically smallest spelling, so
+    # the choice between "Ada" and "ada" does not depend on row order.
+    found: dict[str, str] = {}
+    for raw in rows:
+        cleaned = (raw or "").strip()
+        if not cleaned:
+            continue
+        key = cleaned.casefold()
+        found[key] = min(found[key], cleaned) if key in found else cleaned
+
+    return sorted(found.values(), key=lambda v: v.casefold())
 
 
 @router.post("/download/zip")
@@ -193,6 +237,32 @@ def batch_move_to_folder(
     return BatchFolderOut(updated=[to_out(a) for a in updated], failed=failed)
 
 
+@router.post("/assets/batch/meta", response_model=BatchMetaOut)
+def batch_update_meta(
+    body: BatchMetaRequest,
+    request: Request,
+    context: Optional[AuthContext] = Depends(require_write),
+):
+    """Set creator/notes on every id, with the batch partial-success contract.
+
+    Deliberate divergence from `POST /asset/{asset_id}/meta`: there an explicit
+    ``null`` means "unchanged", while here it clears, because a batch has no
+    per-asset typed value that `null` could disambiguate. Blank strings clear in
+    both places. There is no title/name field: title is a rename alias and a
+    batch rename would move files on disk.
+
+    Creator and notes are the audit-exempt metadata class, so no event is
+    staged; rename and move are the audited asset edits (see
+    `bulk_service.update_meta`).
+    """
+    asset_ids = require_asset_ids(body.asset_ids)
+    changes = {field: getattr(body, field) for field in ("creator", "notes") if field in body.model_fields_set}
+    if not changes:
+        raise HTTPException(status_code=400, detail="Provide creator or notes")
+    updated, failed = bulk_service.update_meta(asset_ids, changes, audit_ctx=audit.context_for(request, context))
+    return BatchMetaOut(updated=[to_out(a) for a in updated], failed=failed)
+
+
 @router.post("/assets/batch/delete", response_model=BatchDeleteOut)
 def batch_delete_assets(
     body: BatchDeleteRequest,
@@ -245,7 +315,12 @@ def update_asset_meta(
         previous_name = a.name
         requested_name = body.name if body.name is not None else body.title
         if requested_name is not None:
-            next_name = unique_model_name(s, requested_name, a.folder_id, exclude_id=a.id)
+            # The metadata editor is the UI's rename path, so a typed filename
+            # suffix matching this asset's extension is stripped before the
+            # unique-name check: "widget.stl" stays "widget.stl".
+            next_name = unique_model_name(
+                s, model_name_for_rename(requested_name, a.filename), a.folder_id, exclude_id=a.id
+            )
             if next_name != a.name:
                 if not old_path.exists() and a.source_path:
                     raise HTTPException(400, "Renaming is not supported for mounted no-copy files.")
@@ -260,10 +335,13 @@ def update_asset_meta(
                 # A rename only changes the basename; the storage template is never rendered.
                 new_path = old_path.parent / a.filename
                 moved = rename_asset_in_place(a, old_path, a.filename)
-        if body.notes is not None:
+        # Field membership, not the value: the validators normalise a blank to
+        # None, so only "present" can distinguish a clear from an absent key
+        # (an explicit null was dropped before validation).
+        if "notes" in body.model_fields_set:
             a.notes = body.notes
-        if body.creator is not None:
-            a.creator = body.creator.strip() or None
+        if "creator" in body.model_fields_set:
+            a.creator = body.creator
         if body.collection is not None:
             a.collection = body.collection.strip() or None
         # Rollback expires the row, so the conflict classifier gets locals.
@@ -303,6 +381,9 @@ def rename_asset(
             if a.source_path:
                 raise HTTPException(400, "Renaming is not supported for mounted files.")
             raise HTTPException(404, "File not found on disk")
+        # This route takes a filename, so it splits exactly one extension. The
+        # metadata editor takes a model name and uses model_name_for_rename
+        # instead, which strips only an extension matching the stored file.
         proposed_root, _ = os.path.splitext(os.path.basename(new_name))
         model_name = unique_model_name(s, proposed_root or new_name, a.folder_id, exclude_id=a.id)
         new_name_only = filename_for_model_name(model_name, a.filename)

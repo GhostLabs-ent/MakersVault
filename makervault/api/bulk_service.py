@@ -103,6 +103,42 @@ def update_tags(
     return updated, failed
 
 
+def update_meta(
+    asset_ids: List[str],
+    changes: dict,
+    *,
+    audit_ctx: Optional[audit.AuditContext],
+) -> Tuple[List[Asset], List[dict]]:
+    """Apply the provided creator/notes changes, one session per item.
+
+    ``changes`` only holds fields the request actually carried, so an absent
+    field is untouched and a present one (even None) overwrites: the router
+    already normalised blank strings to None. Creator and notes are the exempt
+    metadata class, so this stages nothing - same rationale as `update_tags`.
+    """
+    updated: List[Asset] = []
+    failed: List[dict] = []
+    for asset_id in asset_ids:
+        try:
+            with Session(engine) as s:
+                asset = s.get(Asset, asset_id)
+                if not asset:
+                    raise HTTPException(status_code=404, detail="Asset not found")
+                if "creator" in changes:
+                    asset.creator = changes["creator"]
+                if "notes" in changes:
+                    asset.notes = changes["notes"]
+                s.add(asset)
+                s.commit()
+                # Refresh before the session closes: to_out must never see
+                # expired detached attributes.
+                s.refresh(asset)
+                updated.append(asset)
+        except Exception as error:
+            failed.append(_failure(asset_id, error))
+    return updated, failed
+
+
 def move_to_folder(
     asset_ids: List[str],
     folder_id: Optional[str],

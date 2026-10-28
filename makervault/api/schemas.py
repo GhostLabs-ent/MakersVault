@@ -1,6 +1,8 @@
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from metadata_validation import normalise_creator, normalise_name, normalise_notes
 
 
 class AssetCreate(BaseModel):
@@ -222,6 +224,15 @@ class TrashPurgeOut(BaseModel):
 
 
 class AssetMetaUpdate(BaseModel):
+  """The single-asset metadata edit; validation happens before any rename.
+
+  An absent field is unchanged, a blank string clears (the legacy
+  ``strip() or None`` contract) and an explicit ``null`` is also unchanged:
+  the before-validator drops null keys so only a provided value can edit a
+  column. `collection` keeps that legacy behaviour and is not validated because
+  ADR 0003 retires it.
+  """
+
   name: Optional[str] = None
   title: Optional[str] = None
   notes: Optional[str] = None
@@ -231,6 +242,34 @@ class AssetMetaUpdate(BaseModel):
     json_schema_extra={"deprecated": True},
     description="Legacy v5.1 metadata; inert since Mf-aoyv. Use Projects. Still accepted so old clients keep working.",
   )
+
+  @model_validator(mode="before")
+  @classmethod
+  def ignore_explicit_nulls(cls, data):
+    """Treat ``{"field": null}`` as absent; only a typed value is an edit."""
+    if isinstance(data, dict):
+      return {key: value for key, value in data.items() if value is not None}
+    return data
+
+  @field_validator("name", mode="before")
+  @classmethod
+  def validate_name(cls, value: object) -> Optional[str]:
+    return normalise_name(value, "name")
+
+  @field_validator("title", mode="before")
+  @classmethod
+  def validate_title(cls, value: object) -> Optional[str]:
+    return normalise_name(value, "title")
+
+  @field_validator("notes", mode="before")
+  @classmethod
+  def validate_notes(cls, value: object) -> Optional[str]:
+    return normalise_notes(value)
+
+  @field_validator("creator", mode="before")
+  @classmethod
+  def validate_creator(cls, value: object) -> Optional[str]:
+    return normalise_creator(value)
 
 
 class AssetRename(BaseModel):
@@ -299,6 +338,39 @@ class BatchFolderRequest(BaseModel):
 
 
 class BatchFolderOut(BaseModel):
+  updated: List[AssetOut] = []
+  failed: List[BatchFailure] = []
+
+
+class BatchMetaRequest(BaseModel):
+  """A batch creator/notes edit (Mf-pnc2).
+
+  Only the two audit-exempt metadata fields are here. `title`/`name` are
+  deliberately absent: title is a rename alias, so a batch payload carrying it
+  would mass-rename files on disk. An absent field is unchanged, an explicit
+  ``null`` or a blank string clears, which diverges from the single endpoint's
+  "null is unchanged" only because a batch has no meaningful "typed nothing".
+  Values are validated once for the whole request, like `BatchFolderRequest`'s
+  `folder_id`; a bad value fails the request, not one item per asset.
+  """
+
+  model_config = ConfigDict(extra="forbid")
+  asset_ids: List[str] = []
+  creator: Optional[str] = None
+  notes: Optional[str] = None
+
+  @field_validator("creator", mode="before")
+  @classmethod
+  def validate_creator(cls, value: object) -> Optional[str]:
+    return normalise_creator(value)
+
+  @field_validator("notes", mode="before")
+  @classmethod
+  def validate_notes(cls, value: object) -> Optional[str]:
+    return normalise_notes(value)
+
+
+class BatchMetaOut(BaseModel):
   updated: List[AssetOut] = []
   failed: List[BatchFailure] = []
 

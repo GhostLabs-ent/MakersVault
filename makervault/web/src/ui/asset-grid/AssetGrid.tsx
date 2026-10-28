@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import { type Asset, UnauthorizedError, deleteAsset } from "../../lib/api";
+import { type Asset, type BatchMetaChange, UnauthorizedError, deleteAsset } from "../../lib/api";
 import { chunkRows, colsForWidth } from "../../lib/virtualGrid";
 import { previewQueue } from "../../lib/previewQueue";
 import { EngravingSettings, PreviewSettings, ResolvedTheme, SlicerSettings, engraverLabelFor, slicerLabelFor } from "../../lib/settings";
 import { useStableCallback } from "../../lib/useStableCallback";
 import AssetDeleteDialog, { type AssetDeleteFailure } from "../AssetDeleteDialog";
 import BulkActionBar from "../BulkActionBar";
+import BulkMetaDialog from "../BulkMetaDialog";
 import ConfirmDialog from "../ConfirmDialog";
 import FolderBreadcrumbs, { FolderTiles } from "../FolderNav";
 import ProjectPickerDialog from "../ProjectPickerDialog";
@@ -73,6 +74,8 @@ export default function AssetGrid({
   // parent stays the only owner of the request so the grid's optimistic update
   // and selection retention keep a single path.
   const [deleteTargets, setDeleteTargets] = useState<Asset[] | null>(null);
+  const [metaDialogOpen, setMetaDialogOpen] = useState(false);
+  const [metaRequestError, setMetaRequestError] = useState<string | null>(null);
   const slicerEnabled = Boolean(slicerSettings?.enabled);
   const slicerLabel = slicerLabelFor(slicerSettings?.selected);
   const engravingEnabled = Boolean(engravingSettings?.enabled);
@@ -89,8 +92,14 @@ export default function AssetGrid({
     folders,
     allTags,
     setAllTags,
+    creators,
+    activeCreator,
+    setActiveCreator,
+    sortKey,
+    setSortKey,
+    sortDir,
+    setSortDir,
     activeTags,
-    setActiveTags,
     loading,
     loadingMore,
     offset,
@@ -102,6 +111,7 @@ export default function AssetGrid({
     loadMore,
     toggleTag,
     toggleNotInProject,
+    resetFilters,
     handleApiError,
   } = useAssetList({
     folderId,
@@ -132,6 +142,7 @@ export default function AssetGrid({
     bulkAddTags,
     bulkRemoveTags,
     bulkSetTags,
+    bulkSetMeta,
     bulkAddToProject,
     bulkDownloading,
     downloadSelected,
@@ -139,6 +150,7 @@ export default function AssetGrid({
   } = useBulkActions({
     folderId,
     activeTags,
+    activeCreator,
     items,
     setItems,
     offset,
@@ -216,11 +228,28 @@ export default function AssetGrid({
 
   const closeDeleteDialog = useStableCallback(() => setDeleteTargets(null));
 
+  const openMetaDialog = useStableCallback(() => {
+    if (!selectedIds.size) return;
+    setMetaRequestError(null);
+    setMetaDialogOpen(true);
+  });
+
+  const closeMetaDialog = useStableCallback(() => {
+    setMetaDialogOpen(false);
+    setMetaRequestError(null);
+  });
+
+  const submitMeta = useStableCallback(async (change: BatchMetaChange) => {
+    const error = await bulkSetMeta(change);
+    if (error === null) {
+      setMetaDialogOpen(false);
+      setMetaRequestError(null);
+      return;
+    }
+    setMetaRequestError(error);
+  });
+
   const {
-    sortKey,
-    setSortKey,
-    sortDir,
-    setSortDir,
     sortedItems,
     folderGroups,
     typeGroups,
@@ -231,7 +260,15 @@ export default function AssetGrid({
     folderOptions,
     subfolders,
     dropTargetName,
-  } = useAssetSorting({ items, folders, folderId });
+  } = useAssetSorting({
+    items,
+    folders,
+    folderId,
+    sortKey,
+    setSortKey,
+    sortDir,
+    setSortDir,
+  });
 
   // Flat-grid virtualization: chunk `sortedItems` into rows and render only
   // those covering the viewport. `colsForWidth(window.innerWidth)` is the seed;
@@ -345,6 +382,7 @@ export default function AssetGrid({
         onMove={bulkMoveToFolder}
         onAddTags={bulkAddTags}
         onRemoveTags={bulkRemoveTags}
+        onEditMeta={openMetaDialog}
         onAddToProject={bulkAddToProject}
         onDownload={downloadSelected}
         onDelete={openBulkDelete}
@@ -362,11 +400,13 @@ export default function AssetGrid({
         setSortDir={setSortDir}
         allTags={allTags}
         activeTags={activeTags}
-        setActiveTags={setActiveTags}
         toggleTag={toggleTag}
+        creators={creators}
+        activeCreator={activeCreator}
+        setActiveCreator={setActiveCreator}
         notInProject={notInProject}
         onToggleNotInProject={toggleNotInProject}
-        refresh={refresh}
+        onReset={resetFilters}
         onQueryChange={query => { queryRef.current = query; }}
         onSearch={query => { refresh({ search: query }); }}
       />
@@ -420,6 +460,16 @@ export default function AssetGrid({
           onDelete={runDelete}
           onCancel={closeDeleteDialog}
           onClosed={closeDeleteDialog}
+        />
+      )}
+      {metaDialogOpen && (
+        <BulkMetaDialog
+          open={metaDialogOpen}
+          count={selectedIds.size}
+          busy={Boolean(bulkBusy)}
+          requestError={metaRequestError}
+          onCancel={closeMetaDialog}
+          onSubmit={change => { void submitMeta(change); }}
         />
       )}
       {projectPickerIds && (

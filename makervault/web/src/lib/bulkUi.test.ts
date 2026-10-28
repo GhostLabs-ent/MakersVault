@@ -4,6 +4,7 @@ import type { Asset, BatchFailure } from "./api";
 import {
   applyBatchOutcome,
   applyFolderLocally,
+  applyMetaLocally,
   applyTagsLocally,
   dropIds,
   failureLines,
@@ -213,6 +214,123 @@ describe("applyBatchOutcome tags", () => {
       view: { folderId: null, activeTags: [] },
     });
     expect(items).toEqual([]);
+    expect(offsetDelta).toBe(0);
+  });
+});
+
+
+describe("applyMetaLocally", () => {
+  const items = [
+    asset("a1", { creator: "Old", notes: "Old note" }),
+    asset("b2", { creator: "Other", notes: null }),
+  ];
+
+  it("replaces only the named fields on exactly the given ids", () => {
+    const next = applyMetaLocally(items, ["a1"], { creator: "Ada" });
+    expect(next[0].creator).toBe("Ada");
+    expect(next[0].notes).toBe("Old note");
+    expect(next[1]).toBe(items[1]);
+  });
+
+  it("clears a field with an explicit null", () => {
+    const next = applyMetaLocally(items, ["a1", "b2"], { creator: null, notes: null });
+    expect(next.map(item => [item.creator, item.notes])).toEqual([
+      [null, null],
+      [null, null],
+    ]);
+  });
+
+  it("leaves untouched fields exactly as they were", () => {
+    const next = applyMetaLocally(items, ["b2"], { notes: "New note" });
+    expect(next[1].creator).toBe("Other");
+    expect(next[1].notes).toBe("New note");
+  });
+});
+
+describe("applyBatchOutcome meta", () => {
+  it("replaces updated assets by id in place and rewinds nothing", () => {    const before = [asset("a1", { creator: "Old" }), asset("b2", { creator: "Other" })];
+    const { items, offsetDelta } = applyBatchOutcome(before, {
+      kind: "meta",
+      updated: [asset("a1", { creator: "Ada" }), asset("b2", { creator: null })],
+      failed: [],
+      view: { folderId: null, activeTags: [] },
+    });
+    expect(items.map(item => item.creator)).toEqual(["Ada", null]);
+    expect(offsetDelta).toBe(0);
+  });
+
+  it("keeps rows absent from both lists and reports failed rows through the failure list", () => {
+    const before = [asset("a1"), asset("b2")];
+    const { items, offsetDelta } = applyBatchOutcome(before, {
+      kind: "meta",
+      updated: [asset("a1", { creator: "Ada" })],
+      failed: [failure("b2", "not found")],
+      view: { folderId: null, activeTags: [] },
+    });
+    expect(items.map(item => item.id)).toEqual(["a1", "b2"]);
+    expect(offsetDelta).toBe(0);
+  });
+
+  it("drops rows that a creator edit moved out of the active creator facet", () => {
+    // A creator/notes edit can change which rows the server returns, so the
+    // filter has to be replayed locally or the paging cursor goes stale.
+    const before = [
+      asset("a1", { creator: "Ada" }),
+      asset("b2", { creator: "Ada" }),
+    ];
+    const { items, offsetDelta } = applyBatchOutcome(before, {
+      kind: "meta",
+      updated: [
+        asset("a1", { creator: "Grace" }),
+        asset("b2", { creator: "Ada" }),
+      ],
+      failed: [],
+      view: { folderId: null, activeTags: [], activeCreator: "Ada" },
+    });
+    expect(items.map(item => item.id)).toEqual(["b2"]);
+    expect(offsetDelta).toBe(1);
+  });
+
+  it("matches the server's creator filter case-insensitively after trimming", () => {
+    const before = [
+      asset("a1", { creator: "ADA" }),
+      asset("b2", { creator: "Grace" }),
+    ];
+    const { items, offsetDelta } = applyBatchOutcome(before, {
+      kind: "meta",
+      updated: [
+        asset("a1", { creator: "ada" }),
+        asset("b2", { creator: "  grace " }),
+      ],
+      failed: [],
+      view: { folderId: null, activeTags: [], activeCreator: "  ada  " },
+    });
+    expect(items.map(item => item.id)).toEqual(["a1"]);
+    expect(offsetDelta).toBe(1);
+  });
+
+  it("drops a row whose creator was cleared while a creator filter is active", () => {
+    // NULL never matches a non-blank filter: `func.lower(NULL)` is NULL server-side.
+    const before = [asset("a1", { creator: "Ada" })];
+    const { items, offsetDelta } = applyBatchOutcome(before, {
+      kind: "meta",
+      updated: [asset("a1", { creator: null })],
+      failed: [],
+      view: { folderId: null, activeTags: [], activeCreator: "Ada" },
+    });
+    expect(items).toEqual([]);
+    expect(offsetDelta).toBe(1);
+  });
+
+  it("ignores a blank creator facet", () => {
+    const before = [asset("a1", { creator: null })];
+    const { items, offsetDelta } = applyBatchOutcome(before, {
+      kind: "meta",
+      updated: [asset("a1", { creator: "Grace" })],
+      failed: [],
+      view: { folderId: null, activeTags: [], activeCreator: "   " },
+    });
+    expect(items.map(item => item.id)).toEqual(["a1"]);
     expect(offsetDelta).toBe(0);
   });
 });

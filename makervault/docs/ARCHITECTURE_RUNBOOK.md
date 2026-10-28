@@ -206,6 +206,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-019 | `DECIDED` | v5.1 is single-admin; multi-user/MFA/SSO is deferred. | product strategy and v5.1 scope | Security analysis statements that assume v5.1 multi-user are stale. |
 | T-020 | `DECIDED` | v5.1 is a confidence release, not the Project/Revision rewrite. | v5.1 scope | Reliability gates outrank future architecture work. |
 | T-021 | `DECIDED` | Legacy `Asset.collection` metadata is retired from the UI and the API schema but kept for compatibility: no creation path sets it, `{collection}` still validates and renders `Uncollected` for new uploads, stored values remain searchable, and the column is not reused for Projects. | ADR 0003, `api/routers/settings.py`, `api/routers/assets.py`, `api/tests/test_asset_metadata_no_relocate.py` | Grouping assets is Projects' job; schema contraction is deferred per ADR 0002. |
+| T-022 | `DECIDED` | Creator is validated, filterable and sortable first-class metadata: one shared normaliser feeds the inline editor and the batch creator/notes edit, which extends the audit-exempt metadata class. `Asset.collection` remains retired. | `api/metadata_validation.py`, `api/routers/assets.py`, `api/routers/asset_helpers.py`, `api/tests/test_asset_metadata_validation.py`, `api/tests/test_asset_sort_filter.py`, ADR 0003 | Inline and batch metadata edits cannot drift apart; collection stays byte-for-byte compatible, is not validated and is not editable. |
 
 ### 5.4 Current storage invariants
 

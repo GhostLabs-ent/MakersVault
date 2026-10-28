@@ -18,6 +18,7 @@ vi.mock("../lib/api", () => ({
   addProjectAssets: vi.fn(),
   batchDeleteAssets: vi.fn(),
   batchMoveAssets: vi.fn(),
+  batchSetMeta: vi.fn(),
   batchSetTags: vi.fn(),
   createProject: vi.fn(),
   createFolder: vi.fn(),
@@ -31,6 +32,7 @@ vi.mock("../lib/api", () => ({
   listAssets: vi.fn(),
   listFolders: vi.fn(async () => []),
   listProjects: vi.fn(async () => []),
+  listCreators: vi.fn(async () => []),
   listTags: vi.fn(async () => []),
   setTags: vi.fn(),
   startLibraryScan: vi.fn(),
@@ -55,6 +57,7 @@ import { resetToasts } from "../lib/toast";
 import {
   batchDeleteAssets,
   batchMoveAssets,
+  batchSetMeta,
   batchSetTags,
   createFolder,
   deleteAsset,
@@ -64,6 +67,7 @@ import {
   getLibraryScanStatus,
   listAssetFiles,
   listAssets,
+  listCreators,
   listFolders,
   listTags,
   setTags,
@@ -73,10 +77,12 @@ import {
 } from "../lib/api";
 
 const listAssetsMock = vi.mocked(listAssets);
+const listCreatorsMock = vi.mocked(listCreators);
 const listTagsMock = vi.mocked(listTags);
 const listFoldersMock = vi.mocked(listFolders);
 const batchDeleteAssetsMock = vi.mocked(batchDeleteAssets);
 const batchMoveAssetsMock = vi.mocked(batchMoveAssets);
+const batchSetMetaMock = vi.mocked(batchSetMeta);
 const batchSetTagsMock = vi.mocked(batchSetTags);
 const setTagsMock = vi.mocked(setTags);
 const fileUrlMock = vi.mocked(fileUrl);
@@ -378,7 +384,10 @@ describe("AssetGrid asset refresh", () => {
   beforeEach(() => {
     resetToasts();
     listAssetsMock.mockReset();
-    listAssetsMock.mockResolvedValue({ items: assets, hasMore: false });
+    listAssetsMock.mockResolvedValue({
+      items: [...assets].sort((a, b) => a.name.localeCompare(b.name)),
+      hasMore: false,
+    });
     fileUrlMock.mockClear();
   });
 
@@ -508,8 +517,8 @@ describe("AssetGrid asset refresh", () => {
   // `renderPreviewContent` runs on every card render and unconditionally calls
   // `fileUrl(asset.url)`, so a per-URL call count is a faithful render counter.
   describe("card render probe", () => {
-    /** Flat grid order: cards are sorted by filename ascending. */
-    const flatOrder = [...assets].sort((a, b) => a.filename.localeCompare(b.filename));
+    /** Flat grid order: the server sorts name ascending, and the client keeps it. */
+    const flatOrder = [...assets].sort((a, b) => a.name.localeCompare(b.name));
 
     function renderCounts(): Record<string, number> {
       const counts: Record<string, number> = {};
@@ -635,6 +644,69 @@ describe("AssetGrid asset refresh", () => {
       expect(modalImage.getAttribute("loading")).toBeNull();
       expect(modalImage.getAttribute("decoding")).toBe("async");
     });
+  });
+});
+
+
+describe("AssetGrid creator facet and server sort", () => {
+  beforeEach(() => {
+    resetToasts();
+    listAssetsMock.mockReset();
+    listAssetsMock.mockResolvedValue({ items: assets, hasMore: false });
+    listCreatorsMock.mockReset();
+    listCreatorsMock.mockResolvedValue(["Ada", "Bob"]);
+    fileUrlMock.mockClear();
+  });
+
+  afterEach(cleanup);
+
+  it("filters by creator through the exact server filter and shows the facet", async () => {
+    render(<AssetGrid theme="dark" />);
+    await screen.findByText("Calibration cube");
+
+    const creator = await screen.findByRole("combobox", { name: "Creator" });
+    expect(screen.getByRole("option", { name: "All creators" })).toBeTruthy();
+
+    fireEvent.change(creator, { target: { value: "Ada" } });
+
+    await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(2));
+    const call = callQuery(1);
+    expect(call.creator).toBe("Ada");
+    expect(call.offset).toBe(0);
+    expect(listCreatorsMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ folder_id: undefined }),
+    );
+  });
+
+  it("sends name/size/creator sorts to the server and resets the creator filter", async () => {
+    render(<AssetGrid theme="dark" />);
+    await screen.findByText("Calibration cube");
+    expect(callQuery(0).sort).toBe("name");
+    expect(callQuery(0).order).toBe("asc");
+
+    fireEvent.change(sortSelect(), { target: { value: "creator" } });
+    await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(2));
+    expect(callQuery(1).sort).toBe("creator");
+
+    fireEvent.change(await screen.findByRole("combobox", { name: "Creator" }), {
+      target: { value: "Ada" },
+    });
+    await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(3));
+    expect(callQuery(2).creator).toBe("Ada");
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+    await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(4));
+    expect(callQuery(3).creator).toBeUndefined();
+    expect(callQuery(3).sort).toBe("creator");
+  });
+
+  it("keeps type and folder sorting client-side and sends no server sort key", async () => {
+    render(<AssetGrid theme="dark" />);
+    await screen.findByText("Calibration cube");
+
+    fireEvent.change(sortSelect(), { target: { value: "type" } });
+    await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(2));
+    expect(callQuery(1).sort).toBeUndefined();
   });
 });
 
@@ -783,11 +855,11 @@ describe("virtualized flat grid", () => {
     expect(screen.getByText(`Asset ${firstVisibleRow * cols + 1}`)).toBeTruthy();
     expect(checkboxCount()).toBe(bounded);
 
-    // Sorting re-chunks the same items (sizes are the reverse of the names), so
-    // the window must stay at the same offset and re-render from the new order.
+    // A server-sorted key refetches, but the loaded page must not be re-sorted
+    // client-side: the window stays at the same offset.
     fireEvent.change(sortSelect(), { target: { value: "size" } });
 
-    await waitFor(() => expect(screen.getByText("Asset 57")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Asset 10")).toBeTruthy());
     expect(scroller.scrollTop).toBe(offset);
     expect(screen.queryByText("Asset 60")).toBeNull();
     expect(screen.queryByText("Asset 1")).toBeNull();
@@ -808,11 +880,11 @@ describe("virtualized flat grid", () => {
     fireEvent.change(searchInput, { target: { value: "needle" } });
     fireEvent.keyDown(searchInput, { key: "Enter" });
 
-    await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(2));
+    await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(3));
     await waitFor(() => expect(screen.queryByText("Loading...")).toBeNull());
     // The "size" sort is still active, so the window is unchanged: the same
-    // mid-list position now holds the filtered set's 57th item.
-    await waitFor(() => expect(screen.getByText("Filtered 57")).toBeTruthy());
+    // mid-list position now holds the filtered set's 10th item.
+    await waitFor(() => expect(screen.getByText("Filtered 10")).toBeTruthy());
 
     expect(scroller.scrollTop).toBe(offset);
     expect(screen.queryByText("Filtered 60")).toBeNull();
@@ -1097,6 +1169,7 @@ describe("AssetGrid bulk actions", () => {
     listFoldersMock.mockResolvedValue([]);
     batchDeleteAssetsMock.mockReset();
     batchMoveAssetsMock.mockReset();
+    batchSetMetaMock.mockReset();
     batchSetTagsMock.mockReset();
     deleteAssetMock.mockReset();
     setTagsMock.mockReset();
@@ -1301,6 +1374,90 @@ describe("AssetGrid bulk actions", () => {
     await waitFor(() =>
       expect(screen.getAllByText("bulk").filter(el => el.tagName === "SPAN")).toHaveLength(3),
     );
+    expect(listAssetsMock.mock.calls.length).toBe(callsBefore);
+  });
+
+
+  it("bulk metadata edit is one request and replaces rows in place", async () => {
+    batchSetMetaMock.mockImplementation(async (ids, change) => ({
+      updated: assets
+        .filter(item => ids.includes(item.id))
+        .map(item => ({ ...item, creator: change.creator ?? null })),
+      failed: [],
+    }));
+
+    render(<AssetGrid theme="dark" />);
+    await waitForGrid();
+    const callsBefore = listAssetsMock.mock.calls.length;
+
+    selectCards(3);
+    fireEvent.click(bulkBar().getByRole("button", { name: "Edit metadata…" }));
+
+    const dialog = within(screen.getByRole("dialog", { name: /Edit metadata/ }));
+    fireEvent.change(dialog.getByRole("textbox", { name: "Creator" }), {
+      target: { value: "  Ada   Lovelace " },
+    });
+    fireEvent.click(dialog.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(batchSetMetaMock).toHaveBeenCalledTimes(1));
+    const [ids, change] = batchSetMetaMock.mock.calls[0];
+    expect(ids).toHaveLength(3);
+    expect(ids).toEqual(expect.arrayContaining(["a1", "b2", "c3"]));
+    expect(change).toEqual({ creator: "Ada Lovelace" });
+
+    // Rows are reconciled from the server answer, so no refetch and no per-card save.
+    await waitFor(() => expect(screen.getAllByText("By Ada Lovelace")).toHaveLength(3));
+    expect(updateAssetMetaMock).not.toHaveBeenCalled();
+    expect(listAssetsMock.mock.calls.length).toBe(callsBefore);
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("a bulk creator edit drops rows that leave the active creator facet", async () => {
+    const adaAssets: Asset[] = assets.map(item => ({ ...item, creator: "Ada" }));
+    listCreatorsMock.mockReset();
+    listCreatorsMock.mockResolvedValue(["Ada", "Grace"]);
+    // The server scopes the window to the facet, so only the filtered request
+    // returns the "Ada" rows.
+    listAssetsMock.mockImplementation(async params =>
+      params?.creator === "Ada"
+        ? { items: adaAssets, hasMore: false }
+        : { items: assets, hasMore: false },
+    );
+    batchSetMetaMock.mockImplementation(async (ids, change) => ({
+      updated: adaAssets
+        .filter(item => ids.includes(item.id))
+        .map(item => ({ ...item, creator: change.creator ?? null })),
+      failed: [],
+    }));
+
+    render(<AssetGrid theme="dark" />);
+    await waitForGrid();
+
+    fireEvent.change(await screen.findByRole("combobox", { name: "Creator" }), {
+      target: { value: "Ada" },
+    });
+    await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(2));
+    expect(callQuery(1).creator).toBe("Ada");
+    await waitFor(() => expect(screen.getAllByText("By Ada")).toHaveLength(3));
+    const callsBefore = listAssetsMock.mock.calls.length;
+
+    selectCards(3);
+    fireEvent.click(bulkBar().getByRole("button", { name: "Edit metadata…" }));
+    const dialog = within(screen.getByRole("dialog", { name: /Edit metadata/ }));
+    fireEvent.change(dialog.getByRole("textbox", { name: "Creator" }), {
+      target: { value: "Grace" },
+    });
+    fireEvent.click(dialog.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(batchSetMetaMock).toHaveBeenCalledTimes(1));
+    expect(batchSetMetaMock.mock.calls[0][1]).toEqual({ creator: "Grace" });
+
+    // The rows no longer match "Ada", so they leave the filtered window ...
+    await waitFor(() => expect(screen.queryByText("Calibration cube")).toBeNull());
+    expect(screen.queryByText("Spool holder")).toBeNull();
+    expect(screen.queryByText("Engraved sign")).toBeNull();
+    expect(screen.queryByText("By Ada")).toBeNull();
+    // ... reconciled locally, so no refetch was needed.
     expect(listAssetsMock.mock.calls.length).toBe(callsBefore);
   });
 
@@ -1577,21 +1734,27 @@ describe("AssetGrid shared dialogs and toasts", () => {
     await waitForGrid();
 
     fireEvent.click(screen.getByRole("button", { name: "Expand" }));
-    fireEvent.click(screen.getByRole("button", { name: "Edit details" }));
+
+    // Scope to the card: the toolbar's creator filter shares the "Creator" label.
+    const editButton = screen.getByRole("button", { name: "Edit details" });
+    const card = editButton.closest("[data-asset-id]") as HTMLElement;
+    fireEvent.click(editButton);
+    expect(card).toBeTruthy();
+    const cardScope = within(card);
 
     // The retired field is neither offered nor echoed back into the form.
-    expect(screen.queryByPlaceholderText("Collection name")).toBeNull();
-    expect(screen.queryByLabelText(/collection/i)).toBeNull();
-    expect(screen.getByLabelText("Creator")).toBeTruthy();
-    expect(screen.getByLabelText("Notes")).toBeTruthy();
+    expect(cardScope.queryByPlaceholderText("Collection name")).toBeNull();
+    expect(cardScope.queryByLabelText(/collection/i)).toBeNull();
+    expect(cardScope.getByLabelText("Creator")).toBeTruthy();
+    expect(cardScope.getByLabelText("Notes")).toBeTruthy();
 
-    fireEvent.change(screen.getByPlaceholderText("Designer or source"), {
+    fireEvent.change(cardScope.getByPlaceholderText("Designer or source"), {
       target: { value: "New creator" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Add some details about this asset"), {
+    fireEvent.change(cardScope.getByPlaceholderText("Add some details about this asset"), {
       target: { value: "New notes" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(cardScope.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(updateAssetMetaMock).toHaveBeenCalledTimes(1));
     const [id, payload] = updateAssetMetaMock.mock.calls[0];
@@ -1600,6 +1763,37 @@ describe("AssetGrid shared dialogs and toasts", () => {
     // stored legacy value can never be clobbered by an empty string.
     expect(Object.keys(payload as object).sort()).toEqual(["creator", "notes"]);
     expect(payload).toEqual({ notes: "New notes", creator: "New creator" });
+  });
+
+  it("clearing creator and notes sends empty strings so the server clears them", async () => {
+    listAssetsMock.mockResolvedValue({
+      items: [{ ...assets[0], notes: "Old notes", creator: "Old creator" }],
+      hasMore: false,
+    });
+    updateAssetMetaMock.mockResolvedValue(undefined);
+
+    render(<AssetGrid theme="dark" />);
+    await waitForGrid();
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand" }));
+    const editButton = screen.getByRole("button", { name: "Edit details" });
+    const card = editButton.closest("[data-asset-id]") as HTMLElement;
+    fireEvent.click(editButton);
+    const cardScope = within(card);
+
+    fireEvent.change(cardScope.getByPlaceholderText("Designer or source"), {
+      target: { value: "" },
+    });
+    fireEvent.change(cardScope.getByPlaceholderText("Add some details about this asset"), {
+      target: { value: "" },
+    });
+    fireEvent.click(cardScope.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(updateAssetMetaMock).toHaveBeenCalledTimes(1));
+    const payload = updateAssetMetaMock.mock.calls[0][1];
+    // The single-asset endpoint treats null as "unchanged"; only a blank
+    // string clears, so the card must not send null for an emptied field.
+    expect(payload).toEqual({ notes: "", creator: "" });
   });
 });
 

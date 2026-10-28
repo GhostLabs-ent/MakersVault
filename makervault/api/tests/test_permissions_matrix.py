@@ -1,7 +1,7 @@
 """Per-route permission sweeps driven by `permissions.ROUTE_PERMISSIONS`.
 
 Why this file exists: Mf-2nbc enforces a level with a *per-route dependency*, and
-the only thing that keeps 58 hand-written declarations honest is a test that
+the only thing that keeps 60 hand-written declarations honest is a test that
 visits every route at every role. The sweeps below are parametrised from
 `permissions.ROUTE_PERMISSIONS`, so that table is both the documentation and the
 test plan: add a route without classifying it and
@@ -468,6 +468,10 @@ def call_tags(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch
     return client.get("/tags", headers=headers)
 
 
+def call_creators(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    return client.get("/creators", headers=headers)
+
+
 def call_download_zip(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
     return client.post("/download/zip", json={"asset_ids": [ids.asset_id]}, headers=headers)
 
@@ -557,6 +561,14 @@ def call_batch_folder(client: TestClient, headers: dict[str, str], ids: Ids, mon
     return client.post(
         "/assets/batch/folder",
         json={"asset_ids": [ids.asset_id], "folder_id": ids.folder_id},
+        headers=headers,
+    )
+
+
+def call_batch_meta(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    return client.post(
+        "/assets/batch/meta",
+        json={"asset_ids": [ids.batch_asset_id], "creator": "Probe"},
         headers=headers,
     )
 
@@ -710,6 +722,7 @@ CALLS: dict[tuple[str, str], CallSpec] = {
     ("GET", "/thumb/{asset_id}.jpg"): call_thumb,
     ("GET", "/assets"): call_assets,
     ("GET", "/tags"): call_tags,
+    ("GET", "/creators"): call_creators,
     ("POST", "/download/zip"): call_download_zip,
     ("GET", "/folders"): call_folders,
     ("GET", "/folder/{folder_id}/delete-preview"): call_folder_delete_preview,
@@ -730,6 +743,7 @@ CALLS: dict[tuple[str, str], CallSpec] = {
     ("POST", "/assets/batch/tags"): call_batch_tags,
     ("POST", "/assets/batch/folder"): call_batch_folder,
     ("POST", "/assets/batch/delete"): call_batch_delete,
+    ("POST", "/assets/batch/meta"): call_batch_meta,
     ("POST", "/asset/{asset_id}/tags"): call_set_tags,
     ("POST", "/asset/{asset_id}/meta"): call_update_meta,
     ("POST", "/asset/{asset_id}/rename"): call_rename_asset,
@@ -776,6 +790,7 @@ EXPECTED_STATUS: dict[tuple[str, str], int] = {
     ("GET", "/thumb/{asset_id}.jpg"): 200,
     ("GET", "/assets"): 200,
     ("GET", "/tags"): 200,
+    ("GET", "/creators"): 200,
     ("POST", "/download/zip"): 200,
     ("GET", "/folders"): 200,
     ("GET", "/folder/{folder_id}/delete-preview"): 200,
@@ -789,6 +804,7 @@ EXPECTED_STATUS: dict[tuple[str, str], int] = {
     ("POST", "/assets/batch/tags"): 200,
     ("POST", "/assets/batch/folder"): 200,
     ("POST", "/assets/batch/delete"): 200,
+    ("POST", "/assets/batch/meta"): 200,
     ("POST", "/asset/{asset_id}/tags"): 200,
     ("POST", "/asset/{asset_id}/meta"): 200,
     ("POST", "/asset/{asset_id}/rename"): 200,
@@ -869,10 +885,10 @@ def test_every_api_route_has_a_level() -> None:
 
 
 def test_the_matrix_is_the_documented_size() -> None:
-    """The matrix is pinned at 58 routes; a new route means updating this and docs/PERMISSIONS.md."""
+    """The matrix is pinned at 60 routes; a new route means updating this and docs/PERMISSIONS.md."""
     counts = {level: len(keys_at(level)) for level in (permissions.PUBLIC, permissions.READ, permissions.WRITE, permissions.ADMIN)}
-    assert len(permissions.ROUTE_PERMISSIONS) == 58, counts
-    assert counts == {permissions.PUBLIC: 4, permissions.READ: 18, permissions.WRITE: 27, permissions.ADMIN: 9}, counts
+    assert len(permissions.ROUTE_PERMISSIONS) == 60, counts
+    assert counts == {permissions.PUBLIC: 4, permissions.READ: 19, permissions.WRITE: 28, permissions.ADMIN: 9}, counts
 
 
 def test_every_guarded_route_has_a_call_spec() -> None:

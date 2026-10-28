@@ -1,7 +1,7 @@
-import { type Dispatch, type SetStateAction, useState } from "react";
+import { useState } from "react";
 
 import { colorForTag } from "../tagColors";
-import type { RefreshOpts, SortDir, SortKey } from "./assetGridMeta";
+import type { SortDir, SortKey } from "./assetGridMeta";
 
 /**
  * Search box + button.
@@ -49,16 +49,19 @@ type AssetToolbarProps = {
   isProject: boolean;
   loading: boolean;
   sortKey: SortKey;
-  setSortKey: Dispatch<SetStateAction<SortKey>>;
+  setSortKey: (key: SortKey) => void;
   sortDir: SortDir;
-  setSortDir: Dispatch<SetStateAction<SortDir>>;
+  setSortDir: (dir: SortDir) => void;
   allTags: string[];
   activeTags: string[];
-  setActiveTags: Dispatch<SetStateAction<string[]>>;
   toggleTag: (tag: string) => void;
+  creators: string[];
+  activeCreator: string | null;
+  setActiveCreator: (creator: string | null) => void;
   notInProject: boolean;
   onToggleNotInProject: (next: boolean) => void;
-  refresh: (opts?: RefreshOpts) => Promise<void>;
+  /** Clears the tag and creator filters together, with one refetch. */
+  onReset: () => void;
   onQueryChange: (query: string) => void;
   onSearch: (query: string) => void;
 };
@@ -78,11 +81,13 @@ export default function AssetToolbar({
   setSortDir,
   allTags,
   activeTags,
-  setActiveTags,
   toggleTag,
+  creators,
+  activeCreator,
+  setActiveCreator,
   notInProject,
   onToggleNotInProject,
-  refresh,
+  onReset,
   onQueryChange,
   onSearch,
 }: AssetToolbarProps) {
@@ -104,17 +109,36 @@ export default function AssetToolbar({
           >
             <option value="name">Name</option>
             <option value="size">Size</option>
+            <option value="creator">Creator</option>
             <option value="type">File type</option>
             {!isProject && <option value="folder">Folder</option>}
           </select>
           <button
             type="button"
-            onClick={() => setSortDir(prev => (prev === "asc" ? "desc" : "asc"))}
+            onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")}
             className="px-2 py-1 rounded-md border border-panel-strong"
           >
             {sortDir === "asc" ? "Asc" : "Desc"}
           </button>
         </div>
+        {creators.length > 0 && (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="opacity-70">Creator</span>
+            <select
+              aria-label="Creator"
+              className="px-2 py-1 rounded-md border border-panel-strong bg-panel-soft"
+              value={activeCreator ?? ""}
+              onChange={e => setActiveCreator(e.target.value || null)}
+            >
+              <option value="">All creators</option>
+              {creators.map(creator => (
+                <option key={creator} value={creator}>
+                  {creator}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         {!isProject && (
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -128,7 +152,7 @@ export default function AssetToolbar({
         )}
       </div>
 
-      {!!allTags.length && (
+      {(!!allTags.length || activeCreator !== null) && (
         <div className="flex flex-wrap gap-2">
           {allTags.map(t => {
             const colors = colorForTag(t);
@@ -150,10 +174,10 @@ export default function AssetToolbar({
               </button>
             );
           })}
-          {activeTags.length>0 && (
+          {(activeTags.length > 0 || activeCreator !== null) && (
             <button
               className="px-2 py-1 rounded-full text-sm border border-panel-strong"
-              onClick={() => { setActiveTags([]); refresh({ tags: [] }); }}
+              onClick={onReset}
             >
               Reset
             </button>

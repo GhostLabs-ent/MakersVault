@@ -242,7 +242,8 @@ In the future there are plans to add support for more websites, but in this curr
 <img width="1911" height="938" alt="Screenshot 2025-12-31 102102" src="https://github.com/user-attachments/assets/78b326af-d805-4054-a658-56751e9b125c" />
 
 
-<p>Individual files can be renamed by double-clicking the Name field. The file extension (STL, STEP, 3MF, etc.) will be preserved even if removed by mistake.</p>
+<p>Individual files can be renamed by double-clicking the Name field. The file extension (STL, STEP, 3MF, etc.) is preserved even if removed by mistake, and typing the extension along with the name no longer doubles it: "widget.stl" stays "widget.stl" instead of becoming "widget.stl.stl".</p>
+<p>The creator is editable inline on the card with server-side validation: surrounding whitespace is trimmed, internal runs collapse to one space, values are capped at 120 characters and control characters are rejected, while unicode, punctuation and apostrophes are fine. Creator is a first-class facet too: the library can filter on an exact creator (case-insensitive) and sort by name, size or creator, and creator plus notes can be changed for a whole selection from the batch action bar.</p>
 
 <img width="323" height="498" alt="Screenshot 2025-12-31 102311" src="https://github.com/user-attachments/assets/1fea58d9-705c-4fa0-87b0-3008a562906f" />
 
@@ -329,7 +330,8 @@ In the future there are plans to add support for more websites, but in this curr
 <h3>Storage Structure</h3>
 <p>Managed files can be organized with a configurable path template. The default is <code>{folder}/{model}/{filename}</code>. The tokens the settings picker offers are <code>{folder}</code>, <code>{tags}</code>, <code>{creator}</code>, <code>{model}</code>, <code>{name}</code>, <code>{filename}</code>, and <code>{id}</code>. The template must contain <code>{filename}</code> in its final path segment.</p>
 <p><code>{collection}</code> is deprecated. Templates that already contain it keep working and render <code>Uncollected</code> for new files, but collections are no longer offered anywhere in the UI; use Projects to group files. Existing managed files are never moved because of this change.</p>
-<p>Model names are unique inside each MakerVault folder. Renaming a model renames the stored file while preserving its extension. The path template applies only to new uploads and imports; existing files are never moved because of a template change. Use <strong>Rescan storage folder</strong> to register files you copied into the storage folder with another tool.</p>
+<p>Model names are unique inside each MakerVault folder. Renaming a model renames the stored file while preserving its extension, and the inline editor strips one typed extension when it matches the stored file, so a rename cannot double the extension. The path template applies only to new uploads and imports; existing files are never moved because of a template change. Use <strong>Rescan storage folder</strong> to register files you copied into the storage folder with another tool.</p>
+<p>Upstream issue #27 is addressed: unique-per-folder name editing that renames the file, a configurable storage template, tags, and a validated creator are all available, while collections are retired in favour of Projects per ADR 0003.</p>
 
 <h2>Imports Settings</h2>
 <p>Mounted imports now keep a run history in the API. Settings → Imports shows the latest attempt with live progress and its errors, and the API exposes the newest 50 at <code>GET /imports/runs</code>; a run left unfinished by a restart is marked interrupted. Skipped runs (missing path, mount overlapping storage) say why they did nothing. Only mounted imports are recorded; storage rescans remain log-only.</p>

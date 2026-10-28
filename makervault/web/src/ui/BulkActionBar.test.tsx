@@ -19,6 +19,7 @@ function renderBar(overrides: Partial<BulkActionBarProps> = {}) {
     onMove: vi.fn(),
     onAddTags: vi.fn(),
     onRemoveTags: vi.fn(),
+    onEditMeta: vi.fn(),
     onAddToProject: vi.fn(),
     onDownload: vi.fn(),
     onDelete: vi.fn(),
@@ -110,6 +111,22 @@ describe("BulkActionBar", () => {
     expect(props.onAddToProject).toHaveBeenCalledTimes(1);
   });
 
+  it("opens the bulk metadata editor from the action bar", () => {
+    const { props } = renderBar();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit metadata…" }));
+
+    expect(props.onEditMeta).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables the metadata editor while another bulk action is busy", () => {
+    renderBar({ busy: { label: "Deleting", count: 2 } });
+
+    expect(
+      (screen.getByRole("button", { name: "Edit metadata…" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+
   it("opens the confirm dialog with one click instead of confirming inline", () => {
     const { props } = renderBar();
     const bar = within(screen.getByTestId("bulk-action-bar"));
@@ -136,7 +153,7 @@ describe("BulkActionBar", () => {
     renderBar({ busy: { label: "Deleting", count: 2 } });
 
     expect(screen.getByText(/Deleting 2 items/)).toBeTruthy();
-    for (const name of ["Move", "Add tags", "Remove tags", "Download zip", "Delete", "Select all", "Clear"]) {
+    for (const name of ["Move", "Add tags", "Remove tags", "Edit metadata…", "Download zip", "Delete", "Select all", "Clear"]) {
       expect((screen.getByRole("button", { name }) as HTMLButtonElement).disabled).toBe(true);
     }
     expect((screen.getByRole("combobox", { name: "Target folder" }) as HTMLSelectElement).disabled).toBe(true);

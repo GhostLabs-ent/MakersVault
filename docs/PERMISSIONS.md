@@ -25,7 +25,7 @@ blank ranks as `public`, i.e. it is denied even reads - fail closed.
 | Poll library scan status                     |  yes  |  yes   |  yes   |
 | Upload / import / rename / edit metadata     |  yes  |  yes   |   no   |
 | Delete assets, folders (to the trash), supporting files |  yes  |  yes   |   no   |
-| Bulk tag / move / delete                     |  yes  |  yes   |   no   |
+| Bulk tag / move / delete / metadata          |  yes  |  yes   |   no   |
 | Create / edit / delete projects, edit membership |  yes  |  yes   |   no   |
 | Start a library scan                         |  yes  |  yes   |   no   |
 | Change storage / mount-import settings       |  yes  |   no   |   no   |
@@ -81,8 +81,8 @@ mutating route is neither audited nor exempt with a reason. See
 
 ## The route matrix
 
-Paths are FastAPI templates exactly as declared. 58 routes: 4 public, 18 read,
-27 write, 9 admin.
+Paths are FastAPI templates exactly as declared. 60 routes: 4 public, 19 read,
+28 write, 9 admin.
 
 The collection/instance templates are deliberately asymmetric: the collection is
 `/projects` while one project is `/project/{project_id}`, exactly like `/folders`
@@ -112,6 +112,7 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | GET    | `/thumb/{asset_id}.jpg`                 | thumbnail |
 | GET    | `/assets`                               | list assets |
 | GET    | `/tags`                                 | list tags |
+| GET    | `/creators`                             | list the distinct creator facet |
 | POST   | `/download/zip`                         | POST-for-download: it builds a temp zip and streams it, nothing is stored |
 | GET    | `/folders`                              | list folders |
 | GET    | `/folder/{folder_id}/delete-preview`    | pure SELECT that counts what a delete would remove |
@@ -137,6 +138,7 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | POST   | `/assets/batch/tags`                        | bulk tag mutation |
 | POST   | `/assets/batch/folder`                      | bulk move |
 | POST   | `/assets/batch/delete`                      | bulk delete (to trash; confirmed by item count) |
+| POST   | `/assets/batch/meta`                        | bulk creator/notes metadata edit |
 | POST   | `/asset/{asset_id}/tags`                    | metadata mutation |
 | POST   | `/asset/{asset_id}/meta`                    | metadata mutation (may rename on disk) |
 | POST   | `/asset/{asset_id}/rename`                  | rename on disk |

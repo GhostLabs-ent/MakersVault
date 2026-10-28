@@ -139,6 +139,7 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("GET", "/thumb/{asset_id}.jpg"): READ,
     ("GET", "/assets"): READ,
     ("GET", "/tags"): READ,
+    ("GET", "/creators"): READ,
     # POST for a download: it builds a temp zip and streams it, nothing mutates.
     ("POST", "/download/zip"): READ,
     ("GET", "/folders"): READ,
@@ -165,6 +166,7 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("POST", "/assets/batch/tags"): WRITE,
     ("POST", "/assets/batch/folder"): WRITE,
     ("POST", "/assets/batch/delete"): WRITE,
+    ("POST", "/assets/batch/meta"): WRITE,
     ("POST", "/asset/{asset_id}/tags"): WRITE,
     ("POST", "/asset/{asset_id}/meta"): WRITE,
     ("POST", "/asset/{asset_id}/rename"): WRITE,

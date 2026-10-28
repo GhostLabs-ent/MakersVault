@@ -5,6 +5,7 @@ import {
   UnauthorizedError,
   batchDeleteAssets,
   batchMoveAssets,
+  batchSetMeta,
   batchSetTags,
 } from "./api";
 
@@ -114,6 +115,60 @@ describe("bulk API client", () => {
     expect(url.endsWith("/assets/batch/delete")).toBe(true);
     expect(init.method).toBe("POST");
     expect(JSON.parse(String(init.body))).toEqual({ asset_ids: ["a1", "b2"], confirm_count: 2 });
+  });
+
+
+  it("posts one request for a bulk metadata change and preserves explicit nulls", async () => {
+    const payload = { updated: [], failed: [] };
+    const fetchMock = installFetch(respond(payload));
+
+    await expect(batchSetMeta(["a1", "b2"], { creator: null, notes: "note" })).resolves.toEqual(
+      payload,
+    );
+
+    const { url, init } = onlyCall(fetchMock);
+    expect(url.endsWith("/assets/batch/meta")).toBe(true);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual({
+      asset_ids: ["a1", "b2"],
+      creator: null,
+      notes: "note",
+    });
+  });
+
+  it("omits undefined metadata keys from the batch body", async () => {
+    const fetchMock = installFetch(respond({ updated: [], failed: [] }));
+
+    await batchSetMeta(["a1"], { creator: "Ada" });
+
+    const { init } = onlyCall(fetchMock);
+    expect(JSON.parse(String(init.body))).toEqual({ asset_ids: ["a1"], creator: "Ada" });
+    expect(JSON.parse(String(init.body))).not.toHaveProperty("notes");
+  });
+
+  it("sends auth headers and surfaces a whole-request metadata failure", async () => {
+    const fetchMock = installFetch(
+      respond(null, {
+        ok: false,
+        status: 400,
+        body: JSON.stringify({ detail: "Provide creator or notes" }),
+      }),
+    );
+
+    const error = await batchSetMeta(["a1"], {}).catch((err: unknown) => err);
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toBe("Provide creator or notes");
+
+    const { init } = onlyCall(fetchMock);
+    expect((init.headers as Headers).get("Content-Type")).toBe("application/json");
+  });
+
+  it("throws UnauthorizedError on 401 for a bulk metadata change", async () => {
+    installFetch(respond(null, { ok: false, status: 401, body: "" }));
+
+    await expect(batchSetMeta(["a1"], { creator: "Ada" })).rejects.toBeInstanceOf(
+      UnauthorizedError,
+    );
   });
 
   it("throws UnauthorizedError on 401", async () => {

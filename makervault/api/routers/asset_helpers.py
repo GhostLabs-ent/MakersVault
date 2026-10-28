@@ -3,6 +3,7 @@
 from typing import List, Optional
 
 from fastapi import HTTPException, Response
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 import bulk_service
@@ -25,6 +26,7 @@ def apply_asset_filters(
     folder_id: Optional[str],
     project_id: Optional[str] = None,
     not_in_project: bool = False,
+    creator: Optional[str] = None,
 ):
     if q:
         qlike = f"%{q}%"
@@ -38,6 +40,13 @@ def apply_asset_filters(
         )
     if folder_id:
         stmt = stmt.where(Asset.folder_id == folder_id)
+    # An exact creator filter, case-insensitive like the facet's dedupe. A
+    # whitespace-only value is ignored rather than a 400: the UI sends the chip
+    # back verbatim and an empty chip means "no filter".
+    if creator is not None:
+        cleaned_creator = creator.strip()
+        if cleaned_creator:
+            stmt = stmt.where(func.lower(Asset.creator) == cleaned_creator.lower())
     if project_id:
         stmt = stmt.where(Asset.id.in_(select(ProjectAsset.asset_id).where(ProjectAsset.project_id == project_id)))
     if not_in_project:
@@ -49,6 +58,32 @@ def apply_asset_filters(
     for tag in tag_filter:
         stmt = stmt.where(Asset.tags_json.like(f'%"{tag}"%'))
     return stmt
+
+
+def apply_asset_order(stmt, sort: Optional[str], order: str = "asc"):
+    """Order an asset listing, with a unique tiebreaker chain on every sort.
+
+    No `sort` keeps the historical default (`Asset.name`, `Asset.filename`,
+    `Asset.id`). An explicit sort always ends in `Asset.filename, Asset.id`, so
+    a page boundary can never duplicate or skip a row: `size` and `creator` are
+    not unique, and without the tiebreakers SQLite is free to return equal rows
+    in any order between two limit/offset queries.
+
+    Creator sorts case-insensitively and puts NULLs last in BOTH directions:
+    the NULL flag is ordered ascending before the optional descending value.
+    """
+    if sort is None:
+        return stmt.order_by(Asset.name, Asset.filename, Asset.id)
+    descending = order == "desc"
+    if sort == "size":
+        primary = Asset.size.desc() if descending else Asset.size
+        return stmt.order_by(primary, Asset.filename, Asset.id)
+    if sort == "creator":
+        creator = func.lower(Asset.creator)
+        primary = creator.desc() if descending else creator
+        return stmt.order_by(Asset.creator.is_(None), primary, Asset.filename, Asset.id)
+    primary = Asset.name.desc() if descending else Asset.name
+    return stmt.order_by(primary, Asset.filename, Asset.id)
 
 
 def asset_page(session: Session, stmt, response: Response, limit: Optional[int], offset: Optional[int]) -> List[Asset]:

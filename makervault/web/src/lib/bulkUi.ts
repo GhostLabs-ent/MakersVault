@@ -1,4 +1,4 @@
-import type { Asset, BatchFailure } from "./api";
+import type { Asset, BatchFailure, BatchMetaChange } from "./api";
 
 /**
  * Pure reconciliation for bulk actions.
@@ -10,7 +10,12 @@ import type { Asset, BatchFailure } from "./api";
  * left the server-side result set. Nothing here touches the DOM.
  */
 
-export type ViewFilter = { folderId?: string | null; activeTags: string[] };
+export type ViewFilter = {
+  folderId?: string | null;
+  activeTags: string[];
+  /** Exact creator facet, case-insensitive; unset/blank means "no filter". */
+  activeCreator?: string | null;
+};
 
 /** Trim, drop empties and de-duplicate by exact string (no case folding). */
 function normalized(list: string[]): string[] {
@@ -61,14 +66,35 @@ export function dropIds(items: Asset[], ids: string[]): Asset[] {
   return items.filter(item => !target.has(item.id));
 }
 
+/** Apply a creator/notes change to exactly the given ids; absent keys stay put. */
+export function applyMetaLocally(
+  items: Asset[],
+  ids: string[],
+  change: BatchMetaChange,
+): Asset[] {
+  const target = new Set(ids);
+  return items.map(item => {
+    if (!target.has(item.id)) return item;
+    const next = { ...item };
+    if (change.creator !== undefined) next.creator = change.creator;
+    if (change.notes !== undefined) next.notes = change.notes;
+    return next;
+  });
+}
+
 export type BatchOutcome =
   | { kind: "delete"; deleted: string[]; failed: BatchFailure[]; view: ViewFilter }
   | { kind: "folder"; updated: Asset[]; failed: BatchFailure[]; view: ViewFilter }
-  | { kind: "tags"; updated: Asset[]; failed: BatchFailure[]; view: ViewFilter };
+  | { kind: "tags"; updated: Asset[]; failed: BatchFailure[]; view: ViewFilter }
+  | { kind: "meta"; updated: Asset[]; failed: BatchFailure[]; view: ViewFilter };
 
-/** Folder views only filter when a folder is actually being viewed. */
+/** Folder/creator views only filter when that facet is actually set. */
 function matchesView(asset: Asset, view: ViewFilter): boolean {
   if (view.folderId && (asset.folder_id ?? null) !== view.folderId) return false;
+  // Mirrors `apply_asset_filters`: an exact, trimmed, case-insensitive creator
+  // match where a NULL creator can never match a non-blank filter.
+  const creator = (view.activeCreator ?? "").trim().toLowerCase();
+  if (creator && (asset.creator ?? "").toLowerCase() !== creator) return false;
   // The server's tag filter is AND: every active tag must be present.
   // Case-insensitive on purpose, not a preference: the server filters with
   // `tags_json LIKE '%"tag"%'` and SQLite LIKE folds ASCII case, so a row tagged

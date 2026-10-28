@@ -1,6 +1,6 @@
 """Split from main.py in Mf-x9dx; behaviour-preserving move."""
 
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlmodel import Session, select
@@ -11,7 +11,7 @@ from auth import AuthContext
 from db import engine
 from models import Asset, ProjectAsset
 from permissions import require_read, require_write
-from routers.asset_helpers import apply_asset_filters, asset_page, require_asset_ids
+from routers.asset_helpers import apply_asset_filters, apply_asset_order, asset_page, require_asset_ids
 from routers.presenters import project_to_out, to_out
 from schemas import (
     AssetOut,
@@ -101,11 +101,14 @@ def list_project_assets(
     response: Response,
     q: Optional[str] = None,
     tags: Optional[str] = Query(default=None, description="Comma-separated tags"),
+    creator: Optional[str] = Query(default=None, description="Exact creator, case-insensitive"),
+    sort: Optional[Literal["name", "size", "creator"]] = Query(default=None, description="Optional sort key; omitted keeps the default order"),
+    order: Literal["asc", "desc"] = Query(default="asc", description="Sort direction"),
     limit: Optional[int] = Query(default=None, ge=1, le=1000),
     offset: Optional[int] = Query(default=None, ge=0),
     _: Optional[AuthContext] = Depends(require_read),
 ):
-    """The project's members, ordered and paged exactly like `GET /assets`.
+    """The project's members, filtered, ordered and paged like `GET /assets`.
 
     `folder_id` is not a parameter here on purpose: membership, not location,
     decides what is listed.
@@ -113,8 +116,8 @@ def list_project_assets(
     with Session(engine) as s:
         project_service.get_project(s, project_id)
         stmt = select(Asset).join(ProjectAsset, ProjectAsset.asset_id == Asset.id).where(ProjectAsset.project_id == project_id)
-        stmt = apply_asset_filters(stmt, q, tags, None)
-        stmt = stmt.order_by(Asset.name, Asset.filename, Asset.id)
+        stmt = apply_asset_filters(stmt, q, tags, None, creator=creator)
+        stmt = apply_asset_order(stmt, sort, order)
         assets = asset_page(s, stmt, response, limit, offset)
     return [to_out(a) for a in assets]
 

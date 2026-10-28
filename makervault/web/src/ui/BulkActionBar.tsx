@@ -15,6 +15,8 @@ export type BulkActionBarProps = {
   onMove: (folderId: string | null) => void;
   onAddTags: (tags: string[]) => void;
   onRemoveTags: (tags: string[]) => void;
+  /** Opens the in-app batch creator/notes editor. */
+  onEditMeta: () => void;
   /** Opens the project picker for the whole selection. */
   onAddToProject: () => void;
   onDownload: () => void;
@@ -55,6 +57,7 @@ export default function BulkActionBar({
   onMove,
   onAddTags,
   onRemoveTags,
+  onEditMeta,
   onAddToProject,
   onDownload,
   onDelete,
@@ -144,6 +147,15 @@ export default function BulkActionBar({
           className="px-3 py-1 rounded-md border border-panel-strong disabled:opacity-60"
         >
           Remove tags
+        </button>
+
+        <button
+          type="button"
+          onClick={onEditMeta}
+          disabled={disabled}
+          className="px-3 py-1 rounded-md border border-panel-strong disabled:opacity-60"
+        >
+          Edit metadata…
         </button>
 
         <button

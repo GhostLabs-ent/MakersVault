@@ -1,20 +1,25 @@
-import { type Dispatch, type SetStateAction, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Asset, Folder } from "../../lib/api";
 import { childFolders } from "../../lib/folderTree";
-import { extOf, type GroupBucket, type SortKey } from "./assetGridMeta";
+import { extOf, type GroupBucket, type SortDir, type SortKey } from "./assetGridMeta";
 
 type AssetSortingOptions = {
   items: Asset[];
   folders: Folder[];
   folderId?: string | null;
+  /** The toolbar's sort state is owned by the listing hook (it drives requests). */
+  sortKey: SortKey;
+  setSortKey: (key: SortKey) => void;
+  sortDir: SortDir;
+  setSortDir: (dir: SortDir) => void;
 };
 
 export type AssetSortingApi = {
   sortKey: SortKey;
-  setSortKey: Dispatch<SetStateAction<SortKey>>;
-  sortDir: "asc" | "desc";
-  setSortDir: Dispatch<SetStateAction<"asc" | "desc">>;
+  setSortKey: (key: SortKey) => void;
+  sortDir: SortDir;
+  setSortDir: (dir: SortDir) => void;
   sortedItems: Asset[];
   folderGroups: GroupBucket[];
   typeGroups: GroupBucket[];
@@ -37,11 +42,13 @@ export function useAssetSorting({
   items,
   folders,
   folderId,
+  sortKey,
+  setSortKey,
+  sortDir,
+  setSortDir,
 }: AssetSortingOptions): AssetSortingApi {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [sortKey, setSortKey] = useState<"name" | "size" | "type" | "folder">("name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const folderById = useMemo(() => {
     const map: Record<string, Folder> = {};
@@ -89,21 +96,19 @@ export function useAssetSorting({
   }, [folders, folderNames]);
 
   const sortedItems = useMemo(() => {
+    // name/size/creator are server-backed: the full listing is already ordered,
+    // so re-sorting the loaded page here would undo the global order.
+    if (sortKey !== "type" && sortKey !== "folder") return items;
+
     const copy = [...items];
     const dir = sortDir === "asc" ? 1 : -1;
     const nameForFolder = (a: Asset) => (a.folder_id ? folderNames[a.folder_id] || "" : "");
     copy.sort((a, b) => {
-      if (sortKey === "size") {
-        return (a.size - b.size) * dir;
-      }
       if (sortKey === "type") {
         return extOf(a.filename).localeCompare(extOf(b.filename)) * dir;
       }
-      if (sortKey === "folder") {
-        return nameForFolder(a).localeCompare(nameForFolder(b)) * dir;
-      }
-      // default name
-      return a.filename.localeCompare(b.filename) * dir;
+      // folder
+      return nameForFolder(a).localeCompare(nameForFolder(b)) * dir;
     });
     return copy;
   }, [items, sortKey, sortDir, folderNames]);

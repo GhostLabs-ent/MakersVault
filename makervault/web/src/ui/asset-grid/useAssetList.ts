@@ -11,6 +11,7 @@ import {
   Asset,
   Folder,
   UnauthorizedError,
+  listCreators,
   listFolders,
   listTags,
 } from "../../lib/api";
@@ -21,7 +22,10 @@ import {
   ROWS_PER_BATCH,
   fetchAssetPage,
   rowsBatchSizeForWidth,
+  serverSortKey,
   type RefreshOpts,
+  type SortDir,
+  type SortKey,
 } from "./assetGridMeta";
 
 type AssetListOptions = {
@@ -38,6 +42,14 @@ export type AssetListApi = {
   folders: Folder[];
   allTags: string[];
   setAllTags: Dispatch<SetStateAction<string[]>>;
+  creators: string[];
+  activeCreator: string | null;
+  /** Setting a creator refetches from the first page, like every other filter. */
+  setActiveCreator: (creator: string | null) => void;
+  sortKey: SortKey;
+  setSortKey: (key: SortKey) => void;
+  sortDir: SortDir;
+  setSortDir: (dir: SortDir) => void;
   activeTags: string[];
   setActiveTags: Dispatch<SetStateAction<string[]>>;
   loading: boolean;
@@ -53,6 +65,8 @@ export type AssetListApi = {
   loadMore: () => Promise<void>;
   toggleTag: (tag: string) => void;
   toggleNotInProject: (next: boolean) => void;
+  /** Clears the tag and creator filters in one refetch. */
+  resetFilters: () => void;
   handleApiError: (err: unknown, message?: string) => boolean;
 };
 
@@ -75,6 +89,10 @@ export function useAssetList({
   const queryRef = useRef("");
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
+  const [creators, setCreators] = useState<string[]>([]);
+  const [activeCreator, setActiveCreatorState] = useState<string | null>(null);
+  const [sortKey, setSortKeyState] = useState<SortKey>("name");
+  const [sortDir, setSortDirState] = useState<SortDir>("asc");
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [offset, setOffset] = useState(0);
@@ -107,19 +125,32 @@ export function useAssetList({
     // One value for both requests, so the chips can never describe a different
     // pile than the grid.
     const effectiveNotInProject = opts.notInProject ?? notInProject;
+    const creator = opts.creator !== undefined ? opts.creator : activeCreator;
+    const effectiveSortKey = opts.sortKey ?? sortKey;
+    const effectiveSortDir = opts.sortDir ?? sortDir;
     const paging = refreshWindow(offset, pageSize, opts.keepLoadedPages);
-    const [assetsResult, tagsResult] = await Promise.allSettled([
+    const [assetsResult, tagsResult, creatorsResult] = await Promise.allSettled([
       fetchAssetPage({
         projectId,
         q: search,
         tags,
         folderId: targetFolderId,
         notInProject: effectiveNotInProject,
+        creator: creator ?? undefined,
+        sort: serverSortKey(effectiveSortKey) ?? undefined,
+        order: effectiveSortDir,
         limit: paging.limit,
         offset: paging.offset,
       }),
       listTags({
         q: search,
+        folder_id: isProject ? undefined : targetFolderId,
+        project_id: projectId ?? undefined,
+        not_in_project: isProject ? undefined : effectiveNotInProject,
+      }),
+      listCreators({
+        q: search,
+        tags,
         folder_id: isProject ? undefined : targetFolderId,
         project_id: projectId ?? undefined,
         not_in_project: isProject ? undefined : effectiveNotInProject,
@@ -141,6 +172,13 @@ export function useAssetList({
       handleApiError(tagsResult.reason);
     }
 
+    if (creatorsResult.status === "fulfilled") {
+      setCreators(creatorsResult.value);
+    } else {
+      setCreators([]);
+      handleApiError(creatorsResult.reason);
+    }
+
     setLoading(false);
   });
 
@@ -154,6 +192,9 @@ export function useAssetList({
         tags: activeTags,
         folderId: folderId || undefined,
         notInProject,
+        creator: activeCreator ?? undefined,
+        sort: serverSortKey(sortKey) ?? undefined,
+        order: sortDir,
         limit: pageSize,
         offset,
       });
@@ -208,12 +249,40 @@ export function useAssetList({
     refresh({ notInProject: next });
   });
 
+  const setActiveCreator = useStableCallback((creator: string | null) => {
+    setActiveCreatorState(creator);
+    refresh({ creator });
+  });
+
+  const setSortKey = useStableCallback((key: SortKey) => {
+    setSortKeyState(key);
+    refresh({ sortKey: key });
+  });
+
+  const setSortDir = useStableCallback((dir: SortDir) => {
+    setSortDirState(dir);
+    refresh({ sortDir: dir });
+  });
+
+  const resetFilters = useStableCallback(() => {
+    setActiveTags([]);
+    setActiveCreatorState(null);
+    refresh({ tags: [], creator: null });
+  });
+
   return {
     items,
     setItems,
     folders,
     allTags,
     setAllTags,
+    creators,
+    activeCreator,
+    setActiveCreator,
+    sortKey,
+    setSortKey,
+    sortDir,
+    setSortDir,
     activeTags,
     setActiveTags,
     loading,
@@ -227,6 +296,7 @@ export function useAssetList({
     loadMore,
     toggleTag,
     toggleNotInProject,
+    resetFilters,
     handleApiError,
   };
 }

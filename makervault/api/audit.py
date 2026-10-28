@@ -281,6 +281,7 @@ EXEMPT_ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/asset/{asset_id}/thumbnail-generated"): "derived cache artifact",
     ("POST", "/asset/{asset_id}/tags"): "metadata edit; rename and move are the audited edits",
     ("POST", "/assets/batch/tags"): "metadata edit; rename and move are the audited edits",
+    ("POST", "/assets/batch/meta"): "creator/notes metadata edit; rename and move are the audited edits",
     ("POST", "/folders"): "creates a folder",
     ("POST", "/projects"): "creates a project",
     ("POST", "/project/{project_id}/assets"): "membership edit; deletes no files or asset rows",

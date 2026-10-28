@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { type AssetFile, deleteAssetFile, deletePreparedPrint, fileUrl, listAssetFiles, uploadAssetFile } from "../../lib/api";
+import { normaliseCreator, normaliseName, normaliseNotes } from "../../lib/metadataValidation";
 import { notifyError } from "../../lib/toast";
 import TagBadge from "../TagBadge";
 import TagInput from "../TagInput";
@@ -46,6 +47,9 @@ const AssetCard = React.memo(function AssetCard({
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesValue, setNotesValue] = useState(item.notes || "");
   const [creatorValue, setCreatorValue] = useState(item.creator || "");
+  const [notesError, setNotesError] = useState<string | null>(null);
+  const [creatorError, setCreatorError] = useState<string | null>(null);
+  const [renameError, setRenameError] = useState<string | null>(null);
   const [notesCollapsed, setNotesCollapsed] = useState(true);
   const [renaming, setRenaming] = useState(false);
   const [nameValue, setNameValue] = useState(item.name);
@@ -169,7 +173,12 @@ const AssetCard = React.memo(function AssetCard({
   };
 
   const saveNotes = async () => {
-    await onSaveDetails(item.id, { notes: notesValue, creator: creatorValue });
+    const creator = normaliseCreator(creatorValue);
+    const notes = normaliseNotes(notesValue);
+    setCreatorError(creator.error);
+    setNotesError(notes.error);
+    if (creator.error || notes.error) return;
+    await onSaveDetails(item.id, { notes: notes.value ?? "", creator: creator.value ?? "" });
     setEditingNotes(false);
   };
 
@@ -177,21 +186,25 @@ const AssetCard = React.memo(function AssetCard({
     setEditingNotes(false);
     setNotesValue(item.notes || "");
     setCreatorValue(item.creator || "");
+    setNotesError(null);
+    setCreatorError(null);
   };
 
   const noteText = (item.notes || "").trim();
 
   const commitRename = async () => {
-    const next = nameValue.trim();
-    if (!next) {
-      setNameValue(item.name);
-      setRenaming(false);
+    const normalised = normaliseName(nameValue);
+    if (normalised.error) {
+      setRenameError(normalised.error);
       return;
     }
+    const next = normalised.value ?? "";
     if (next === item.name) {
+      setRenameError(null);
       setRenaming(false);
       return;
     }
+    setRenameError(null);
     try {
       await onRename(item.id, next);
     } catch {
@@ -204,6 +217,7 @@ const AssetCard = React.memo(function AssetCard({
 
   const cancelRename = () => {
     setNameValue(item.name);
+    setRenameError(null);
     setRenaming(false);
   };
 
@@ -364,16 +378,26 @@ const AssetCard = React.memo(function AssetCard({
           onClick={e => renaming && e.stopPropagation()}
         >
           {renaming ? (
-            <input
-              ref={nameInputRef}
-              value={nameValue}
-              onChange={e => setNameValue(e.target.value)}
-              onBlur={commitRename}
-              onKeyDown={handleRenameKey}
-              onClick={e => e.stopPropagation()}
-              className="px-2 py-1 w-full rounded-md border border-panel-strong bg-panel-soft text-sm"
-              autoFocus
-            />
+            <>
+              <input
+                ref={nameInputRef}
+                value={nameValue}
+                onChange={e => {
+                  setNameValue(e.target.value);
+                  setRenameError(null);
+                }}
+                onBlur={commitRename}
+                onKeyDown={handleRenameKey}
+                onClick={e => e.stopPropagation()}
+                className="px-2 py-1 w-full rounded-md border border-panel-strong bg-panel-soft text-sm"
+                autoFocus
+              />
+              {renameError && (
+                <p role="alert" className="text-xs text-red-700 dark:text-red-300">
+                  {renameError}
+                </p>
+              )}
+            </>
           ) : (
             item.name
           )}
@@ -474,19 +498,35 @@ const AssetCard = React.memo(function AssetCard({
                     <span className="text-[10px] uppercase tracking-wide text-muted">Creator</span>
                     <input
                       value={creatorValue}
-                      onChange={e => setCreatorValue(e.target.value)}
+                      onChange={e => {
+                        setCreatorValue(e.target.value);
+                        setCreatorError(null);
+                      }}
                       className="w-full rounded-md border border-panel-strong bg-panel-soft px-2 py-1.5"
                       placeholder="Designer or source"
                     />
+                    {creatorError && (
+                      <p role="alert" className="text-xs text-red-700 dark:text-red-300">
+                        {creatorError}
+                      </p>
+                    )}
                   </label>
                   <label className="flex flex-col gap-1">
                     <span className="text-[10px] uppercase tracking-wide text-muted">Notes</span>
                   <textarea
                     value={notesValue}
-                    onChange={e => setNotesValue(e.target.value)}
+                    onChange={e => {
+                      setNotesValue(e.target.value);
+                      setNotesError(null);
+                    }}
                     className="w-full min-h-[80px] rounded-md border border-panel-strong bg-panel-soft p-2"
                     placeholder="Add some details about this asset"
                   />
+                  {notesError && (
+                    <p role="alert" className="text-xs text-red-700 dark:text-red-300">
+                      {notesError}
+                    </p>
+                  )}
                   </label>
                   <div className="flex flex-wrap gap-2">
                     <button className="text-sm px-3 py-1 rounded-md bg-accent" onClick={saveNotes}>Save</button>
