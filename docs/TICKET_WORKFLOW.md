@@ -70,7 +70,11 @@ gh run view <run-id> --repo insanemal/MakersVault --json jobs \
 All four jobs (api, web, bridge, containers) must be `success`.
 
 ## Safeguards
-- **Never push to `upstream` (GhostLabs-ent/MakersVault)**; it is read-only for us.
+- **Never push to, merge, or rebase onto `upstream` (GhostLabs-ent/MakersVault).** It is a
+deliberately diverged line: they built overlapping features their own way and our
+migrations/permissions/audit differ. Port features by hand into our idioms, one
+ticket at a time (see the fork-stance ticket), never with `git cherry-pick` or
+`git merge`.
 - **Never touch the live deployment** (`root@192.168.0.197`, `/opt/makersvault`,
   the Cosmos app, `/mnt/ceph/3D_models`) unless the ticket says so. Tests must use
   temp directories.
