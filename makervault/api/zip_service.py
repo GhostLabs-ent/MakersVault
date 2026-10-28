@@ -1,17 +1,28 @@
 import os
+import tempfile
 from pathlib import Path
 from typing import List, Optional
-from zipfile import ZipFile
+from zipfile import ZIP_DEFLATED, ZipFile
 
-from fastapi import HTTPException
+from fastapi import BackgroundTasks, HTTPException
+from fastapi.responses import FileResponse
 from sqlmodel import Session, select
 
-from asset_service import cleanup_asset, create_asset_record, ensure_model_thumbnail, finalize_asset_record, managed_asset_path, save_thumb
+from asset_file_service import managed_asset_file_path
+from asset_service import (
+    cleanup_asset,
+    create_asset_record,
+    ensure_model_thumbnail,
+    finalize_asset_record,
+    managed_asset_path,
+    resolve_asset_file,
+    save_thumb,
+)
 from config import IMPORT_MAX_BYTES, IMPORT_ZIP_MAX_BYTES
 from db import engine
-from file_utils import mime_from_content_type, sanitize_filename
+from file_utils import mime_from_content_type, sanitize_filename, sanitize_path_segment
 from folder_service import validate_parent_folder
-from models import Asset, Folder
+from models import Asset, AssetFile, Folder
 from schemas import ImportZipExtractRequest
 
 
@@ -180,3 +191,65 @@ def extract_zip_entries_to_assets(zip_path: Path, selections: List[str], body: I
                     cleanup_asset(asset.id)
                 failed.append(entry_name)
     return assets, failed
+
+
+def arcname_for_asset(asset: Asset, folder_label_map: Optional[dict] = None) -> str:
+    folder_part = "unassigned"
+    if asset.folder_id:
+        folder_part = (folder_label_map or {}).get(asset.folder_id, asset.folder_id)
+    # folder labels are user input: an unsanitised "../.." here becomes a
+    # traversal entry for whoever extracts the downloaded zip
+    return f"{sanitize_path_segment(folder_part, 'unassigned')}/{sanitize_path_segment(asset.filename, 'file')}"
+
+
+def zip_assets_response(
+    assets: List[Asset],
+    download_name: str,
+    background: BackgroundTasks,
+    folder_label_map: Optional[dict] = None,
+    allow_empty: bool = False,
+):
+    """Stream the resolved assets as a zip; `allow_empty` is the project contract.
+
+    A tag/folder/asset_ids selection that resolves to nothing is a 404 (the caller
+    asked for files that are not there), while an existing project with no members
+    is a valid empty zip: the project exists, its file set is simply empty.
+    """
+    files: List[tuple[str, Path]] = []
+    supporting: dict[str, List[AssetFile]] = {}
+    asset_ids = [asset.id for asset in assets]
+    if asset_ids:
+        with Session(engine) as session:
+            for row in session.exec(
+                select(AssetFile).where(AssetFile.asset_id.in_(asset_ids), AssetFile.role == "supporting")
+            ):
+                supporting.setdefault(row.asset_id, []).append(row)
+    for a in assets:
+        path = resolve_asset_file(a)
+        if not path:
+            continue
+        files.append((arcname_for_asset(a, folder_label_map), path))
+        folder_part = "unassigned"
+        if a.folder_id:
+            folder_part = (folder_label_map or {}).get(a.folder_id, a.folder_id)
+        for related in supporting.get(a.id, []):
+            related_path = managed_asset_file_path(related)
+            if related_path.exists():
+                files.append((
+                    f"{sanitize_path_segment(folder_part, 'unassigned')}/"
+                    f"{sanitize_path_segment(a.name, 'model')}/supporting/"
+                    f"{sanitize_path_segment(related.filename, 'file')}",
+                    related_path,
+                ))
+    if not files and not allow_empty:
+        raise HTTPException(status_code=404, detail="No files available for download")
+
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+    tmp_path = Path(tmp.name)
+    tmp.close()
+    with ZipFile(tmp_path, "w", ZIP_DEFLATED) as zf:
+        for arc, fs_path in files:
+            zf.write(fs_path, arcname=arc)
+
+    background.add_task(lambda p=tmp_path: p.unlink(missing_ok=True))
+    return FileResponse(tmp_path, media_type="application/zip", filename=download_name)

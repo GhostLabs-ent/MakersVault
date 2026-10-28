@@ -19,7 +19,7 @@ from sqlmodel import Session, select
 import audit
 import folder_paths
 from asset_file_service import delete_all_asset_files
-from config import IMPORT_MAX_BYTES
+from config import IMPORT_MAX_BYTES, MOUNT_IMPORT_PATH
 from db import STORAGE, THUMBS, engine
 from file_utils import build_import_filename, mime_from_content_type, sanitize_filename
 from models import Asset, Folder
@@ -207,6 +207,28 @@ def available_model_name(session: Session, requested: str, folder_id: Optional[s
 def managed_asset_path(asset: Asset) -> Path:
     relative = asset.storage_path or f"{asset.id}/{asset.filename}"
     return STORAGE / relative
+
+
+def is_mount_source_allowed(path: Path) -> bool:
+    if not MOUNT_IMPORT_PATH:
+        return False
+    try:
+        root = Path(MOUNT_IMPORT_PATH).resolve()
+        candidate = path.resolve()
+    except Exception:
+        return False
+    return candidate == root or root in candidate.parents
+
+
+def resolve_asset_file(asset: Asset) -> Optional[Path]:
+    p = managed_asset_path(asset)
+    if p.exists():
+        return p
+    if asset.source_path:
+        source = Path(asset.source_path)
+        if source.exists() and is_mount_source_allowed(source):
+            return source
+    return None
 
 
 # Uploads stream into this app-owned directory before their rendered destination
