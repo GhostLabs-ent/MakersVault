@@ -2,10 +2,15 @@
 
 Pure pathlib: the real defaults are parsed out of `auth.py` source rather than
 imported, so this runs without FastAPI, sqlmodel, or a database.
+
+The guarded docs live above the API directory, so the module skips itself in the
+container, where `makervault/api` is the whole build context.
 """
 
 import re
 from pathlib import Path
+
+import pytest
 
 API_ROOT = Path(__file__).resolve().parents[1]
 MAKERVAULT_ROOT = API_ROOT.parent
@@ -21,6 +26,17 @@ DOC_PATHS = {
     "makervault/api/.env.example": ENV_EXAMPLE_PATH,
     "makervault/docs/architecture/CONFIGURATION.md": CONFIGURATION_PATH,
 }
+
+# Every test below guards README.md and/or CONFIGURATION.md, so the whole module
+# is host-only. Both paths are absent inside the API image (build context is
+# makervault/api, which becomes /app), but requiring both to be missing keeps a
+# half-deleted docs tree failing loudly on a real checkout instead of skipping.
+if not README_PATH.exists() and not CONFIGURATION_PATH.exists():
+    pytest.skip(
+        "auth docs guard is host-only (the API image builds from makervault/api, so "
+        "the repo README.md and makervault/docs/ are absent)",
+        allow_module_level=True,
+    )
 
 README_BASELINE_ANCHOR = "Setting up the .env file"
 DEPRECATION_MARKERS = ("deprecated", "ignored", "no-op", "noop")
