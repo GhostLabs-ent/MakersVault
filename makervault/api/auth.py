@@ -49,11 +49,20 @@ class AuthContext:
 
 @dataclass(frozen=True)
 class LoginResult:
-  """A fresh session's tokens plus the access-token lifetime in seconds."""
+  """A fresh session's tokens plus what the audit row needs to name the actor.
+
+  `username`, `user_id`, `kind` and `role` are copied from the session row the
+  login just created; the login handler stages `login.succeeded` before
+  committing, and it must not have to re-derive the principal it just made.
+  """
 
   token: str
   refresh_token: str
   expires_in: int
+  username: str
+  user_id: Optional[str]
+  kind: str
+  role: str
 
 
 def credentials_match(username: str, password: str) -> bool:
@@ -155,8 +164,17 @@ def login(
     user_agent=user_agent,
     client_ip=client_ip,
   )
-  token = create_access_token(session_row, sessions.role_for(session_row, user))
-  return LoginResult(token=token, refresh_token=refresh_token, expires_in=AUTH_ACCESS_TOKEN_TTL)
+  role = sessions.role_for(session_row, user)
+  token = create_access_token(session_row, role)
+  return LoginResult(
+    token=token,
+    refresh_token=refresh_token,
+    expires_in=AUTH_ACCESS_TOKEN_TTL,
+    username=session_row.username,
+    user_id=session_row.user_id,
+    kind=session_row.kind,
+    role=role,
+  )
 
 
 def require_auth(

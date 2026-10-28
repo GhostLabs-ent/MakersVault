@@ -47,6 +47,7 @@ from typing import List, Optional
 from fastapi import HTTPException
 from sqlmodel import Session, select
 
+import audit
 import db
 import file_utils
 import folder_paths
@@ -316,7 +317,7 @@ def _delete_rows(session: Session, assets: List[Asset], subtree: List[Folder]) -
 # Delete ---------------------------------------------------------
 
 
-def trash_folder(session: Session, folder: Folder) -> dict:
+def trash_folder(session: Session, folder: Folder, *, audit_ctx: Optional[audit.AuditContext]) -> dict:
     """Move a folder's subtree into the trash, then delete its rows.
 
     Order is fixed: move bytes, commit rows, only then unlink thumbnails. A
@@ -324,6 +325,11 @@ def trash_folder(session: Session, folder: Folder) -> dict:
     so the caller never sees a partial delete. Emptied ancestor directories are
     deliberately left alone: an emptied parent still owns a Folder row, so
     pruning it would desynchronise database and disk.
+
+    The audit row joins the row-delete transaction, so a failed audit insert is
+    a failed commit: the moves are undone and the folder survives. The counts in
+    its detail are computed before the delete, because after the commit the rows
+    are gone.
     """
     subtree = folder_paths.folder_subtree(session, folder.id)
     subtree_ids = {node.id for node in subtree}
@@ -352,6 +358,15 @@ def trash_folder(session: Session, folder: Folder) -> dict:
     try:
         entry = _move_to_trash(folder, source, assets, now, moves, empty_after_move)
         _delete_rows(session, assets, subtree)
+        audit.stage(
+            session,
+            audit_ctx,
+            audit.Event(
+                audit.FOLDER_DELETE,
+                folder.id,
+                {"name": folder.name, "folders": len(subtree), "assets": len(assets), "bytes": asset_bytes},
+            ),
+        )
         session.commit()
     except BaseException as error:
         session.rollback()

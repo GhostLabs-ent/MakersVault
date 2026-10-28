@@ -1,7 +1,7 @@
 """Per-route permission sweeps driven by `permissions.ROUTE_PERMISSIONS`.
 
 Why this file exists: Mf-2nbc enforces a level with a *per-route dependency*, and
-the only thing that keeps 47 hand-written declarations honest is a test that
+the only thing that keeps 48 hand-written declarations honest is a test that
 visits every route at every role. The sweeps below are parametrised from
 `permissions.ROUTE_PERMISSIONS`, so that table is both the documentation and the
 test plan: add a route without classifying it and
@@ -577,6 +577,10 @@ def call_list_users(client: TestClient, headers: dict[str, str], ids: Ids, monke
     return client.get("/users", headers=headers)
 
 
+def call_list_audit(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    return client.get("/audit", headers=headers)
+
+
 def call_update_user(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
     # Disabling a viewer is always allowed: it is not the last enabled admin.
     return client.patch(f"/users/{ids.viewer_id or PLACEHOLDER_USER_ID}", json={"disabled": True}, headers=headers)
@@ -633,6 +637,7 @@ CALLS: dict[tuple[str, str], CallSpec] = {
     ("POST", "/users"): call_create_user,
     ("GET", "/users"): call_list_users,
     ("PATCH", "/users/{user_id}"): call_update_user,
+    ("GET", "/audit"): call_list_audit,
     ("POST", "/trash/purge"): call_purge_trash,
 }
 
@@ -682,6 +687,7 @@ EXPECTED_STATUS: dict[tuple[str, str], int] = {
     ("POST", "/users"): 201,
     ("GET", "/users"): 200,
     ("PATCH", "/users/{user_id}"): 200,
+    ("GET", "/audit"): 200,
     ("POST", "/trash/purge"): 200,
 }
 
@@ -738,10 +744,10 @@ def test_every_api_route_has_a_level() -> None:
 
 
 def test_the_matrix_is_the_documented_size() -> None:
-    """docs/PERMISSIONS.md lists 47 routes; a new route means updating both."""
+    """The matrix is pinned at 48 routes; a new route means updating this and docs/PERMISSIONS.md."""
     counts = {level: len(keys_at(level)) for level in (permissions.PUBLIC, permissions.READ, permissions.WRITE, permissions.ADMIN)}
-    assert len(permissions.ROUTE_PERMISSIONS) == 47, counts
-    assert counts == {permissions.PUBLIC: 4, permissions.READ: 14, permissions.WRITE: 20, permissions.ADMIN: 9}, counts
+    assert len(permissions.ROUTE_PERMISSIONS) == 48, counts
+    assert counts == {permissions.PUBLIC: 4, permissions.READ: 14, permissions.WRITE: 20, permissions.ADMIN: 10}, counts
 
 
 def test_every_guarded_route_has_a_call_spec() -> None:

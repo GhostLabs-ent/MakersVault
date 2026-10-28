@@ -351,3 +351,38 @@ describe("Sidebar error reporting", () => {
     });
   });
 });
+
+describe("Sidebar footer navigation", () => {
+  beforeEach(() => {
+    resetToasts();
+    listFoldersMock.mockReset();
+    listFoldersMock.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("opens the audit log from the footer and marks the active view", async () => {
+    const onOpenAudit = vi.fn();
+    const onOpenSettings = vi.fn();
+
+    render(
+      <Sidebar
+        selectedId={null}
+        onSelect={vi.fn()}
+        onOpenAudit={onOpenAudit}
+        onOpenSettings={onOpenSettings}
+        activeView="audit"
+      />,
+    );
+
+    const audit = screen.getByRole("button", { name: "Audit log" });
+    expect(audit.className).toContain("is-selected");
+    expect(screen.getByRole("button", { name: "Settings" }).className).not.toContain("is-selected");
+
+    fireEvent.click(audit);
+    expect(onOpenAudit).toHaveBeenCalledTimes(1);
+    expect(onOpenSettings).not.toHaveBeenCalled();
+  });
+});

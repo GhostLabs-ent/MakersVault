@@ -4,6 +4,7 @@ import AssetGrid from "./AssetGrid";
 import Sidebar from "./Sidebar";
 import Login from "./Login";
 import Settings from "./Settings";
+import AuditLog from "./AuditLog";
 import UploadQueuePanel from "./UploadQueuePanel";
 import { apiHealth, getApiBase, logout, refreshToken, type HealthInfo } from "../lib/api";
 import { notifyError } from "../lib/toast";
@@ -45,7 +46,7 @@ export default function App() {
   const [health, setHealth] = React.useState<HealthInfo | null>(null);
   const [tokenTtl, setTokenTtl] = React.useState<number | null>(null);
   const [sessionExpired, setSessionExpired] = React.useState(false);
-  const [activeView, setActiveView] = React.useState<"library" | "settings">("library");
+  const [activeView, setActiveView] = React.useState<"library" | "settings" | "audit">("library");
   const [settings, setSettings] = React.useState<AppSettings>(() => loadSettings());
   const [confirmingLogout, setConfirmingLogout] = React.useState(false);
   // Scroll container for the asset grid's virtualization (see useVirtualRows).
@@ -195,6 +196,7 @@ export default function App() {
         onAssetsChanged={handleAssetsChanged}
         onUnauthorized={handleUnauthorized}
         onOpenSettings={() => setActiveView("settings")}
+        onOpenAudit={() => setActiveView("audit")}
         activeView={activeView}
       />
       {/* The asset grid's virtualizer compensates row-height changes itself (see useVirtualRows), so native scroll anchoring must not apply a second adjustment. */}
@@ -246,7 +248,7 @@ export default function App() {
             </button>
           </div>
         </header>
-        {activeView === "library" ? (
+        {activeView === "library" && (
           <AssetGrid
             folderId={folderId}
             foldersVersion={folderVersion}
@@ -259,7 +261,8 @@ export default function App() {
             scrollElementRef={mainScrollRef}
             onNavigateFolder={handleSelectFolder}
           />
-        ) : (
+        )}
+        {activeView === "settings" && (
           <Settings
             settings={settings}
             onChange={setSettings}
@@ -269,6 +272,7 @@ export default function App() {
             onSelectFolder={handleSelectFolder}
           />
         )}
+        {activeView === "audit" && <AuditLog onUnauthorized={handleUnauthorized} />}
       </main>
       {confirmingLogout && (
         <ConfirmDialog

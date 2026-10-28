@@ -16,6 +16,7 @@ from PIL import Image
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
+import audit
 import folder_paths
 from asset_file_service import delete_all_asset_files
 from config import IMPORT_MAX_BYTES
@@ -395,18 +396,28 @@ def move_asset_to_folder(asset: Asset, session: Session, old_path: Path, folder_
     return moved
 
 
-def move_asset_to_folder_by_id(asset_id: str, folder_id: Optional[str]) -> Asset:
+def move_asset_to_folder_by_id(asset_id: str, folder_id: Optional[str], *, audit_ctx: Optional[audit.AuditContext]) -> Asset:
     """Move one asset into a folder: the single-item and batch routes share this.
 
-    Order matters and is why this is not inlined in the routes: the no-clobber
+    Order matters and is why this is not inlined in the routes. The audit row is
+    staged before the bytes move, so a failed audit insert can never leave the
+    file relocated while the row still describes the old location. The no-clobber
     move must happen before ``folder_id`` is assigned, otherwise an autoflush
     exposes the moving asset as a witness for its own target directory, and a
     row update that loses a uniqueness race must put the moved bytes back.
+
+    Staging only adds the row to this session, which the move's own queries then
+    autoflush inside the same transaction: harmless, because a failure rolls the
+    insert and the row update back together.
+
+    A move to the folder the asset is already in changes nothing, so it writes
+    no audit row: the log records what happened, not what was asked.
     """
     with Session(engine) as s:
         asset = s.get(Asset, asset_id)
         if not asset:
             raise HTTPException(404)
+        previous_folder_id = asset.folder_id
         old_path = managed_asset_path(asset)
         folder_id = folder_id or None
         if folder_id:
@@ -416,6 +427,8 @@ def move_asset_to_folder_by_id(asset_id: str, folder_id: Optional[str]) -> Asset
             unique_model_name(s, asset.name, folder.id, exclude_id=asset.id)
         else:
             unique_model_name(s, asset.name, None, exclude_id=asset.id)
+        if folder_id != previous_folder_id:
+            audit.stage(s, audit_ctx, audit.Event(audit.ASSET_MOVE, asset_id, {"folder_id": folder_id}))
         # Move before assigning folder_id: an autoflush must not expose the moving
         # asset as a witness for its own target directory.
         moved = move_asset_to_folder(asset, s, old_path, folder_id)
@@ -435,13 +448,18 @@ def move_asset_to_folder_by_id(asset_id: str, folder_id: Optional[str]) -> Asset
         return asset
 
 
-def delete_asset_permanently(asset_id: str) -> None:
+def delete_asset_permanently(asset_id: str, *, audit_ctx: Optional[audit.AuditContext]) -> None:
     """Delete one asset and its files: the single-item and batch routes share this.
 
     Two sessions on purpose: the dependent ``AssetFile`` rows go first, and the
     row is re-read before deletion so a concurrent delete surfaces as a 404
     rather than deleting a row this call never saw. The unlink/prune is
     best-effort - bytes that cannot be removed must not stop the row from going.
+
+    The audit row joins the asset-row transaction, so a failed audit insert
+    rolls that delete back; the earlier ``AssetFile`` delete has already
+    committed, which is the same residual window the unlink/prune has always
+    had.
     """
     managed_path: Optional[Path] = None
     with Session(engine) as s:
@@ -454,6 +472,7 @@ def delete_asset_permanently(asset_id: str) -> None:
         a = s.get(Asset, asset_id)
         if not a:
             raise HTTPException(404)
+        audit.stage(s, audit_ctx, audit.Event(audit.ASSET_DELETE, asset_id, {"filename": a.filename}))
         s.delete(a)
         s.commit()
     # best-effort cleanup

@@ -2,6 +2,11 @@
 
 005 is DB-only (no backfill, no filesystem), so these tests pin the schema, the
 ledger entry, and the fact that a v4 database keeps every existing row.
+
+Forward compatibility: later migrations may be appended (006 is the audit log),
+so the version assertions use `MIGRATIONS[-1].version` and the ledger assertions
+compare only the shipped subset. Pinning `== 5` here would make every future
+migration fail this file, which says nothing about 005.
 """
 
 from pathlib import Path
@@ -14,7 +19,7 @@ from sqlalchemy.exc import IntegrityError
 import migrations
 from migrations import MIGRATIONS, applied_migrations, run_migrations
 
-LEDGER = {
+SHIPPED_LEDGER = {
     1: "initial_schema",
     2: "nested_folders_and_mount_sources",
     3: "asset_metadata_and_bundles",
@@ -56,6 +61,11 @@ NEW_INDEXES = {
     "idx_sessions_user_id",
     "idx_sessions_refresh_expires_at",
 }
+
+
+def shipped_ledger_entries(database_engine: Engine) -> dict[int, str]:
+    applied = applied_migrations(database_engine)
+    return {version: applied[version] for version in SHIPPED_LEDGER if version in applied}
 
 
 @pytest.fixture(autouse=True)
@@ -127,12 +137,12 @@ def table_snapshot(database_engine: Engine, *tables: str) -> tuple[tuple[str, tu
         )
 
 
-def test_fresh_database_reaches_v5(tmp_path: Path) -> None:
+def test_fresh_database_reaches_the_latest_schema(tmp_path: Path) -> None:
     database_engine = sqlite_engine(tmp_path / "fresh.db")
 
-    assert run_migrations(database_engine) == 5
+    assert run_migrations(database_engine) == MIGRATIONS[-1].version
 
-    assert applied_migrations(database_engine) == LEDGER
+    assert shipped_ledger_entries(database_engine) == SHIPPED_LEDGER
     assert set(table_columns(database_engine, "users")) == USERS_COLUMNS
     assert set(table_columns(database_engine, "sessions")) == SESSIONS_COLUMNS
     assert NEW_INDEXES.issubset(index_names(database_engine))
@@ -140,7 +150,7 @@ def test_fresh_database_reaches_v5(tmp_path: Path) -> None:
 
 def test_users_defaults_are_least_privilege(tmp_path: Path) -> None:
     database_engine = sqlite_engine(tmp_path / "defaults.db")
-    assert run_migrations(database_engine) == 5
+    assert run_migrations(database_engine) == MIGRATIONS[-1].version
 
     users = table_columns(database_engine, "users")
     assert users["role"] == "'viewer'"
@@ -161,10 +171,10 @@ def test_v4_database_upgrades_and_keeps_existing_rows(tmp_path: Path) -> None:
         insert_asset(conn, "a-sphere")
     before = table_snapshot(database_engine, "folder", "asset")
 
-    assert run_migrations(database_engine) == 5
+    assert run_migrations(database_engine) == MIGRATIONS[-1].version
 
     assert table_snapshot(database_engine, "folder", "asset") == before
-    assert applied_migrations(database_engine) == LEDGER
+    assert shipped_ledger_entries(database_engine) == SHIPPED_LEDGER
 
 
 def test_migration_005_is_idempotent(tmp_path: Path) -> None:
@@ -173,12 +183,12 @@ def test_migration_005_is_idempotent(tmp_path: Path) -> None:
         insert_folder(conn, "f-parts", "Parts")
         insert_asset(conn, "a-cube")
 
-    assert run_migrations(database_engine) == 5
+    assert run_migrations(database_engine) == MIGRATIONS[-1].version
     before = table_snapshot(database_engine, "folder", "asset", "users", "sessions")
 
-    assert run_migrations(database_engine) == 5
+    assert run_migrations(database_engine) == MIGRATIONS[-1].version
     assert table_snapshot(database_engine, "folder", "asset", "users", "sessions") == before
-    assert applied_migrations(database_engine) == LEDGER
+    assert shipped_ledger_entries(database_engine) == SHIPPED_LEDGER
 
     migration = next(migration for migration in MIGRATIONS if migration.version == 5)
     with database_engine.begin() as conn:
@@ -189,7 +199,7 @@ def test_migration_005_is_idempotent(tmp_path: Path) -> None:
 
 def test_usernames_and_emails_are_unique_case_insensitively(tmp_path: Path) -> None:
     database_engine = sqlite_engine(tmp_path / "unique.db")
-    assert run_migrations(database_engine) == 5
+    assert run_migrations(database_engine) == MIGRATIONS[-1].version
 
     with database_engine.begin() as conn:
         insert_user(conn, "u-1", "alice", "Alice@Example.com")
@@ -211,7 +221,7 @@ def test_usernames_and_emails_are_unique_case_insensitively(tmp_path: Path) -> N
 
 def test_break_glass_sessions_may_share_a_null_user(tmp_path: Path) -> None:
     database_engine = sqlite_engine(tmp_path / "sessions.db")
-    assert run_migrations(database_engine) == 5
+    assert run_migrations(database_engine) == MIGRATIONS[-1].version
 
     with database_engine.begin() as conn:
         insert_session(conn, "s-1", "hash-1")

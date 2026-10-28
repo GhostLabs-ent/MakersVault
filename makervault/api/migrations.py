@@ -371,12 +371,62 @@ def _migration_005_users_and_sessions(conn: Connection) -> None:
     )
 
 
+def _migration_006_audit_log(conn: Connection) -> None:
+    """Add the append-only audit log (new table, no backfill).
+
+    The log starts when it starts: there is nothing older to backfill. `actor`
+    and `actor_role` are denormalised copies taken at write time so a row still
+    reads correctly after the account is renamed, re-roled or deleted.
+    `created_at` is ISO-8601 UTC written by Python, which is also the format the
+    `GET /audit` date bounds are compared against lexicographically. The two
+    triggers are the actual append-only guarantee, enforced by SQLite rather
+    than by the convention that no helper updates or deletes a row. `IF NOT
+    EXISTS` on every object keeps a re-applied 006 harmless, like 004 and 005.
+    """
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS audit_events (
+            id            VARCHAR NOT NULL PRIMARY KEY,
+            created_at    VARCHAR NOT NULL,
+            actor         VARCHAR NOT NULL,
+            actor_user_id VARCHAR,
+            actor_role    VARCHAR NOT NULL,
+            actor_kind    VARCHAR NOT NULL,
+            action        VARCHAR NOT NULL,
+            target        VARCHAR NOT NULL,
+            detail_json   TEXT,
+            request_id    VARCHAR NOT NULL,
+            method        VARCHAR NOT NULL,
+            path          VARCHAR NOT NULL
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_audit_events_created_at ON audit_events(created_at DESC)"
+    )
+    conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS idx_audit_events_actor ON audit_events(actor)")
+    conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS idx_audit_events_action ON audit_events(action)")
+    conn.exec_driver_sql(
+        """
+        CREATE TRIGGER IF NOT EXISTS audit_events_no_update
+        BEFORE UPDATE ON audit_events BEGIN SELECT RAISE(ABORT, 'audit_events is append-only'); END
+        """
+    )
+    conn.exec_driver_sql(
+        """
+        CREATE TRIGGER IF NOT EXISTS audit_events_no_delete
+        BEFORE DELETE ON audit_events BEGIN SELECT RAISE(ABORT, 'audit_events is append-only'); END
+        """
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
     Migration(3, "asset_metadata_and_bundles", _migration_003_asset_metadata_and_bundles),
     Migration(4, "folder_identity_and_reference_flags", _migration_004_folder_identity_and_reference_flags),
     Migration(5, "users_and_sessions", _migration_005_users_and_sessions),
+    Migration(6, "audit_log", _migration_006_audit_log),
 )
 
 

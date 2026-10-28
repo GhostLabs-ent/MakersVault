@@ -28,6 +28,7 @@ blank ranks as `public`, i.e. it is denied even reads - fail closed.
 | Start a library scan                         |  yes  |   no   |   no   |
 | Change storage / mount-import settings       |  yes  |   no   |   no   |
 | Create users, set roles, disable accounts    |  yes  |   no   |   no   |
+| Read the audit log                           |  yes  |   no   |   no   |
 | Purge the trash                              |  yes  |   no   |   no   |
 
 ## How enforcement works
@@ -67,14 +68,19 @@ The startup check reports all drift at once:
 `read` -> "Authentication required", `write` -> "Editor or administrator access
 required", `admin` -> "Administrator access required".
 
-**Audit hook (Mf-s3z0):** `permissions.authorize()` is the single choke point
-where the principal, the HTTP method, the path and the required level are all in
-hand. The audit log belongs there and nowhere else.
+**Authorization is not auditing (Mf-s3z0).** `permissions.authorize()` decides;
+it does not emit audit events. It runs before the mutation, has no target, and
+cannot see what changed or whether the request succeeded, so it cannot record an
+event that is true. Audit rows are written at the action site instead, in the
+same transaction as the mutation, and `audit.assert_audit_coverage()` in
+`main.lifespan` (right after `assert_routes_classified`) refuses to boot when a
+mutating route is neither audited nor exempt with a reason. See
+[`AUDIT.md`](AUDIT.md).
 
 ## The route matrix
 
-Paths are FastAPI templates exactly as declared. 47 routes: 4 public, 14 read,
-20 write, 9 admin.
+Paths are FastAPI templates exactly as declared. 48 routes: 4 public, 14 read,
+20 write, 10 admin.
 
 ### public (no authentication)
 
@@ -133,6 +139,7 @@ Paths are FastAPI templates exactly as declared. 47 routes: 4 public, 14 read,
 
 | Method | Path                           | Why |
 |--------|--------------------------------|-----|
+| GET    | `/audit`                       | reading the audit trail is administration |
 | GET    | `/settings/mount-import`       | settings namespace is admin-only |
 | POST   | `/settings/mount-import`       | mutates settings |
 | GET    | `/settings/storage`            | settings namespace is admin-only |
@@ -219,10 +226,18 @@ sessions stay valid.
   handlers (the level stays `write`).
 * **The web client** maps a 403 to "Your role does not allow this action."
   (`lib/api.ts`, `assertOk`). Nothing else in the UI is role-aware yet.
+* **Audit.** Every audited action now writes one row (one per affected asset on
+  the batch routes) in the same transaction as the mutation, so an audit write
+  failure is a failed mutation - fail-closed, except for the two filesystem-only
+  actions (`trash.purge`, `library.scan.start`), which are fail-loud. That costs
+  one insert per audited action and grants nothing new: the actor is the
+  principal the request already carried, or `local` when auth is disabled.
+  `GET /audit` is an admin read, and the sidebar "Audit log" button is visible to
+  every signed-in user while the API answers 403 - the client is not the
+  security boundary. Details in [`AUDIT.md`](AUDIT.md).
 
 ## Non-goals (owned by other tickets)
 
-* Mf-s3z0 - audit log. Hook point: `permissions.authorize()`.
 * Mf-arm6 - per-asset ownership (editors act on all assets until then).
 * Mf-4c24 - OIDC / external identity.
 * Mf-lg02 - MFA.
@@ -232,3 +247,6 @@ sessions stay valid.
 
 None. `users.role` and `users.disabled` already exist (migration 005); this
 ticket adds enforcement and the mutation path, not schema.
+
+Migration 006 (`audit_events`) belongs to Mf-s3z0 and adds no permission column;
+it is described in [`AUDIT.md`](AUDIT.md).

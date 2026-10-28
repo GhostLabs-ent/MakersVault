@@ -79,3 +79,22 @@ class UserSession(SQLModel, table=True):
   access_expires_at: int
   refresh_expires_at: int
   revoked_at: Optional[int] = None
+
+
+# audit_events is created by migration 006; this class only describes it for
+# typed queries and must never create the table itself (nothing in this app
+# calls create_all). The append-only guarantee lives in the table's triggers.
+class AuditEvent(SQLModel, table=True):
+  __tablename__ = "audit_events"
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  created_at: str
+  actor: str
+  actor_user_id: Optional[str] = None
+  actor_role: str
+  actor_kind: str
+  action: str
+  target: str
+  detail_json: Optional[str] = None
+  request_id: str
+  method: str
+  path: str

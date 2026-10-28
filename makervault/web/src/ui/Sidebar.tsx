@@ -11,6 +11,7 @@ import {
   Pencil,
   Plus,
   Search,
+  ScrollText,
   Settings as SettingsIcon,
   Trash2,
   X,
@@ -30,7 +31,8 @@ type Props = {
   foldersVersion?: number;
   onUnauthorized?: () => void;
   onOpenSettings?: () => void;
-  activeView?: "library" | "settings";
+  onOpenAudit?: () => void;
+  activeView?: "library" | "settings" | "audit";
   onAssetsChanged?: () => void;
 };
 
@@ -43,6 +45,7 @@ export default function Sidebar({
   foldersVersion,
   onUnauthorized,
   onOpenSettings,
+  onOpenAudit,
   activeView = "library",
   onAssetsChanged,
 }: Props) {
@@ -726,7 +729,7 @@ export default function Sidebar({
         </div>
       )}
 
-      <div className="sidebar-footer">
+      <div className="sidebar-footer flex flex-col gap-1">
         <button
           type="button"
           onClick={onOpenSettings}
@@ -735,6 +738,15 @@ export default function Sidebar({
         >
           <SettingsIcon className="h-4 w-4" />
           <span>Settings</span>
+        </button>
+        <button
+          type="button"
+          onClick={onOpenAudit}
+          className={`sidebar-settings ${activeView === "audit" ? "is-selected" : ""}`}
+          aria-label="Audit log"
+        >
+          <ScrollText className="h-4 w-4" />
+          <span>Audit log</span>
         </button>
       </div>
       {pendingDelete && (

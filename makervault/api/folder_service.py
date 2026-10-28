@@ -16,6 +16,7 @@ from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
+import audit
 import folder_paths
 from models import Asset, Folder
 
@@ -159,14 +160,40 @@ def create_folder(session: Session, name: str, tags_json: str, parent_id: Option
     return folder
 
 
+def _stage_folder_changes(
+    session: Session,
+    folder: Folder,
+    previous_name: str,
+    previous_parent_id: Optional[str],
+    name: str,
+    parent_id: Optional[str],
+    audit_ctx: Optional[audit.AuditContext],
+) -> None:
+    """Stage one event per field this patch actually changed.
+
+    Tags are an exempt metadata edit. A tags-only PATCH therefore stages nothing,
+    and a rename and a reparent in one request stage two rows, one per fact.
+    """
+    events = []
+    if name != previous_name:
+        events.append(audit.Event(audit.FOLDER_RENAME, folder.id, {"from": previous_name, "to": name}))
+    if parent_id != previous_parent_id:
+        events.append(audit.Event(audit.FOLDER_MOVE, folder.id, {"from": previous_parent_id, "to": parent_id}))
+    audit.stage(session, audit_ctx, *events)
+
+
 def move_folder(
     session: Session,
     folder: Folder,
     name: str,
     tags_json: str,
     parent_id: Optional[str],
+    *,
+    audit_ctx: Optional[audit.AuditContext],
 ) -> Folder:
     """Rename and/or reparent a folder, keeping disk and rows in step."""
+    previous_name = folder.name
+    previous_parent_id = folder.parent_id
     parent_id = validate_parent_folder(session, parent_id, folder.id)
     old_relative = folder_paths.converge_ancestor_paths(session, folder.id)
     # `validate_parent_folder` already rejected cycles, so the new parent can
@@ -198,6 +225,7 @@ def move_folder(
     if not old_relative or new_relative == old_relative:
         # Metadata-only edit: no filesystem call at all, so unrelated files cannot move.
         try:
+            _stage_folder_changes(session, folder, previous_name, previous_parent_id, name, parent_id, audit_ctx)
             session.commit()
             session.refresh(folder)
         except IntegrityError:
@@ -226,6 +254,7 @@ def move_folder(
                 folder_paths.derive_subtree_paths(session, folder, new_parent_relative, new_segment),
             )
             apply_asset_path_rewrites(session, plan_asset_rewrites(session, old_relative, new_relative))
+            _stage_folder_changes(session, folder, previous_name, previous_parent_id, name, parent_id, audit_ctx)
             session.commit()
         except IntegrityError:
             session.rollback()
@@ -253,6 +282,7 @@ def move_folder(
             folder_paths.derive_subtree_paths(session, folder, new_parent_relative, new_segment),
         )
         apply_asset_path_rewrites(session, plan_asset_rewrites(session, old_relative, new_relative))
+        _stage_folder_changes(session, folder, previous_name, previous_parent_id, name, parent_id, audit_ctx)
         session.commit()
     except BaseException as error:
         session.rollback()

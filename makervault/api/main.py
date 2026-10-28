@@ -19,6 +19,7 @@ from starlette.requests import ClientDisconnect
 
 import accounts
 import asset_service
+import audit
 import auth
 import bulk_service
 import folder_service
@@ -67,16 +68,19 @@ from file_utils import (
 from import_service import download_import_to_temp, import_asset_from_url, open_import_response
 from library_scan import scan_status, start_scan
 from migrations import run_migrations
-from models import Asset, AssetFile, Folder, User
+from models import Asset, AssetFile, AuditEvent, Folder, User
 from mount_import import mount_import_should_run, scan_mount_imports
 from permissions import require_admin, require_read, require_write
 from prepared_print import prepared_filename
+from request_id import RequestIDMiddleware
 from schemas import (
     AssetFileOut,
     AssetFolderUpdate,
     AssetMetaUpdate,
     AssetOut,
     AssetRename,
+    AuditEventOut,
+    AuditListOut,
     BatchDeleteOut,
     BatchDeleteRequest,
     BatchFolderOut,
@@ -112,6 +116,7 @@ from schemas import (
 )
 from settings_service import (
     DEFAULT_STORAGE_TEMPLATE,
+    STORAGE_TEMPLATE_KEY,
     get_mount_import_copy,
     get_mount_import_enabled,
     get_storage_template,
@@ -133,6 +138,9 @@ async def lifespan(_app: FastAPI):
     # level (or drifted from ROUTE_PERMISSIONS) is a security bug, so this check
     # refuses to start serving until it is fixed.
     permissions.assert_routes_classified(app)
+    # Same contract one level down: a mutating route that emits no audit event
+    # (and is not exempt with a reason) is a bug that must not reach production.
+    audit.assert_audit_coverage()
     login_throttle_module.limiter.reset()
     run_migrations(engine)
     # Runs before the server accepts connections, so a single-process deployment
@@ -184,8 +192,9 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Has-More", "X-Next-Offset"],
+    expose_headers=["X-Has-More", "X-Next-Offset", "X-Request-ID"],
 )
+app.add_middleware(RequestIDMiddleware)
 
 
 # Utilities ------------------------------------------------------
@@ -338,9 +347,26 @@ def get_mount_import_settings(_: Optional[AuthContext] = Depends(require_admin))
 
 
 @app.post("/settings/mount-import", response_model=MountImportSettingsOut)
-def update_mount_import_settings(body: MountImportSettings, _: Optional[AuthContext] = Depends(require_admin)):
-    set_mount_import_enabled(body.enabled)
-    set_mount_import_copy(body.copy_files)
+def update_mount_import_settings(
+    body: MountImportSettings,
+    request: Request,
+    context: Optional[AuthContext] = Depends(require_admin),
+):
+    # One session, one transaction: the two settings and the audit row commit or
+    # roll back together.
+    with Session(engine) as s:
+        set_mount_import_enabled(body.enabled, session=s)
+        set_mount_import_copy(body.copy_files, session=s)
+        audit.stage(
+            s,
+            audit.context_for(request, context),
+            audit.Event(
+                audit.SETTINGS_MOUNT_IMPORT_UPDATE,
+                "mount_import",
+                {"enabled": body.enabled, "copy_files": body.copy_files},
+            ),
+        )
+        s.commit()
     return MountImportSettingsOut(
         enabled=get_mount_import_enabled(MOUNT_IMPORT_ENABLED),
         copy_files=get_mount_import_copy(MOUNT_IMPORT_COPY),
@@ -366,10 +392,22 @@ def get_storage_settings(_: Optional[AuthContext] = Depends(require_admin)):
 
 
 @app.post("/settings/storage", response_model=StorageSettingsOut)
-def update_storage_settings(body: StorageSettings, _: Optional[AuthContext] = Depends(require_admin)):
+def update_storage_settings(
+    body: StorageSettings,
+    request: Request,
+    context: Optional[AuthContext] = Depends(require_admin),
+):
     template = validate_storage_template(body.template)
+    previous = validate_storage_template(get_storage_template())
     # The template governs new uploads and imports only; existing files never move.
-    set_storage_template(template)
+    with Session(engine) as s:
+        set_storage_template(template, session=s)
+        audit.stage(
+            s,
+            audit.context_for(request, context),
+            audit.Event(audit.SETTINGS_STORAGE_UPDATE, STORAGE_TEMPLATE_KEY, {"from": previous, "to": template}),
+        )
+        s.commit()
     return storage_settings_out(template)
 
 
@@ -379,9 +417,12 @@ def library_scan_status(_: Optional[AuthContext] = Depends(require_read)):
 
 
 @app.post("/library/scan", response_model=LibraryScanStatusOut, status_code=202)
-def library_scan_start(_: Optional[AuthContext] = Depends(require_admin)):
+def library_scan_start(request: Request, context: Optional[AuthContext] = Depends(require_admin)):
     if not start_scan():
         raise HTTPException(status_code=409, detail="A library scan is already running")
+    # The scan has no DB row to join: fail-loud, and the log line explains why a
+    # request that started a scan returned an error.
+    audit.record(audit.Event(audit.LIBRARY_SCAN_START, "library"), ctx=audit.context_for(request, context))
     return scan_status()
 
 
@@ -407,6 +448,16 @@ def login(body: LoginRequest, request: Request):
             user_agent=request.headers.get("user-agent"),
             client_ip=client_host,
         )
+        if result is not None:
+            # The login route has no AuthContext (it creates the principal), so
+            # the actor comes from the session row `auth.login` just wrote. No
+            # password, token or refresh token ever reaches the row.
+            actor = audit.Actor(result.username, result.role, result.kind, result.user_id)
+            audit.stage(
+                s,
+                audit.context_for_actor(request, actor),
+                audit.Event(audit.LOGIN_SUCCEEDED, result.username, {"kind": result.kind, "client_ip": client_host}),
+            )
         s.commit()
     if result is None:
         lockout_seconds = login_throttle_module.limiter.record_failure(username)
@@ -502,7 +553,7 @@ def user_out(user: User) -> UserOut:
 
 
 @app.post("/users", response_model=UserOut, status_code=201)
-def create_user(body: UserCreate, _: Optional[AuthContext] = Depends(require_admin)):
+def create_user(body: UserCreate, request: Request, context: Optional[AuthContext] = Depends(require_admin)):
     if not auth.AUTH_ENABLED:
         raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
     with Session(engine) as s:
@@ -510,6 +561,11 @@ def create_user(body: UserCreate, _: Optional[AuthContext] = Depends(require_adm
             user = accounts.create_user(s, body.username, body.password, body.email, body.role)
         except accounts.AccountError as exc:
             raise HTTPException(status_code=exc.status_code, detail=str(exc)) from None
+        audit.stage(
+            s,
+            audit.context_for(request, context),
+            audit.Event(audit.USER_CREATE, user.username, {"role": user.role, "user_id": user.id}),
+        )
         # The first account replaces the env break-glass admin, so its sessions
         # die with it. Same transaction as the insert: either both or neither.
         sessions.revoke_break_glass(s)
@@ -528,17 +584,67 @@ def list_users(_: Optional[AuthContext] = Depends(require_admin)):
 
 
 @app.patch("/users/{user_id}", response_model=UserOut)
-def update_user(user_id: str, body: UserUpdate, _: Optional[AuthContext] = Depends(require_admin)):
+def update_user(user_id: str, body: UserUpdate, request: Request, context: Optional[AuthContext] = Depends(require_admin)):
     if not auth.AUTH_ENABLED:
         raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
     with Session(engine) as s:
+        # Snapshot before the update: both reads share the session's identity map,
+        # so the row object is mutated in place and the old values must be kept.
+        before = accounts.get_user(s, user_id)
+        previous_role = before.role if before is not None else None
+        previous_disabled = bool(before.disabled) if before is not None else False
         try:
             user = accounts.update_user(s, user_id, disabled=body.disabled, role=body.role)
         except accounts.AccountError as exc:
             raise HTTPException(status_code=exc.status_code, detail=str(exc)) from None
+        events = []
+        if previous_role is not None and user.role != previous_role:
+            events.append(audit.Event(audit.USER_ROLE_CHANGE, user.username, {"from": previous_role, "to": user.role}))
+        if bool(user.disabled) != previous_disabled:
+            action = audit.USER_DISABLE if user.disabled else audit.USER_ENABLE
+            events.append(
+                audit.Event(action, user.username, {"from": previous_disabled, "to": bool(user.disabled)})
+            )
+        audit.stage(s, audit.context_for(request, context), *events)
         result = user_out(user)
         s.commit()
     return result
+
+
+def audit_event_to_out(row: AuditEvent) -> AuditEventOut:
+    return AuditEventOut(
+        id=row.id,
+        created_at=row.created_at,
+        actor=row.actor,
+        actor_user_id=row.actor_user_id,
+        actor_role=row.actor_role,
+        actor_kind=row.actor_kind,
+        action=row.action,
+        target=row.target,
+        detail=json.loads(row.detail_json) if row.detail_json else None,
+        request_id=row.request_id,
+        method=row.method,
+        path=row.path,
+    )
+
+
+@app.get("/audit", response_model=AuditListOut)
+def list_audit_events(
+    actor: Optional[str] = Query(None),
+    action: Optional[str] = Query(None),
+    target: Optional[str] = Query(None),
+    since: Optional[str] = Query(None),
+    until: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    _: Optional[AuthContext] = Depends(require_admin),
+):
+    with Session(engine) as s:
+        rows, total = audit.list_events(
+            s, actor=actor, action=action, target=target, since=since, until=until, limit=limit, offset=offset
+        )
+        events = [audit_event_to_out(row) for row in rows]
+    return AuditListOut(events=events, total=total, limit=limit, offset=offset)
 
 
 # nginx's "client closed request": the upload was aborted, so there is nobody
@@ -752,8 +858,13 @@ def download_supporting_file(asset_id: str, file_id: str, _: Optional[AuthContex
 
 
 @app.delete("/asset/{asset_id}/files/{file_id}", response_model=AssetOut)
-def remove_supporting_file(asset_id: str, file_id: str, _: Optional[AuthContext] = Depends(require_write)):
-    return to_out(delete_supporting_file(asset_id, file_id))
+def remove_supporting_file(
+    asset_id: str,
+    file_id: str,
+    request: Request,
+    context: Optional[AuthContext] = Depends(require_write),
+):
+    return to_out(delete_supporting_file(asset_id, file_id, audit_ctx=audit.context_for(request, context)))
 
 
 @app.get("/asset/{asset_id}/prepared-print")
@@ -774,8 +885,12 @@ def get_prepared_print(asset_id: str, _: Optional[AuthContext] = Depends(require
 
 
 @app.delete("/asset/{asset_id}/prepared-print", response_model=AssetOut)
-def remove_prepared_print(asset_id: str, _: Optional[AuthContext] = Depends(require_write)):
-    return to_out(delete_prepared_file(asset_id))
+def remove_prepared_print(
+    asset_id: str,
+    request: Request,
+    context: Optional[AuthContext] = Depends(require_write),
+):
+    return to_out(delete_prepared_file(asset_id, audit_ctx=audit.context_for(request, context)))
 
 
 @app.get("/thumb/{asset_id}.jpg")
@@ -936,18 +1051,28 @@ def require_asset_ids(raw: List[str]) -> List[str]:
 
 
 @app.post("/assets/batch/tags", response_model=BatchTagsOut)
-def batch_set_tags(body: BatchTagsRequest, _: Optional[AuthContext] = Depends(require_write)):
+def batch_set_tags(
+    body: BatchTagsRequest,
+    request: Request,
+    context: Optional[AuthContext] = Depends(require_write),
+):
     asset_ids = require_asset_ids(body.asset_ids)
     add_tags = [t.strip() for t in body.add_tags if t and t.strip()]
     remove_tags = [t.strip() for t in body.remove_tags if t and t.strip()]
     if not add_tags and not remove_tags:
         raise HTTPException(status_code=400, detail="Provide add_tags or remove_tags")
-    updated, failed = bulk_service.update_tags(asset_ids, add_tags, remove_tags)
+    updated, failed = bulk_service.update_tags(
+        asset_ids, add_tags, remove_tags, audit_ctx=audit.context_for(request, context)
+    )
     return BatchTagsOut(updated=[to_out(a) for a in updated], failed=failed)
 
 
 @app.post("/assets/batch/folder", response_model=BatchFolderOut)
-def batch_move_to_folder(body: BatchFolderRequest, _: Optional[AuthContext] = Depends(require_write)):
+def batch_move_to_folder(
+    body: BatchFolderRequest,
+    request: Request,
+    context: Optional[AuthContext] = Depends(require_write),
+):
     asset_ids = require_asset_ids(body.asset_ids)
     folder_id = body.folder_id or None
     if folder_id:
@@ -956,14 +1081,20 @@ def batch_move_to_folder(body: BatchFolderRequest, _: Optional[AuthContext] = De
         with Session(engine) as s:
             if not s.get(Folder, folder_id):
                 raise HTTPException(status_code=400, detail="Folder not found")
-    updated, failed = bulk_service.move_to_folder(asset_ids, folder_id)
+    updated, failed = bulk_service.move_to_folder(
+        asset_ids, folder_id, audit_ctx=audit.context_for(request, context)
+    )
     return BatchFolderOut(updated=[to_out(a) for a in updated], failed=failed)
 
 
 @app.post("/assets/batch/delete", response_model=BatchDeleteOut)
-def batch_delete_assets(body: BatchDeleteRequest, _: Optional[AuthContext] = Depends(require_write)):
+def batch_delete_assets(
+    body: BatchDeleteRequest,
+    request: Request,
+    context: Optional[AuthContext] = Depends(require_write),
+):
     asset_ids = require_asset_ids(body.asset_ids)
-    deleted, failed = bulk_service.delete_assets(asset_ids)
+    deleted, failed = bulk_service.delete_assets(asset_ids, audit_ctx=audit.context_for(request, context))
     return BatchDeleteOut(deleted=deleted, failed=failed)
 
 
@@ -981,7 +1112,12 @@ def set_tags(asset_id: str, body: TagUpdate, _: Optional[AuthContext] = Depends(
 
 
 @app.post("/asset/{asset_id}/meta", response_model=AssetOut)
-def update_asset_meta(asset_id: str, body: AssetMetaUpdate, _: Optional[AuthContext] = Depends(require_write)):
+def update_asset_meta(
+    asset_id: str,
+    body: AssetMetaUpdate,
+    request: Request,
+    context: Optional[AuthContext] = Depends(require_write),
+):
     with Session(engine) as s:
         a = s.get(Asset, asset_id)
         if not a:
@@ -989,12 +1125,18 @@ def update_asset_meta(asset_id: str, body: AssetMetaUpdate, _: Optional[AuthCont
         old_path = managed_asset_path(a)
         moved = False
         new_path = old_path
+        previous_name = a.name
         requested_name = body.name if body.name is not None else body.title
         if requested_name is not None:
             next_name = unique_model_name(s, requested_name, a.folder_id, exclude_id=a.id)
             if next_name != a.name:
                 if not old_path.exists() and a.source_path:
                     raise HTTPException(400, "Renaming is not supported for mounted no-copy files.")
+                audit.stage(
+                    s,
+                    audit.context_for(request, context),
+                    audit.Event(audit.ASSET_RENAME, asset_id, {"from": previous_name, "to": next_name}),
+                )
                 a.name = next_name
                 a.title = next_name
                 a.filename = filename_for_model_name(next_name, a.filename)
@@ -1023,7 +1165,12 @@ def update_asset_meta(asset_id: str, body: AssetMetaUpdate, _: Optional[AuthCont
 
 
 @app.post("/asset/{asset_id}/rename", response_model=AssetOut)
-def rename_asset(asset_id: str, body: AssetRename, _: Optional[AuthContext] = Depends(require_write)):
+def rename_asset(
+    asset_id: str,
+    body: AssetRename,
+    request: Request,
+    context: Optional[AuthContext] = Depends(require_write),
+):
     new_name = (body.filename or "").strip()
     if not new_name:
         raise HTTPException(400, "Filename cannot be empty")
@@ -1044,9 +1191,15 @@ def rename_asset(asset_id: str, body: AssetRename, _: Optional[AuthContext] = De
         new_name_only = filename_for_model_name(model_name, a.filename)
         if new_name_only == a.filename and model_name == a.name:
             return to_out(a)
+        previous_name = a.name
         a.name = model_name
         a.title = model_name
         a.filename = new_name_only
+        audit.stage(
+            s,
+            audit.context_for(request, context),
+            audit.Event(audit.ASSET_RENAME, asset_id, {"from": previous_name, "to": model_name}),
+        )
         moved = rename_asset_in_place(a, old_path, a.filename)
         new_path = old_path.parent / a.filename
         # Rollback expires the row, so the conflict classifier gets locals.
@@ -1064,8 +1217,8 @@ def rename_asset(asset_id: str, body: AssetRename, _: Optional[AuthContext] = De
 
 
 @app.delete("/asset/{asset_id}")
-def delete_asset(asset_id: str, _: Optional[AuthContext] = Depends(require_write)):
-    delete_asset_permanently(asset_id)
+def delete_asset(asset_id: str, request: Request, context: Optional[AuthContext] = Depends(require_write)):
+    delete_asset_permanently(asset_id, audit_ctx=audit.context_for(request, context))
     return {"ok": True}
 
 
@@ -1087,12 +1240,24 @@ def create_folder(body: FolderIn, _: Optional[AuthContext] = Depends(require_wri
 
 
 @app.patch("/folder/{folder_id}", response_model=FolderOut)
-def update_folder(folder_id: str, body: FolderIn, _: Optional[AuthContext] = Depends(require_write)):
+def update_folder(
+    folder_id: str,
+    body: FolderIn,
+    request: Request,
+    context: Optional[AuthContext] = Depends(require_write),
+):
     with Session(engine) as s:
         f = s.get(Folder, folder_id)
         if not f:
             raise HTTPException(404)
-        f = folder_service.move_folder(s, f, body.name, json.dumps(body.tags), body.parent_id)
+        f = folder_service.move_folder(
+            s,
+            f,
+            body.name,
+            json.dumps(body.tags),
+            body.parent_id,
+            audit_ctx=audit.context_for(request, context),
+        )
         result = folder_to_out(f)
     return result
 
@@ -1100,8 +1265,9 @@ def update_folder(folder_id: str, body: FolderIn, _: Optional[AuthContext] = Dep
 @app.delete("/folder/{folder_id}")
 def delete_folder(
     folder_id: str,
+    request: Request,
     confirm_name: Optional[str] = Query(None),
-    _: Optional[AuthContext] = Depends(require_write),
+    context: Optional[AuthContext] = Depends(require_write),
 ):
     """Delete a folder's whole directory subtree through the trash.
 
@@ -1117,7 +1283,7 @@ def delete_folder(
             raise HTTPException(status_code=400, detail="confirm_name must match the folder name exactly")
         if scan_status().get("running"):
             raise HTTPException(status_code=409, detail="A library scan is running; try again when it finishes")
-        result = trash_service.trash_folder(s, folder)
+        result = trash_service.trash_folder(s, folder, audit_ctx=audit.context_for(request, context))
     return {"ok": True, **result}
 
 
@@ -1155,10 +1321,24 @@ def list_trash(_: Optional[AuthContext] = Depends(require_read)):
 
 
 @app.post("/trash/purge", response_model=TrashPurgeOut)
-def purge_trash(older_than_days: Optional[int] = Query(None, ge=0), _: Optional[AuthContext] = Depends(require_admin)):
-    return TrashPurgeOut(**trash_service.purge(older_than_days))
+def purge_trash(
+    request: Request,
+    older_than_days: Optional[int] = Query(None, ge=0),
+    context: Optional[AuthContext] = Depends(require_admin),
+):
+    result = trash_service.purge(older_than_days)
+    # The bytes are already gone and there is no row to roll back: fail-loud.
+    audit.record(audit.Event(audit.TRASH_PURGE, "trash", dict(result)), ctx=audit.context_for(request, context))
+    return TrashPurgeOut(**result)
 
 
 @app.post("/asset/{asset_id}/folder", response_model=AssetOut)
-def update_asset_folder(asset_id: str, body: AssetFolderUpdate, _: Optional[AuthContext] = Depends(require_write)):
-    return to_out(move_asset_to_folder_by_id(asset_id, body.folder_id))
+def update_asset_folder(
+    asset_id: str,
+    body: AssetFolderUpdate,
+    request: Request,
+    context: Optional[AuthContext] = Depends(require_write),
+):
+    return to_out(
+        move_asset_to_folder_by_id(asset_id, body.folder_id, audit_ctx=audit.context_for(request, context))
+    )

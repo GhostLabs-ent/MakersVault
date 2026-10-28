@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from sqlmodel import Session, select
 from starlette.concurrency import run_in_threadpool
 
+import audit
 from db import STORAGE, engine
 from file_utils import mime_from_content_type, sanitize_filename
 from models import Asset, AssetFile
@@ -138,7 +139,7 @@ def _store_asset_file(asset_id: str, staged: StreamedUpload, safe_name: str, rol
         staging.unlink(missing_ok=True)
 
 
-def delete_supporting_file(asset_id: str, file_id: str) -> Asset:
+def delete_supporting_file(asset_id: str, file_id: str, *, audit_ctx: Optional[audit.AuditContext]) -> Asset:
     path: Optional[Path] = None
     with Session(engine) as session:
         asset = session.get(Asset, asset_id)
@@ -147,6 +148,11 @@ def delete_supporting_file(asset_id: str, file_id: str) -> Asset:
             raise HTTPException(404)
         path = managed_asset_file_path(record)
         asset.supporting_file_count = max(0, int(asset.supporting_file_count or 0) - 1)
+        audit.stage(
+            session,
+            audit_ctx,
+            audit.Event(audit.ASSET_FILE_DELETE, asset_id, {"file_id": file_id, "filename": record.filename}),
+        )
         session.add(asset)
         session.delete(record)
         session.commit()
@@ -175,7 +181,7 @@ def delete_all_asset_files(asset_id: str) -> None:
             pass
 
 
-def delete_prepared_file(asset_id: str) -> Asset:
+def delete_prepared_file(asset_id: str, *, audit_ctx: Optional[audit.AuditContext]) -> Asset:
     path: Optional[Path] = None
     with Session(engine) as session:
         asset = session.get(Asset, asset_id)
@@ -189,6 +195,7 @@ def delete_prepared_file(asset_id: str) -> Asset:
         from asset_service import inspect_asset_prepared_print
 
         embedded = inspect_asset_prepared_print(asset)
+        audit.stage(session, audit_ctx, audit.Event(audit.ASSET_PREPARED_PRINT_DELETE, asset_id))
         asset.prepared_file_id = None
         asset.prepared_metadata_json = json.dumps(embedded) if embedded else None
         session.add(asset)

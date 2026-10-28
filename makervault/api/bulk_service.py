@@ -14,6 +14,7 @@ from fastapi import HTTPException
 from sqlmodel import Session
 
 import asset_service
+import audit
 from db import engine
 from models import Asset
 
@@ -65,8 +66,18 @@ def _failure(asset_id: str, error: BaseException) -> dict:
     return {"id": asset_id, "code": "error", "status": 500, "error": "Unexpected error"}
 
 
-def update_tags(asset_ids: List[str], add_tags: List[str], remove_tags: List[str]) -> Tuple[List[Asset], List[dict]]:
-    """Add and remove tags on each asset, one session per item."""
+def update_tags(
+    asset_ids: List[str],
+    add_tags: List[str],
+    remove_tags: List[str],
+    *,
+    audit_ctx: Optional[audit.AuditContext],
+) -> Tuple[List[Asset], List[dict]]:
+    """Add and remove tags on each asset, one session per item.
+
+    Tag edits are an exempt metadata class, so this accepts the uniform caller
+    contract but stages nothing: rename and move are the audited asset edits.
+    """
     updated: List[Asset] = []
     failed: List[dict] = []
     for asset_id in asset_ids:
@@ -88,25 +99,34 @@ def update_tags(asset_ids: List[str], add_tags: List[str], remove_tags: List[str
     return updated, failed
 
 
-def move_to_folder(asset_ids: List[str], folder_id: Optional[str]) -> Tuple[List[Asset], List[dict]]:
+def move_to_folder(
+    asset_ids: List[str],
+    folder_id: Optional[str],
+    *,
+    audit_ctx: Optional[audit.AuditContext],
+) -> Tuple[List[Asset], List[dict]]:
     """Move each asset into one folder, one transaction per item."""
     updated: List[Asset] = []
     failed: List[dict] = []
     for asset_id in asset_ids:
         try:
-            updated.append(asset_service.move_asset_to_folder_by_id(asset_id, folder_id))
+            updated.append(asset_service.move_asset_to_folder_by_id(asset_id, folder_id, audit_ctx=audit_ctx))
         except Exception as error:
             failed.append(_failure(asset_id, error))
     return updated, failed
 
 
-def delete_assets(asset_ids: List[str]) -> Tuple[List[str], List[dict]]:
+def delete_assets(
+    asset_ids: List[str],
+    *,
+    audit_ctx: Optional[audit.AuditContext],
+) -> Tuple[List[str], List[dict]]:
     """Delete each asset, one transaction per item."""
     deleted: List[str] = []
     failed: List[dict] = []
     for asset_id in asset_ids:
         try:
-            asset_service.delete_asset_permanently(asset_id)
+            asset_service.delete_asset_permanently(asset_id, audit_ctx=audit_ctx)
             deleted.append(asset_id)
         except Exception as error:
             failed.append(_failure(asset_id, error))

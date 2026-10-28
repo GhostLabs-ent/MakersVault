@@ -18,10 +18,12 @@ behaviour on its own, it is cross-checked against the real routes by
 sweeps, so a route cannot ship with a level the matrix does not know about and
 the matrix cannot keep an entry for a route that no longer exists.
 
-Mf-s3z0 (the audit log) must hook into `authorize()`. That function is the single
-choke point where the principal, the HTTP method, the request path and the
-required level are all in hand at once, so it is the only place an audit record
-can be written without re-deriving any of them. No other module may add an
+Mf-s3z0 (the audit log) deliberately does NOT emit from `authorize()`. Those are
+two different jobs: this module makes the *authorization* decision (who may call
+what), while an audit *event* is what happened to which target - and
+`authorize()` runs before the mutation, has no target, and cannot know whether
+anything changed. Events are emitted at the action site instead, with
+`audit.assert_audit_coverage()` as the drift guard. No other module may add an
 ad-hoc permission check: a second way to say "admin" is a second way to get it
 wrong (see `auth.require_admin`, deleted in this ticket).
 
@@ -81,8 +83,9 @@ def authorize(request: Request, context: Optional[AuthContext], level: str) -> N
     was before authorization existed. That is a deliberate deployment mode, not
     a bypass: the token endpoints answer 503 in it.
 
-    Mf-s3z0 (audit log) records the decision here: this is the only place that
-    holds the principal, the method, the path and the required level together.
+    This decides; it does not audit. Mf-s3z0 emits events at the action site
+    because the decision has no target and runs before the mutation (see the
+    module docstring).
     """
     if level == PUBLIC or context is None:
         return
@@ -164,7 +167,9 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("PATCH", "/folder/{folder_id}"): WRITE,
     ("DELETE", "/folder/{folder_id}"): WRITE,
     ("POST", "/asset/{asset_id}/folder"): WRITE,
-    # admin: settings, user administration, library maintenance, destruction.
+    # admin: settings, user administration, library maintenance, destruction,
+    # and the audit trail itself.
+    ("GET", "/audit"): ADMIN,
     ("GET", "/settings/mount-import"): ADMIN,
     ("POST", "/settings/mount-import"): ADMIN,
     ("GET", "/settings/storage"): ADMIN,

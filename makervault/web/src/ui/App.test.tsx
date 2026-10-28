@@ -29,6 +29,7 @@ vi.mock("../lib/settings", () => ({
 vi.mock("./Sidebar", () => ({ default: () => null }));
 vi.mock("./AssetGrid", () => ({ default: () => null }));
 vi.mock("./Settings", () => ({ default: () => null }));
+vi.mock("./AuditLog", () => ({ default: () => null }));
 vi.mock("./UploadBar", () => ({ default: () => null }));
 vi.mock("./UploadQueuePanel", () => ({ default: () => null }));
 vi.mock("./Login", async () => {
