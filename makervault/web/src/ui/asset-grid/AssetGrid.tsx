@@ -190,7 +190,7 @@ export default function AssetGrid({
   // failures come back for the dialog and stay listed in the bar.
   const runDelete = useStableCallback(async (targets: Asset[]) => {
     if (targets.length > 1) {
-      const failures = await bulkDelete();
+      const failures = await bulkDelete(targets.map(target => target.id));
       const failed: AssetDeleteFailure[] = failures.map(failure => ({
         id: failure.id,
         message: failure.error,

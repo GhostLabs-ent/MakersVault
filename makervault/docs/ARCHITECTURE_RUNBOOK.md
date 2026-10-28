@@ -511,7 +511,7 @@ and recoverable.
 success/failure, concurrent rename conflict, supporting/prepared visibility, and
 destructive confirmation; a representative large library remains usable.
 
-**Owner checkpoint:** approve conservative deletion behavior before Trash exists.
+**Owner checkpoint:** confirm the trash-backed delete contract still holds: every user-facing delete moves bytes into `.trash` first, purge is the only irreversible step, and each delete carries a typed or stepped confirmation.
 
 **Rollback:** bulk operations are individually idempotent or report exactly which
 IDs changed. Partial failure must never invite blind retry of destructive work.

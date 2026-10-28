@@ -594,6 +594,26 @@ def test_not_in_project_filter_pages_like_get_assets() -> None:
         assert first.headers["X-Next-Offset"] == "2"
 
 
+def test_deleting_a_project_member_moves_it_back_into_the_unassigned_pile() -> None:
+    # The seam between Mf-cea1's trash-backed single delete and Mf-o4vi's filter.
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        prefix = unique("seam")
+        project = create_project(client, headers)
+        member = upload(client, headers, f"{prefix}-member.stl")
+        survivor = upload(client, headers, f"{prefix}-survivor.stl")
+        add_members(client, headers, project["id"], [member["id"]])
+
+        response = client.delete(f"/asset/{member['id']}?confirm_name={member['filename']}", headers=headers)
+
+        assert response.status_code == 200, response.text
+        assert project_listing(client, headers)[project["id"]]["asset_count"] == 0
+        assert project_asset_ids(client, headers, project["id"]) == []
+        assert project_asset_rows(project["id"]) == [], "the membership row went with the asset"
+        unassigned_only = library_asset_ids(client, headers, q=prefix, not_in_project="true")
+        assert unassigned_only == [survivor["id"]], "only the surviving asset is left unassigned"
+
+
 def test_tags_scope_to_the_open_project() -> None:
     with TestClient(main.app) as client:
         headers = auth_header(client)

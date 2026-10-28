@@ -66,7 +66,7 @@ import audit
 import db
 import file_utils
 import folder_paths
-from models import Asset, AssetFile, Folder
+from models import Asset, AssetFile, Folder, ProjectAsset
 
 log = logging.getLogger(__name__)
 
@@ -362,19 +362,21 @@ def _undo_moves(moves: list[tuple[Path, Path]]) -> None:
 
 
 def _delete_rows(session: Session, assets: List[Asset], subtree: List[Folder]) -> None:
-    """Stage the row deletes: asset files, assets, then folders children-first.
+    """Stage the row deletes: asset files, memberships, assets, then folders children-first.
 
-    The ``AssetFile`` delete is a single Core statement rather than per-row
-    ``session.delete`` calls: since migration 007 enforces foreign keys, the
-    asset rows may only go after their files, and the ORM orders deletes by
-    declared relationships (there are none here), not by raw foreign keys. The
-    statement runs before any asset delete is staged, so no autoflush can flush
-    an asset delete ahead of it. Folders are removed in reverse breadth-first
-    order, which is children before their parents.
+    The ``AssetFile`` and ``ProjectAsset`` deletes are single Core statements
+    rather than per-row ``session.delete`` calls: since migration 007 enforces
+    foreign keys, the asset rows may only go after their files and memberships,
+    and the ORM orders deletes by declared relationships (there are none here),
+    not by raw foreign keys. The statements run before any asset delete is
+    staged, so no autoflush can flush an asset delete ahead of them. Folders are
+    removed in reverse breadth-first order, which is children before their
+    parents.
     """
     if assets:
         asset_ids = [asset.id for asset in assets]
         session.execute(delete(AssetFile).where(AssetFile.asset_id.in_(asset_ids)))
+        session.execute(delete(ProjectAsset).where(ProjectAsset.asset_id.in_(asset_ids)))
         for asset in assets:
             session.delete(asset)
     for node in reversed(subtree):
@@ -521,9 +523,12 @@ def trash_asset(session: Session, asset: Asset, *, audit_ctx: Optional[audit.Aud
         # row was read in the caller's session, so a concurrent delete that
         # committed in between would make an ORM delete quietly affect no rows
         # and let this call report success for work it did not do. Deleting
-        # ``AssetFile`` first keeps migration 007's foreign keys satisfied; the
-        # project membership goes through the database's own ON DELETE CASCADE.
+        # ``AssetFile`` and ``ProjectAsset`` first keeps migration 007's foreign
+        # keys satisfied; memberships are deleted explicitly, for the same
+        # reason ``project_service.delete_project`` does it, so the delete stays
+        # correct on a connection without ``PRAGMA foreign_keys``.
         session.execute(delete(AssetFile).where(AssetFile.asset_id == asset_id))
+        session.execute(delete(ProjectAsset).where(ProjectAsset.asset_id == asset_id))
         removed = session.execute(delete(Asset).where(Asset.id == asset_id))
         if removed.rowcount != 1:
             raise HTTPException(status_code=404, detail="Asset not found")

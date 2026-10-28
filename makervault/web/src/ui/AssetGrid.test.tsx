@@ -1151,6 +1151,26 @@ describe("AssetGrid bulk actions", () => {
     expect(listAssetsMock.mock.calls.length).toBe(callsBefore);
   });
 
+  it("bulk delete sends the dialog's frozen snapshot when the selection shrinks", async () => {
+    batchDeleteAssetsMock.mockImplementation(async ids => ({ deleted: ids, failed: [] }));
+
+    render(<AssetGrid theme="dark" />);
+    await waitForGrid();
+
+    const boxes = selectCards(3);
+    fireEvent.click(bulkBar().getByRole("button", { name: "Delete" }));
+    // The dialog is titled from the target snapshot, so a selection change must
+    // not shrink the request behind it.
+    fireEvent.click(boxes[0]);
+    fireEvent.click(deleteDialog().getByRole("button", { name: "Delete 3 items" }));
+
+    await waitFor(() => expect(batchDeleteAssetsMock).toHaveBeenCalledTimes(1));
+    const [requested, confirmCount] = batchDeleteAssetsMock.mock.calls[0];
+    expect(requested).toHaveLength(3);
+    expect(requested).toEqual(expect.arrayContaining(["a1", "b2", "c3"]));
+    expect(confirmCount).toBe(3);
+  });
+
   it("bulk delete keeps the failed asset selected and reports it in the dialog and the bar", async () => {
     batchDeleteAssetsMock.mockResolvedValue({
       deleted: ["a1"],

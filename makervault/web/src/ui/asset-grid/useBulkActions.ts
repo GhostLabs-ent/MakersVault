@@ -51,8 +51,12 @@ export type BulkActionsApi = {
   bulkRequestError: string | null;
   bulkFailureLabels: { id: string; label: string; message: string }[];
   dismissBulkFailures: () => void;
-  /** Resolves with the per-asset failures of the run (empty when all were deleted). */
-  bulkDelete: () => Promise<BatchFailure[]>;
+  /**
+   * Resolves with the per-asset failures of the run (empty when all were
+   * deleted). The caller passes the ids it is acting on - the delete dialog's
+   * target snapshot - not the live selection.
+   */
+  bulkDelete: (ids: string[]) => Promise<BatchFailure[]>;
   bulkMoveToFolder: (targetFolderId: string | null) => Promise<void>;
   bulkAddTags: (tags: string[]) => Promise<void>;
   bulkRemoveTags: (tags: string[]) => Promise<void>;
@@ -152,12 +156,11 @@ export function useBulkActions({
     setBulkRequestError(err instanceof Error ? err.message : fallback);
   };
 
-  const bulkDelete = useStableCallback(async (): Promise<BatchFailure[]> => {
-    if (bulkBusy || selectedIds.size === 0) return [];
+  const bulkDelete = useStableCallback(async (ids: string[]): Promise<BatchFailure[]> => {
+    if (bulkBusy || ids.length === 0) return [];
     const before = items;
     const startOffset = offset;
-    const ids = Array.from(selectedIds);
-    const droppedCount = before.filter(item => selectedIds.has(item.id)).length;
+    const droppedCount = before.filter(item => ids.includes(item.id)).length;
     setBulkFailures(null);
     setBulkRequestError(null);
     setBulkBusy({ label: "Deleting", count: ids.length });
