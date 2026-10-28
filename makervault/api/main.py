@@ -23,7 +23,13 @@ from asset_service import backfill_embedded_thumbnails
 from auth import validate_auth_configuration
 from config import IMPORT_MAX_BYTES, MAX_UPLOAD_BYTES
 from db import THUMBS, engine
-from import_service import download_import_to_temp, import_asset_from_url, open_import_response
+from import_service import (
+    download_import_to_temp,
+    download_zip_attempt,
+    import_asset_attempt,
+    import_asset_from_url,
+    open_import_response,
+)
 from library_scan import scan_status, start_scan
 from migrations import run_migrations
 from mount_import import mount_import_should_run, scan_mount_imports
@@ -142,6 +148,8 @@ __all__ = (
     "scan_status",
     "normalize_import_url",
     "import_asset_from_url",
+    "import_asset_attempt",
+    "download_zip_attempt",
     "open_import_response",
     "download_import_to_temp",
     # the ones it calls directly, plus the app object it drives

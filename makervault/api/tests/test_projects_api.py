@@ -38,6 +38,7 @@ import audit
 import db
 import library_scan
 import main
+import project_service
 import settings_service
 from db import engine
 from migrations import run_migrations
@@ -330,8 +331,9 @@ def test_project_metadata_json_is_parsed_from_the_row() -> None:
         headers = auth_header(client)
         project = create_project(client, headers)
         settings = {"filament": "PLA", "layer_height": 0.2, "infill": 15}
-        # metadata_json has no API writer yet (this ticket only renders it), so the
-        # column is written directly to pin the parser on a populated row.
+        # The import marker (`{"_files": "user-supplied"}`) is the only writer of
+        # metadata_json so far; the column is written directly here to pin the
+        # parser on a populated row that did not come from an import.
         with Session(engine) as session:
             row = session.get(Project, project["id"])
             assert row is not None
@@ -342,6 +344,24 @@ def test_project_metadata_json_is_parsed_from_the_row() -> None:
         listed = project_listing(client, headers)[project["id"]]
 
         assert listed["metadata_json"] == settings
+
+
+def test_import_metadata_marker_survives_the_project_listing() -> None:
+    """The gate marker is how a gated import says "attach the files yourself"."""
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        project = create_project(client, headers)
+        with Session(engine) as session:
+            row = session.get(Project, project["id"])
+            assert row is not None
+            row.metadata_json = json.dumps({"filament": "PLA"})
+            session.add(row)
+            session.commit()
+
+        project_service.set_project_metadata_marker(project["id"], {"_files": "user-supplied"})
+
+        listed = project_listing(client, headers)[project["id"]]
+        assert listed["metadata_json"] == {"filament": "PLA", "_files": "user-supplied"}
 
 
 @pytest.mark.parametrize("raw", ["", "not-json", "[1, 2]", "null"])

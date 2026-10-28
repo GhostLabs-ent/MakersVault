@@ -1,6 +1,7 @@
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request
@@ -25,9 +26,38 @@ from import_resolvers import (
     resolve_thingiverse_download_url,
     thingiverse_html_headers,
 )
+from models import Asset
 from safe_http import safe_urlopen
 from schemas import ImportRequest
 from url_utils import validate_remote_url
+
+
+@dataclass(frozen=True)
+class ImportPage:
+    """A page that was read on the way to a file, with its post-redirect URL."""
+
+    url: str
+    html: str
+
+
+@dataclass(frozen=True)
+class ImportAttempt:
+    """One single-file import attempt: the asset, the page, or the error."""
+
+    asset: Optional[Asset] = None
+    page: Optional[ImportPage] = None
+    error: Optional[HTTPException] = None
+
+
+@dataclass(frozen=True)
+class ZipAttempt:
+    """One zip download attempt; `tmp_path` is the caller's to delete on success."""
+
+    tmp_path: Optional[Path] = None
+    filename: str = ""
+    mime: str = ""
+    page: Optional[ImportPage] = None
+    error: Optional[HTTPException] = None
 
 
 def import_request_headers(url: str, body: ImportRequest, referer: Optional[str] = None) -> dict:
@@ -52,7 +82,13 @@ def import_request_headers(url: str, body: ImportRequest, referer: Optional[str]
     return headers
 
 
-def open_import_response(url: str, body: ImportRequest, referer: Optional[str] = None, depth: int = 0):
+def _resolve_import(
+    url: str,
+    body: ImportRequest,
+    referer: Optional[str],
+    depth: int,
+    pages: List["ImportPage"],
+):
     # URL-only guard: no DNS, no request and no cookie for a paid/gated URL. It
     # also covers HTML-discovered download URLs because they re-enter here.
     refuse_paid_or_gated(url)
@@ -78,6 +114,9 @@ def open_import_response(url: str, body: ImportRequest, referer: Optional[str] =
         charset = resp.headers.get_content_charset() or "utf-8"
         html = html_bytes.decode(charset, errors="replace")
         resp.close()
+        # Keep the page before it is replaced by the download: a gated model has
+        # no download to return, and its metadata is all the caller will get.
+        pages.append(ImportPage(url=final_url, html=html))
         download_url = None
         host = urlparse(final_url).hostname or ""
         if is_makerworld_page_host(host):
@@ -98,8 +137,46 @@ def open_import_response(url: str, body: ImportRequest, referer: Optional[str] =
                     ),
                 )
             raise HTTPException(status_code=400, detail="No downloadable model file found. Use a direct download link.")
-        return open_import_response(download_url, body, referer=final_url, depth=depth + 1)
+        return _resolve_import(download_url, body, referer=final_url, depth=depth + 1, pages=pages)
     return resp, final_url
+
+
+def open_import_response(url: str, body: ImportRequest, referer: Optional[str] = None, depth: int = 0):
+    """Open the (possibly HTML-redirected) response for an import URL.
+
+    The thin public wrapper keeps the `main.open_import_response` patch surface
+    exactly as it was; the attempt helpers below use `_resolve_import` directly
+    because they also need the page HTML that was read on the way.
+    """
+    return _resolve_import(url, body, referer, depth, [])
+
+
+def import_asset_attempt(url: str, body: ImportRequest) -> "ImportAttempt":
+    """One single-file import attempt, keeping the page it read when it fails."""
+    pages: List[ImportPage] = []
+    try:
+        resp, final_url = _resolve_import(url, body, None, 0, pages)
+        with resp:
+            asset = persist_asset_from_response(resp, final_url, body)
+    except HTTPException as err:
+        return ImportAttempt(page=pages[-1] if pages else None, error=err)
+    return ImportAttempt(asset=asset, page=pages[-1] if pages else None)
+
+
+def download_zip_attempt(url: str, body: ImportRequest) -> "ZipAttempt":
+    """One zip download attempt, keeping the page it read and its temp file."""
+    pages: List[ImportPage] = []
+    tmp_path: Optional[Path] = None
+    try:
+        resp, final_url = _resolve_import(url, body, None, 0, pages)
+        tmp_path, filename, mime = _write_import_temp(resp, final_url, body)
+    except HTTPException as err:
+        # A failure after the write (there is none today) must not leak the file;
+        # the caller owns deletion only on success.
+        if tmp_path is not None:
+            tmp_path.unlink(missing_ok=True)
+        return ZipAttempt(page=pages[-1] if pages else None, error=err)
+    return ZipAttempt(tmp_path=tmp_path, filename=filename, mime=mime, page=pages[-1] if pages else None)
 
 
 def import_asset_from_url(url: str, body: ImportRequest, referer: Optional[str] = None, depth: int = 0):
@@ -108,8 +185,8 @@ def import_asset_from_url(url: str, body: ImportRequest, referer: Optional[str] 
         return persist_asset_from_response(resp, final_url, body)
 
 
-def download_import_to_temp(url: str, body: ImportRequest) -> tuple[Path, str, str]:
-    resp, final_url = open_import_response(url, body)
+def _write_import_temp(resp, final_url: str, body: ImportRequest) -> tuple[Path, str, str]:
+    """Stream one open response into a temp file; remove it if the write fails."""
     tmp_path = None
     with resp:
         filename = build_import_filename(final_url, resp.headers, body.filename)
@@ -124,3 +201,8 @@ def download_import_to_temp(url: str, body: ImportRequest) -> tuple[Path, str, s
             tmp_path.unlink(missing_ok=True)
             raise
     return tmp_path, filename, mime
+
+
+def download_import_to_temp(url: str, body: ImportRequest) -> tuple[Path, str, str]:
+    resp, final_url = open_import_response(url, body)
+    return _write_import_temp(resp, final_url, body)

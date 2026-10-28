@@ -91,3 +91,13 @@ def open_import_response(url: str, body):
 def download_import_to_temp(url: str, body):
     """Fetch an import to a temp file through `main.download_import_to_temp`."""
     return _resolved("download_import_to_temp", import_service.download_import_to_temp)(url, body)
+
+
+def import_asset_attempt(url: str, body):
+    """One single-file attempt through `main.import_asset_attempt` (patch point)."""
+    return _resolved("import_asset_attempt", import_service.import_asset_attempt)(url, body)
+
+
+def download_zip_attempt(url: str, body):
+    """One zip attempt through `main.download_zip_attempt` (patch point)."""
+    return _resolved("download_zip_attempt", import_service.download_zip_attempt)(url, body)

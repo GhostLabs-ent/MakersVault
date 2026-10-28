@@ -273,6 +273,7 @@ ROUTE_ACTIONS: dict[tuple[str, str], tuple[str, ...]] = {
 EXEMPT_ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/upload"): "creates an asset; not destructive or administrative",
     ("POST", "/import"): "creates an asset from a URL",
+    ("POST", "/import/project"): "creates a project and imports files from a URL",
     ("POST", "/import/inspect"): "outbound fetch, no mutation",
     ("POST", "/import/zip/entries"): "outbound fetch, no mutation",
     ("POST", "/import/zip"): "creates assets from a zip",

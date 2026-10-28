@@ -31,6 +31,14 @@ PAID_IMPORT_DETAIL = (
     "Please supply these files yourself: download them from your account and upload the file or zip."
 )
 
+# The project-import counterpart of PAID_IMPORT_DETAIL: the project exists, its
+# files do not. Like the check above this is a message, not a boundary. It holds
+# whether the project was created by this import or reused from an earlier one.
+GATED_IMPORT_DETAIL = (
+    "This model's files are behind an account or a purchase, so MakersVault did not download them. "
+    "The project holds the details from the page; download the files yourself and attach them to it."
+)
+
 # makerworld matches its exact host plus subdomains; thingiverse is an exact set.
 # The predicates - not a duplicated host list - are the single source of truth,
 # so this registry and the resolvers cannot drift apart.

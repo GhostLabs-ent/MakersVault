@@ -569,6 +569,36 @@ describe("ProjectLanding details", () => {
     expect(screen.getByRole("link", { name: "View original on Thingiverse" })).toBeTruthy();
     expect(screen.getByText("By print_fan_99")).toBeTruthy();
   });
+
+  it("says a gated import brought details only, keeping the marker out of print settings", async () => {
+    renderLanding({
+      project: makeProject({
+        origin: "imported",
+        metadata_json: { filament: "PLA", _files: "user-supplied" },
+      }),
+    });
+    await screen.findByText("Body");
+
+    const details = screen.getByRole("region", { name: "Details" });
+    const note = within(details).getByText(/Imported details only/);
+    expect(note.textContent).toContain("gated behind an account or a purchase");
+    // Points at the affordance that actually attaches the user's own files.
+    expect(note.textContent).toContain("Attach files");
+
+    // Real settings still render...
+    expect(within(details).getByText("Filament")).toBeTruthy();
+    expect(within(details).getByText("PLA")).toBeTruthy();
+    // ...but the reserved import marker is bookkeeping, not a print setting.
+    expect(within(details).queryByRole("rowheader", { name: "files" })).toBeNull();
+    expect(within(details).queryByText("user-supplied")).toBeNull();
+  });
+
+  it("shows no imported-details note for a project whose files came with it", async () => {
+    renderLanding({ project: makeProject({ metadata_json: { filament: "PLA" } }) });
+    await screen.findByText("Body");
+
+    expect(screen.queryByText(/Imported details only/)).toBeNull();
+  });
 });
 
 describe("ProjectLanding inline editing", () => {

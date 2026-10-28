@@ -156,6 +156,19 @@ export default function App() {
     setActiveView("library");
   }, []);
 
+  // A website import that created or joined a project lands the user on it.
+  // The project list only loads once projects mode was visited, so the bump
+  // of `assetsVersion` (the list effect's other dependency) refetches it even
+  // when the import happened from a first, files-mode session.
+  const handleProjectImported = React.useCallback(
+    (projectId: string) => {
+      handleModeChange("projects");
+      setOpenProjectId(projectId);
+      setAssetsVersion(n => n + 1);
+    },
+    [handleModeChange],
+  );
+
   const handleCloseProject = React.useCallback(() => {
     setOpenProjectId(null);
   }, []);
@@ -339,6 +352,7 @@ export default function App() {
                 thingiverseCookie={settings.thingiverse.cookie}
                 onUploaded={handleAssetsChanged}
                 onUnauthorized={handleUnauthorized}
+                onProjectImported={handleProjectImported}
               />
             )}
             {activeView !== "library" && (

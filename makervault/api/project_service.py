@@ -11,10 +11,17 @@ membership, removing the membership leaves it alone, and the asset's own
 Membership edits are one transaction per request: an unknown asset id becomes a
 per-id `BatchFailure` while the valid ids still apply (partial success is the
 contract, see `bulk_service`), and an unknown project is a whole-request 404.
+
+Imported projects are de-duplicated on `url_utils.source_key` with no stored
+canonical column and no migration: the comparison runs over the `project` table
+in Python, which `list_projects` already reads in full, so a scan is sound at
+household scale and migration 007 stays untouched.
 """
 
+import json
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple
+from uuid import uuid4
 
 from fastapi import HTTPException
 from sqlalchemy import func
@@ -23,6 +30,7 @@ from sqlmodel import Session, delete, select
 
 import audit
 import bulk_service
+import url_utils
 from db import engine
 from models import Asset, Project, ProjectAsset
 
@@ -52,6 +60,17 @@ def get_asset(session: Session, asset_id: str) -> Asset:
     if asset is None:
         raise HTTPException(status_code=404, detail="Asset not found")
     return asset
+
+
+def require_project(project_id: str) -> str:
+    """Prove an explicit project id exists, before anything else writes.
+
+    An import downloads and creates its asset BEFORE it touches the project, so
+    an id validated only afterwards would leave that asset orphaned in the
+    library behind a 404. This reads the row up front and returns the id.
+    """
+    with Session(engine) as session:
+        return get_project(session, project_id).id
 
 
 def member_stats(session: Session, project_id: str) -> Tuple[int, int]:
@@ -202,6 +221,173 @@ def list_projects(session: Session) -> List[Tuple[Project, int, int]]:
         .order_by(func.lower(Project.name), Project.id)
     )
     return [(project, int(count), int(total_size)) for project, count, total_size in session.exec(statement)]
+
+
+def find_project_by_source(session: Session, source_url: Optional[str]) -> Optional[Project]:
+    """The project whose stored source is the same page, or None.
+
+    De-duplication compares `url_utils.source_key`, not the raw URL, so a renamed
+    slug or a tracking parameter still finds the project. `source_key` is total:
+    one garbage `source_url` row cannot 500 an unrelated import.
+    """
+    key = url_utils.source_key(source_url or "")
+    if not key:
+        return None
+    statement = select(Project).order_by(func.lower(Project.name), Project.id)
+    for project in session.exec(statement):
+        if not (project.source_url or "").strip():
+            continue
+        if url_utils.source_key(project.source_url) == key:
+            return project
+    return None
+
+
+def _fill_empty_provenance(
+    project: Project,
+    *,
+    creator: Optional[str] = None,
+    licence: Optional[str] = None,
+    licence_url: Optional[str] = None,
+    source_url: Optional[str] = None,
+) -> bool:
+    """Fill only the provenance fields the project left empty; report a change.
+
+    A value the user already put on the project is never overwritten - an import
+    adds what the page knows and leaves every existing answer alone.
+    """
+    changed = False
+    values = {
+        "creator": creator,
+        "licence": licence,
+        "licence_url": licence_url,
+        "source_url": source_url,
+    }
+    for field, value in values.items():
+        if value and not (getattr(project, field) or "").strip():
+            setattr(project, field, value)
+            changed = True
+    return changed
+
+
+def _create_import_project(
+    session: Session,
+    name: str,
+    source_url: Optional[str],
+    creator: Optional[str],
+    licence: Optional[str],
+    licence_url: Optional[str],
+) -> Project:
+    """Create an imported project, suffixing the name past a NOCASE collision.
+
+    `create_project` raises 409 on `idx_project_name_unique`, and by then the
+    import has already written its files: a propagated 409 would leave orphaned
+    assets behind a failed response. A suffixed name is the honest answer.
+    """
+    base = _clean_name(name)
+    for attempt in range(1, 6):
+        candidate = base if attempt == 1 else f"{base} ({attempt})"
+        try:
+            return create_project(
+                session,
+                candidate,
+                None,
+                None,
+                creator=creator,
+                source_url=source_url,
+                licence=licence,
+                licence_url=licence_url,
+                origin="imported",
+            )
+        except HTTPException as err:
+            if err.status_code != 409:
+                raise
+    # Five suffixed names collided; a random one cannot, and a 409 here would
+    # still orphan the files the import just wrote.
+    return create_project(
+        session,
+        f"{base} ({uuid4().hex[:8]})",
+        None,
+        None,
+        creator=creator,
+        source_url=source_url,
+        licence=licence,
+        licence_url=licence_url,
+        origin="imported",
+    )
+
+
+def find_or_create_import_project(
+    *,
+    project_id: Optional[str],
+    suggested_name: str,
+    source_url: Optional[str],
+    creator: Optional[str] = None,
+    licence: Optional[str] = None,
+    licence_url: Optional[str] = None,
+) -> Tuple[str, bool]:
+    """The project an import belongs to: (id, created).
+
+    An explicit `project_id` always wins over a canonical match - the user chose
+    the target - and only its empty provenance fields are filled. Otherwise a
+    project with the same `source_key` is reused, and the last resort creates an
+    `origin="imported"` row.
+    """
+    with Session(engine) as session:
+        if project_id:
+            project = get_project(session, project_id)
+            if _fill_empty_provenance(
+                project, creator=creator, licence=licence, licence_url=licence_url, source_url=source_url
+            ):
+                session.add(project)
+                session.commit()
+            return project.id, False
+        existing = find_project_by_source(session, source_url)
+        if existing is not None:
+            if _fill_empty_provenance(
+                existing, creator=creator, licence=licence, licence_url=licence_url, source_url=source_url
+            ):
+                session.add(existing)
+                session.commit()
+            return existing.id, False
+        project = _create_import_project(session, suggested_name, source_url, creator, licence, licence_url)
+        return project.id, True
+
+
+def set_project_metadata_marker(project_id: str, marker: dict) -> None:
+    """Merge a reserved `_`-prefixed marker into the project's metadata object.
+
+    The column is parsed here rather than through `routers.presenters`, because a
+    service importing a router's presenter would invert the layering. Anything
+    that is not a JSON object reads as {}, the same rule the presenter uses, and
+    a non-underscore key (real print settings) is never clobbered.
+    """
+    with Session(engine) as session:
+        project = get_project(session, project_id)
+        try:
+            parsed = json.loads(project.metadata_json or "{}")
+        except (TypeError, ValueError):
+            parsed = {}
+        metadata = parsed if isinstance(parsed, dict) else {}
+        for key, value in marker.items():
+            if key.startswith("_"):
+                metadata[key] = value
+        project.metadata_json = json.dumps(metadata)
+        project.updated_at = _now()
+        session.add(project)
+        session.commit()
+
+
+def project_with_stats(project_id: str) -> Tuple[Project, int, int]:
+    """One project plus its member count and size, safe to serialize after close.
+
+    This exists so a handler can serialize a project from a session that has
+    already been closed: nothing here commits, so no attribute is expired and
+    the detached row still has every column it was loaded with.
+    """
+    with Session(engine) as session:
+        project = get_project(session, project_id)
+        asset_count, total_size = member_stats(session, project.id)
+    return project, asset_count, total_size
 
 
 def _failure(asset_id: str) -> dict:

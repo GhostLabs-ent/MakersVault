@@ -149,6 +149,8 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     # write: create, mutate or delete library content.
     ("POST", "/upload"): WRITE,
     ("POST", "/import"): WRITE,
+    # Also an outbound-fetch oracle, like /import/inspect, and it mutates a project.
+    ("POST", "/import/project"): WRITE,
     # No mutation, but both are outbound-fetch oracles (arbitrary URL in, remote
     # response out), so a viewer must not have them.
     ("POST", "/import/inspect"): WRITE,

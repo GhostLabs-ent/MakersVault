@@ -81,8 +81,8 @@ mutating route is neither audited nor exempt with a reason. See
 
 ## The route matrix
 
-Paths are FastAPI templates exactly as declared. 55 routes: 4 public, 16 read,
-26 write, 9 admin.
+Paths are FastAPI templates exactly as declared. 56 routes: 4 public, 16 read,
+27 write, 9 admin.
 
 The collection/instance templates are deliberately asymmetric: the collection is
 `/projects` while one project is `/project/{project_id}`, exactly like `/folders`
@@ -124,6 +124,7 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 |--------|---------------------------------------------|-----|
 | POST   | `/upload`                                   | creates an asset |
 | POST   | `/import`                                   | creates an asset from a URL |
+| POST   | `/import/project`                           | import a URL into a new or existing project (one step) |
 | POST   | `/import/inspect`                           | no mutation, but an outbound-fetch oracle (URL in, remote response out) |
 | POST   | `/import/zip/entries`                       | same: outbound fetch, no mutation |
 | POST   | `/import/zip`                               | creates assets from a zip |

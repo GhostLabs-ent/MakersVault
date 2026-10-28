@@ -105,8 +105,8 @@ more than one fact:
 The rule `assert_audit_coverage()` enforces: **every route in
 `permissions.ROUTE_PERMISSIONS` whose method is not `GET` must be in
 `ROUTE_ACTIONS` or in `EXEMPT_ROUTES` with a non-empty reason.** `GET` routes are
-out of scope by construction: they change nothing. The matrix has 55 routes, 20
-of them `GET`; the remaining 35 split into 19 audited keys and 16 exempt keys.
+out of scope by construction: they change nothing. The matrix has 56 routes, 20
+of them `GET`; the remaining 36 split into 19 audited keys and 17 exempt keys.
 
 The guard also refuses stale keys (an entry for a route that no longer exists), a
 key in both tables, an action that is not in `ACTIONS`, and an exemption without
@@ -119,6 +119,7 @@ Exempt routes and why:
 |---|---|
 | `POST /upload` | creates an asset; not destructive or administrative |
 | `POST /import` | creates an asset from a URL |
+| `POST /import/project` | creates a project and imports files from a URL |
 | `POST /import/inspect` | outbound fetch, no mutation |
 | `POST /import/zip/entries` | outbound fetch, no mutation |
 | `POST /import/zip` | creates assets from a zip |

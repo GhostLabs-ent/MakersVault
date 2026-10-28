@@ -13,9 +13,11 @@ vi.mock("../lib/api", () => ({
   },
   createFolder: vi.fn(),
   importFromLink: vi.fn(),
+  importToProject: vi.fn(),
   importZipFromLink: vi.fn(),
   inspectImportLink: vi.fn(),
   listImportZipEntries: vi.fn(),
+  listProjects: vi.fn(),
   uploadAsset: vi.fn(),
 }));
 

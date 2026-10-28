@@ -112,18 +112,22 @@ type MetadataEntry = { key: string; label: string; value: string };
 /**
  * Flattens `metadata_json` into display rows. Known keys get pretty labels,
  * unknown primitives become generic key/value rows, and arrays/objects are
- * stringified — nothing the API sent is silently dropped.
+ * stringified — nothing the API sent is silently dropped, except reserved
+ * import markers (`_files` and friends): they are bookkeeping, not print
+ * settings, so they never get a row.
  */
 function metadataEntries(metadata: Record<string, unknown>): MetadataEntry[] {
-  return Object.entries(metadata).map(([key, raw]) => {
-    const label = KNOWN_METADATA_LABELS[key] ?? key.replace(/_/g, " ");
-    let value: string;
-    if (typeof raw === "boolean") value = raw ? "Yes" : "No";
-    else if (raw === null || raw === undefined) value = "—";
-    else if (typeof raw === "object") value = JSON.stringify(raw);
-    else value = String(raw);
-    return { key, label, value };
-  });
+  return Object.entries(metadata)
+    .filter(([key]) => !key.startsWith("_"))
+    .map(([key, raw]) => {
+      const label = KNOWN_METADATA_LABELS[key] ?? key.replace(/_/g, " ");
+      let value: string;
+      if (typeof raw === "boolean") value = raw ? "Yes" : "No";
+      else if (raw === null || raw === undefined) value = "—";
+      else if (typeof raw === "object") value = JSON.stringify(raw);
+      else value = String(raw);
+      return { key, label, value };
+    });
 }
 
 /** Placeholder icon for a member without a thumbnail of its own. */
@@ -146,6 +150,9 @@ const EYEBROW = "text-xs font-semibold uppercase tracking-[0.14em] text-subtle";
 const MEMBER_PAGE_SIZE = 1000;
 const PICKER_PAGE_SIZE = 100;
 const MAX_TAG_CHIPS = 8;
+
+/** `metadata_json._files` value the server sets when a model's files are gated. */
+const USER_SUPPLIED_FILES = "user-supplied";
 
 /**
  * The project detail landing page (Mf-6cxs): hero with cover + gallery,
@@ -279,6 +286,10 @@ export default function ProjectLanding({
     () => metadataEntries(project.metadata_json ?? {}),
     [project.metadata_json],
   );
+
+  // A gated import (Mf-56z9) recorded the page's details only; the note in the
+  // details panel says why the project has no files and where to get them.
+  const filesUserSupplied = project.metadata_json?._files === USER_SUPPLIED_FILES;
 
   // The API returns members in a deterministic order (name, filename, id);
   // the first row is the project's primary file for the hero slicer action.
@@ -955,6 +966,14 @@ export default function ProjectLanding({
           <dt className="text-muted">Updated</dt>
           <dd className="min-w-0">{formatDate(project.updated_at)}</dd>
         </dl>
+
+        {filesUserSupplied && (
+          <p className="mt-3 text-sm text-muted">
+            Imported details only — the files for this model are gated behind an
+            account or a purchase, so they were not downloaded. Use "Attach files"
+            to add the files you downloaded yourself.
+          </p>
+        )}
 
         {metaEntries.length > 0 && (
           <>

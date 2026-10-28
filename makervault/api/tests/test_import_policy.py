@@ -32,7 +32,7 @@ from fastapi.testclient import TestClient
 import import_policy
 import import_service
 import main
-from schemas import ImportRequest, ImportZipEntriesRequest, ImportZipExtractRequest
+from schemas import ImportProjectRequest, ImportRequest, ImportZipEntriesRequest, ImportZipExtractRequest
 
 IMPORT_FIELDS = {"url", "title", "notes", "tags", "folder_id", "filename", "makerworld_cookie", "thingiverse_cookie"}
 
@@ -181,7 +181,9 @@ def test_import_request_has_no_purchase_or_payment_fields():
     # The app has no purchase state to store, request or replay; this fails
     # loudly if a payment field is ever added to the import body.
     assert set(ImportRequest.model_fields) == IMPORT_FIELDS
-    for request_model in (ImportZipEntriesRequest, ImportZipExtractRequest):
+    assert len(ImportRequest.model_fields) == 8, "the base import body keeps its eight fields"
+    # The project-import body subclasses the same base, so it inherits the sweep.
+    for request_model in (ImportProjectRequest, ImportZipEntriesRequest, ImportZipExtractRequest):
         added = set(request_model.model_fields) - IMPORT_FIELDS
         for field in added:
             assert not any(marker in field for marker in ("pay", "purch", "order", "price")), field

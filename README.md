@@ -225,6 +225,8 @@ VITE_ALLOWED_HOSTS=
 In the future there are plans to add support for more websites, but in this current release only the three listed will function. The root link from the respective repository can be used to import any models. Most models will import as a .zip file. When a zip file is imported a pop-up will appear prompting to either save as a zip or unzip and save. Unzip and save allows the user to select which files to keep and which to discard. This helps to ensure that unecessary "read-me" files aren't uploaded.
 </p>
 
+<p>A link import can also go straight into a project. It either creates a project from the model page - the source URL, creator and licence are read from the page - or adds the files to an existing project you pick. Importing the same model page twice reuses that project instead of making a duplicate. Paid or account-gated models import their details only: no files are downloaded, and you attach the files yourself once you have them.</p>
+
 <img width="4400" height="2129" alt="Import_From_Link" src="https://github.com/user-attachments/assets/515f0e95-72e7-4ea3-81ba-3d8023f4cff3" />
 
 <img width="1913" height="937" alt="Screenshot 2025-12-31 101451" src="https://github.com/user-attachments/assets/a397fd46-d808-46b3-b83f-d1e025be8608" />

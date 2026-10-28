@@ -11,10 +11,13 @@ from auth import AuthContext
 from file_utils import build_import_filename, mime_from_content_type
 from import_policy import refuse_paid_or_gated
 from permissions import require_write
-from routers.presenters import to_out
+from project_import import import_into_project
+from routers.presenters import import_project_to_out, to_out
 from schemas import (
     AssetOut,
     ImportInspectOut,
+    ImportProjectOut,
+    ImportProjectRequest,
     ImportRequest,
     ImportZipEntriesOut,
     ImportZipEntriesRequest,
@@ -34,6 +37,15 @@ def import_from_link(body: ImportRequest, _: Optional[AuthContext] = Depends(req
     url = seams.normalize_import_url(body.url)
     asset = seams.import_asset_from_url(url, body)
     return to_out(asset)
+
+
+@router.post("/import/project", response_model=ImportProjectOut)
+def import_link_into_project(body: ImportProjectRequest, _: Optional[AuthContext] = Depends(require_write)):
+    # Before normalize_import_url: normalization resolves DNS, so the refusal must
+    # precede it to keep a paid/gated URL off the network entirely.
+    refuse_paid_or_gated(body.url)
+    url = seams.normalize_import_url(body.url)
+    return import_project_to_out(import_into_project(url, body))
 
 
 @router.post("/import/inspect", response_model=ImportInspectOut)

@@ -6,9 +6,11 @@ from typing import Optional
 from urllib.parse import quote
 
 import db
+import project_service
 from models import Asset, AssetFile, Folder, Project
 from prepared_print import prepared_filename
-from schemas import AssetFileOut, AssetOut, FolderOut, ProjectOut
+from project_import import ImportOutcome
+from schemas import AssetFileOut, AssetOut, FolderOut, ImportProjectOut, ProjectOut
 
 
 def folder_to_out(f: Folder) -> "FolderOut":
@@ -96,6 +98,26 @@ def project_to_out(project: Project, asset_count: int, total_size: int) -> Proje
         metadata_json=project_metadata(project.metadata_json),
         created_at=project.created_at,
         updated_at=project.updated_at,
+    )
+
+
+def import_project_to_out(outcome: ImportOutcome) -> ImportProjectOut:
+    """One import outcome as the route's response body.
+
+    The project row is re-read through `project_service.project_with_stats`, so
+    the response carries the member count and size *after* the import instead of
+    a snapshot from before it.
+    """
+    project, asset_count, total_size = project_service.project_with_stats(outcome.project_id)
+    return ImportProjectOut(
+        project=project_to_out(project, asset_count, total_size),
+        created=outcome.created,
+        assets=[to_out(asset) for asset in outcome.assets],
+        added=outcome.added,
+        skipped=outcome.skipped,
+        failed=outcome.failed,
+        gated=outcome.gated,
+        message=outcome.message,
     )
 
 
