@@ -665,6 +665,53 @@ export type Folder = {
   storage_path?: string | null;
 };
 
+/** A collection of assets from any folder. Read-only here: creation is Mf-1sfc. */
+export type Project = {
+  id: string;
+  name: string;
+  description: string | null;
+  creator: string | null;
+  source_url: string | null;
+  licence: string | null;
+  licence_url: string | null;
+  origin: string;
+  cover_asset_id: string | null;
+  cover_thumb_url: string | null;
+  asset_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function listProjects(): Promise<Project[]> {
+  const res = await fetch(`${apiBase()}/projects`, { headers: authHeaders() });
+  assertOk(res, "Failed to list projects");
+  return res.json();
+}
+
+export async function listProjectAssets(params: {
+  projectId: string;
+  q?: string;
+  tags?: string[];
+  limit?: number;
+  offset?: number;
+}): Promise<ListAssetsResult> {
+  const qs = new URLSearchParams();
+  if (params.q) qs.set("q", params.q);
+  if (params.tags && params.tags.length) qs.set("tags", params.tags.join(","));
+  if (typeof params.limit === "number") qs.set("limit", String(params.limit));
+  if (typeof params.offset === "number") qs.set("offset", String(params.offset));
+  const res = await fetch(
+    `${apiBase()}/project/${encodeURIComponent(params.projectId)}/assets?${qs.toString()}`,
+    { headers: authHeaders() },
+  );
+  assertOk(res, "Failed to list project assets");
+  const items = await res.json();
+  const hasMore = (res.headers.get("X-Has-More") || "").toLowerCase() === "true";
+  const nextOffsetRaw = res.headers.get("X-Next-Offset");
+  const nextOffset = nextOffsetRaw ? Number(nextOffsetRaw) : undefined;
+  return { items, hasMore, nextOffset };
+}
+
 export type FolderDeletePreview = {
   folders: number;
   assets: number;

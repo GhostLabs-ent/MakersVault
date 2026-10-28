@@ -11,8 +11,6 @@ import {
   Pencil,
   Plus,
   Search,
-  ScrollText,
-  Settings as SettingsIcon,
   Trash2,
   X,
 } from "lucide-react";
@@ -23,6 +21,7 @@ import { notifyError } from "../lib/toast";
 import TagInput from "./TagInput";
 import { useUpload } from "./useUpload";
 import FolderDeleteDialog from "./FolderDeleteDialog";
+import SidebarFooter from "./SidebarFooter";
 
 type Props = {
   selectedId?: string | null;
@@ -577,6 +576,7 @@ export default function Sidebar({
   return (
     <aside
       className="sidebar-shell"
+      aria-label="Files"
       onDragOver={handleSidebarDragOver}
       onDragLeave={handleSidebarDragLeave}
       onDrop={handleSidebarDrop}
@@ -729,26 +729,11 @@ export default function Sidebar({
         </div>
       )}
 
-      <div className="sidebar-footer flex flex-col gap-1">
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          className={`sidebar-settings ${activeView === "settings" ? "is-selected" : ""}`}
-          aria-label="Settings"
-        >
-          <SettingsIcon className="h-4 w-4" />
-          <span>Settings</span>
-        </button>
-        <button
-          type="button"
-          onClick={onOpenAudit}
-          className={`sidebar-settings ${activeView === "audit" ? "is-selected" : ""}`}
-          aria-label="Audit log"
-        >
-          <ScrollText className="h-4 w-4" />
-          <span>Audit log</span>
-        </button>
-      </div>
+      <SidebarFooter
+        activeView={activeView}
+        onOpenSettings={onOpenSettings}
+        onOpenAudit={onOpenAudit}
+      />
       {pendingDelete && (
         <FolderDeleteDialog
           folder={pendingDelete}

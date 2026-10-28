@@ -59,6 +59,15 @@ describe("BulkActionBar", () => {
     expect(props.onMove).toHaveBeenCalledWith("f2");
   });
 
+  it("hides the move control when folder controls are disabled", () => {
+    renderBar({ showFolderControls: false });
+
+    expect(screen.queryByRole("combobox", { name: "Target folder" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Move" })).toBeNull();
+    // Everything else stays available.
+    expect(screen.getByRole("button", { name: "Add tags" })).toBeTruthy();
+  });
+
   it("moves the selection to unassigned by default", () => {
     const { props } = renderBar();
 

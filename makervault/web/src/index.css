@@ -136,6 +136,39 @@ html, body, #root { height: 100%; }
   .border-accent-soft { border-color: var(--mv-accent-border); }
   .text-accent { color: var(--mv-accent); }
 
+  /* Column that hosts the mode switch above whichever sidebar is active. The
+     mode switch inherits the sidebar's panel/background so there is no seam. */
+  .library-rail {
+    @apply flex h-full w-[19rem] min-w-[19rem] flex-col;
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--mv-panel-strong) 96%, var(--mv-accent) 4%), var(--mv-panel-strong));
+    border-right: 1px solid var(--mv-border);
+  }
+
+  .mode-switch {
+    @apply m-3 mb-0 flex shrink-0 items-center gap-1 rounded-lg border p-1;
+    border-color: var(--mv-border-strong);
+    background: color-mix(in srgb, var(--mv-panel-soft) 82%, transparent);
+  }
+
+  .mode-switch-option {
+    @apply inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors;
+    color: var(--mv-text-muted);
+  }
+
+  .mode-switch-option:hover {
+    color: var(--mv-text);
+    background: color-mix(in srgb, var(--mv-text-muted) 10%, transparent);
+  }
+
+  .mode-switch-option[aria-checked="true"] {
+    color: var(--mv-text);
+    background: var(--mv-accent-soft);
+    box-shadow: inset 0 0 0 1px var(--mv-accent-border);
+  }
+
+  .mode-switch-option[aria-checked="true"] svg { color: var(--mv-accent); }
+
   .sidebar-shell {
     @apply h-full w-[19rem] min-w-[19rem] flex flex-col gap-3 border-r px-3.5 pb-3 pt-4;
     background:
@@ -143,6 +176,10 @@ html, body, #root { height: 100%; }
     border-color: var(--mv-border);
     box-shadow: 1px 0 0 color-mix(in srgb, var(--mv-border) 42%, transparent), 8px 0 28px rgba(0, 0, 0, 0.04);
   }
+
+  /* Inside the rail the aside fills it exactly: the rail already owns the right
+     border, so a 19rem shell would double-border and overflow by its padding. */
+  .library-rail .sidebar-shell { width: 100%; min-width: 0; border-right: 0; }
 
   .sidebar-header {
     @apply flex min-h-[48px] items-center justify-between gap-3 px-1;

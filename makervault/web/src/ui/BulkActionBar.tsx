@@ -5,6 +5,8 @@ import type { BatchFailure } from "../lib/api";
 export type BulkActionBarProps = {
   count: number;
   folderOptions: { id: string | null; name: string }[];
+  /** Project mode hides the move control: projects have no folders. */
+  showFolderControls?: boolean;
   busy: { label: string; count: number } | null;
   failures: BatchFailure[] | null;
   failureLabels: { id: string; label: string; message: string }[];
@@ -42,6 +44,7 @@ function parseTagList(raw: string): string[] {
 export default function BulkActionBar({
   count,
   folderOptions,
+  showFolderControls = true,
   busy,
   failures,
   failureLabels,
@@ -93,27 +96,31 @@ export default function BulkActionBar({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <select
-          aria-label="Target folder"
-          value={moveTarget}
-          onChange={e => setMoveTarget(e.target.value)}
-          disabled={disabled}
-          className="px-2 py-1 rounded-md border border-panel-strong bg-panel-soft disabled:opacity-60"
-        >
-          {folderOptions.map(option => (
-            <option key={option.id || "none"} value={option.id || ""}>
-              {option.name}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          onClick={() => onMove(moveTarget || null)}
-          disabled={disabled}
-          className="px-3 py-1 rounded-md border border-panel-strong disabled:opacity-60"
-        >
-          Move
-        </button>
+        {showFolderControls && (
+          <>
+            <select
+              aria-label="Target folder"
+              value={moveTarget}
+              onChange={e => setMoveTarget(e.target.value)}
+              disabled={disabled}
+              className="px-2 py-1 rounded-md border border-panel-strong bg-panel-soft disabled:opacity-60"
+            >
+              {folderOptions.map(option => (
+                <option key={option.id || "none"} value={option.id || ""}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => onMove(moveTarget || null)}
+              disabled={disabled}
+              className="px-3 py-1 rounded-md border border-panel-strong disabled:opacity-60"
+            >
+              Move
+            </button>
+          </>
+        )}
 
         <input
           aria-label="Tags"

@@ -3,6 +3,7 @@ import {
   Asset,
   AssetFile,
   BatchFailure,
+  ListAssetsResult,
   PreparedPrint,
   Folder,
   UnauthorizedError,
@@ -12,6 +13,7 @@ import {
   deleteAsset,
   fileUrl,
   listAssets,
+  listProjectAssets,
   listTags,
   listFolders,
   setTags,
@@ -105,8 +107,42 @@ function rowsBatchSizeForWidth(width: number) {
 /** Placeholder so the folder nav props stay non-optional inside the grid. */
 function noop(): void {}
 
+/**
+ * The one place that decides between the folder-scoped and project-scoped asset
+ * listing. A project has no folder axis, so `folderId` is ignored there.
+ */
+function fetchAssetPage(opts: {
+  projectId?: string | null;
+  q?: string;
+  tags?: string[];
+  folderId?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<ListAssetsResult> {
+  if (opts.projectId) {
+    return listProjectAssets({
+      projectId: opts.projectId,
+      q: opts.q,
+      tags: opts.tags,
+      limit: opts.limit,
+      offset: opts.offset,
+    });
+  }
+  return listAssets({
+    q: opts.q,
+    tags: opts.tags,
+    folder_id: opts.folderId,
+    limit: opts.limit,
+    offset: opts.offset,
+  });
+}
+
 type Props = {
   folderId?: string | null;
+  /** When set, the grid shows this project's assets and hides all folder chrome. */
+  projectId?: string | null;
+  /** Display-only context for project mode (the caller renders the heading). */
+  projectName?: string | null;
   foldersVersion?: number;
   assetsVersion?: number;
   onUnauthorized?: () => void;
@@ -167,6 +203,8 @@ function AssetSearch({
 
 export default function AssetGrid({
   folderId,
+  projectId,
+  projectName,
   foldersVersion = 0,
   assetsVersion = 0,
   onUnauthorized,
@@ -177,6 +215,7 @@ export default function AssetGrid({
   scrollElementRef,
   onNavigateFolder,
 }: Props) {
+  const isProject = projectId != null;
   const [items, setItems] = useState<Asset[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -243,16 +282,19 @@ export default function AssetGrid({
     const targetFolderId = folderId || undefined;
     const paging = refreshWindow(offset, pageSize, opts.keepLoadedPages);
     const [assetsResult, tagsResult] = await Promise.allSettled([
-      listAssets({
+      fetchAssetPage({
+        projectId,
         q: search,
         tags,
-        folder_id: targetFolderId,
+        folderId: targetFolderId,
         limit: paging.limit,
         offset: paging.offset,
       }),
+      // Project mode has no folder scope, so its tag chips stay library-wide
+      // for now; scoping them per project is Mf-o4vi's job.
       listTags({
         q: search,
-        folder_id: targetFolderId,
+        folder_id: isProject ? undefined : targetFolderId,
       }),
     ]);
 
@@ -306,10 +348,11 @@ export default function AssetGrid({
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
     try {
-      const data = await listAssets({
+      const data = await fetchAssetPage({
+        projectId,
         q: queryRef.current,
         tags: activeTags,
-        folder_id: folderId || undefined,
+        folderId: folderId || undefined,
         limit: pageSize,
         offset,
       });
@@ -329,7 +372,8 @@ export default function AssetGrid({
   };
 
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
-    if (!isFileDrag(e)) return;
+    // Uploads always target a files folder, and projects have none.
+    if (isProject || !isFileDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
     dragDepth.current += 1;
@@ -337,13 +381,13 @@ export default function AssetGrid({
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    if (!isFileDrag(e)) return;
+    if (isProject || !isFileDrag(e)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "copy";
   };
 
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    if (!isFileDrag(e)) return;
+    if (isProject || !isFileDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
     dragDepth.current -= 1;
@@ -354,7 +398,7 @@ export default function AssetGrid({
   };
 
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
-    if (!isFileDrag(e)) return;
+    if (isProject || !isFileDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
     dragDepth.current = 0;
@@ -369,7 +413,7 @@ export default function AssetGrid({
     }
   };
 
-  useEffect(() => { refresh(); }, [folderId, refresh]);
+  useEffect(() => { refresh(); }, [folderId, projectId, refresh]);
   // `assetsVersion` bumps when another view (upload, folder scan) changed
   // assets. Refetch in place instead of remounting: the ref is seeded with the
   // current version so mounting performs no extra fetch, and comparing values
@@ -386,6 +430,8 @@ export default function AssetGrid({
     refresh({ keepLoadedPages: true });
   }, [assetsVersion, refresh]);
   useEffect(() => {
+    // Project mode never shows (or needs) the folder tree.
+    if (isProject) return;
     (async () => {
       try {
         setFolders(await listFolders());
@@ -393,7 +439,7 @@ export default function AssetGrid({
         handleApiError(err, "Failed to load folders. Please refresh.");
       }
     })();
-  }, [foldersVersion]);
+  }, [foldersVersion, isProject]);
 
   // Opening another folder is a new browsing session, so the per-session
   // preview budget (Mf-04od) is refunded; reset() resolves queued jobs with null.
@@ -941,7 +987,7 @@ export default function AssetGrid({
     }
   });
 
-  const showDropOverlay = dragActive || dropUploading;
+  const showDropOverlay = !isProject && (dragActive || dropUploading);
   const dropMessage = dropUploading
     ? `Uploading to ${dropTargetName}...`
     : `Drop files or folders to upload to ${dropTargetName}`;
@@ -963,6 +1009,7 @@ export default function AssetGrid({
       deleting={deletingId === item.id}
       onMoveFolder={onMoveFolder}
       folderOptions={folderOptions}
+      showFolderControls={!isProject}
       moving={movingId === item.id}
       onDownloadByTag={downloadByTag}
       onDownloadSelected={downloadSelected}
@@ -989,6 +1036,8 @@ export default function AssetGrid({
   return (
     <div
       className="relative"
+      data-project-id={projectId ?? undefined}
+      data-project-name={projectName ?? undefined}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -1004,14 +1053,17 @@ export default function AssetGrid({
       <div className="flex flex-col gap-4">
       {/* Deliberately non-sticky: `BulkActionBar` is the single sticky element
           in this column (top-0 z-30), so the two cannot fight over the slot. */}
-      <FolderBreadcrumbs
-        folders={folders}
-        folderId={folderId ?? null}
-        onNavigate={onNavigateFolder ?? noop}
-      />
+      {!isProject && (
+        <FolderBreadcrumbs
+          folders={folders}
+          folderId={folderId ?? null}
+          onNavigate={onNavigateFolder ?? noop}
+        />
+      )}
       <BulkActionBar
         count={selectedIds.size}
         folderOptions={folderOptions}
+        showFolderControls={!isProject}
         busy={bulkBusy}
         failures={bulkFailures}
         failureLabels={bulkFailureLabels}
@@ -1025,7 +1077,7 @@ export default function AssetGrid({
         onSelectAll={selectAllLoaded}
         onDismissFailures={dismissBulkFailures}
       />
-      {uploader.modal}
+      {!isProject && uploader.modal}
       <div className="flex items-center gap-3 flex-wrap">
         <AssetSearch
           onQueryChange={query => { queryRef.current = query; }}
@@ -1043,7 +1095,7 @@ export default function AssetGrid({
             <option value="name">Name</option>
             <option value="size">Size</option>
             <option value="type">File type</option>
-            <option value="folder">Folder</option>
+            {!isProject && <option value="folder">Folder</option>}
           </select>
           <button
             type="button"
@@ -1088,20 +1140,34 @@ export default function AssetGrid({
         </div>
       )}
 
-      <FolderTiles
-        folders={folders}
-        folderId={folderId ?? null}
-        onNavigate={onNavigateFolder ?? noop}
-      />
+      {!isProject && (
+        <FolderTiles
+          folders={folders}
+          folderId={folderId ?? null}
+          onNavigate={onNavigateFolder ?? noop}
+        />
+      )}
 
       {/* A folder holding only subfolders must never look broken (#15). Applies
           to both the flat and the grouped sort modes. At the root there are no
           subfolder tiles, so the hint stays off. */}
-      {!!folderId && !loading && !items.length && subfolders.length > 0 && (
+      {!isProject && !!folderId && !loading && !items.length && subfolders.length > 0 && (
         <p className="text-sm opacity-70">
           No files directly in this folder — pick a subfolder above.
         </p>
       )}
+
+      {/* "Empty" only means empty when no filter is narrowing it: a search or
+          tag filter that matched nothing is an empty result, not a new project. */}
+      {isProject &&
+        !loading &&
+        !items.length &&
+        !queryRef.current &&
+        activeTags.length === 0 && (
+          <p className="text-sm opacity-70" data-project-empty>
+            This project has no files yet.
+          </p>
+        )}
 
       {["folder", "type"].includes(sortKey) ? (
         <div className="space-y-4">
@@ -1231,6 +1297,8 @@ type AssetCardProps = {
   deleting: boolean;
   onMoveFolder: (id: string, folder_id: string | null) => void;
   folderOptions: { id: string | null; name: string }[];
+  /** Project mode hides every folder control (projects have no folder axis). */
+  showFolderControls?: boolean;
   moving: boolean;
   selected: boolean;
   onToggleSelected: (id: string) => void;
@@ -1265,6 +1333,7 @@ const AssetCard = React.memo(function AssetCard({
   deleting,
   onMoveFolder,
   folderOptions,
+  showFolderControls = true,
   moving,
   selected,
   onToggleSelected,
@@ -1586,23 +1655,25 @@ const AssetCard = React.memo(function AssetCard({
             )}
           </div>
         )}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold uppercase text-muted">
-            {moving ? "Updating..." : "Folder"}
-          </label>
-          <select
-            value={item.folder_id || ""}
-            onChange={handleFolderChange}
-            disabled={moving}
-            className="px-2 py-1 rounded-md border border-panel-strong bg-panel-strong text-sm"
-          >
-            {folderOptions.map(opt => (
-              <option key={opt.id || "none"} value={opt.id || ""}>
-                {opt.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {showFolderControls && (
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold uppercase text-muted">
+              {moving ? "Updating..." : "Folder"}
+            </label>
+            <select
+              value={item.folder_id || ""}
+              onChange={handleFolderChange}
+              disabled={moving}
+              className="px-2 py-1 rounded-md border border-panel-strong bg-panel-strong text-sm"
+            >
+              {folderOptions.map(opt => (
+                <option key={opt.id || "none"} value={opt.id || ""}>
+                  {opt.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div
           className="text-sm font-medium truncate cursor-text"
           title={`${item.name} · ${item.filename}`}

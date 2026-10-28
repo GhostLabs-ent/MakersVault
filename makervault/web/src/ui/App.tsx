@@ -2,11 +2,23 @@ import React from "react";
 import UploadBar from "./UploadBar";
 import AssetGrid from "./AssetGrid";
 import Sidebar from "./Sidebar";
+import ModeSwitch from "./ModeSwitch";
+import ProjectSidebar from "./ProjectSidebar";
+import ProjectView from "./ProjectView";
 import Login from "./Login";
 import Settings from "./Settings";
 import AuditLog from "./AuditLog";
 import UploadQueuePanel from "./UploadQueuePanel";
-import { apiHealth, getApiBase, logout, refreshToken, type HealthInfo } from "../lib/api";
+import {
+  UnauthorizedError,
+  apiHealth,
+  getApiBase,
+  listProjects,
+  logout,
+  refreshToken,
+  type HealthInfo,
+  type Project,
+} from "../lib/api";
 import { notifyError } from "../lib/toast";
 import ConfirmDialog from "./ConfirmDialog";
 import {
@@ -18,6 +30,7 @@ import {
   storeToken,
 } from "../lib/auth";
 import { type AppSettings, type ResolvedTheme, loadSettings, resolveTheme, saveSettings } from "../lib/settings";
+import { type LibraryMode, loadMode, saveMode } from "../lib/mode";
 const DEFAULT_REFRESH_SECONDS = 900; // 15 minutes: the access token lifetime
 
 const logoForTheme = (theme: ResolvedTheme) => {
@@ -43,6 +56,16 @@ export default function App() {
   const [assetsVersion, setAssetsVersion] = React.useState(0);
   const [folderId, setFolderId] = React.useState<string | null>(null);
   const [folderVersion, setFolderVersion] = React.useState(0);
+  // Top-level browsing mode, persisted per browser. The two panes are mounted
+  // lazily (on first visit) and then kept mounted, so each mode keeps its own
+  // selection/search/sidebar state while the other is hidden.
+  const [mode, setMode] = React.useState<LibraryMode>(() => loadMode());
+  const [visitedModes, setVisitedModes] = React.useState(() => ({
+    files: mode === "files",
+    projects: mode === "projects",
+  }));
+  const [openProjectId, setOpenProjectId] = React.useState<string | null>(null);
+  const [projects, setProjects] = React.useState<Project[] | null>(null);
   const [health, setHealth] = React.useState<HealthInfo | null>(null);
   const [tokenTtl, setTokenTtl] = React.useState<number | null>(null);
   const [sessionExpired, setSessionExpired] = React.useState(false);
@@ -112,8 +135,54 @@ export default function App() {
 
   const handleSelectFolder = React.useCallback((id: string | null) => {
     setFolderId(id);
+    // Selecting a folder is a files-mode action: Settings' "Scan now" and
+    // folder navigation call this while the projects pane may be active, so
+    // the selection has to bring the files pane back into view.
+    saveMode("files");
+    setMode("files");
+    setVisitedModes(prev => (prev.files ? prev : { ...prev, files: true }));
     setActiveView("library");
   }, []);
+
+  const handleModeChange = React.useCallback((next: LibraryMode) => {
+    saveMode(next);
+    setMode(next);
+    setVisitedModes(prev => (prev[next] ? prev : { ...prev, [next]: true }));
+    setActiveView("library");
+  }, []);
+
+  const handleOpenProject = React.useCallback((id: string) => {
+    setOpenProjectId(id);
+    setActiveView("library");
+  }, []);
+
+  const handleCloseProject = React.useCallback(() => {
+    setOpenProjectId(null);
+  }, []);
+
+  // The project list is App-owned: the sidebar and the project grid both render
+  // from it, and a mutation elsewhere (`assetsVersion`) can change its counts.
+  React.useEffect(() => {
+    if (!visitedModes.projects) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await listProjects();
+        if (!cancelled) setProjects(list);
+      } catch (err) {
+        if (cancelled) return;
+        if (err instanceof UnauthorizedError) {
+          handleUnauthorized();
+          return;
+        }
+        console.error(err);
+        notifyError("Failed to load projects.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [visitedModes.projects, assetsVersion, handleUnauthorized]);
 
   const handleLogout = () => {
     const refresh = readRefreshToken();
@@ -188,17 +257,39 @@ export default function App() {
 
   return (
     <div className="h-screen flex">
-      <Sidebar
-        selectedId={folderId}
-        onSelect={handleSelectFolder}
-        onFoldersChanged={handleFoldersChanged}
-        foldersVersion={folderVersion}
-        onAssetsChanged={handleAssetsChanged}
-        onUnauthorized={handleUnauthorized}
-        onOpenSettings={() => setActiveView("settings")}
-        onOpenAudit={() => setActiveView("audit")}
-        activeView={activeView}
-      />
+      <div className="library-rail">
+        <ModeSwitch mode={mode} onChange={handleModeChange} />
+        {/* `hidden` (the attribute, not a class) keeps the inactive pane mounted
+            so its state survives mode switches. The shared <main> scroller may
+            reset its scroll position on the switch; that is not part of the AC. */}
+        <div hidden={mode !== "files"} className="min-h-0 flex-1">
+          {visitedModes.files && (
+            <Sidebar
+              selectedId={folderId}
+              onSelect={handleSelectFolder}
+              onFoldersChanged={handleFoldersChanged}
+              foldersVersion={folderVersion}
+              onAssetsChanged={handleAssetsChanged}
+              onUnauthorized={handleUnauthorized}
+              onOpenSettings={() => setActiveView("settings")}
+              onOpenAudit={() => setActiveView("audit")}
+              activeView={activeView}
+            />
+          )}
+        </div>
+        <div hidden={mode !== "projects"} className="min-h-0 flex-1">
+          {visitedModes.projects && (
+            <ProjectSidebar
+              projects={projects}
+              selectedId={openProjectId}
+              onSelect={handleOpenProject}
+              activeView={activeView}
+              onOpenSettings={() => setActiveView("settings")}
+              onOpenAudit={() => setActiveView("audit")}
+            />
+          )}
+        </div>
+      </div>
       {/* The asset grid's virtualizer compensates row-height changes itself (see useVirtualRows), so native scroll anchoring must not apply a second adjustment. */}
       <main ref={mainScrollRef} className="flex-1 p-4 overflow-auto" style={{ overflowAnchor: "none" }}>
         {apiUp === false && (
@@ -224,7 +315,8 @@ export default function App() {
             />
           )}
           <div className="flex flex-wrap items-center gap-3">
-            {activeView === "library" ? (
+            {/* Uploads always land in a files folder, so projects mode hides the bar. */}
+            {activeView === "library" && mode === "files" && (
               <UploadBar
                 folderId={folderId}
                 makerworldCookie={settings.makerworld.cookie}
@@ -232,7 +324,8 @@ export default function App() {
                 onUploaded={handleAssetsChanged}
                 onUnauthorized={handleUnauthorized}
               />
-            ) : (
+            )}
+            {activeView !== "library" && (
               <button
                 className="px-3 py-2 rounded-md border border-panel-strong text-sm"
                 onClick={() => setActiveView("library")}
@@ -248,19 +341,41 @@ export default function App() {
             </button>
           </div>
         </header>
-        {activeView === "library" && (
-          <AssetGrid
-            folderId={folderId}
-            foldersVersion={folderVersion}
-            assetsVersion={assetsVersion}
-            onUnauthorized={handleUnauthorized}
-            slicerSettings={settings.slicer}
-            engravingSettings={settings.engraving}
-            previewSettings={settings.previews}
-            theme={resolvedTheme}
-            scrollElementRef={mainScrollRef}
-            onNavigateFolder={handleSelectFolder}
-          />
+        {/* Same lazy-mount rule as the rail: each mode's grid is created on
+            first visit and then stays mounted (only hidden), so search, sort,
+            selection and loaded pages survive a mode switch. */}
+        {activeView === "library" && visitedModes.files && (
+          <div hidden={mode !== "files"}>
+            <AssetGrid
+              folderId={folderId}
+              foldersVersion={folderVersion}
+              assetsVersion={assetsVersion}
+              onUnauthorized={handleUnauthorized}
+              slicerSettings={settings.slicer}
+              engravingSettings={settings.engraving}
+              previewSettings={settings.previews}
+              theme={resolvedTheme}
+              scrollElementRef={mainScrollRef}
+              onNavigateFolder={handleSelectFolder}
+            />
+          </div>
+        )}
+        {activeView === "library" && visitedModes.projects && (
+          <div hidden={mode !== "projects"}>
+            <ProjectView
+              projects={projects}
+              selectedProjectId={openProjectId}
+              onOpenProject={handleOpenProject}
+              onCloseProject={handleCloseProject}
+              assetsVersion={assetsVersion}
+              onUnauthorized={handleUnauthorized}
+              scrollElementRef={mainScrollRef}
+              slicerSettings={settings.slicer}
+              engravingSettings={settings.engraving}
+              previewSettings={settings.previews}
+              theme={resolvedTheme}
+            />
+          </div>
         )}
         {activeView === "settings" && (
           <Settings

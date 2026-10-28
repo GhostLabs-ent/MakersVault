@@ -6,8 +6,11 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 // Every child of App is mocked: these tests only exercise App's session
 // handling (reload refresh + login token storage), never the child UI.
 vi.mock("../lib/api", () => ({
+  UnauthorizedError: class UnauthorizedError extends Error {},
   apiHealth: vi.fn(async () => ({ ok: true, auth_required: true })),
+  fileUrl: vi.fn((rel: string) => rel),
   getApiBase: vi.fn(() => "http://localhost:8000"),
+  listProjects: vi.fn(async () => []),
   logout: vi.fn(async () => {}),
   refreshToken: vi.fn(),
 }));
@@ -27,6 +30,9 @@ vi.mock("../lib/settings", () => ({
 }));
 
 vi.mock("./Sidebar", () => ({ default: () => null }));
+vi.mock("./ModeSwitch", () => ({ default: () => null }));
+vi.mock("./ProjectSidebar", () => ({ default: () => null }));
+vi.mock("./ProjectView", () => ({ default: () => null }));
 vi.mock("./AssetGrid", () => ({ default: () => null }));
 vi.mock("./Settings", () => ({ default: () => null }));
 vi.mock("./AuditLog", () => ({ default: () => null }));
