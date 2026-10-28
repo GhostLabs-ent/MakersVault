@@ -47,6 +47,20 @@ make verify-smoke
 The smoke project is removed with its named volumes on success, failure, or
 interruption. It does not use `makervault/data` and does not open `api/app.db`.
 
+## Fast gate for individual tickets
+
+```bash
+make verify-fast
+```
+
+Runs ruff + pytest (API), eslint + tsc + vitest (web, no production build) and
+`go test ./...` (bridge) on the host toolchains in about a minute. It needs a
+repo-local `.venv` (created with `uv venv --python 3.12 .venv`, then
+`uv pip install -r requirements.lock -r requirements-dev.lock ruff` from
+`makervault/api/`) and `npm ci` once in `makervault/web/`. Use it per ticket,
+then `make verify` once per wave; the full gate is still required per ticket for
+anything touching migrations, Dockerfiles, nginx, compose manifests or locks.
+
 ## Focused verification
 
 ```bash

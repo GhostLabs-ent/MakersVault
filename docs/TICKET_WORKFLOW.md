@@ -51,12 +51,29 @@ cd makervault/api && source /home/mal/fuck_it_ill_do_it_myself/MakersVault/.venv
 cd makervault/web && npm run verify      # eslint + tsc + vitest + vite build
 ```
 
-Full gate before any push (lint in images, API tests, web lint/tsc/vitest/build,
-bridge, compose validation, container smoke, ~4 min):
+**Per ticket: the fast gate (~70 s).** Run before every commit:
 
 ```bash
-make verify
+make verify-fast        # ruff+pytest (api), lint+tsc+vitest (web), go test (bridge)
 ```
+
+It uses a repo-local `.venv` if one exists (`uv venv --python 3.12 .venv` then
+`uv pip install -r makervault/api/requirements.lock -r
+makervault/api/requirements-dev.lock ruff`), otherwise `python3`/`ruff` from
+PATH. The web target needs `npm ci` once per clone.
+
+**Per wave: the full gate (~4 min).** Run once after the last ticket of a batch,
+and per ticket whenever it touches migrations, Dockerfiles, `nginx.conf`, the
+compose manifests or a dependency lockfile — exactly the things the fast gate
+does not cover:
+
+```bash
+make verify             # lint in images, API tests, web build, bridge, compose, container smoke
+```
+
+A wave is not done until the full gate is green; fix forward with a corrective
+commit (oracle commit-gated, ticket ID in the subject) rather than reporting a
+red wave.
 
 CI duplicates the same jobs, so it stays a safety net rather than the only check:
 

@@ -48,8 +48,8 @@ for fast iteration while developing:
 
 - API: `cd makervault/api && source /home/mal/fuck_it_ill_do_it_myself/MakersVault/.venv/bin/activate && ruff check . && python -m pytest -q`
 - Web: `cd makervault/web && npm run verify` (lint + tsc + vitest + build)
-- Push gate: `make verify` (lint, tests, bridge, compose, container smoke, ~4 min)
-- At the end of a batch, confirm CI (duplicates the same jobs):
+- Per-ticket gate: `make verify-fast`; per-wave gate: `make verify` (see policy above)
+- At the end of a batch, confirm CI (duplicates the full jobs):
   `gh workflow run Verify --repo insanemal/MakersVault --ref main`, then
   `gh run list --repo insanemal/MakersVault --limit 1` and
   `gh run view <id> --repo insanemal/MakersVault --json jobs -q '.jobs[] | "\(.name): \(.status)/\(.conclusion)"'`
