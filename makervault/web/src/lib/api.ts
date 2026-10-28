@@ -96,6 +96,8 @@ export type PreparedPrint = {
   nozzle_mm?: number | null;
   layer_height_mm?: number | null;
   estimated_seconds?: number | null;
+  /** Canonical slicer label, or the literal "unknown" when detection failed. */
+  slicer?: string | null;
   format?: string | null;
   removable?: boolean;
 };

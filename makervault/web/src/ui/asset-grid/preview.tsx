@@ -24,6 +24,39 @@ function formatPreparedDuration(totalSeconds?: number | null) {
   ].filter(Boolean).join(" ");
 }
 
+/** Mirrors the backend's literal marker for an undetected slicer. */
+const UNKNOWN_SLICER = "unknown";
+
+function nonEmptyString(value?: string | null) {
+  if (typeof value !== "string") return null;
+  return value.trim() || null;
+}
+
+function preparedTitle(prepared: PreparedPrint) {
+  const printer = nonEmptyString(prepared.printer);
+  return printer ? `Prepared for ${printer}` : "Prepared print";
+}
+
+function preparedSlicer(prepared: PreparedPrint) {
+  const slicer = nonEmptyString(prepared.slicer);
+  if (!slicer || slicer === UNKNOWN_SLICER) return "Unknown slicer";
+  return slicer;
+}
+
+function preparedMaterial(prepared: PreparedPrint) {
+  return nonEmptyString(prepared.material) ?? "Unknown material";
+}
+
+function preparedNozzle(prepared: PreparedPrint) {
+  const nozzle = prepared.nozzle_mm;
+  if (typeof nozzle !== "number" || !Number.isFinite(nozzle)) return "Unknown nozzle";
+  return `${nozzle} mm`;
+}
+
+function preparedTime(prepared: PreparedPrint) {
+  return formatPreparedDuration(prepared.estimated_seconds) ?? "Unknown time";
+}
+
 export function PreparedPrintSummary({
   prepared,
   onClear,
@@ -33,18 +66,19 @@ export function PreparedPrintSummary({
   onClear?: () => void;
   clearing?: boolean;
 }) {
-  const details = [
-    prepared.material,
-    prepared.nozzle_mm ? `${prepared.nozzle_mm} mm` : null,
-    formatPreparedDuration(prepared.estimated_seconds),
-  ].filter(Boolean);
+  // Fixed four-slot layout: missing facts render as placeholders so the line
+  // never reflows when a payload is partially populated.
+  const facts = [
+    preparedSlicer(prepared),
+    preparedMaterial(prepared),
+    preparedNozzle(prepared),
+    preparedTime(prepared),
+  ];
   return (
     <div className="flex items-start justify-between gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-2 text-xs text-emerald-950 dark:text-emerald-100">
       <span>
-        <span className="font-semibold">
-          {prepared.printer ? `Prepared for ${prepared.printer}` : "Prepared print available"}
-        </span>
-        {details.length > 0 && <span> · {details.join(" · ")}</span>}
+        <span className="font-semibold">{preparedTitle(prepared)}</span>
+        <span> · {facts.join(" · ")}</span>
       </span>
       {onClear && (
         <button type="button" className="shrink-0 underline-offset-2 hover:underline disabled:opacity-60" onClick={onClear} disabled={clearing}>

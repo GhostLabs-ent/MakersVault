@@ -440,8 +440,6 @@ def resolve_dir_folder(
 
 def _prepared_metadata(path: Path, filename: str) -> Optional[str]:
     """Best-effort prepared-print metadata; never a reason to fail a row."""
-    if not filename.lower().endswith(".3mf"):
-        return None
     try:
         metadata = inspect_prepared_print(path, filename)
     except Exception:

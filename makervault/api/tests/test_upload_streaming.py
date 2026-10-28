@@ -790,7 +790,15 @@ def test_prepared_inspection_failure_keeps_the_stored_file(
         asset = session.get(Asset, asset_id)
         assert asset is not None
         assert asset.prepared_file_id == row.id
-        assert json.loads(asset.prepared_metadata_json) == {"format": "gcode"}
+        assert json.loads(asset.prepared_metadata_json) == {
+            "printer": None,
+            "material": None,
+            "nozzle_mm": None,
+            "layer_height_mm": None,
+            "estimated_seconds": None,
+            "slicer": "unknown",
+            "format": "gcode",
+        }
     assert incoming_files(isolated_storage) == []
     assert any("inspection failed" in record.getMessage() for record in caplog.records)
 

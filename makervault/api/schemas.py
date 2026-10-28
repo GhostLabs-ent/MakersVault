@@ -66,6 +66,7 @@ class PreparedPrintOut(BaseModel):
   nozzle_mm: Optional[float] = None
   layer_height_mm: Optional[float] = None
   estimated_seconds: Optional[int] = None
+  slicer: str = "unknown"
   format: Optional[str] = None
   removable: bool = False
 

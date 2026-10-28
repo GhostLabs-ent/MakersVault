@@ -6,6 +6,34 @@ from zipfile import BadZipFile, ZipFile
 
 _TEXT_LIMIT = 2 * 1024 * 1024
 _PREPARED_SUFFIXES = (".gcode.3mf", ".gcode", ".gco", ".bgcode")
+_PREPARED_MEMBER_SUFFIXES = (".gcode", ".gco", ".bgcode")
+
+# Labels are checked in this order, so a fork wins over its upstream: Creality
+# Print and OrcaSlicer before Bambu Studio, SuperSlicer before PrusaSlicer, and
+# PrusaSlicer (including Slic3r PE) before Slic3r.
+_SLICER_PATTERNS = (
+    ("Creality Print", re.compile(r"creality[\s_-]*print", re.IGNORECASE)),
+    ("OrcaSlicer", re.compile(r"orca\s*slicer", re.IGNORECASE)),
+    ("Bambu Studio", re.compile(r"bambu[\s_-]*(?:lab[\s_-]*)?studio", re.IGNORECASE)),
+    ("SuperSlicer", re.compile(r"super\s*slicer", re.IGNORECASE)),
+    ("PrusaSlicer", re.compile(r"prusa\s*slicer|slic3r\s*pe", re.IGNORECASE)),
+    ("Slic3r", re.compile(r"slic3r", re.IGNORECASE)),
+    ("Cura", re.compile(r"(?<![a-z])cura(?![a-z])", re.IGNORECASE)),
+    ("Simplify3D", re.compile(r"simplify[\s_-]*3d", re.IGNORECASE)),
+    ("ideaMaker", re.compile(r"idea\s*maker", re.IGNORECASE)),
+    ("KISSlicer", re.compile(r"kiss\s*slicer", re.IGNORECASE)),
+    ("Anycubic Slicer", re.compile(r"anycubic\s*slicer", re.IGNORECASE)),
+    ("Lychee Slicer", re.compile(r"lychee\s*slicer", re.IGNORECASE)),
+    ("Chitubox", re.compile(r"chitubox", re.IGNORECASE)),
+)
+_GENERATED_BY = re.compile(r"generated\s+by\s+([^\r\n;]+)", re.IGNORECASE)
+
+_PRINTER_KEYS = {"printersettingsid", "printermodel", "machinename"}
+_PRINTER_JSON_TOKENS = ("printer_model", "machine_name", "printer_settings_id")
+_MATERIAL_KEYS = {"filamenttype", "materialtype", "printmaterial"}
+_NOZZLE_KEYS = {"nozzlediameter", "extruderdiameter"}
+_LAYER_KEYS = {"layerheight"}
+_TIME_KEYS = {"totalestimatedtime", "modelprintingtime", "time", "prediction", "estimatedtime", "printtime"}
 
 
 def is_prepared_print_filename(filename: str) -> bool:
@@ -20,6 +48,44 @@ def prepared_format(filename: str) -> str:
     if lower.endswith(".bgcode"):
         return "bgcode"
     return "gcode"
+
+
+def prepared_print_stub(filename: str) -> dict:
+    """The complete metadata shape for a prepared file whose facts are unknown.
+
+    A prepared-suffixed file that cannot be parsed still gets this stub, so the
+    caller never has to invent a fallback (and a `.bgcode` stays labelled as
+    such). Only ``slicer`` uses the literal ``"unknown"``; missing facts stay
+    ``None`` because the API schema types require it.
+    """
+    return {
+        "printer": None,
+        "material": None,
+        "nozzle_mm": None,
+        "layer_height_mm": None,
+        "estimated_seconds": None,
+        "slicer": "unknown",
+        "format": prepared_format(filename),
+    }
+
+
+def _normalise_key(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", (value or "").casefold())
+
+
+def _canonical_fact_key(value: str) -> Optional[str]:
+    normalised = _normalise_key(value)
+    if normalised in _PRINTER_KEYS:
+        return "printer"
+    if normalised in _MATERIAL_KEYS:
+        return "material"
+    if normalised in _NOZZLE_KEYS:
+        return "nozzle_mm"
+    if normalised in _LAYER_KEYS:
+        return "layer_height_mm"
+    if normalised in _TIME_KEYS or normalised.startswith("estimatedprintingtime"):
+        return "estimated_seconds"
+    return None
 
 
 def _first_float(value: str) -> Optional[float]:
@@ -64,11 +130,59 @@ def _clean_profile(value: str) -> Optional[str]:
     return aliases.get(cleaned.casefold(), cleaned)
 
 
+def _printable_ascii_only(text: str) -> str:
+    """Keep printable ASCII runs, so binary/compressed payloads cannot match."""
+    return "".join(char for char in text if char in "\t\n\r" or " " <= char <= "~")
+
+
+def _detect_slicer(text: str) -> str:
+    """Return the canonical slicer label, preferring an explicit generator line."""
+    for match in _GENERATED_BY.finditer(text):
+        label = _match_slicer_label(match.group(1))
+        if label:
+            return label
+    return _match_slicer_label(text) or "unknown"
+
+
+def _match_slicer_label(text: str) -> Optional[str]:
+    for label, pattern in _SLICER_PATTERNS:
+        if pattern.search(text):
+            return label
+    return None
+
+
+def _set_fact(metadata: dict, fact: str, value: str) -> None:
+    if metadata.get(fact) is not None or value is None:
+        return
+    if fact == "printer":
+        metadata[fact] = _clean_profile(value)
+    elif fact == "material":
+        metadata[fact] = value.split(";")[0].strip() or None
+    elif fact in {"nozzle_mm", "layer_height_mm"}:
+        metadata[fact] = _first_float(value)
+    else:
+        metadata[fact] = _duration_seconds(value)
+
+
+def _iter_key_values(text: str):
+    """Yield ``(key, value)`` for comment/config lines using ``:``, ``=`` or ``,``.
+
+    G-code headers and slicer config files are both line-oriented, and normalising
+    the key (casefold, keep only alphanumerics) lets one parser accept
+    ``Nozzle diameter``, ``nozzle_diameter`` and ``nozzleDiameter`` alike.
+    """
+    for line in text.splitlines():
+        stripped = re.sub(r"^[\s;#/]+", "", line)
+        match = re.match(r"([^:=,\r\n]{1,120}?)\s*[:=,]\s*(.+?)\s*$", stripped)
+        if match:
+            yield match.group(1).strip(), match.group(2).strip()
+
+
 def _merge_text_metadata(metadata: dict, text: str) -> None:
     attribute_values: dict[str, str] = {}
     for tag in re.findall(r"<[^>]+>", text):
         attrs = dict(re.findall(r"([\w:-]+)\s*=\s*[\"']([^\"']*)[\"']", tag))
-        key = (attrs.get("key") or attrs.get("name") or "").casefold()
+        key = _normalise_key(attrs.get("key") or attrs.get("name") or "")
         value = attrs.get("value")
         if key and value is not None:
             attribute_values[key] = value
@@ -76,61 +190,23 @@ def _merge_text_metadata(metadata: dict, text: str) -> None:
             metadata["material"] = attrs["type"].split(";")[0].strip() or None
 
     for key, value in attribute_values.items():
-        if metadata.get("printer") is None and key in {"printer_model", "printer_settings_id", "machine_name"}:
-            metadata["printer"] = _clean_profile(value)
-        elif metadata.get("material") is None and key in {"filament_type", "material_type"}:
-            metadata["material"] = value.split(";")[0].strip() or None
-        elif metadata.get("nozzle_mm") is None and key == "nozzle_diameter":
-            metadata["nozzle_mm"] = _first_float(value)
-        elif metadata.get("layer_height_mm") is None and key == "layer_height":
-            metadata["layer_height_mm"] = _first_float(value)
-        elif metadata.get("estimated_seconds") is None and key in {"prediction", "estimated_time", "print_time"}:
-            metadata["estimated_seconds"] = _duration_seconds(value)
+        fact = _canonical_fact_key(key)
+        if fact:
+            _set_fact(metadata, fact, value)
 
-    patterns = {
-        "printer": (
-            r"(?im)^\s*;?\s*printer_settings_id\s*[:=]\s*([^\r\n]+)",
-            r"(?im)^\s*;?\s*printer_model\s*[:=]\s*([^\r\n]+)",
-            r"(?im)^\s*;?\s*machine_name\s*[:=]\s*([^\r\n]+)",
-        ),
-        "material": (
-            r"(?im)^\s*;?\s*(?:filament_type|material_type)\s*[:=]\s*([^\r\n]+)",
-        ),
-        "nozzle_mm": (
-            r"(?im)^\s*;?\s*nozzle_diameter\s*[:=]\s*([^\r\n]+)",
-        ),
-        "layer_height_mm": (
-            r"(?im)^\s*;?\s*layer_height\s*[:=]\s*([^\r\n]+)",
-        ),
-        "estimated_seconds": (
-            r"(?im)^\s*;?\s*(?:total estimated time|model printing time|estimated printing time[^:=]*|time)\s*[:=]\s*([^\r\n]+)",
-        ),
-    }
-    for key, candidates in patterns.items():
-        if metadata.get(key) is not None:
-            continue
-        for pattern in candidates:
-            match = re.search(pattern, text)
-            if not match:
-                continue
-            value = match.group(1).strip()
-            if key == "printer":
-                metadata[key] = _clean_profile(value)
-            elif key == "material":
-                metadata[key] = value.split(";")[0].strip() or None
-            elif key in {"nozzle_mm", "layer_height_mm"}:
-                metadata[key] = _first_float(value)
-            else:
-                metadata[key] = _duration_seconds(value)
-            if metadata.get(key) is not None:
-                break
+    for key, value in _iter_key_values(text):
+        fact = _canonical_fact_key(key)
+        if fact:
+            _set_fact(metadata, fact, value)
 
 
-def _merge_json_metadata(metadata: dict, raw: bytes) -> None:
+def _merge_json_metadata(metadata: dict, raw: bytes) -> bool:
     try:
         value = json.loads(raw.decode("utf-8", errors="replace"))
     except (ValueError, UnicodeDecodeError):
-        return
+        return False
+    if not isinstance(value, (dict, list)):
+        return False
 
     flattened: dict[str, object] = {}
 
@@ -147,7 +223,7 @@ def _merge_json_metadata(metadata: dict, raw: bytes) -> None:
     visit(value)
     for key, value in flattened.items():
         text = str(value)
-        if metadata.get("printer") is None and any(token in key for token in ("printer_model", "machine_name")):
+        if metadata.get("printer") is None and any(token in key for token in _PRINTER_JSON_TOKENS):
             metadata["printer"] = _clean_profile(text)
         elif metadata.get("material") is None and any(token in key for token in ("filament_type", "material_type")):
             metadata["material"] = text.split(";")[0].strip() or None
@@ -157,6 +233,16 @@ def _merge_json_metadata(metadata: dict, raw: bytes) -> None:
             metadata["layer_height_mm"] = _first_float(text)
         elif metadata.get("estimated_seconds") is None and any(token in key for token in ("prediction", "estimated_time", "print_time")):
             metadata["estimated_seconds"] = _duration_seconds(text)
+    return True
+
+
+def _merge_member_metadata(metadata: dict, lower_name: str, raw: bytes) -> str:
+    """Merge one 3MF text member; JSON-shaped `.config` files are tried first."""
+    text = raw.decode("utf-8", errors="replace")
+    if lower_name.endswith((".json", ".config")) and _merge_json_metadata(metadata, raw):
+        return text
+    _merge_text_metadata(metadata, text)
+    return text
 
 
 def _read_text_sample(path: Path) -> str:
@@ -175,33 +261,35 @@ def _read_text_sample(path: Path) -> str:
 
 def inspect_prepared_print(path: Path, filename: Optional[str] = None) -> Optional[dict]:
     display_name = filename or path.name
-    metadata = {
-        "printer": None,
-        "material": None,
-        "nozzle_mm": None,
-        "layer_height_mm": None,
-        "estimated_seconds": None,
-        "format": prepared_format(display_name),
-    }
+    lower_name = display_name.lower()
+    metadata = prepared_print_stub(display_name)
+    prepared_suffix = is_prepared_print_filename(display_name)
 
-    is_3mf = display_name.lower().endswith(".3mf")
-    if not is_3mf:
-        if not is_prepared_print_filename(display_name):
+    if not lower_name.endswith(".3mf"):
+        if not prepared_suffix:
             return None
-        _merge_text_metadata(metadata, _read_text_sample(path))
+        text = _read_text_sample(path)
+        if prepared_format(display_name) == "bgcode":
+            text = _printable_ascii_only(text)
+        _merge_text_metadata(metadata, text)
+        metadata["slicer"] = _detect_slicer(text)
         return metadata
 
+    haystack: list[str] = []
     try:
         with ZipFile(path) as archive:
             names = archive.namelist()
             prepared_members = [
                 name for name in names
-                if name.lower().endswith((".gcode", ".gco", ".bgcode"))
+                if name.lower().endswith(_PREPARED_MEMBER_SUFFIXES)
             ]
-            if not prepared_members and not display_name.lower().endswith(".gcode.3mf"):
+            if not prepared_suffix and not prepared_members:
                 return None
-
+            # An embedded payload keeps the container's format, so a slicer is
+            # handed ``name.gcode.3mf`` rather than 3MF bytes named ``name.gcode``.
             metadata["format"] = "gcode_3mf"
+            prepared_member = prepared_members[0] if prepared_members else None
+
             for name in names:
                 lower = name.lower()
                 try:
@@ -210,16 +298,24 @@ def inspect_prepared_print(path: Path, filename: Optional[str] = None) -> Option
                     continue
                 if info.file_size > _TEXT_LIMIT:
                     continue
-                if lower.endswith(".json") and ("metadata/" in lower or "slice" in lower or "plate" in lower):
-                    _merge_json_metadata(metadata, archive.read(info))
-                elif lower.endswith((".config", ".xml", ".txt")) and ("metadata/" in lower or "slice" in lower):
-                    _merge_text_metadata(metadata, archive.read(info).decode("utf-8", errors="replace"))
+                if name == prepared_member:
+                    text = archive.read(info).decode("utf-8", errors="replace")
+                    if lower.endswith(".bgcode"):
+                        text = _printable_ascii_only(text)
+                    _merge_text_metadata(metadata, text)
+                    haystack.append(text)
+                elif lower == "[content_types].xml" or lower.endswith(".model"):
+                    haystack.append(archive.read(info).decode("utf-8", errors="replace"))
+                elif lower.endswith((".json", ".config", ".xml", ".txt")) and (
+                    "metadata/" in lower or "slice" in lower or "plate" in lower
+                ):
+                    haystack.append(_merge_member_metadata(metadata, lower, archive.read(info)))
 
-            for name in prepared_members[:1]:
-                with archive.open(name) as stream:
-                    _merge_text_metadata(metadata, stream.read(_TEXT_LIMIT).decode("utf-8", errors="replace"))
-    except (BadZipFile, KeyError, OSError):
-        return None
+            metadata["slicer"] = _detect_slicer("\n".join(haystack))
+    except (BadZipFile, KeyError, OSError, RuntimeError, ValueError, EOFError):
+        # A prepared-suffixed file keeps a correct format label even when the
+        # archive is corrupt; a plain model 3MF stays unclassified.
+        return metadata if prepared_suffix else None
     return metadata
 
 

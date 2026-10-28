@@ -38,13 +38,37 @@ def thumb_url_for(asset_id: Optional[str]) -> Optional[str]:
     return f"/thumb/{asset_id}.jpg?v={path.stat().st_mtime_ns}"
 
 
+def prepared_print_payload(raw: Optional[str]) -> Optional[dict]:
+    """Normalise stored prepared-print metadata into the seven-key API shape.
+
+    The stored blob is JSON written by an earlier parser, so it may be missing
+    keys or - in a legacy row - be just ``{"format": "gcode"}``. Anything that
+    is not a JSON object is treated as no metadata instead of crashing the
+    serializer on a list/string.
+    """
+    try:
+        parsed = json.loads(raw) if raw else None
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(parsed, dict):
+        return None
+    slicer = parsed.get("slicer")
+    fmt = parsed.get("format")
+    return {
+        "printer": parsed.get("printer"),
+        "material": parsed.get("material"),
+        "nozzle_mm": parsed.get("nozzle_mm"),
+        "layer_height_mm": parsed.get("layer_height_mm"),
+        "estimated_seconds": parsed.get("estimated_seconds"),
+        "slicer": slicer if isinstance(slicer, str) else "unknown",
+        "format": fmt if isinstance(fmt, str) else None,
+    }
+
+
 def to_out(a: Asset) -> AssetOut:
     tags = json.loads(a.tags_json or "[]")
     safe_filename = quote(a.filename or "", safe="")
-    try:
-        prepared = json.loads(a.prepared_metadata_json) if a.prepared_metadata_json else None
-    except (TypeError, ValueError):
-        prepared = None
+    prepared = prepared_print_payload(a.prepared_metadata_json)
     if prepared:
         prepared["removable"] = bool(a.prepared_file_id)
     primary_url = f"/file/{a.id}/{safe_filename}"

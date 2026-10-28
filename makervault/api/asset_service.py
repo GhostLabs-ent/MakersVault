@@ -574,8 +574,8 @@ def ensure_model_thumbnail(asset_id: str, src: Path) -> Optional[str]:
 
 
 def inspect_asset_prepared_print(asset: Asset, src: Optional[Path] = None) -> Optional[dict]:
-    if not (asset.filename or "").lower().endswith(".3mf"):
-        return None
+    # `inspect_prepared_print` self-gates on the filename suffix, so a primary
+    # `.gcode`/`.gco`/`.bgcode` asset keeps its own prepared metadata too.
     candidate = src or managed_asset_path(asset)
     if not candidate.exists() and asset.source_path:
         candidate = Path(asset.source_path)

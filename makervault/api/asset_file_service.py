@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from fastapi import HTTPException
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlmodel import Session, select
 from starlette.concurrency import run_in_threadpool
 
@@ -15,7 +15,7 @@ from db import STORAGE, engine
 from file_utils import mime_from_content_type, sanitize_filename
 from models import Asset, AssetFile
 from multipart_stream import StreamedUpload
-from prepared_print import inspect_prepared_print, is_prepared_print_filename
+from prepared_print import inspect_prepared_print, is_prepared_print_filename, prepared_print_stub
 
 log = logging.getLogger(__name__)
 
@@ -131,7 +131,7 @@ def _store_asset_file(asset_id: str, staged: StreamedUpload, safe_name: str, rol
                     if old_prepared:
                         old_prepared_path = managed_asset_file_path(old_prepared)
                 asset.prepared_file_id = db_record.id
-                asset.prepared_metadata_json = db_record.metadata_json or json.dumps({"format": "gcode"})
+                asset.prepared_metadata_json = db_record.metadata_json or json.dumps(prepared_print_stub(safe_name))
             else:
                 asset.supporting_file_count = int(asset.supporting_file_count or 0) + 1
             session.add(db_record)
@@ -476,7 +476,15 @@ def _prune_bundle_dirs(start: Path) -> None:
 def backfill_prepared_print_metadata() -> None:
     with Session(engine) as session:
         assets = list(session.exec(
-            select(Asset).where(Asset.filename.like("%.3mf"), Asset.prepared_metadata_json == None)  # noqa: E711
+            select(Asset).where(
+                or_(
+                    Asset.filename.like("%.3mf"),
+                    Asset.filename.like("%.gcode"),
+                    Asset.filename.like("%.gco"),
+                    Asset.filename.like("%.bgcode"),
+                ),
+                Asset.prepared_metadata_json == None,  # noqa: E711
+            )
         ))
     for asset in assets:
         from asset_service import managed_asset_path
