@@ -47,7 +47,6 @@ const AssetCard = React.memo(function AssetCard({
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesValue, setNotesValue] = useState(item.notes || "");
   const [creatorValue, setCreatorValue] = useState(item.creator || "");
-  const [collectionValue, setCollectionValue] = useState(item.collection || "");
   const [notesCollapsed, setNotesCollapsed] = useState(true);
   const [renaming, setRenaming] = useState(false);
   const [nameValue, setNameValue] = useState(item.name);
@@ -70,9 +69,8 @@ const AssetCard = React.memo(function AssetCard({
     if (!editingNotes) {
       setNotesValue(item.notes || "");
       setCreatorValue(item.creator || "");
-      setCollectionValue(item.collection || "");
     }
-  }, [item.notes, item.creator, item.collection, editingNotes]);
+  }, [item.notes, item.creator, editingNotes]);
 
   useEffect(() => {
     if (!renaming) {
@@ -172,11 +170,7 @@ const AssetCard = React.memo(function AssetCard({
   };
 
   const saveNotes = async () => {
-    await onSaveDetails(item.id, {
-      notes: notesValue,
-      creator: creatorValue,
-      collection: collectionValue,
-    });
+    await onSaveDetails(item.id, { notes: notesValue, creator: creatorValue });
     setEditingNotes(false);
   };
 
@@ -184,7 +178,6 @@ const AssetCard = React.memo(function AssetCard({
     setEditingNotes(false);
     setNotesValue(item.notes || "");
     setCreatorValue(item.creator || "");
-    setCollectionValue(item.collection || "");
   };
 
   const noteText = (item.notes || "").trim();
@@ -391,7 +384,7 @@ const AssetCard = React.memo(function AssetCard({
         {(item.creator || item.collection) && (
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
             {item.creator && <span>By {item.creator}</span>}
-            {item.collection && <span>Collection: {item.collection}</span>}
+            {item.collection && <span>Collection (legacy): {item.collection}</span>}
           </div>
         )}
         <div className="flex flex-wrap gap-1">
@@ -489,15 +482,6 @@ const AssetCard = React.memo(function AssetCard({
                     />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-[10px] uppercase tracking-wide text-muted">Collection</span>
-                    <input
-                      value={collectionValue}
-                      onChange={e => setCollectionValue(e.target.value)}
-                      className="w-full rounded-md border border-panel-strong bg-panel-soft px-2 py-1.5"
-                      placeholder="Collection name"
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1">
                     <span className="text-[10px] uppercase tracking-wide text-muted">Notes</span>
                   <textarea
                     value={notesValue}
@@ -515,7 +499,9 @@ const AssetCard = React.memo(function AssetCard({
                 <>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div><span className="block text-[10px] uppercase text-muted">Creator</span>{item.creator || "Not set"}</div>
-                    <div><span className="block text-[10px] uppercase text-muted">Collection</span>{item.collection || "Not set"}</div>
+                    {item.collection && (
+                      <div><span className="block text-[10px] uppercase text-muted">Collection (legacy)</span>{item.collection}</div>
+                    )}
                   </div>
                   <div className={`text-sm whitespace-pre-wrap ${noteText ? "text-foreground" : "opacity-60"}`}>
                     {noteText || "Add notes"}

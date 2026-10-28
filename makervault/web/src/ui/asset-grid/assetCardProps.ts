@@ -5,7 +5,7 @@ import type { ConfirmRequest } from "../ConfirmDialog";
 export type AssetCardProps = {
   item: Asset;
   onSaveTags: (id: string, tags: string[]) => void;
-  onSaveDetails: (id: string, payload: { notes: string; creator: string; collection: string }) => void;
+  onSaveDetails: (id: string, payload: { notes: string; creator: string }) => void;
   onRename: (id: string, filename: string) => void;
   onPreview: (asset: Asset | null) => void;
   onDownloadSingle: (asset: Asset) => void;

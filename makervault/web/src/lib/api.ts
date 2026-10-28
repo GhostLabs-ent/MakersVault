@@ -67,6 +67,10 @@ export type Asset = {
   title?: string | null;
   notes?: string | null;
   creator?: string | null;
+  /**
+   * @deprecated Legacy v5.1 metadata, inert since Mf-aoyv and no longer offered
+   * by this client (ADR 0003); still returned by the API for old clients.
+   */
   collection?: string | null;
   tags: string[];
   url: string; // relative to API host
@@ -644,7 +648,6 @@ export async function updateAssetMeta(id: string, payload: {
   title?: string | null;
   notes?: string | null;
   creator?: string | null;
-  collection?: string | null;
 }) {
   const res = await fetch(`${apiBase()}/asset/${id}/meta`, {
     method: "POST",

@@ -144,7 +144,10 @@ export function AssetPreviewModal({ asset, theme, onClose }: { asset: Asset; the
             </p>
             {(asset.creator || asset.collection) && (
               <p className="text-xs text-muted">
-                {[asset.creator ? `By ${asset.creator}` : "", asset.collection ? `Collection: ${asset.collection}` : ""].filter(Boolean).join(" · ")}
+                {[
+                  asset.creator ? `By ${asset.creator}` : null,
+                  asset.collection ? `Collection (legacy): ${asset.collection}` : null,
+                ].filter(Boolean).join(" · ")}
               </p>
             )}
             {asset.prepared_print && (

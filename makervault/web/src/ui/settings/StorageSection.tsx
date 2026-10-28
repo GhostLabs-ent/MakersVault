@@ -64,6 +64,9 @@ export default function StorageSection({ storage, libraryScanState, onUnauthoriz
           <p className="text-sm opacity-70">
             The model name is unique inside its MakerVault folder. Renaming a model also renames its file while preserving the extension.
           </p>
+          <p className="text-sm opacity-70">
+            The legacy <span className="font-mono">{"{collection}"}</span> token still works in saved templates but is no longer offered; use Projects to group files.
+          </p>
         </div>
         <label className="flex flex-col gap-1">
           <span className="text-xs uppercase tracking-wide text-muted">Template</span>

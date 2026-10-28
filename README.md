@@ -324,7 +324,8 @@ In the future there are plans to add support for more websites, but in this curr
 <p>The Model Previews setting offers <strong>Automatic</strong>, <strong>On demand</strong>, and <strong>Disabled</strong> modes. Saved or embedded thumbnails are always displayed. Interactive 3D viewing remains available when card generation is disabled.</p>
 
 <h3>Storage Structure</h3>
-<p>Managed files can be organized with a configurable path template. The default is <code>{folder}/{model}/{filename}</code>. Available tokens include <code>{folder}</code>, <code>{collection}</code>, <code>{tags}</code>, <code>{creator}</code>, <code>{model}</code>, <code>{name}</code>, <code>{filename}</code>, and <code>{id}</code>. The template must contain <code>{filename}</code> in its final path segment.</p>
+<p>Managed files can be organized with a configurable path template. The default is <code>{folder}/{model}/{filename}</code>. The tokens the settings picker offers are <code>{folder}</code>, <code>{tags}</code>, <code>{creator}</code>, <code>{model}</code>, <code>{name}</code>, <code>{filename}</code>, and <code>{id}</code>. The template must contain <code>{filename}</code> in its final path segment.</p>
+<p><code>{collection}</code> is deprecated. Templates that already contain it keep working and render <code>Uncollected</code> for new files, but collections are no longer offered anywhere in the UI; use Projects to group files. Existing managed files are never moved because of this change.</p>
 <p>Model names are unique inside each MakerVault folder. Renaming a model renames the stored file while preserving its extension. Use <strong>Reorganize existing managed files now</strong> to apply a new template to the current library; mounted no-copy files are left in place.</p>
 
 <h2>Imports Settings</h2>

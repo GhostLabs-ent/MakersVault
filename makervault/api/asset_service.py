@@ -45,6 +45,11 @@ _HARDLINK_UNSUPPORTED_ERRNOS = frozenset(
 )
 
 STORAGE_TEMPLATE_TOKENS = ("folder", "collection", "tags", "creator", "model", "name", "filename", "id")
+# Retired from the settings token picker (ADR 0003) but still validated and
+# rendered: an install whose saved template already contains {collection} must
+# keep working, and old clients must keep getting a usable path. Only the
+# advertised list shrinks - never the valid-token set.
+DEPRECATED_STORAGE_TEMPLATE_TOKENS = ("collection",)
 _TOKEN_RE = re.compile(r"\{([a-z_]+)\}")
 _INVALID_SEGMENT_RE = re.compile(r'[<>:"|?*\x00-\x1f]')
 

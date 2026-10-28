@@ -1,6 +1,6 @@
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class AssetCreate(BaseModel):
@@ -85,7 +85,10 @@ class AssetOut(BaseModel):
   title: Optional[str]
   notes: Optional[str]
   creator: Optional[str]
-  collection: Optional[str]
+  collection: Optional[str] = Field(
+    json_schema_extra={"deprecated": True},
+    description="Legacy v5.1 metadata; inert since Mf-aoyv. Use Projects. Kept in responses for old clients.",
+  )
   tags: List[str]
   url: str
   thumb_url: Optional[str]
@@ -220,7 +223,11 @@ class AssetMetaUpdate(BaseModel):
   title: Optional[str] = None
   notes: Optional[str] = None
   creator: Optional[str] = None
-  collection: Optional[str] = None
+  collection: Optional[str] = Field(
+    default=None,
+    json_schema_extra={"deprecated": True},
+    description="Legacy v5.1 metadata; inert since Mf-aoyv. Use Projects. Still accepted so old clients keep working.",
+  )
 
 
 class AssetRename(BaseModel):

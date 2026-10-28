@@ -6,7 +6,12 @@ from fastapi import APIRouter, Depends, Request
 from sqlmodel import Session
 
 import audit
-from asset_service import STORAGE_TEMPLATE_TOKENS, sample_storage_path, validate_storage_template
+from asset_service import (
+    DEPRECATED_STORAGE_TEMPLATE_TOKENS,
+    STORAGE_TEMPLATE_TOKENS,
+    sample_storage_path,
+    validate_storage_template,
+)
 from auth import AuthContext
 from config import MOUNT_IMPORT_COPY, MOUNT_IMPORT_ENABLED, MOUNT_IMPORT_PATH
 from db import engine
@@ -67,7 +72,9 @@ def storage_settings_out(template: str, moved: int = 0, skipped: int = 0) -> Sto
     return StorageSettingsOut(
         template=template,
         default_template=DEFAULT_STORAGE_TEMPLATE,
-        allowed_tokens=list(STORAGE_TEMPLATE_TOKENS),
+        # The valid-token set is deliberately wider than the advertised set:
+        # a saved {collection} template keeps rendering (ADR 0003).
+        allowed_tokens=[t for t in STORAGE_TEMPLATE_TOKENS if t not in DEPRECATED_STORAGE_TEMPLATE_TOKENS],
         sample_path=sample_storage_path(template),
         moved=moved,
         skipped=skipped,

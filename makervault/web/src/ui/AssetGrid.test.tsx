@@ -1496,6 +1496,49 @@ describe("AssetGrid shared dialogs and toasts", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(deletePreparedPrintMock).not.toHaveBeenCalled();
   });
+
+  it("the details editor offers no Collection field and saves only notes and creator", async () => {
+    listAssetsMock.mockResolvedValue({
+      items: [
+        {
+          ...assets[0],
+          notes: "Old notes",
+          creator: "Old creator",
+          collection: "Tabletop",
+        },
+      ],
+      hasMore: false,
+    });
+    updateAssetMetaMock.mockResolvedValue(undefined);
+
+    render(<AssetGrid theme="dark" />);
+    await waitForGrid();
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit details" }));
+
+    // The retired field is neither offered nor echoed back into the form.
+    expect(screen.queryByPlaceholderText("Collection name")).toBeNull();
+    expect(screen.queryByLabelText(/collection/i)).toBeNull();
+    expect(screen.getByLabelText("Creator")).toBeTruthy();
+    expect(screen.getByLabelText("Notes")).toBeTruthy();
+
+    fireEvent.change(screen.getByPlaceholderText("Designer or source"), {
+      target: { value: "New creator" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Add some details about this asset"), {
+      target: { value: "New notes" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(updateAssetMetaMock).toHaveBeenCalledTimes(1));
+    const [id, payload] = updateAssetMetaMock.mock.calls[0];
+    expect(id).toBe("a1");
+    // The exact key set proves the client sends no `collection` at all, so a
+    // stored legacy value can never be clobbered by an empty string.
+    expect(Object.keys(payload as object).sort()).toEqual(["creator", "notes"]);
+    expect(payload).toEqual({ notes: "New notes", creator: "New creator" });
+  });
 });
 
 describe("folder cards", () => {

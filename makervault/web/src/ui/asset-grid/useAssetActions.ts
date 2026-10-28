@@ -56,7 +56,7 @@ export type AssetActionsApi = {
   onSaveTags: (id: string, tags: string[]) => Promise<void>;
   onSaveDetails: (
     id: string,
-    payload: { notes: string; creator: string; collection: string },
+    payload: { notes: string; creator: string },
   ) => Promise<void>;
   onRename: (id: string, name: string) => Promise<void>;
   onMoveFolder: (id: string, folder_id: string | null) => Promise<void>;
@@ -152,7 +152,7 @@ export function useAssetActions({
     }
   });
 
-  const onSaveDetails = useStableCallback(async (id: string, payload: { notes: string; creator: string; collection: string }) => {
+  const onSaveDetails = useStableCallback(async (id: string, payload: { notes: string; creator: string }) => {
     try {
       await updateAssetMeta(id, payload);
       await refresh();

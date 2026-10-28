@@ -21,7 +21,7 @@ from sqlmodel import Session, select
 import asset_service
 import db
 import settings_service
-from asset_service import STORAGE_TEMPLATE_TOKENS
+from asset_service import DEPRECATED_STORAGE_TEMPLATE_TOKENS, STORAGE_TEMPLATE_TOKENS
 from db import engine
 from main import app
 from migrations import run_migrations
@@ -117,7 +117,10 @@ def test_get_returns_template_default_tokens_and_sample(isolated_storage: Path) 
 
     assert body["template"] == settings_service.DEFAULT_STORAGE_TEMPLATE
     assert body["default_template"] == settings_service.DEFAULT_STORAGE_TEMPLATE
-    assert body["allowed_tokens"] == list(STORAGE_TEMPLATE_TOKENS)
+    # ADR 0003 retired `collection` from the picker: the advertised list is the
+    # valid-token set minus the deprecated tokens, and nothing else shrinks.
+    assert body["allowed_tokens"] == [t for t in STORAGE_TEMPLATE_TOKENS if t not in DEPRECATED_STORAGE_TEMPLATE_TOKENS]
+    assert "collection" not in body["allowed_tokens"]
     assert body["sample_path"] == "Props/Workshop/Cable clip/Cable clip.3mf"
     assert body["moved"] == 0
     assert body["skipped"] == 0
@@ -183,6 +186,22 @@ def test_post_rejects_an_invalid_template(isolated_storage: Path, template: str)
         assert response.status_code == 400, response.text
         # The rejected template must not have been stored.
         assert client.get("/settings/storage", headers=headers).json()["template"] == settings_service.DEFAULT_STORAGE_TEMPLATE
+
+
+def test_a_saved_collection_template_keeps_working_though_it_is_not_advertised(isolated_storage: Path) -> None:
+    """Retiring the token from the picker must not break an install that saved it."""
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        response = client.post("/settings/storage", json={"template": "{collection}/{filename}"}, headers=headers)
+        assert response.status_code == 200, response.text
+
+        response = client.get("/settings/storage", headers=headers)
+        assert response.status_code == 200, response.text
+        body = response.json()
+
+    assert body["template"] == "{collection}/{filename}"
+    assert body["sample_path"] == "Tabletop/Cable clip.3mf"
+    assert "collection" not in body["allowed_tokens"]
 
 
 def test_get_still_works_after_a_post(isolated_storage: Path) -> None:

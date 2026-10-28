@@ -193,7 +193,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-006 | `VERIFIED` | Auth is one environment-configured administrator with 12-hour HS256 JWTs. There is no user, role, revocation, or MFA model. | `api/auth.py`, models | Multi-user security is a later dedicated architecture gate. |
 | T-007 | `VERIFIED` | Some file handoffs place bearer material in URLs, including custom-protocol handoff. | API schemas/routes and bridge code | Replace broad reusable bearer URLs with narrow, short-lived grants. |
 | T-008 | `VERIFIED` | The bridge accepts custom protocol input, downloads a URL, caches the result, and launches a local application. | `slicer-bridge` source | The bridge is a workstation trust boundary and needs protocol hardening. |
-| T-009 | `VERIFIED` | Startup uses an ordered, immutable SQLite migration ledger at schema version 6, with dependency locking and fail-closed version/name checks. | `api/migrations.py`, `api/db.py`, API migration tests | Larger model changes must extend this migration mechanism and retain old-database fixtures. |
+| T-009 | `VERIFIED` | Startup uses an ordered, immutable SQLite migration ledger at schema version 7, with dependency locking and fail-closed version/name checks. | `api/migrations.py`, `api/db.py`, API migration tests | Larger model changes must extend this migration mechanism and retain old-database fixtures. |
 | T-010 | `VERIFIED` | Metadata is split between SQLite and filesystem content; updates are not one atomic transaction. | API storage and asset services | File mutations require staging, compensation, and reconciliation. |
 | T-011 | `VERIFIED` | Current records are `Folder`, `Asset`, `AssetFile`, and `AppConfig`; several JSON structures are stored as text. | `api/models.py` | Project/revision work must migrate rather than replace data in place. |
 | T-012 | `VERIFIED` | Managed primary files, thumbnails, and bundles use different storage layouts; no-copy records reference external paths. | asset/file services | Backup completeness and storage invariants must be explicit. |
@@ -205,6 +205,7 @@ be made explicit before deployment boundaries are multiplied.
 | T-018 | `VERIFIED` | Canonical local and production Compose manifests are named; compatibility aliases are tested; generated/runtime artifacts are ignored and absent from Git tracking. | ADR 0001, Compose validation, root `.gitignore`, Gate 0 evidence | Deployment and repository ownership drift is now detectable by the shared harness. |
 | T-019 | `DECIDED` | v5.1 is single-admin; multi-user/MFA/SSO is deferred. | product strategy and v5.1 scope | Security analysis statements that assume v5.1 multi-user are stale. |
 | T-020 | `DECIDED` | v5.1 is a confidence release, not the Project/Revision rewrite. | v5.1 scope | Reliability gates outrank future architecture work. |
+| T-021 | `DECIDED` | Legacy `Asset.collection` metadata is retired from the UI and the API schema but kept for compatibility: no creation path sets it, `{collection}` still validates and renders `Uncollected` for new uploads, stored values remain searchable, and the column is not reused for Projects. | ADR 0003, `api/routers/settings.py`, `api/routers/assets.py`, `api/tests/test_asset_metadata_no_relocate.py` | Grouping assets is Projects' job; schema contraction is deferred per ADR 0002. |
 
 ### 5.4 Current storage invariants
 
@@ -295,7 +296,7 @@ Content identity and logical identity are separate:
 - An `Artifact` is the user's named thing and can change over time.
 - An `ArtifactRevision` records a historical state.
 - An `ArtifactFile` gives content a role and user-facing filename.
-- A folder, collection, and tags organize items; they do not define byte identity.
+- A folder, project, and tags organize items; they do not define byte identity.
 
 Physical content-addressed storage is optional. SHA-256 identity must not force a
 storage-layout migration before it is valuable.
@@ -894,7 +895,7 @@ The initial required ADR queue is:
 6. Content identity and duplicate-suggestion semantics.
 7. Artifact/revision metadata and attachment ownership.
 8. Trash retention and permanent deletion.
-9. Existing-Asset to Project/Artifact migration.
+9. Existing-Asset to Project/Artifact migration. The legacy Asset.collection facet is decided in ADR 0003 (retired with deprecation); the wider migration remains queued.
 10. Portable archive compatibility and encryption boundary.
 11. Multi-user tenancy and authorization model.
 

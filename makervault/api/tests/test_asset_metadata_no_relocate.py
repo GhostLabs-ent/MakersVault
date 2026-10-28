@@ -191,6 +191,42 @@ def test_notes_creator_collection_edit_leaves_bytes_alone(isolated_storage: Path
     assert (storage / "Somewhere" / "model.stl").read_bytes() == b"original bytes"
 
 
+def test_notes_edit_without_collection_keeps_the_stored_value(isolated_storage: Path) -> None:
+    """Old clients that never learned about `collection` must not erase it."""
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        asset_id = insert_asset_row("Described model", None, "Somewhere/model.stl")
+        write_placeholder_file(isolated_storage / "Somewhere" / "model.stl", b"original bytes")
+        assert (
+            client.post(f"/asset/{asset_id}/meta", json={"collection": "Tabletop"}, headers=headers).status_code == 200
+        )
+
+        # An unrelated edit with no `collection` key leaves the value alone.
+        response = client.post(f"/asset/{asset_id}/meta", json={"notes": "a later note"}, headers=headers)
+        assert response.status_code == 200, response.text
+        assert response.json()["notes"] == "a later note"
+        assert response.json()["collection"] == "Tabletop"
+
+    assert read_asset(asset_id).collection == "Tabletop"
+
+
+def test_blank_collection_clears_the_field(isolated_storage: Path) -> None:
+    """The documented `strip() or None` contract: a blank string is a clear."""
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        asset_id = insert_asset_row("Described model", None, "Somewhere/model.stl")
+        write_placeholder_file(isolated_storage / "Somewhere" / "model.stl", b"original bytes")
+        assert (
+            client.post(f"/asset/{asset_id}/meta", json={"collection": "Tabletop"}, headers=headers).status_code == 200
+        )
+
+        response = client.post(f"/asset/{asset_id}/meta", json={"collection": "   "}, headers=headers)
+        assert response.status_code == 200, response.text
+        assert response.json()["collection"] is None
+
+    assert read_asset(asset_id).collection is None
+
+
 def test_explicit_rename_moves_only_the_basename(isolated_storage: Path) -> None:
     storage = isolated_storage
     with TestClient(app) as client:

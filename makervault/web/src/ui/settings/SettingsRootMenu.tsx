@@ -53,7 +53,7 @@ export default function SettingsRootMenu({ onOpen }: Props) {
       >
         <div className="text-xs uppercase tracking-wide text-muted">Files</div>
         <div className="text-lg font-semibold">Storage Structure</div>
-        <div className="text-sm opacity-70">Organize files with folders, model names, creators, tags, and collections.</div>
+        <div className="text-sm opacity-70">Organize files with folders, model names, creators, and tags. Use Projects to group files.</div>
       </button>
       <button
         className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
