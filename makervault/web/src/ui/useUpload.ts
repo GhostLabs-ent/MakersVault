@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 
 import { dismissToast, notifyError, notifyInfo } from "../lib/toast";
 import { uploadEntriesToFolder, type UploadEntry } from "../lib/uploadTree";
-import { buildUploadEntriesFromZip, isZipFile, readZipEntries } from "../lib/zipUtils";
+import { splitZipEntries, uploadViaZipPrompts } from "./uploadZipFlow";
 import { useZipImportPrompt, type ZipPromptConfig } from "./ZipImportModal";
 
 export type UploadOutcome = {
@@ -47,8 +47,7 @@ export function useUpload(options: Options): Uploader {
     if (!entries.length) return { uploaded: 0, failed: [], failedEntries: [], cancelled: 0 };
     // Per-call override wins: a sidebar drag targets the folder it was dropped on.
     const effectiveFolderId = requestOptions?.folderId ?? folderId ?? null;
-    const normalEntries = entries.filter(entry => !isZipFile(entry.file.name));
-    const zipEntries = entries.filter(entry => isZipFile(entry.file.name));
+    const { normal, zips } = splitZipEntries(entries);
     let uploaded = 0;
     let cancelled = 0;
     const failed: string[] = [];
@@ -62,34 +61,12 @@ export function useUpload(options: Options): Uploader {
 
     setUploading(true);
     try {
-      if (normalEntries.length) {
-        applyResult(await uploadEntriesToFolder(normalEntries, effectiveFolderId, onUnauthorized));
+      if (normal.length) {
+        applyResult(await uploadEntriesToFolder(normal, effectiveFolderId, onUnauthorized));
       }
-      for (const entry of zipEntries) {
-        let zipData: Record<string, Uint8Array> | null = null;
-        const baseParts = entry.relativePath.split("/").filter(Boolean);
-        baseParts.pop();
-        const basePath = baseParts.join("/");
-        await prompt.prompt({
-          label: entry.file.name,
-          onImportAsZip: async () => {
-            applyResult(await uploadEntriesToFolder([entry], effectiveFolderId, onUnauthorized));
-          },
-          loadEntries: async () => {
-            const result = await readZipEntries(entry.file);
-            zipData = result.data;
-            return result.entries;
-          },
-          onImportSelected: async (selectedPaths: string[]) => {
-            if (!zipData) {
-              const result = await readZipEntries(entry.file);
-              zipData = result.data;
-            }
-            const unzipEntries = buildUploadEntriesFromZip(zipData || {}, selectedPaths, basePath);
-            applyResult(await uploadEntriesToFolder(unzipEntries, effectiveFolderId, onUnauthorized));
-          },
-        });
-      }
+      await uploadViaZipPrompts(zips, prompt.prompt, async batch => {
+        applyResult(await uploadEntriesToFolder(batch, effectiveFolderId, onUnauthorized));
+      });
 
       if (uploaded > 0) await onUploaded?.({ uploaded });
       if (failedEntries.length > 0) {

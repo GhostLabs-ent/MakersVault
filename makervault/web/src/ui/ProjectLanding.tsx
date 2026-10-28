@@ -54,6 +54,9 @@ import {
 } from "../lib/settings";
 import { notifyError, notifyInfo } from "../lib/toast";
 import ConfirmDialog, { type ConfirmRequest } from "./ConfirmDialog";
+import AttachFilesControl from "./project-attach/AttachFilesControl";
+import { useAttachDrop } from "./project-attach/useAttachDrop";
+import { useAttachToProject } from "./project-attach/useAttachToProject";
 import Markdown from "./Markdown";
 import MarkdownEditor from "./project-editor/MarkdownEditor";
 import TagBadge from "./TagBadge";
@@ -189,6 +192,17 @@ export default function ProjectLanding({
     },
     [onUnauthorized],
   );
+
+  // --- Attaching the user's own files -------------------------------------
+
+  const attacher = useAttachToProject({
+    projectId: project.id,
+    projectName: project.name,
+    // `onAssetsChanged` bumps `assetsVersion`, which refetches the members.
+    onAttached: onAssetsChanged,
+    onUnauthorized,
+  });
+  const attachDrop = useAttachDrop(attacher.attach);
 
   // --- Members (the project's files) --------------------------------------
 
@@ -531,6 +545,12 @@ export default function ProjectLanding({
     // An open dialog owns Escape (ConfirmDialog and the add-files picker close
     // themselves); ProjectView also ignores events from inside dialogs.
     if ((event.target as Element | null)?.closest?.('[role="dialog"]')) return;
+    if (attacher.busy) {
+      // An attach gesture owns Escape too. The shared zip prompt has no Escape
+      // handler of its own, so closing the project under it would strand it.
+      event.preventDefault();
+      return;
+    }
     if (draft) {
       // Escape while editing must never bubble up as "close the project":
       // ProjectView bails on `defaultPrevented`.
@@ -1025,30 +1045,50 @@ export default function ProjectLanding({
         )}
       </section>
 
-      <section aria-labelledby="project-files-heading" className="min-w-0">
+      <section
+        aria-labelledby="project-files-heading"
+        className={`min-w-0 rounded-lg border-2 ${attachDrop.dragActive ? "border-dashed border-accent" : "border-transparent"}`}
+        onDragEnter={attachDrop.handleDragEnter}
+        onDragOver={attachDrop.handleDragOver}
+        onDragLeave={attachDrop.handleDragLeave}
+        onDrop={e => void attachDrop.handleDrop(e)}
+      >
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 id="project-files-heading" className={EYEBROW}>
             Files
           </h2>
-          {membersHasMore && (
-            <span className="text-xs text-muted">
-              Showing {members.length} of {project.asset_count}
-            </span>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {membersHasMore && (
+              <span className="text-xs text-muted">
+                Showing {members.length} of {project.asset_count}
+              </span>
+            )}
+            {/* One control only: the empty state shows its own, below. */}
+            {members.length > 0 && <AttachFilesControl attacher={attacher} />}
+          </div>
         </div>
+
+        {attachDrop.dragActive && (
+          <p className="mt-2 text-sm text-accent">
+            Drop files or a folder to attach them to this project
+          </p>
+        )}
 
         {membersLoading ? (
           <p className="mt-2 text-sm text-muted">Loading files…</p>
         ) : members.length === 0 ? (
           <div className="mt-2 rounded-lg border border-dashed border-panel-strong px-4 py-8 text-center">
             <p className="text-sm text-muted">This project has no files yet.</p>
-            <button
-              type="button"
-              className={`mt-2 text-sm font-semibold text-accent hover:underline ${FOCUS_VISIBLE}`}
-              onClick={() => void openPicker()}
-            >
-              Add files
-            </button>
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                className={`text-sm font-semibold text-accent hover:underline ${FOCUS_VISIBLE}`}
+                onClick={() => void openPicker()}
+              >
+                Add files
+              </button>
+              <AttachFilesControl attacher={attacher} />
+            </div>
           </div>
         ) : (
           <>

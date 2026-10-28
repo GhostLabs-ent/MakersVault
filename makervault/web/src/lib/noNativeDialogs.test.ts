@@ -78,7 +78,8 @@ describe("no native dialogs", () => {
         read(file).includes("useZipImportPrompt"),
     );
 
-    expect(consumers).toEqual(["ui/useUpload.ts"]);
+    // The prompt is one shared hook; only the upload flows may consume it.
+    expect(consumers).toEqual(["ui/project-attach/useAttachToProject.ts", "ui/useUpload.ts"]);
   });
 
   it("scans the real source tree (never passes on an empty file list)", () => {

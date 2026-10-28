@@ -18,6 +18,7 @@ vi.mock("../lib/api", () => ({
   renderFileUrl: vi.fn((src: string | undefined) => src),
   stableFileUrl: vi.fn((rel: string) => `/api${rel}`),
   updateProject: vi.fn(),
+  uploadAsset: vi.fn(),
   uploadAssetFile: vi.fn(),
 }));
 
@@ -35,6 +36,7 @@ import {
   listProjectAssets,
   removeProjectAssets,
   updateProject,
+  uploadAsset,
   uploadAssetFile,
 } from "../lib/api";
 import { saveResponseToDisk } from "../lib/download";
@@ -48,6 +50,7 @@ const listAssetsMock = vi.mocked(listAssets);
 const listProjectAssetsMock = vi.mocked(listProjectAssets);
 const removeProjectAssetsMock = vi.mocked(removeProjectAssets);
 const updateProjectMock = vi.mocked(updateProject);
+const uploadAssetMock = vi.mocked(uploadAsset);
 const uploadAssetFileMock = vi.mocked(uploadAssetFile);
 const saveResponseToDiskMock = vi.mocked(saveResponseToDisk);
 
@@ -151,6 +154,9 @@ beforeEach(() => {
   );
   removeProjectAssetsMock.mockResolvedValue({ removed: [], skipped: [], failed: [] });
   addProjectAssetsMock.mockResolvedValue({ added: [], skipped: [], failed: [] });
+  uploadAssetMock.mockImplementation(async (uploadedFile: File) =>
+    makeAsset({ id: "new1", name: "Widget", filename: uploadedFile.name, size: uploadedFile.size }),
+  );
   uploadAssetFileMock.mockImplementation(async id => makeAsset({ id }));
 });
 
@@ -698,5 +704,98 @@ describe("ProjectLanding unsaved changes", () => {
     expect(screen.queryByRole("dialog", { name: "Discard changes?" })).toBeNull();
     expect(screen.queryByRole("textbox", { name: "Description" })).toBeNull();
     expect(updateProjectMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("ProjectLanding attach-own-files", () => {
+  it("renders the attach controls and a folder input that carries webkitdirectory", async () => {
+    renderLanding();
+    await screen.findByText("Body");
+
+    expect(screen.getByRole("button", { name: "Attach files" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Attach folder" })).toBeTruthy();
+    const folderInput = screen.getByTestId("attach-folder-input");
+    expect(folderInput.hasAttribute("webkitdirectory")).toBe(true);
+  });
+
+  it("uploads a picked file to the root storage and adds its id to the project", async () => {
+    const onAssetsChanged = vi.fn();
+    addProjectAssetsMock.mockImplementation(async (_projectId, assetIds) => ({
+      added: [...assetIds],
+      skipped: [],
+      failed: [],
+    }));
+    renderLanding({ onAssetsChanged });
+    await screen.findByText("Body");
+
+    const picked = new File(["cube"], "widget.stl", { type: "model/stl" });
+    fireEvent.change(screen.getByTestId("attach-files-input"), { target: { files: [picked] } });
+
+    await waitFor(() => expect(addProjectAssetsMock).toHaveBeenCalledWith("p1", ["new1"]));
+    expect(uploadAssetMock).toHaveBeenCalledTimes(1);
+    expect((uploadAssetMock.mock.calls[0][0] as File).name).toBe("widget.stl");
+    // No `folder_id`: attaching keeps the file in normal managed storage.
+    expect(uploadAssetMock.mock.calls[0][1]).toEqual({});
+    await waitFor(() => expect(onAssetsChanged).toHaveBeenCalledTimes(1));
+    expect(getToasts().some(toast => /Attached 1 file to "Hydra"/.test(toast.message))).toBe(true);
+  });
+
+  it("attaches a file dropped anywhere on the Files section", async () => {
+    addProjectAssetsMock.mockImplementation(async (_projectId, assetIds) => ({
+      added: [...assetIds],
+      skipped: [],
+      failed: [],
+    }));
+    renderLanding();
+    await screen.findByText("Body");
+
+    const section = screen.getByRole("heading", { name: "Files" }).closest("section");
+    if (!section) throw new Error("missing Files section");
+    const dataTransfer = {
+      types: ["Files"],
+      files: [new File(["cube"], "dropped.stl", { type: "model/stl" })],
+      items: [],
+    };
+
+    fireEvent.dragEnter(section, { dataTransfer });
+    expect(screen.getByText(/Drop files or a folder to attach/)).toBeTruthy();
+
+    fireEvent.drop(section, { dataTransfer });
+
+    await waitFor(() => expect(addProjectAssetsMock).toHaveBeenCalledWith("p1", ["new1"]));
+    expect((uploadAssetMock.mock.calls[0][0] as File).name).toBe("dropped.stl");
+  });
+
+  it("still offers the attach controls when the project has no files", async () => {
+    listProjectAssetsMock.mockResolvedValue({ items: [], hasMore: false });
+    renderLanding({ project: makeProject({ asset_count: 0 }) });
+
+    await screen.findByText("This project has no files yet.");
+    // The hero action and the empty state both offer the library picker.
+    expect(screen.getAllByRole("button", { name: "Add files" }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Attach files" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Attach folder" })).toBeTruthy();
+  });
+});
+
+describe("ProjectLanding attach escape guard", () => {
+  it("keeps the project open while the attach zip prompt is open", async () => {
+    const seenOnDocument: boolean[] = [];
+    document.addEventListener("keydown", event => seenOnDocument.push(event.defaultPrevented));
+    renderLanding();
+    await screen.findByText("Body");
+
+    fireEvent.change(screen.getByTestId("attach-files-input"), {
+      target: { files: [new File(["zip-bytes"], "pack.zip")] },
+    });
+    const choice = await screen.findByRole("button", { name: "Import and unzip" });
+
+    // The shared zip prompt has no Escape handler, so ProjectLanding has to keep
+    // the project from closing under it.
+    fireEvent.keyDown(choice, { key: "Escape" });
+
+    expect(seenOnDocument).toContain(true);
+    expect(screen.getByRole("heading", { level: 1, name: "Hydra" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Import and unzip" })).toBeTruthy();
   });
 });
