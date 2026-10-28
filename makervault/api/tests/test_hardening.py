@@ -114,6 +114,9 @@ def test_sqlite_uses_wal_and_busy_timeout():
     with engine.connect() as conn:
         assert conn.exec_driver_sql("PRAGMA journal_mode").scalar().lower() == "wal"
         assert conn.exec_driver_sql("PRAGMA busy_timeout").scalar() == 10000
+        # migration 007 relies on FK enforcement, so every pooled connection
+        # must have it on, not just the one that happened to write last
+        assert conn.exec_driver_sql("PRAGMA foreign_keys").scalar() == 1
 
 
 # --- M2: session cookies must not leak to look-alike domains -----------------

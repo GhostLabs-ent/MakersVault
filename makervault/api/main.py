@@ -13,7 +13,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Quer
 from fastapi.responses import FileResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session, select
+from sqlmodel import Session, delete, select
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import ClientDisconnect
 
@@ -657,10 +657,15 @@ def delete_asset_row_only(asset_id: str) -> None:
 
     ``cleanup_asset`` unlinks ``managed_asset_path(row)``, which is exactly the
     wrong move when a no-clobber move found a foreign file already at that path.
+    Migration 007 enforces foreign keys, so the dependent ``AssetFile`` rows are
+    deleted first, with the asset row, in the same transaction; their stored
+    bytes are deliberately left alone because the foreign file at the managed
+    path is not ours to remove.
     """
     with Session(engine) as session:
         asset = session.get(Asset, asset_id)
         if asset:
+            session.exec(delete(AssetFile).where(AssetFile.asset_id == asset_id))
             session.delete(asset)
             session.commit()
     try:

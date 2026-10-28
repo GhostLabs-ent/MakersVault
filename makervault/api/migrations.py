@@ -420,6 +420,67 @@ def _migration_006_audit_log(conn: Connection) -> None:
     )
 
 
+def _migration_007_projects(conn: Connection) -> None:
+    """Add projects and their asset memberships (append-only, DB-only).
+
+    No file is created, moved, renamed or deleted. `created_at`/`updated_at`/
+    `added_at` are ISO-8601 UTC text written by Python via
+    `datetime.now(timezone.utc).isoformat(timespec="microseconds")`: one
+    canonical format keeps ordering lexicographic, exactly like `audit_events`.
+    The `origin` and `role` CHECK lists are closed on purpose - adding a value
+    later means a new migration. `idx_project_name_unique` is case-insensitive,
+    so `PLA` and `pla` are the same project and no second non-unique NOCASE
+    index is needed. `owner_id` is declared now, NULL until Mf-19is fills it, so
+    that ticket does not have to rebuild the table; `ON DELETE SET NULL` matches
+    the rule that project rows survive their owner's deletion.
+
+    The orphan sweep exists because 007 is the migration that turns on
+    `PRAGMA foreign_keys` in the API engine: `assetfile` rows whose asset is
+    already gone were tolerated by the old connection default and would fail
+    every later `asset` delete. It is a plain DELETE, so it behaves identically
+    with the pragma on or off. `IF NOT EXISTS` on every object keeps a re-applied
+    007 harmless, like 004-006.
+    """
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS project (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            name VARCHAR NOT NULL,
+            description TEXT,
+            creator VARCHAR,
+            source_url VARCHAR,
+            licence VARCHAR,
+            licence_url VARCHAR,
+            origin VARCHAR NOT NULL DEFAULT 'own' CHECK (origin IN ('own', 'imported')),
+            cover_asset_id VARCHAR REFERENCES asset(id) ON DELETE SET NULL,
+            owner_id VARCHAR REFERENCES users(id) ON DELETE SET NULL,
+            metadata_json TEXT NOT NULL DEFAULT '{}',
+            created_at VARCHAR NOT NULL,
+            updated_at VARCHAR NOT NULL
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_project_name_unique ON project(name COLLATE NOCASE)"
+    )
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS project_asset (
+            project_id VARCHAR NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+            asset_id VARCHAR NOT NULL REFERENCES asset(id) ON DELETE CASCADE,
+            role VARCHAR NOT NULL DEFAULT 'member'
+                CHECK (role IN ('member', 'primary', 'preview', 'supporting')),
+            position INTEGER NOT NULL DEFAULT 0,
+            added_at VARCHAR NOT NULL,
+            PRIMARY KEY (project_id, asset_id)
+        )
+        """
+    )
+    conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS idx_project_asset_asset_id ON project_asset(asset_id)")
+    result = conn.exec_driver_sql("DELETE FROM assetfile WHERE asset_id NOT IN (SELECT id FROM asset)")
+    print(f"[migration-007] removed {result.rowcount} orphaned assetfile row(s)")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
@@ -427,6 +488,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(4, "folder_identity_and_reference_flags", _migration_004_folder_identity_and_reference_flags),
     Migration(5, "users_and_sessions", _migration_005_users_and_sessions),
     Migration(6, "audit_log", _migration_006_audit_log),
+    Migration(7, "projects", _migration_007_projects),
 )
 
 

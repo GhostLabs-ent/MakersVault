@@ -98,3 +98,32 @@ class AuditEvent(SQLModel, table=True):
   request_id: str
   method: str
   path: str
+
+
+# project and project_asset are created by migration 007; these classes only
+# describe them for typed queries and must never create tables (nothing in this
+# app calls create_all).
+class Project(SQLModel, table=True):
+  __tablename__ = "project"
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  name: str
+  description: Optional[str] = None
+  creator: Optional[str] = None
+  source_url: Optional[str] = None
+  licence: Optional[str] = None
+  licence_url: Optional[str] = None
+  origin: str = Field(default="own")
+  cover_asset_id: Optional[str] = Field(default=None, foreign_key="asset.id")
+  owner_id: Optional[str] = Field(default=None, foreign_key="users.id")
+  metadata_json: str = Field(default="{}")
+  created_at: str
+  updated_at: str
+
+
+class ProjectAsset(SQLModel, table=True):
+  __tablename__ = "project_asset"
+  project_id: str = Field(primary_key=True, foreign_key="project.id")
+  asset_id: str = Field(primary_key=True, foreign_key="asset.id", index=True)
+  role: str = Field(default="member")
+  position: int = Field(default=0)
+  added_at: str

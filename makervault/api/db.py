@@ -20,7 +20,11 @@ if DB_URL.startswith("sqlite"):
 
         WAL lets readers proceed while a writer commits; busy_timeout makes the
         background backfill threads and request handlers queue instead of
-        raising OperationalError when they collide.
+        raising OperationalError when they collide. foreign_keys is per
+        connection, so it must live here: this API engine is the only writer by
+        design, and an external tool that connects without this listener gets no
+        enforcement at all. It cannot go in a startup PRAGMA statement because
+        SQLite silently ignores `PRAGMA foreign_keys` inside a transaction.
         """
         cursor = dbapi_connection.cursor()
         try:
@@ -28,5 +32,6 @@ if DB_URL.startswith("sqlite"):
                 cursor.execute("PRAGMA journal_mode=WAL")
             cursor.execute("PRAGMA busy_timeout=10000")
             cursor.execute("PRAGMA synchronous=NORMAL")
+            cursor.execute("PRAGMA foreign_keys=ON")
         finally:
             cursor.close()

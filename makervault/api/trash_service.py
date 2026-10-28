@@ -45,7 +45,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from fastapi import HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session, delete, select
 
 import audit
 import db
@@ -300,14 +300,17 @@ def _undo_moves(moves: list[tuple[Path, Path]]) -> None:
 def _delete_rows(session: Session, assets: List[Asset], subtree: List[Folder]) -> None:
     """Stage the row deletes: asset files, assets, then folders children-first.
 
-    ``AssetFile`` rows go first so no dangling reference survives the asset
-    delete. Folders are removed in reverse breadth-first order, which is
-    children before their parents.
+    The ``AssetFile`` delete is a single Core statement rather than per-row
+    ``session.delete`` calls: since migration 007 enforces foreign keys, the
+    asset rows may only go after their files, and the ORM orders deletes by
+    declared relationships (there are none here), not by raw foreign keys. The
+    statement runs before any asset delete is staged, so no autoflush can flush
+    an asset delete ahead of it. Folders are removed in reverse breadth-first
+    order, which is children before their parents.
     """
     if assets:
         asset_ids = [asset.id for asset in assets]
-        for row in session.exec(select(AssetFile).where(AssetFile.asset_id.in_(asset_ids))):
-            session.delete(row)
+        session.execute(delete(AssetFile).where(AssetFile.asset_id.in_(asset_ids)))
         for asset in assets:
             session.delete(asset)
     for node in reversed(subtree):

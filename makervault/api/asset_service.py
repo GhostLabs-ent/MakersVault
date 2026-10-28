@@ -639,11 +639,23 @@ def finalize_asset_record(asset_id: str, size: int, mime: Optional[str] = None) 
 
 
 def cleanup_asset(asset_id: str) -> None:
+    """Remove a row created by a failed upload and best-effort its bytes.
+
+    The dependent ``AssetFile`` rows go first: migration 007 turns on
+    ``PRAGMA foreign_keys``, so an asset row with remaining children would now
+    fail the delete instead of orphaning them. The unlink/prune afterwards stays
+    best-effort for the same reason as ``delete_asset_permanently`` - bytes that
+    cannot be removed must not keep the row alive.
+    """
     managed_path: Optional[Path] = None
     with Session(engine) as s:
         a = s.get(Asset, asset_id)
         if a:
             managed_path = managed_asset_path(a)
+    delete_all_asset_files(asset_id)
+    with Session(engine) as s:
+        a = s.get(Asset, asset_id)
+        if a:
             s.delete(a)
             s.commit()
     try:

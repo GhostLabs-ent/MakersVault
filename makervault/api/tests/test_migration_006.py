@@ -84,10 +84,11 @@ def insert_event(conn: Connection, event_id: str) -> None:
 def test_fresh_database_reaches_v6(tmp_path: Path) -> None:
     database_engine = sqlite_engine(tmp_path / "fresh.db")
 
-    assert run_migrations(database_engine) == MIGRATIONS[-1].version
-    assert MIGRATIONS[-1].version == 6
-    assert MIGRATIONS[-1].name == "audit_log"
+    assert run_migrations(database_engine, MIGRATIONS[:6]) == 6
+    assert MIGRATIONS[5].version == 6
+    assert MIGRATIONS[5].name == "audit_log"
     assert applied_migrations(database_engine)[6] == "audit_log"
+    assert 7 not in applied_migrations(database_engine)
     assert table_columns(database_engine, "audit_events") == AUDIT_COLUMNS
     assert NEW_INDEXES.issubset(object_names(database_engine, "index"))
     assert NEW_TRIGGERS.issubset(object_names(database_engine, "trigger"))
