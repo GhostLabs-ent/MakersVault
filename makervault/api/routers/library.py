@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 import audit
 import seams
 from auth import AuthContext
-from permissions import require_admin, require_read
+from permissions import require_read, require_write
 from schemas import LibraryScanStatusOut
 
 router = APIRouter()
@@ -19,7 +19,7 @@ def library_scan_status(_: Optional[AuthContext] = Depends(require_read)):
 
 
 @router.post("/library/scan", response_model=LibraryScanStatusOut, status_code=202)
-def library_scan_start(request: Request, context: Optional[AuthContext] = Depends(require_admin)):
+def library_scan_start(request: Request, context: Optional[AuthContext] = Depends(require_write)):
     if not seams.start_scan():
         raise HTTPException(status_code=409, detail="A library scan is already running")
     # The scan has no DB row to join: fail-loud, and the log line explains why a

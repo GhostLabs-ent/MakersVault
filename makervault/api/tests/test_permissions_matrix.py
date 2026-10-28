@@ -830,7 +830,7 @@ def test_the_matrix_is_the_documented_size() -> None:
     """The matrix is pinned at 55 routes; a new route means updating this and docs/PERMISSIONS.md."""
     counts = {level: len(keys_at(level)) for level in (permissions.PUBLIC, permissions.READ, permissions.WRITE, permissions.ADMIN)}
     assert len(permissions.ROUTE_PERMISSIONS) == 55, counts
-    assert counts == {permissions.PUBLIC: 4, permissions.READ: 16, permissions.WRITE: 25, permissions.ADMIN: 10}, counts
+    assert counts == {permissions.PUBLIC: 4, permissions.READ: 16, permissions.WRITE: 26, permissions.ADMIN: 9}, counts
 
 
 def test_every_guarded_route_has_a_call_spec() -> None:
@@ -940,6 +940,27 @@ def test_admin_is_never_denied(client, ids, admin_headers, key, monkeypatch) -> 
     expected = EXPECTED_STATUS.get(key)
     if expected is not None:
         assert response.status_code == expected, f"{route_id(key)} answered {response.status_code}: {response.text}"
+
+
+def test_starting_a_scan_is_editor_work(client, ids, editor_headers, viewer_headers, monkeypatch) -> None:
+    """`POST /library/scan` is write, not admin: the missing-file banner offers it.
+
+    This guards the re-scan affordance: the asset grid's "Re-scan" button calls
+    the POST, so classifying it as admin turns an offered action into a 403 for
+    every editor. The GET stays read because every client polls the status. The
+    audit event on the POST is covered by `test_audit_log.py`.
+    """
+    key = ("POST", "/library/scan")
+    assert permissions.ROUTE_PERMISSIONS[key] == permissions.WRITE
+    assert permissions.ROUTE_PERMISSIONS[("GET", "/library/scan")] == permissions.READ
+
+    from_editor = call(key, client, editor_headers, ids, monkeypatch)
+    assert from_editor.status_code != 403, f"an editor was refused the scan they are offered: {from_editor.text}"
+    assert from_editor.status_code == EXPECTED_STATUS[key], f"{route_id(key)} answered {from_editor.status_code}: {from_editor.text}"
+
+    from_viewer = call(key, client, viewer_headers, ids, monkeypatch)
+    assert from_viewer.status_code == 403, f"a viewer started a scan: {from_viewer.status_code} {from_viewer.text}"
+    assert from_viewer.json()["detail"] == permissions.DENY_DETAIL[permissions.WRITE]
 
 
 def test_every_route_has_an_expectation_or_a_documented_reason() -> None:
