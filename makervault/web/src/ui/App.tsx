@@ -1,12 +1,12 @@
 import React from "react";
 import UploadBar from "./UploadBar";
-import AssetGrid from "./AssetGrid";
+import AssetGrid from "./asset-grid/AssetGrid";
 import Sidebar from "./Sidebar";
 import ModeSwitch from "./ModeSwitch";
 import ProjectSidebar from "./ProjectSidebar";
 import ProjectView from "./ProjectView";
 import Login from "./Login";
-import Settings from "./Settings";
+import Settings from "./settings/Settings";
 import AuditLog from "./AuditLog";
 import UploadQueuePanel from "./UploadQueuePanel";
 import {

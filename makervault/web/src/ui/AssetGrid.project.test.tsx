@@ -37,7 +37,7 @@ vi.mock("./LightBurnPreview", () => ({
   default: () => null,
 }));
 
-import AssetGrid from "./AssetGrid";
+import AssetGrid from "./asset-grid/AssetGrid";
 import { listAssets, listFolders, listProjectAssets, listTags } from "../lib/api";
 
 const listAssetsMock = vi.mocked(listAssets);

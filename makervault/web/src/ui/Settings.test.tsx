@@ -17,7 +17,7 @@ vi.mock("../lib/api", () => ({
   updateStorageSettings: vi.fn(),
 }));
 
-import Settings from "./Settings";
+import Settings from "./settings/Settings";
 import { getStorageSettings, updateStorageSettings } from "../lib/api";
 import type { AppSettings } from "../lib/settings";
 

@@ -55,8 +55,8 @@ vi.mock("./ProjectView", async () => {
   return { default: () => react.createElement("div", null, "Project view") };
 });
 
-vi.mock("./AssetGrid", () => ({ default: () => null }));
-vi.mock("./Settings", async () => {
+vi.mock("./asset-grid/AssetGrid", () => ({ default: () => null }));
+vi.mock("./settings/Settings", async () => {
   const react = await import("react");
   return {
     default: ({ onSelectFolder }: { onSelectFolder?: (id: string | null) => void }) =>

@@ -82,7 +82,7 @@ describe("no native dialogs", () => {
   });
 
   it("scans the real source tree (never passes on an empty file list)", () => {
-    expect(FILES).toContain("ui/AssetGrid.tsx");
+    expect(FILES).toContain("ui/asset-grid/AssetGrid.tsx");
     expect(FILES).toContain("lib/toast.ts");
     expect(FILES.length).toBeGreaterThan(30);
   });

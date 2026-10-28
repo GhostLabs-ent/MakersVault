@@ -46,7 +46,7 @@ vi.mock("./LightBurnPreview", () => ({
   default: () => null,
 }));
 
-import AssetGrid from "./AssetGrid";
+import AssetGrid from "./asset-grid/AssetGrid";
 import Toaster from "./Toaster";
 import { resetToasts } from "../lib/toast";
 import {
