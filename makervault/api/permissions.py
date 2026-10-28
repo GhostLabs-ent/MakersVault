@@ -130,6 +130,8 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     # read: any authenticated principal, including viewers.
     ("GET", "/me"): READ,
     ("GET", "/library/scan"): READ,
+    ("GET", "/imports/runs"): READ,
+    ("GET", "/imports/runs/{run_id}"): READ,
     ("GET", "/file/{asset_id}/{name}"): READ,
     ("GET", "/asset/{asset_id}/files"): READ,
     ("GET", "/asset/{asset_id}/files/{file_id}"): READ,

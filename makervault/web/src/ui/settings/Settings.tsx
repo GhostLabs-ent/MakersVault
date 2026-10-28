@@ -10,6 +10,7 @@ import StorageSection from "./StorageSection";
 import ThemeSection from "./ThemeSection";
 import type { Section } from "./types";
 import { useFolderScan } from "./useFolderScan";
+import { useImportRuns } from "./useImportRuns";
 import { useLibraryScan } from "./useLibraryScan";
 import { useMountImportSettings } from "./useMountImportSettings";
 import { useStorageSettings } from "./useStorageSettings";
@@ -41,6 +42,7 @@ export default function Settings({
   const [networkDraft, setNetworkDraft] = React.useState(settings.network.publicUrl);
 
   const libraryScan = useLibraryScan();
+  const importRuns = useImportRuns();
 
   React.useEffect(() => {
     if (section !== "imports") return;
@@ -135,6 +137,7 @@ export default function Settings({
         onChange={onChange}
         mount={mount}
         folderScan={folderScan}
+        importRuns={importRuns}
         makerworld={{
           draft: makerworldDraft,
           editing: makerworldEditing,

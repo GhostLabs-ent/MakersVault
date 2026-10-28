@@ -1,9 +1,11 @@
 import type { AppSettings } from "../../lib/settings";
 import FolderScanCard from "./FolderScanCard";
 import ImportCookiesCard from "./ImportCookiesCard";
+import ImportRunsCard from "./ImportRunsCard";
 import MountImportCard from "./MountImportCard";
 import SectionHeader from "./SectionHeader";
 import type { FolderScanState } from "./useFolderScan";
+import type { ImportRunsState } from "./useImportRuns";
 import type { MountImportSettingsState } from "./useMountImportSettings";
 
 export type CookieDraft = {
@@ -18,6 +20,7 @@ type Props = {
   onChange: (next: AppSettings) => void;
   mount: MountImportSettingsState;
   folderScan: FolderScanState;
+  importRuns: ImportRunsState;
   makerworld: CookieDraft;
   thingiverse: CookieDraft;
   onBack: () => void;
@@ -28,6 +31,7 @@ export default function ImportsSection({
   onChange,
   mount,
   folderScan,
+  importRuns,
   makerworld,
   thingiverse,
   onBack,
@@ -69,6 +73,8 @@ export default function ImportsSection({
       />
 
       <MountImportCard {...mount} />
+
+      <ImportRunsCard state={importRuns} />
 
       <FolderScanCard {...folderScan} />
 

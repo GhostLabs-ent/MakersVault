@@ -1,7 +1,7 @@
 """Per-route permission sweeps driven by `permissions.ROUTE_PERMISSIONS`.
 
 Why this file exists: Mf-2nbc enforces a level with a *per-route dependency*, and
-the only thing that keeps 56 hand-written declarations honest is a test that
+the only thing that keeps 58 hand-written declarations honest is a test that
 visits every route at every role. The sweeps below are parametrised from
 `permissions.ROUTE_PERMISSIONS`, so that table is both the documentation and the
 test plan: add a route without classifying it and
@@ -44,6 +44,7 @@ import asset_file_service
 import asset_service
 import auth
 import db
+import import_runs
 import library_scan
 import login_throttle as login_throttle_module
 import main
@@ -52,7 +53,7 @@ import settings_service
 from config import MOUNT_IMPORT_COPY, MOUNT_IMPORT_ENABLED
 from db import engine
 from migrations import run_migrations
-from models import Asset, AssetFile, Folder, Project, ProjectAsset, User, UserSession
+from models import Asset, AssetFile, Folder, ImportRun, Project, ProjectAsset, User, UserSession
 
 ADMIN_USERNAME = "root"
 ADMIN_PASSWORD = "root-password-1"
@@ -117,6 +118,7 @@ class Ids:
     storage_template: str = ""
     mount_enabled: bool = False
     mount_copy: bool = False
+    import_run_id: str = ""
 
 
 # --- harness ----------------------------------------------------------------
@@ -180,6 +182,7 @@ def isolated_storage(tmp_path, monkeypatch: pytest.MonkeyPatch):
         folders_before = {folder.id for folder in session.exec(select(Folder))}
         assets_before = {asset.id for asset in session.exec(select(Asset))}
         projects_before = {project.id for project in session.exec(select(Project))}
+        runs_before = {run.id for run in session.exec(select(ImportRun))}
 
     yield storage
 
@@ -187,6 +190,9 @@ def isolated_storage(tmp_path, monkeypatch: pytest.MonkeyPatch):
     settings_service.set_mount_import_enabled(enabled_before)
     settings_service.set_mount_import_copy(copy_before)
     with Session(engine) as session:
+        for run in list(session.exec(select(ImportRun))):
+            if run.id not in runs_before:
+                session.delete(run)
         # Projects first: the tables are new and the name index is case-
         # insensitive, so a leaked row would 409 the next test's seed.
         for membership in list(session.exec(select(ProjectAsset))):
@@ -320,6 +326,7 @@ def ids(client: TestClient) -> Ids:
     viewer = create_user(client, admin_session["token"], VIEWER_USERNAME, VIEWER_PASSWORD, "viewer")
     editor_session = login(client, EDITOR_USERNAME, EDITOR_PASSWORD)
     viewer_session = login(client, VIEWER_USERNAME, VIEWER_PASSWORD)
+    run_id = import_runs.skip_run("/seed-mount", "copy", "seeded for the permission sweep")
     return replace(
         seed_library(client, bearer(admin_session["token"])),
         admin_token=admin_session["token"],
@@ -330,6 +337,7 @@ def ids(client: TestClient) -> Ids:
         admin_id=admin["id"],
         editor_id=editor["id"],
         viewer_id=viewer["id"],
+        import_run_id=run_id,
     )
 
 
@@ -420,6 +428,16 @@ def call_me(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: 
 
 def call_scan_status(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
     return client.get("/library/scan", headers=headers)
+
+
+def call_list_import_runs(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    return client.get("/imports/runs", headers=headers)
+
+
+def call_import_run_detail(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    # The anonymous/disabled seeds have no run row; their request is refused (or
+    # the placeholder is a 404) before the id is looked up.
+    return client.get(f"/imports/runs/{ids.import_run_id or PLACEHOLDER_USER_ID}", headers=headers)
 
 
 def call_file(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
@@ -703,6 +721,8 @@ CALLS: dict[tuple[str, str], CallSpec] = {
     ("POST", "/import/inspect"): call_import_inspect,
     ("POST", "/import/zip/entries"): call_import_zip_entries,
     ("POST", "/import/zip"): call_import_zip,
+    ("GET", "/imports/runs"): call_list_import_runs,
+    ("GET", "/imports/runs/{run_id}"): call_import_run_detail,
     ("POST", "/asset/{asset_id}/files"): call_upload_supporting_file,
     ("DELETE", "/asset/{asset_id}/files/{file_id}"): call_delete_supporting_file,
     ("DELETE", "/asset/{asset_id}/prepared-print"): call_delete_prepared_print,
@@ -747,6 +767,8 @@ EXPECTED_STATUS: dict[tuple[str, str], int] = {
     ("POST", "/logout"): 204,
     ("GET", "/me"): 200,
     ("GET", "/library/scan"): 200,
+    ("GET", "/imports/runs"): 200,
+    ("GET", "/imports/runs/{run_id}"): 200,
     ("GET", "/file/{asset_id}/{name}"): 200,
     ("GET", "/asset/{asset_id}/files"): 200,
     ("GET", "/asset/{asset_id}/files/{file_id}"): 200,
@@ -847,10 +869,10 @@ def test_every_api_route_has_a_level() -> None:
 
 
 def test_the_matrix_is_the_documented_size() -> None:
-    """The matrix is pinned at 56 routes; a new route means updating this and docs/PERMISSIONS.md."""
+    """The matrix is pinned at 58 routes; a new route means updating this and docs/PERMISSIONS.md."""
     counts = {level: len(keys_at(level)) for level in (permissions.PUBLIC, permissions.READ, permissions.WRITE, permissions.ADMIN)}
-    assert len(permissions.ROUTE_PERMISSIONS) == 56, counts
-    assert counts == {permissions.PUBLIC: 4, permissions.READ: 16, permissions.WRITE: 27, permissions.ADMIN: 9}, counts
+    assert len(permissions.ROUTE_PERMISSIONS) == 58, counts
+    assert counts == {permissions.PUBLIC: 4, permissions.READ: 18, permissions.WRITE: 27, permissions.ADMIN: 9}, counts
 
 
 def test_every_guarded_route_has_a_call_spec() -> None:

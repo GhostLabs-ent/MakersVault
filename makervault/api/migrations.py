@@ -481,6 +481,45 @@ def _migration_007_projects(conn: Connection) -> None:
     print(f"[migration-007] removed {result.rowcount} orphaned assetfile row(s)")
 
 
+def _migration_008_import_run_history(conn: Connection) -> None:
+    """Add the mount-import run history table (new table, no backfill).
+
+    One row per attempted mount import, bounded to the newest 50 by the service
+    that writes it. `status` is a closed vocabulary; `skipped` is a deliberate
+    non-alarm outcome with a mandatory `reason`, and `running` rows older than a
+    process start are turned into `interrupted` at boot. `mode` is NULL only for
+    a run that never got as far as reading the copy/reference setting. The
+    counters are raw scan counters; the API derives `discovered` and `skipped`
+    for presentation. `IF NOT EXISTS` on every object keeps a re-applied 008
+    harmless, like 004-007.
+    """
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS import_run (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            kind VARCHAR NOT NULL DEFAULT 'mount' CHECK (kind IN ('mount')),
+            status VARCHAR NOT NULL CHECK (
+                status IN ('running', 'succeeded', 'failed', 'interrupted', 'skipped')
+            ),
+            mode VARCHAR CHECK (mode IN ('copy', 'reference')),
+            root TEXT,
+            started_at REAL NOT NULL,
+            finished_at REAL,
+            registered INTEGER NOT NULL DEFAULT 0,
+            known INTEGER NOT NULL DEFAULT 0,
+            ignored INTEGER NOT NULL DEFAULT 0,
+            failed INTEGER NOT NULL DEFAULT 0,
+            rejected INTEGER NOT NULL DEFAULT 0,
+            reason TEXT,
+            errors_json TEXT NOT NULL DEFAULT '[]'
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_import_run_started_at ON import_run(started_at DESC)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
@@ -489,6 +528,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(5, "users_and_sessions", _migration_005_users_and_sessions),
     Migration(6, "audit_log", _migration_006_audit_log),
     Migration(7, "projects", _migration_007_projects),
+    Migration(8, "import_run_history", _migration_008_import_run_history),
 )
 
 

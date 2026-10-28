@@ -18,7 +18,7 @@ import mount_import
 from db import engine
 from library_scan import scan_storage_root
 from migrations import run_migrations
-from models import AppConfig, Asset, Folder
+from models import AppConfig, Asset, Folder, ImportRun
 from settings_service import set_mount_import_enabled
 
 
@@ -91,8 +91,13 @@ def mount_and_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
     folders_before = _folder_ids()
     missing_before = {asset.id: asset.missing_since for asset in _asset_rows()}
+    with Session(engine) as session:
+        runs_before = {run.id for run in session.exec(select(ImportRun))}
     yield mount, storage
     with Session(engine) as session:
+        for run in list(session.exec(select(ImportRun))):
+            if run.id not in runs_before:
+                session.delete(run)
         for folder in list(session.exec(select(Folder))):
             if folder.id not in folders_before:
                 session.delete(folder)
@@ -426,12 +431,14 @@ def test_copy_batch_retry_rematerialises_folders_with_paths(mount_and_storage, m
     folders_before = _folder_ids()
 
     real_commit = Session.commit
-    # a dict, so the closure can flip the flag without a `nonlocal` declaration
-    raised = {"done": False}
+    # a dict, so the closure can count commits without a `nonlocal` declaration;
+    # the first commit is begin_run's run-row transaction, so fail the first
+    # registration batch instead.
+    calls = {"count": 0}
 
     def flaky_commit(session) -> None:
-        if not raised["done"]:
-            raised["done"] = True
+        calls["count"] += 1
+        if calls["count"] == 2:
             raise RuntimeError("database is locked")
         real_commit(session)
 
@@ -462,6 +469,8 @@ def test_import_commits_in_batches(mount_and_storage) -> None:
     for index in range(total):
         _write(mount, f"dir-{index // 50:02d}/part-{index:03d}.stl")
 
+    with Session(engine) as session:
+        runs_before = {run.id for run in session.exec(select(ImportRun))}
     commits = []
 
     def count_commit(_connection) -> None:
@@ -477,8 +486,14 @@ def test_import_commits_in_batches(mount_and_storage) -> None:
     assert state.registered == total
     landed = [asset for asset in _asset_rows() if (asset.storage_path or "").startswith("dir-")]
     assert len(landed) == total
-    # one commit per batch, with slack for folder lookups
-    assert len(commits) <= ceil(total / library_scan.BATCH_SIZE) + 2
+    # one commit per batch, with slack for folder lookups and the two run-row
+    # transactions (begin_run's insert+prune, finish_run's update)
+    assert len(commits) <= ceil(total / library_scan.BATCH_SIZE) + 4
+    with Session(engine) as session:
+        created_runs = [run for run in session.exec(select(ImportRun)) if run.id not in runs_before]
+    assert len(created_runs) == 1
+    assert created_runs[0].status == "succeeded"
+    assert created_runs[0].registered == total
 
 
 def test_counters_do_not_leak_into_library_scan_status(mount_and_storage) -> None:

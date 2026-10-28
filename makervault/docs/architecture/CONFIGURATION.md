@@ -102,6 +102,10 @@ upload is cut off as soon as the cap is crossed.
 | `IMPORT_MOUNT_ON_STARTUP` | `false` in canonical production manifest | Enables the startup scan. The code default remains `true` when a path is configured, so configuring a mount path is what opts a deployment in. |
 | `IMPORT_MOUNT_COPY` | `true` | Copy into managed storage instead of indexing in place. Copy mode mirrors the mount's relative directory structure into the storage root (a mount holding `a/b/c.stl` registers `a/b/c.stl` and the folder chain `a` -> `a/b`); reference mode registers `is_reference` rows that point at the mount and copy nothing. |
 
+Each attempt is recorded in the `import_run` table (status, mode, counters and
+bounded per-file errors) and readable at `GET /imports/runs`. The table keeps the
+newest 50 runs; skipped runs are recorded too, with their reason.
+
 ## Web runtime settings
 
 | Variable | Current default | Effect |
@@ -151,4 +155,6 @@ These are per-browser and are not server `AppConfig` values; the optional
 ## Server `AppConfig` settings
 
 The current database-backed settings are mounted-import enable/copy behavior and
-the managed-storage template. These settings are shared by the instance.
+the managed-storage template. These settings are shared by the instance. Mounted
+import run history is a table (`import_run`), not an `AppConfig` value, so it is
+bounded separately and never parsed as a setting.

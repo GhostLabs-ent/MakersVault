@@ -81,7 +81,7 @@ mutating route is neither audited nor exempt with a reason. See
 
 ## The route matrix
 
-Paths are FastAPI templates exactly as declared. 56 routes: 4 public, 16 read,
+Paths are FastAPI templates exactly as declared. 58 routes: 4 public, 18 read,
 27 write, 9 admin.
 
 The collection/instance templates are deliberately asymmetric: the collection is
@@ -103,6 +103,8 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 |--------|----------------------------------------|-----|
 | GET    | `/me`                                  | own profile |
 | GET    | `/library/scan`                        | status poll every client uses; no secrets |
+| GET    | `/imports/runs`                         | mount-import history; same disclosure class as scan errors |
+| GET    | `/imports/runs/{run_id}`                | one run with its bounded per-file errors |
 | GET    | `/file/{asset_id}/{name}`               | download |
 | GET    | `/asset/{asset_id}/files`               | list supporting files |
 | GET    | `/asset/{asset_id}/files/{file_id}`     | download a supporting file |
@@ -251,6 +253,11 @@ sessions stay valid.
 * **`GET /library/scan` returns `errors: List[str]`** that may contain storage
   filenames. That is the same disclosure class as `storage_path` on `AssetOut`
   and `FolderOut`, which viewers already receive, so it is not a new leak.
+* **`GET /imports/runs` discloses run telemetry.** A row carries the mount
+  root, per-file relative paths in its error list, and the run mode/counters.
+  That is the same disclosure class as the storage filenames in
+  `GET /library/scan` errors, which viewers already receive; it is read-only and
+  grants no new action.
 * **Settings reads are admin**, so an editor opening the Settings panel sees
   "Failed to load storage settings." rather than a populated form. That is
   honest: they cannot change it either.

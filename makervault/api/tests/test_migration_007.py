@@ -147,6 +147,11 @@ def row_count(database_engine: Engine, table: str) -> int:
         return int(conn.exec_driver_sql(f"SELECT COUNT(*) FROM {table}").scalar_one())
 
 
+def shipped_ledger_entries(database_engine: Engine) -> dict[int, str]:
+    applied = applied_migrations(database_engine)
+    return {version: applied[version] for version in SHIPPED_LEDGER if version in applied}
+
+
 def test_helper_engine_enforces_foreign_keys(tmp_path: Path) -> None:
     database_engine = sqlite_engine(tmp_path / "pragma.db")
     with database_engine.connect() as conn:
@@ -157,10 +162,11 @@ def test_fresh_database_reaches_v7(tmp_path: Path) -> None:
     database_engine = sqlite_engine(tmp_path / "fresh.db")
 
     assert run_migrations(database_engine) == MIGRATIONS[-1].version
-    assert MIGRATIONS[-1].version == 7
-    assert MIGRATIONS[-1].name == "projects"
-    ledger = applied_migrations(database_engine)
-    assert ledger == {**SHIPPED_LEDGER, 7: "projects"}
+    project_migration = MIGRATIONS[6]
+    assert project_migration.version == 7
+    assert project_migration.name == "projects"
+    assert shipped_ledger_entries(database_engine) == SHIPPED_LEDGER
+    assert applied_migrations(database_engine)[7] == "projects"
     assert table_columns(database_engine, "project") == PROJECT_COLUMNS
     assert table_columns(database_engine, "project_asset") == PROJECT_ASSET_COLUMNS
     assert NEW_TABLES.issubset(object_names(database_engine, "table"))

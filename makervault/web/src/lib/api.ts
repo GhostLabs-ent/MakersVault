@@ -1235,6 +1235,63 @@ export async function startLibraryScan(): Promise<LibraryScanStatus> {
   return res.json();
 }
 
+/**
+ * One mounted-import run as the API reports it. `status` stays a plain string
+ * because the server may add outcomes; the UI treats unknown values as neutral.
+ */
+export type ImportRunSummary = {
+  id: string;
+  status: string;
+  mode: string | null;
+  root: string | null;
+  reason: string | null;
+  /** Epoch seconds. */
+  started_at: number;
+  /** Epoch seconds; null while the run is still walking. */
+  finished_at: number | null;
+  registered: number;
+  known: number;
+  ignored: number;
+  failed: number;
+  /** Oversize subset of `ignored`. */
+  rejected: number;
+  discovered: number;
+  /** `known + ignored`. */
+  skipped: number;
+};
+
+export type ImportRunDetail = ImportRunSummary & { errors: string[] };
+
+export type ImportRunList = {
+  runs: ImportRunSummary[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+/** Newest-first page of mounted-import runs. */
+export async function getImportRuns(limit = 20, offset = 0): Promise<ImportRunList> {
+  const qs = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  const res = await fetch(`${apiBase()}/imports/runs?${qs.toString()}`, { headers: authHeaders() });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Failed to load mount import runs"));
+  }
+  return res.json();
+}
+
+/** One run with its per-file errors (already bounded server-side). */
+export async function getImportRun(id: string): Promise<ImportRunDetail> {
+  const res = await fetch(`${apiBase()}/imports/runs/${encodeURIComponent(id)}`, {
+    headers: authHeaders(),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Failed to load the mount import run"));
+  }
+  return res.json();
+}
+
 export type AuditEvent = {
   id: string;
   created_at: string;

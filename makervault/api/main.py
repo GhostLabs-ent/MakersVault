@@ -16,6 +16,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 import asset_service
 import audit
+import import_runs
 import login_throttle as login_throttle_module
 import permissions
 from asset_file_service import backfill_prepared_print_metadata
@@ -48,6 +49,7 @@ from routers import (
     trash,
     uploads,
 )
+from routers.import_runs import router as import_runs_router
 from routers.uploads import delete_asset_row_only
 from url_utils import normalize_import_url
 from zip_service import arcname_for_asset
@@ -65,6 +67,9 @@ async def lifespan(_app: FastAPI):
     audit.assert_audit_coverage()
     login_throttle_module.limiter.reset()
     run_migrations(engine)
+    # A row left `running` belongs to a previous process that died before it
+    # could finish. This runs before the mount thread, so it cannot catch ours.
+    import_runs.mark_interrupted()
     # Runs before the server accepts connections, so a single-process deployment
     # cannot have an in-flight upload for the sweep to race.
     asset_service.sweep_staging_dir()
@@ -125,6 +130,7 @@ app.include_router(auth_users.router)
 app.include_router(audit_log.router)
 app.include_router(uploads.router)
 app.include_router(imports.router)
+app.include_router(import_runs_router)
 app.include_router(asset_files.router)
 app.include_router(assets.router)
 app.include_router(folders.router)

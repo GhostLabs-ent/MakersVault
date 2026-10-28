@@ -689,14 +689,17 @@ def scan_storage_root() -> ScanState:
     return _state
 
 
-def register_tree(plan: TreePlan) -> ScanState:
+def register_tree(plan: TreePlan, state: Optional[ScanState] = None) -> ScanState:
     """Register what ``plan`` accepts under its root, in batches.
 
     Every counter belongs to the returned state, so a mounted import never
     clobbers the library-scan status and never stamps ``missing_since``. Runs are
-    serialised with the storage scan, because both create folder rows.
+    serialised with the storage scan, because both create folder rows. ``state``
+    lets a caller own and persist the counters; when omitted a fresh state is
+    created, exactly as before.
     """
-    state = ScanState(started_at=time.time())
+    if state is None:
+        state = ScanState(started_at=time.time())
     if not plan.root.exists() or not plan.root.is_dir():
         with _state_lock:
             state.failed += 1
