@@ -7,6 +7,8 @@ import ReactMarkdown, {
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 
+import { renderFileUrl } from "../lib/api";
+
 /**
  * The single renderer for untrusted markdown in the app.
  *
@@ -143,7 +145,10 @@ function MarkdownImage({
   return (
     <img
       {...rest}
-      src={src}
+      // The stored src is token-less and stable (`stableFileUrl`); a browser
+      // <img> sends no bearer header, so each viewer resolves their own token
+      // here. Non-`/api/` srcs pass through unchanged.
+      src={renderFileUrl(src)}
       alt={alt ?? ""}
       // `longDesc` is allowed by the schema but is not a React-renderable
       // attribute; surfacing it as the tooltip keeps the text reachable.

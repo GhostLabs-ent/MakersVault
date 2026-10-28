@@ -1,8 +1,39 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { cleanup, render } from "@testing-library/react";
 
+import { clearToken, storeToken } from "../lib/auth";
 import Markdown, { safeUrlTransform } from "./Markdown";
+
+/**
+ * jsdom reports a `window.localStorage` getter but, under Node's experimental
+ * global localStorage, it resolves to `undefined`; install a real in-memory
+ * Storage so the code under test finds a working store.
+ */
+function installMemoryStorage(): void {
+  const store = new Map<string, string>();
+  const storage: Storage = {
+    get length(): number {
+      return store.size;
+    },
+    clear(): void {
+      store.clear();
+    },
+    getItem(key: string): string | null {
+      return store.has(key) ? store.get(key)! : null;
+    },
+    key(index: number): string | null {
+      return Array.from(store.keys())[index] ?? null;
+    },
+    removeItem(key: string): void {
+      store.delete(key);
+    },
+    setItem(key: string, value: string): void {
+      store.set(key, String(value));
+    },
+  };
+  Object.defineProperty(window, "localStorage", { configurable: true, value: storage });
+}
 
 function renderMarkdown(markdown: string): HTMLElement {
   const { container } = render(<Markdown>{markdown}</Markdown>);
@@ -262,5 +293,52 @@ describe("safeUrlTransform", () => {
     expect(safeUrlTransform("/asset/javascript:1")).toBe("/asset/javascript:1");
     expect(safeUrlTransform("/a?next=javascript:1")).toBe("/a?next=javascript:1");
     expect(safeUrlTransform("/a#javascript:1")).toBe("/a#javascript:1");
+  });
+});
+
+/**
+ * A persisted project description stores token-less `/api/...` image URLs
+ * (`stableFileUrl`) and a browser `<img>` sends no bearer header, so the render
+ * side has to attach the viewer's own token or every description image 401s.
+ */
+describe("project file images resolve the viewer's token at render time", () => {
+  beforeEach(() => {
+    installMemoryStorage();
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    clearToken();
+    cleanup();
+  });
+
+  it("appends the stored token to a /api file src", () => {
+    storeToken("viewer-token");
+
+    const container = renderMarkdown("![Logo](/api/file/abc123/logo.png)");
+    const src = container.querySelector("img")?.getAttribute("src") ?? "";
+    const parsed = new URL(src, "http://localhost");
+
+    expect(parsed.pathname).toBe("/api/file/abc123/logo.png");
+    expect(parsed.searchParams.get("token")).toBe("viewer-token");
+  });
+
+  it("leaves a foreign image src token-free and intact", () => {
+    storeToken("viewer-token");
+
+    const container = renderMarkdown("![x](https://example.com/x.png)");
+    const src = container.querySelector("img")?.getAttribute("src") ?? "";
+    const parsed = new URL(src, "http://localhost");
+
+    expect(parsed.origin + parsed.pathname).toBe("https://example.com/x.png");
+    expect(parsed.searchParams.has("token")).toBe(false);
+  });
+
+  it("leaves a /api file src token-free when logged out", () => {
+    const container = renderMarkdown("![Logo](/api/file/abc123/logo.png)");
+
+    expect(container.querySelector("img")?.getAttribute("src")).toBe(
+      "/api/file/abc123/logo.png",
+    );
   });
 });

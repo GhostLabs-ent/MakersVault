@@ -15,6 +15,7 @@ vi.mock("../lib/api", () => ({
   listAssets: vi.fn(),
   listProjectAssets: vi.fn(),
   removeProjectAssets: vi.fn(),
+  renderFileUrl: vi.fn((src: string | undefined) => src),
   stableFileUrl: vi.fn((rel: string) => `/api${rel}`),
   updateProject: vi.fn(),
   uploadAssetFile: vi.fn(),

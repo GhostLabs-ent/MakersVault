@@ -671,6 +671,24 @@ export function stableFileUrl(rel: string): string {
   return `/api${rel}`;
 }
 
+/**
+ * Counterpart of `stableFileUrl` for the render side: resolve a persisted
+ * project-content URL for the *current* viewer.
+ *
+ * The stored markdown stays token-less and stable (`stableFileUrl`); a browser
+ * `<img>` sends no `Authorization` header, so each viewer has to append their
+ * own short-lived token here at render time or the request would 401. Only
+ * same-origin `/api/...` srcs are touched, so foreign and absolute URLs pass
+ * through untouched. `appendTokenToUrl` sets the param via `URLSearchParams`,
+ * which makes this idempotent and replaces an author-injected `?token=` with
+ * the viewer's own.
+ */
+export function renderFileUrl(src: string | undefined): string | undefined {
+  if (!src) return src;
+  if (!src.startsWith("/api/")) return src;
+  return appendTokenToUrl(src);
+}
+
 // Folders -------------------------------------------------------
 
 export type Folder = {
