@@ -54,10 +54,20 @@ def get_asset(session: Session, asset_id: str) -> Asset:
     return asset
 
 
-def count_members(session: Session, project_id: str) -> int:
-    """Memberships of one project in a single aggregate statement."""
-    statement = select(func.count()).select_from(ProjectAsset).where(ProjectAsset.project_id == project_id)
-    return int(session.exec(statement).one())
+def member_stats(session: Session, project_id: str) -> Tuple[int, int]:
+    """(member count, summed member size) of one project in one aggregate statement.
+
+    Both numbers are needed by every response that serializes a project, so they
+    are fetched together: two queries for one row is an N+1 with N=1.
+    """
+    statement = (
+        select(func.count(ProjectAsset.asset_id), func.coalesce(func.sum(Asset.size), 0))
+        .select_from(ProjectAsset)
+        .outerjoin(Asset, Asset.id == ProjectAsset.asset_id)
+        .where(ProjectAsset.project_id == project_id)
+    )
+    count, total_size = session.exec(statement).one()
+    return int(count), int(total_size)
 
 
 def create_project(
@@ -65,6 +75,11 @@ def create_project(
     name: str,
     description: Optional[str],
     cover_asset_id: Optional[str],
+    creator: Optional[str] = None,
+    source_url: Optional[str] = None,
+    licence: Optional[str] = None,
+    licence_url: Optional[str] = None,
+    origin: str = "own",
 ) -> Project:
     """Insert one project; the caller's session commits.
 
@@ -79,6 +94,11 @@ def create_project(
         name=name,
         description=description,
         cover_asset_id=cover_asset_id or None,
+        creator=creator,
+        source_url=source_url,
+        licence=licence,
+        licence_url=licence_url,
+        origin=origin,
         created_at=stamp,
         updated_at=stamp,
     )
@@ -101,6 +121,10 @@ def update_project(
     name: Optional[str],
     description: Optional[str],
     cover_asset_id: Optional[str],
+    creator: Optional[str] = None,
+    source_url: Optional[str] = None,
+    licence: Optional[str] = None,
+    licence_url: Optional[str] = None,
     *,
     audit_ctx: Optional[audit.AuditContext],
 ) -> Project:
@@ -108,7 +132,8 @@ def update_project(
 
     `fields` is the request body's `model_fields_set`: a field that is present and
     None clears its column, a field that is absent is left alone. Only a real
-    rename is audited, so a description-only PATCH stages nothing.
+    rename is audited, so a description or provenance PATCH stages no event; the
+    provenance columns are an exempt metadata class, like tags.
     """
     previous_name = project.name
     next_name = _clean_name(name) if "name" in fields else previous_name
@@ -122,6 +147,14 @@ def update_project(
         project.description = description
     if "cover_asset_id" in fields:
         project.cover_asset_id = cover_asset_id
+    if "creator" in fields:
+        project.creator = creator
+    if "source_url" in fields:
+        project.source_url = source_url
+    if "licence" in fields:
+        project.licence = licence
+    if "licence_url" in fields:
+        project.licence_url = licence_url
     project.updated_at = _now()
     session.add(project)
     if next_name != previous_name:
@@ -154,20 +187,21 @@ def delete_project(session: Session, project: Project, *, audit_ctx: Optional[au
     session.commit()
 
 
-def list_projects(session: Session) -> List[Tuple[Project, int]]:
-    """Every project with its member count, in one aggregate statement.
+def list_projects(session: Session) -> List[Tuple[Project, int, int]]:
+    """Every project with its member count and summed member size, in one statement.
 
-    The count is part of the same query, so listing N projects costs one statement
-    instead of 1 + N; the ordering is case-insensitive by name, then by id so two
-    projects that differ only in case still page deterministically.
+    Both aggregates come from the same query, so listing N projects costs one
+    statement instead of 1 + 2N; the ordering is case-insensitive by name, then
+    by id so two projects that differ only in case still page deterministically.
     """
     statement = (
-        select(Project, func.count(ProjectAsset.asset_id))
+        select(Project, func.count(ProjectAsset.asset_id), func.coalesce(func.sum(Asset.size), 0))
         .outerjoin(ProjectAsset, ProjectAsset.project_id == Project.id)
+        .outerjoin(Asset, Asset.id == ProjectAsset.asset_id)
         .group_by(Project.id)
         .order_by(func.lower(Project.name), Project.id)
     )
-    return [(project, int(count)) for project, count in session.exec(statement)]
+    return [(project, int(count), int(total_size)) for project, count, total_size in session.exec(statement)]
 
 
 def _failure(asset_id: str) -> dict:

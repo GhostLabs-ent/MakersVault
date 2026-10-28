@@ -287,7 +287,16 @@ def to_out(a: Asset) -> AssetOut:
     )
 
 
-def project_to_out(project: Project, asset_count: int) -> ProjectOut:
+def project_metadata(raw: Optional[str]) -> dict:
+    """Parse the project's `metadata_json` TEXT column; anything but an object is {}."""
+    try:
+        parsed = json.loads(raw or "{}")
+    except (TypeError, ValueError):
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def project_to_out(project: Project, asset_count: int, total_size: int) -> ProjectOut:
     return ProjectOut(
         id=project.id,
         name=project.name,
@@ -300,6 +309,8 @@ def project_to_out(project: Project, asset_count: int) -> ProjectOut:
         cover_asset_id=project.cover_asset_id,
         cover_thumb_url=thumb_url_for(project.cover_asset_id),
         asset_count=asset_count,
+        total_size=total_size,
+        metadata_json=project_metadata(project.metadata_json),
         created_at=project.created_at,
         updated_at=project.updated_at,
     )
@@ -324,7 +335,19 @@ def arcname_for_asset(asset: Asset, folder_label_map: Optional[dict] = None) -> 
     return f"{sanitize_path_segment(folder_part, 'unassigned')}/{sanitize_path_segment(asset.filename, 'file')}"
 
 
-def zip_assets_response(assets: List[Asset], download_name: str, background: BackgroundTasks, folder_label_map: Optional[dict] = None):
+def zip_assets_response(
+    assets: List[Asset],
+    download_name: str,
+    background: BackgroundTasks,
+    folder_label_map: Optional[dict] = None,
+    allow_empty: bool = False,
+):
+    """Stream the resolved assets as a zip; `allow_empty` is the project contract.
+
+    A tag/folder/asset_ids selection that resolves to nothing is a 404 (the caller
+    asked for files that are not there), while an existing project with no members
+    is a valid empty zip: the project exists, its file set is simply empty.
+    """
     files: List[tuple[str, Path]] = []
     supporting: dict[str, List[AssetFile]] = {}
     asset_ids = [asset.id for asset in assets]
@@ -351,7 +374,7 @@ def zip_assets_response(assets: List[Asset], download_name: str, background: Bac
                     f"{sanitize_path_segment(related.filename, 'file')}",
                     related_path,
                 ))
-    if not files:
+    if not files and not allow_empty:
         raise HTTPException(status_code=404, detail="No files available for download")
 
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
@@ -1059,15 +1082,22 @@ def list_tags(
 
 @app.post("/download/zip")
 def download_zip(body: DownloadRequest, background: BackgroundTasks, _: Optional[AuthContext] = Depends(require_read)):
-    if not (body.asset_ids or body.tag or body.folder_id):
-        raise HTTPException(status_code=400, detail="Provide asset_ids, tag, or folder_id to download.")
+    if not (body.asset_ids or body.tag or body.folder_id or body.project_id):
+        raise HTTPException(status_code=400, detail="Provide asset_ids, tag, folder_id, or project_id to download.")
 
+    project: Optional[Project] = None
     with Session(engine) as s:
+        # An unknown project is a whole-request 404, like every other project route.
+        if body.project_id:
+            project = project_service.get_project(s, body.project_id)
         stmt = select(Asset)
         if body.asset_ids:
             stmt = stmt.where(Asset.id.in_(body.asset_ids))
         if body.folder_id:
             stmt = stmt.where(Asset.folder_id == body.folder_id)
+        # Membership is one more AND filter, not a replacement for the others.
+        if body.project_id:
+            stmt = stmt.where(Asset.id.in_(select(ProjectAsset.asset_id).where(ProjectAsset.project_id == body.project_id)))
         assets = list(s.exec(stmt))
         folder_map = {}
         folder_ids = {a.folder_id for a in assets if a.folder_id}
@@ -1079,6 +1109,8 @@ def download_zip(body: DownloadRequest, background: BackgroundTasks, _: Optional
         tag = body.tag.strip()
         assets = [a for a in assets if tag in json.loads(a.tags_json or "[]")]
 
+    # Precedence: filename < tag < folder_id, and a project name wins over all of
+    # them because the project is the surface the caller asked for.
     download_name = body.filename or "makersvault.zip"
     if body.tag:
         safe_tag = body.tag.replace(" ", "_")[:50] or "tag"
@@ -1086,8 +1118,11 @@ def download_zip(body: DownloadRequest, background: BackgroundTasks, _: Optional
     if body.folder_id and folder_map.get(body.folder_id):
         safe_name = folder_map[body.folder_id].replace(" ", "_")[:50] or "folder"
         download_name = f"{safe_name}.zip"
+    if project is not None:
+        safe_name = (project.name or "project").replace(" ", "_")[:50] or "project"
+        download_name = f"{safe_name}.zip"
 
-    return zip_assets_response(assets, download_name, background, folder_map)
+    return zip_assets_response(assets, download_name, background, folder_map, allow_empty=project is not None)
 
 
 # Batch endpoints -----------------------------------------------
@@ -1372,15 +1407,25 @@ def download_folder(folder_id: str, background: BackgroundTasks, _: Optional[Aut
 def list_projects(_: Optional[AuthContext] = Depends(require_read)):
     with Session(engine) as s:
         rows = project_service.list_projects(s)
-    return [project_to_out(project, count) for project, count in rows]
+    return [project_to_out(project, count, total_size) for project, count, total_size in rows]
 
 
 @app.post("/projects", response_model=ProjectOut, status_code=201)
 def create_project(body: ProjectIn, _: Optional[AuthContext] = Depends(require_write)):
     with Session(engine) as s:
-        project = project_service.create_project(s, body.name, body.description, body.cover_asset_id)
-        asset_count = project_service.count_members(s, project.id)
-    return project_to_out(project, asset_count)
+        project = project_service.create_project(
+            s,
+            body.name,
+            body.description,
+            body.cover_asset_id,
+            creator=body.creator,
+            source_url=body.source_url,
+            licence=body.licence,
+            licence_url=body.licence_url,
+            origin=body.origin,
+        )
+        asset_count, total_size = project_service.member_stats(s, project.id)
+    return project_to_out(project, asset_count, total_size)
 
 
 @app.patch("/project/{project_id}", response_model=ProjectOut)
@@ -1398,10 +1443,14 @@ def update_project(
             body.name,
             body.description,
             body.cover_asset_id,
+            body.creator,
+            body.source_url,
+            body.licence,
+            body.licence_url,
             audit_ctx=audit.context_for(request, context),
         )
-        asset_count = project_service.count_members(s, project.id)
-        result = project_to_out(project, asset_count)
+        asset_count, total_size = project_service.member_stats(s, project.id)
+        result = project_to_out(project, asset_count, total_size)
     return result
 
 

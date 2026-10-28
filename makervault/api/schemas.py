@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
@@ -175,6 +175,7 @@ class DownloadRequest(BaseModel):
   asset_ids: Optional[List[str]] = None
   tag: Optional[str] = None
   folder_id: Optional[str] = None
+  project_id: Optional[str] = None
   filename: Optional[str] = None
 
 
@@ -288,35 +289,57 @@ class BatchDeleteOut(BaseModel):
 
 
 class ProjectIn(BaseModel):
-  """The three writable fields of a project; the rest is read-only for now."""
+  """Every field a project can be created with; the rest stays read-only.
 
+  An unknown field is a 422, matching `ProjectUpdate`: a silently ignored
+  spelling mistake is a client bug the API should not hide.
+  """
+
+  model_config = ConfigDict(extra="forbid")
   name: str
   description: Optional[str] = None
   cover_asset_id: Optional[str] = None
+  creator: Optional[str] = None
+  source_url: Optional[str] = None
+  licence: Optional[str] = None
+  licence_url: Optional[str] = None
+  # The DB CHECK in migration 007 already refuses any other value; this keeps the
+  # 422 at the edge instead of letting an invalid insert reach the constraint.
+  origin: Literal["own", "imported"] = "own"
 
 
 class ProjectUpdate(BaseModel):
   """A partial project patch (Mf-bl86).
 
   Membership of `model_fields_set` decides what changed, not the values: an
-  explicit `null` clears `description` or `cover_asset_id`, so `{"description":
-  null}` is a real edit while `{}` is rejected instead of silently doing nothing.
+  explicit `null` clears `description`, `cover_asset_id` or any provenance field,
+  so `{"creator": null}` is a real edit while `{}` is rejected instead of
+  silently doing nothing.
   """
 
   model_config = ConfigDict(extra="forbid")
   name: Optional[str] = None
   description: Optional[str] = None
   cover_asset_id: Optional[str] = None
+  creator: Optional[str] = None
+  source_url: Optional[str] = None
+  licence: Optional[str] = None
+  licence_url: Optional[str] = None
 
   @model_validator(mode="after")
   def require_a_change(self) -> "ProjectUpdate":
     if not self.model_fields_set:
-      raise ValueError("provide name, description and/or cover_asset_id")
+      raise ValueError("provide at least one project field")
     return self
 
 
 class ProjectOut(BaseModel):
-  """One project; `creator`/`source_url`/`licence*`/`origin` are read-only here."""
+  """One project as read back; `owner_id` and the raw `metadata_json` TEXT stay out.
+
+  `metadata_json` is the parsed print-settings object (`{}` when the column is
+  empty or malformed), and `total_size` is the summed size of the members, so a
+  landing page renders both without a second request.
+  """
 
   id: str
   name: str
@@ -329,6 +352,8 @@ class ProjectOut(BaseModel):
   cover_asset_id: Optional[str] = None
   cover_thumb_url: Optional[str] = None
   asset_count: int = 0
+  total_size: int = 0
+  metadata_json: dict = {}
   created_at: str
   updated_at: str
 

@@ -23,6 +23,8 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     cover_asset_id: null,
     cover_thumb_url: null,
     asset_count: 3,
+    metadata_json: {},
+    total_size: 0,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-02T00:00:00Z",
     ...overrides,

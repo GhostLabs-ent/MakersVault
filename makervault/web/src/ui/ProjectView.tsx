@@ -8,7 +8,7 @@ import type {
   ResolvedTheme,
   SlicerSettings,
 } from "../lib/settings";
-import AssetGrid from "./AssetGrid";
+import ProjectLanding from "./ProjectLanding";
 
 type Props = {
   /** `null` while the project list is loading. */
@@ -16,17 +16,16 @@ type Props = {
   selectedProjectId: string | null;
   onOpenProject: (id: string) => void;
   onCloseProject: () => void;
+  onProjectUpdated: (project: Project) => void;
+  onProjectDeleted: (id: string) => void;
+  onAssetsChanged: () => void;
   assetsVersion: number;
   onUnauthorized?: () => void;
-  scrollElementRef?: React.RefObject<HTMLElement | null>;
   slicerSettings?: SlicerSettings;
   engravingSettings?: EngravingSettings;
   previewSettings?: PreviewSettings;
   theme: ResolvedTheme;
 };
-
-/** Projects have no folder tree, so `AssetGrid`'s folder navigation is inert. */
-function noop(): void {}
 
 function coverFor(project: Project, className: string) {
   if (project.cover_thumb_url) {
@@ -40,18 +39,20 @@ function coverFor(project: Project, className: string) {
 }
 
 /**
- * Projects pane: the project cards, and a project's assets in the normal grid
- * once opened. Focus follows the drill-down: opening focuses Back, closing
- * returns focus to the card that was opened.
+ * Projects pane: the project card grid, and the project landing page once a
+ * project is opened. Focus follows the drill-down: opening focuses Back,
+ * closing returns focus to the card that was opened.
  */
 export default function ProjectView({
   projects,
   selectedProjectId,
   onOpenProject,
   onCloseProject,
+  onProjectUpdated,
+  onProjectDeleted,
+  onAssetsChanged,
   assetsVersion,
   onUnauthorized,
-  scrollElementRef,
   slicerSettings,
   engravingSettings,
   previewSettings,
@@ -117,28 +118,13 @@ export default function ProjectView({
             ← All projects
           </button>
         </div>
-        <div className="flex flex-wrap items-center gap-4">
-          {coverFor(selectedProject, "h-20 w-20 rounded-lg object-cover")}
-          <div className="flex min-w-0 flex-col gap-1">
-            <h1 className="truncate text-xl font-semibold">{selectedProject.name}</h1>
-            {selectedProject.description && (
-              <p className="text-sm text-muted">{selectedProject.description}</p>
-            )}
-            <p className="text-xs opacity-70">
-              {selectedProject.asset_count} file{selectedProject.asset_count === 1 ? "" : "s"}
-              {selectedProject.creator ? ` · By ${selectedProject.creator}` : ""}
-            </p>
-          </div>
-        </div>
-        <AssetGrid
-          key={selectedProject.id}
-          projectId={selectedProject.id}
-          projectName={selectedProject.name}
+        <ProjectLanding
+          project={selectedProject}
           assetsVersion={assetsVersion}
-          foldersVersion={0}
-          onNavigateFolder={noop}
+          onProjectUpdated={onProjectUpdated}
+          onProjectDeleted={onProjectDeleted}
+          onAssetsChanged={onAssetsChanged}
           onUnauthorized={onUnauthorized}
-          scrollElementRef={scrollElementRef}
           slicerSettings={slicerSettings}
           engravingSettings={engravingSettings}
           previewSettings={previewSettings}

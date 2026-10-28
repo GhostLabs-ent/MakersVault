@@ -160,6 +160,22 @@ export default function App() {
     setOpenProjectId(null);
   }, []);
 
+  // A project edit (title, cover, ...) returns the fresh row, so the card grid
+  // and the sidebar pick it up without a refetch. The cover thumbnail URL is
+  // already cache-busted server-side.
+  const handleProjectUpdated = React.useCallback((project: Project) => {
+    setProjects(list => (list ? list.map(item => (item.id === project.id ? project : item)) : list));
+  }, []);
+
+  // One handler for all three effects of a delete, so React batches them into a
+  // single render: the open project is already closed on the render where its
+  // row disappears, and the version bump refetches counts.
+  const handleProjectDeleted = React.useCallback((id: string) => {
+    setProjects(list => (list ? list.filter(project => project.id !== id) : list));
+    setOpenProjectId(null);
+    setAssetsVersion(n => n + 1);
+  }, []);
+
   // The project list is App-owned: the sidebar and the project grid both render
   // from it, and a mutation elsewhere (`assetsVersion`) can change its counts.
   React.useEffect(() => {
@@ -367,9 +383,11 @@ export default function App() {
               selectedProjectId={openProjectId}
               onOpenProject={handleOpenProject}
               onCloseProject={handleCloseProject}
+              onProjectUpdated={handleProjectUpdated}
+              onProjectDeleted={handleProjectDeleted}
+              onAssetsChanged={handleAssetsChanged}
               assetsVersion={assetsVersion}
               onUnauthorized={handleUnauthorized}
-              scrollElementRef={mainScrollRef}
               slicerSettings={settings.slicer}
               engravingSettings={settings.engraving}
               previewSettings={settings.previews}

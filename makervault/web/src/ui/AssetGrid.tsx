@@ -19,6 +19,7 @@ import {
   setTags,
   updateAssetFolder,
   updateAssetMeta,
+  downloadAsset,
   downloadZip,
   deleteAssetFile,
   deletePreparedPrint,
@@ -35,6 +36,7 @@ import BulkActionBar from "./BulkActionBar";
 import FolderBreadcrumbs, { FolderTiles } from "./FolderNav";
 import { colorForTag } from "./tagColors";
 import { refreshWindow } from "../lib/assetPaging";
+import { saveResponseToDisk } from "../lib/download";
 import { useStableCallback } from "../lib/useStableCallback";
 import {
   BatchOutcome,
@@ -771,25 +773,6 @@ export default function AssetGrid({
     await bulkSetTags([], tags);
   });
 
-  const filenameFromDisposition = (res: Response, fallback: string) => {
-    const dispo = res.headers.get("content-disposition") || "";
-    const match = dispo.match(/filename="?([^";]+)"?/i);
-    return (match && match[1]) || fallback || "download";
-  };
-
-  const saveResponseToDisk = async (res: Response, fallback: string) => {
-    const filename = filenameFromDisposition(res, fallback);
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(blobUrl);
-  };
-
   const onSaveTags = useStableCallback(async (id: string, tags: string[]) => {
     const item = itemById[id];
     // Editing the tags of a selected card while several cards are selected is a
@@ -840,15 +823,10 @@ export default function AssetGrid({
     }
   });
 
-  const downloadAsset = useStableCallback(async (asset: Asset) => {
+  const downloadSingle = useStableCallback(async (asset: Asset) => {
     try {
       setDownloadingId(asset.id);
-      const res = await fetch(fileUrl(asset.url));
-      if (res.status === 401) {
-        throw new UnauthorizedError();
-      }
-      if (!res.ok) throw new Error("Download failed");
-      await saveResponseToDisk(res, asset.filename || "download");
+      await saveResponseToDisk(await downloadAsset(asset), asset.filename || "download");
     } catch (err) {
       handleApiError(err, "Download failed. Please try again.");
     } finally {
@@ -1003,7 +981,7 @@ export default function AssetGrid({
       onSaveDetails={onSaveDetails}
       onRename={onRename}
       onPreview={setPreviewItem}
-      onDownloadSingle={downloadAsset}
+      onDownloadSingle={downloadSingle}
       downloading={downloadingId === item.id}
       onDelete={removeAsset}
       deleting={deletingId === item.id}

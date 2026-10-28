@@ -678,8 +678,35 @@ export type Project = {
   cover_asset_id: string | null;
   cover_thumb_url: string | null;
   asset_count: number;
+  /** Free-form per-project metadata as returned by the API (untrusted). */
+  metadata_json: Record<string, unknown>;
+  /** Sum of the member assets' sizes in bytes. */
+  total_size: number;
   created_at: string;
   updated_at: string;
+};
+
+/** Partial project edit; an explicit `null` clears a nullable field. */
+export type ProjectPatch = {
+  name?: string;
+  description?: string | null;
+  cover_asset_id?: string | null;
+  creator?: string | null;
+  source_url?: string | null;
+  licence?: string | null;
+  licence_url?: string | null;
+};
+
+export type ProjectMembersResult = {
+  added: string[];
+  skipped: string[];
+  failed: BatchFailure[];
+};
+
+export type ProjectRemovalResult = {
+  removed: string[];
+  skipped: string[];
+  failed: BatchFailure[];
 };
 
 export async function listProjects(): Promise<Project[]> {
@@ -710,6 +737,64 @@ export async function listProjectAssets(params: {
   const nextOffsetRaw = res.headers.get("X-Next-Offset");
   const nextOffset = nextOffsetRaw ? Number(nextOffsetRaw) : undefined;
   return { items, hasMore, nextOffset };
+}
+
+export async function updateProject(id: string, patch: ProjectPatch): Promise<Project> {
+  const res = await fetch(`${apiBase()}/project/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(patch),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Project update failed"));
+  }
+  return res.json();
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  const res = await fetch(`${apiBase()}/project/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  assertOk(res, "Delete project failed");
+}
+
+/** Adds assets to a project; per-asset results are reported, not thrown. */
+export async function addProjectAssets(
+  projectId: string,
+  assetIds: string[],
+): Promise<ProjectMembersResult> {
+  const res = await fetch(`${apiBase()}/project/${encodeURIComponent(projectId)}/assets`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ asset_ids: assetIds }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Adding assets to the project failed"));
+  }
+  return res.json();
+}
+
+/**
+ * Removes assets from a project. This DELETE deliberately carries a JSON body,
+ * so it has to be sent explicitly (the assets themselves are never deleted).
+ */
+export async function removeProjectAssets(
+  projectId: string,
+  assetIds: string[],
+): Promise<ProjectRemovalResult> {
+  const res = await fetch(`${apiBase()}/project/${encodeURIComponent(projectId)}/assets`, {
+    method: "DELETE",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ asset_ids: assetIds }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "Removing assets from the project failed"));
+  }
+  return res.json();
 }
 
 export type FolderDeletePreview = {
@@ -811,7 +896,13 @@ export async function purgeTrash(olderThanDays?: number): Promise<TrashPurgeResu
   return res.json();
 }
 
-export async function downloadZip(opts: { asset_ids?: string[]; tag?: string; folder_id?: string; filename?: string }) {
+export async function downloadZip(opts: {
+  asset_ids?: string[];
+  tag?: string;
+  folder_id?: string;
+  project_id?: string;
+  filename?: string;
+}) {
   const res = await fetch(`${apiBase()}/download/zip`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
@@ -824,6 +915,17 @@ export async function downloadZip(opts: { asset_ids?: string[]; tag?: string; fo
 export async function downloadFolderZip(folder_id: string) {
   const res = await fetch(`${apiBase()}/folder/${folder_id}/download`, { headers: authHeaders() });
   assertOk(res, "Folder download failed");
+  return res;
+}
+
+/**
+ * Fetches a single asset's bytes (401 becomes `UnauthorizedError`); pair it with
+ * `saveResponseToDisk` from `./download` to write the file.
+ */
+export async function downloadAsset(asset: Asset): Promise<Response> {
+  const res = await fetch(fileUrl(asset.url));
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error("Download failed");
   return res;
 }
 

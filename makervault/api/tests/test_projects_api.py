@@ -191,7 +191,8 @@ def test_create_project_returns_the_row_without_the_internal_columns() -> None:
         assert body["licence"] is None
         assert body["licence_url"] is None
         assert "owner_id" not in body, "owner_id is not exposed"
-        assert "metadata_json" not in body, "metadata_json is not exposed"
+        assert body["metadata_json"] == {}, "the parsed print settings default to an empty object"
+        assert body["total_size"] == 0
         assert ISO_MICROSECONDS.match(body["created_at"]), body["created_at"]
         assert body["created_at"] == body["updated_at"], "a fresh project has one timestamp"
 
@@ -229,6 +230,61 @@ def test_create_project_rejects_an_unknown_cover_asset() -> None:
         assert project_listing(client, headers) == {}, "the failed create must not leave a row"
 
 
+def test_create_project_rejects_an_unknown_field() -> None:
+    """`extra="forbid"` on ProjectIn: a misspelled field is a 422, not a no-op."""
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+
+        response = client.post("/projects", json={"name": unique("typo"), "licence_type": "CC-BY"}, headers=headers)
+
+        assert response.status_code == 422, response.text
+        assert project_listing(client, headers) == {}, "the rejected create must not leave a row"
+
+
+def test_create_project_persists_the_provenance_fields() -> None:
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        fields = {
+            "creator": "someone",
+            "source_url": "https://www.printables.com/model/1-thing",
+            "licence": "CC-BY-4.0",
+            "licence_url": "https://creativecommons.org/licenses/by/4.0/",
+            "origin": "imported",
+        }
+
+        response = client.post("/projects", json={"name": unique("imported"), **fields}, headers=headers)
+
+        assert response.status_code == 201, response.text
+        body = response.json()
+        for field, value in fields.items():
+            assert body[field] == value, field
+        listed = project_listing(client, headers)[body["id"]]
+        for field, value in fields.items():
+            assert listed[field] == value, f"{field} survives a fresh read"
+
+
+@pytest.mark.parametrize("origin", ["own", "imported"])
+def test_create_project_accepts_each_origin(origin: str) -> None:
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+
+        response = client.post("/projects", json={"name": unique(f"origin-{origin}"), "origin": origin}, headers=headers)
+
+        assert response.status_code == 201, response.text
+        assert response.json()["origin"] == origin
+
+
+@pytest.mark.parametrize("origin", ["borrowed", "", "OWN"])
+def test_create_project_rejects_an_unknown_origin(origin: str) -> None:
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+
+        response = client.post("/projects", json={"name": unique("origin-bad"), "origin": origin}, headers=headers)
+
+        assert response.status_code == 422, response.text
+        assert project_listing(client, headers) == {}, "the rejected create must not leave a row"
+
+
 # --- GET /projects ---------------------------------------------------------
 
 
@@ -249,6 +305,61 @@ def test_list_projects_reports_the_member_count() -> None:
         assert listing[empty["id"]]["asset_count"] == 0
         assert listing[one["id"]]["asset_count"] == 1
         assert listing[many["id"]]["asset_count"] == 3
+
+
+def test_project_total_size_sums_the_member_sizes() -> None:
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        empty = create_project(client, headers)
+        project = create_project(client, headers)
+        members = [upload(client, headers, f"sized-{name}.stl") for name in ("alpha", "beta")]
+        outsider = upload(client, headers, "outsider.stl")
+        add_members(client, headers, project["id"], [asset["id"] for asset in members])
+
+        listing = project_listing(client, headers)
+
+        expected = sum(asset["size"] for asset in members)
+        assert expected > 0
+        assert listing[project["id"]]["total_size"] == expected
+        assert listing[empty["id"]]["total_size"] == 0, "an empty project sums to zero, not NULL"
+        assert listing[project["id"]]["total_size"] != outsider["size"], "non-members do not count"
+
+
+def test_project_metadata_json_is_parsed_from_the_row() -> None:
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        project = create_project(client, headers)
+        settings = {"filament": "PLA", "layer_height": 0.2, "infill": 15}
+        # metadata_json has no API writer yet (this ticket only renders it), so the
+        # column is written directly to pin the parser on a populated row.
+        with Session(engine) as session:
+            row = session.get(Project, project["id"])
+            assert row is not None
+            row.metadata_json = json.dumps(settings)
+            session.add(row)
+            session.commit()
+
+        listed = project_listing(client, headers)[project["id"]]
+
+        assert listed["metadata_json"] == settings
+
+
+@pytest.mark.parametrize("raw", ["", "not-json", "[1, 2]", "null"])
+def test_malformed_project_metadata_json_reads_as_an_empty_object(raw: str) -> None:
+    """Anything that is not a JSON object is `{}`: the panel must never see a list."""
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        project = create_project(client, headers)
+        with Session(engine) as session:
+            row = session.get(Project, project["id"])
+            assert row is not None
+            row.metadata_json = raw
+            session.add(row)
+            session.commit()
+
+        listed = project_listing(client, headers)[project["id"]]
+
+        assert listed["metadata_json"] == {}, raw
 
 
 def test_list_projects_orders_names_case_insensitively() -> None:
@@ -288,6 +399,10 @@ def test_list_projects_is_one_statement_for_many_projects() -> None:
         assert response.status_code == 200, response.text
         assert len(response.json()) >= 4
         assert len(statements) == 1, statements
+        # Both aggregates live in that one statement, not behind a second query
+        # per project (which would be an N+1 for the size as well as the count).
+        assert "count(project_asset.asset_id)" in statements[0].lower(), statements[0]
+        assert "sum(asset.size)" in statements[0].lower(), statements[0]
 
 
 def test_list_projects_starts_empty() -> None:
@@ -470,9 +585,27 @@ def test_patch_rejects_an_unknown_key() -> None:
         headers = auth_header(client)
         project = create_project(client, headers)
 
-        response = client.patch(f"/project/{project['id']}", json={"creator": "someone"}, headers=headers)
+        response = client.patch(f"/project/{project['id']}", json={"owner_id": "someone"}, headers=headers)
 
         assert response.status_code == 422, response.text
+
+
+@pytest.mark.parametrize("field", ["creator", "source_url", "licence", "licence_url"])
+def test_patch_sets_and_explicitly_clears_a_provenance_field(field: str) -> None:
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        project = create_project(client, headers)
+
+        set_response = client.patch(f"/project/{project['id']}", json={field: "value"}, headers=headers)
+        assert set_response.status_code == 200, set_response.text
+        assert set_response.json()[field] == "value"
+
+        # An explicit null clears it: the field is present in the body, so an
+        # absent field and a cleared field cannot be confused.
+        clear_response = client.patch(f"/project/{project['id']}", json={field: None}, headers=headers)
+
+        assert clear_response.status_code == 200, clear_response.text
+        assert clear_response.json()[field] is None
 
 
 def test_patch_404_for_an_unknown_project() -> None:

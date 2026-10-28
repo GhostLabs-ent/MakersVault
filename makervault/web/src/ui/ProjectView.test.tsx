@@ -5,25 +5,43 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import type { Project } from "../lib/api";
 
+/** The props the landing page is contractually handed by `ProjectView`. */
+type LandingProps = {
+  project: Project;
+  assetsVersion: number;
+  onProjectUpdated: (project: Project) => void;
+  onProjectDeleted: (id: string) => void;
+  onAssetsChanged: () => void;
+  onUnauthorized?: () => void;
+};
+
 vi.mock("../lib/api", () => ({
   fileUrl: (rel: string) => rel,
 }));
 
-// Lets a single test nest a modal inside the grid, the way a delete
-// ConfirmDialog does in the real AssetGrid.
-const gridState = vi.hoisted(() => ({ withDialog: false }));
+// The landing page is its own component: stub it to a marker plus the props it
+// received, so the tests can prove `ProjectView` forwarded every callback.
+// `withDialog` lets a test nest a modal, the way a delete ConfirmDialog does in
+// the real page.
+const landingState = vi.hoisted(() => ({
+  withDialog: false,
+  received: null as LandingProps | null,
+}));
 
-vi.mock("./AssetGrid", () => ({
-  default: ({ projectId }: { projectId?: string | null }) => (
-    <div data-testid="asset-grid">
-      grid:{projectId}
-      {gridState.withDialog && (
-        <div role="dialog" aria-label="Delete file?">
-          <button type="button">Delete</button>
-        </div>
-      )}
-    </div>
-  ),
+vi.mock("./ProjectLanding", () => ({
+  default: (props: LandingProps) => {
+    landingState.received = props;
+    return (
+      <div data-testid="project-landing">
+        landing:{props.project.id}
+        {landingState.withDialog && (
+          <div role="dialog" aria-label="Delete file?">
+            <button type="button">Delete</button>
+          </div>
+        )}
+      </div>
+    );
+  },
 }));
 
 import ProjectView from "./ProjectView";
@@ -41,6 +59,8 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     cover_asset_id: null,
     cover_thumb_url: null,
     asset_count: 3,
+    metadata_json: {},
+    total_size: 0,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-02T00:00:00Z",
     ...overrides,
@@ -49,7 +69,7 @@ function makeProject(overrides: Partial<Project> = {}): Project {
 
 const projects: Project[] = [
   makeProject({ id: "p1", name: "Hydra" }),
-  makeProject({ id: "p2", name: "Solo", creator: null, asset_count: 1 }),
+  makeProject({ id: "p2", name: "Solo", description: null, creator: null, asset_count: 1 }),
 ];
 
 type Props = ComponentProps<typeof ProjectView>;
@@ -60,6 +80,9 @@ function viewProps(overrides: Partial<Props> = {}): Props {
     selectedProjectId: null,
     onOpenProject: vi.fn(),
     onCloseProject: vi.fn(),
+    onProjectUpdated: vi.fn(),
+    onProjectDeleted: vi.fn(),
+    onAssetsChanged: vi.fn(),
     assetsVersion: 0,
     theme: "dark",
     ...overrides,
@@ -67,7 +90,8 @@ function viewProps(overrides: Partial<Props> = {}): Props {
 }
 
 afterEach(() => {
-  gridState.withDialog = false;
+  landingState.withDialog = false;
+  landingState.received = null;
   cleanup();
 });
 
@@ -92,33 +116,79 @@ describe("ProjectView", () => {
     render(<ProjectView {...viewProps({ onOpenProject })} />);
 
     expect(screen.getByText("Hydra")).toBeTruthy();
+    expect(screen.getByText("A multi-part print")).toBeTruthy();
     expect(screen.getByText("3 files")).toBeTruthy();
     expect(screen.getByText("By Ada")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Open project Solo" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Open project Hydra" }));
     expect(onOpenProject).toHaveBeenCalledWith("p1");
   });
 
-  it("renders the open project's header and scopes the grid to it", () => {
-    render(<ProjectView {...viewProps({ selectedProjectId: "p1" })} />);
+  it("renders the landing page for the open project", () => {
+    render(
+      <ProjectView {...viewProps({ selectedProjectId: "p1", assetsVersion: 7 })} />,
+    );
 
-    expect(screen.getByRole("heading", { name: "Hydra" })).toBeTruthy();
-    expect(screen.getByText("A multi-part print")).toBeTruthy();
-    expect(screen.getByTestId("asset-grid").textContent).toBe("grid:p1");
+    expect(screen.getByTestId("project-landing").textContent).toBe("landing:p1");
+    expect(landingState.received?.project.id).toBe("p1");
+    expect(landingState.received?.assetsVersion).toBe(7);
+    expect(screen.queryByRole("heading", { name: "Projects" })).toBeNull();
   });
 
-  it("closes via the Back button and via Escape", () => {
+  it("forwards the landing page's callbacks to its own props", () => {
+    const onProjectUpdated = vi.fn();
+    const onProjectDeleted = vi.fn();
+    const onAssetsChanged = vi.fn();
+    const onUnauthorized = vi.fn();
+    render(
+      <ProjectView
+        {...viewProps({
+          selectedProjectId: "p1",
+          onProjectUpdated,
+          onProjectDeleted,
+          onAssetsChanged,
+          onUnauthorized,
+        })}
+      />,
+    );
+
+    const landing = landingState.received;
+    if (!landing) throw new Error("landing page did not render");
+
+    const renamed = makeProject({ name: "Hydra v2" });
+    landing.onProjectUpdated(renamed);
+    expect(onProjectUpdated).toHaveBeenCalledWith(renamed);
+
+    landing.onProjectDeleted("p1");
+    expect(onProjectDeleted).toHaveBeenCalledWith("p1");
+
+    landing.onAssetsChanged();
+    expect(onAssetsChanged).toHaveBeenCalledTimes(1);
+
+    expect(landing.onUnauthorized).toBe(onUnauthorized);
+  });
+
+  it("closes via the Back button", () => {
     const onCloseProject = vi.fn();
     render(
       <ProjectView {...viewProps({ selectedProjectId: "p1", onCloseProject })} />,
     );
 
-    const back = screen.getByRole("button", { name: "Back to projects" });
-    fireEvent.click(back);
+    fireEvent.click(screen.getByRole("button", { name: "Back to projects" }));
     expect(onCloseProject).toHaveBeenCalledTimes(1);
+  });
 
-    fireEvent.keyDown(back, { key: "Escape" });
-    expect(onCloseProject).toHaveBeenCalledTimes(2);
+  it("closes via Escape", () => {
+    const onCloseProject = vi.fn();
+    render(
+      <ProjectView {...viewProps({ selectedProjectId: "p1", onCloseProject })} />,
+    );
+
+    fireEvent.keyDown(screen.getByRole("button", { name: "Back to projects" }), {
+      key: "Escape",
+    });
+    expect(onCloseProject).toHaveBeenCalledTimes(1);
   });
 
   it("ignores Escape while the project list is showing", () => {
@@ -131,7 +201,7 @@ describe("ProjectView", () => {
 
   it("ignores Escape while a dialog inside the project is open", () => {
     const onCloseProject = vi.fn();
-    gridState.withDialog = true;
+    landingState.withDialog = true;
     render(
       <ProjectView {...viewProps({ selectedProjectId: "p1", onCloseProject })} />,
     );
@@ -202,7 +272,7 @@ describe("ProjectView", () => {
     const onCloseProject = vi.fn();
     render(
       <ProjectView
-        {...viewProps({ projects: [], selectedProjectId: "gone", onCloseProject })}
+        {...viewProps({ projects: [projects[1]], selectedProjectId: "p1", onCloseProject })}
       />,
     );
 

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Folder, UnauthorizedError, createFolder, downloadFolderZip, listFolders, updateFolder } from "../lib/api";
 import { flattenFolderTree } from "../lib/folderTree";
+import { saveResponseToDisk } from "../lib/download";
 import { entriesFromDataTransfer } from "../lib/uploadTree";
 import { notifyError } from "../lib/toast";
 import TagInput from "./TagInput";
@@ -132,25 +133,6 @@ export default function Sidebar({
       await uploader.upload(entries, { folderId: targetFolderId });
       setDropUploading(false);
     })();
-  };
-
-  const filenameFromDisposition = (res: Response, fallback: string) => {
-    const dispo = res.headers.get("content-disposition") || "";
-    const match = dispo.match(/filename="?([^";]+)"?/i);
-    return (match && match[1]) || fallback;
-  };
-
-  const saveResponseToDisk = async (res: Response, fallback: string) => {
-    const filename = filenameFromDisposition(res, fallback);
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   const handleError = (err: unknown, message: string) => {

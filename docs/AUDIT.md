@@ -155,7 +155,7 @@ and write no row:
 | `PATCH /users/{user_id}` re-sending the current role | nothing changed |
 | `PATCH /users/{user_id}` re-sending the current `disabled` value | nothing changed |
 | `PATCH /folder/{folder_id}` that changes only tags | tags are an exempt metadata class |
-| `PATCH /project/{project_id}` that changes only the description or the cover | neither is a rename |
+| `PATCH /project/{project_id}` that changes only the description, the cover, or the provenance fields (`creator`, `source_url`, `licence`, `licence_url`) | none of them is a rename |
 
 The services compare against the pre-change values they already hold
 (`asset_service.move_asset_to_folder_by_id` compares `folder_id`,
