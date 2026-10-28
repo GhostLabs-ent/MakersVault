@@ -24,6 +24,7 @@ import bulk_service
 import folder_service
 import login_throttle as login_throttle_module
 import multipart_stream
+import permissions
 import sessions
 import trash_service
 from asset_file_service import (
@@ -54,12 +55,7 @@ from asset_service import (
     unique_model_name,
     validate_storage_template,
 )
-from auth import (
-    AuthContext,
-    require_admin,
-    require_auth,
-    validate_auth_configuration,
-)
+from auth import AuthContext, validate_auth_configuration
 from config import IMPORT_MAX_BYTES, MAX_UPLOAD_BYTES, MOUNT_IMPORT_COPY, MOUNT_IMPORT_ENABLED, MOUNT_IMPORT_PATH
 from db import THUMBS, engine
 from file_utils import (
@@ -73,6 +69,7 @@ from library_scan import scan_status, start_scan
 from migrations import run_migrations
 from models import Asset, AssetFile, Folder, User
 from mount_import import mount_import_should_run, scan_mount_imports
+from permissions import require_admin, require_read, require_write
 from prepared_print import prepared_filename
 from schemas import (
     AssetFileOut,
@@ -132,6 +129,10 @@ AUTH_NOT_CONFIGURED = "Authentication is not configured on the server"
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     validate_auth_configuration()
+    # Fail at boot, not at the first request: a route that forgot its permission
+    # level (or drifted from ROUTE_PERMISSIONS) is a security bug, so this check
+    # refuses to start serving until it is fixed.
+    permissions.assert_routes_classified(app)
     login_throttle_module.limiter.reset()
     run_migrations(engine)
     # Runs before the server accepts connections, so a single-process deployment
@@ -328,7 +329,7 @@ def health():
 
 
 @app.get("/settings/mount-import", response_model=MountImportSettingsOut)
-def get_mount_import_settings(_: Optional[AuthContext] = Depends(require_auth)):
+def get_mount_import_settings(_: Optional[AuthContext] = Depends(require_admin)):
     return MountImportSettingsOut(
         enabled=get_mount_import_enabled(MOUNT_IMPORT_ENABLED),
         copy_files=get_mount_import_copy(MOUNT_IMPORT_COPY),
@@ -337,7 +338,7 @@ def get_mount_import_settings(_: Optional[AuthContext] = Depends(require_auth)):
 
 
 @app.post("/settings/mount-import", response_model=MountImportSettingsOut)
-def update_mount_import_settings(body: MountImportSettings, _: Optional[AuthContext] = Depends(require_auth)):
+def update_mount_import_settings(body: MountImportSettings, _: Optional[AuthContext] = Depends(require_admin)):
     set_mount_import_enabled(body.enabled)
     set_mount_import_copy(body.copy_files)
     return MountImportSettingsOut(
@@ -359,13 +360,13 @@ def storage_settings_out(template: str, moved: int = 0, skipped: int = 0) -> Sto
 
 
 @app.get("/settings/storage", response_model=StorageSettingsOut)
-def get_storage_settings(_: Optional[AuthContext] = Depends(require_auth)):
+def get_storage_settings(_: Optional[AuthContext] = Depends(require_admin)):
     template = validate_storage_template(get_storage_template())
     return storage_settings_out(template)
 
 
 @app.post("/settings/storage", response_model=StorageSettingsOut)
-def update_storage_settings(body: StorageSettings, _: Optional[AuthContext] = Depends(require_auth)):
+def update_storage_settings(body: StorageSettings, _: Optional[AuthContext] = Depends(require_admin)):
     template = validate_storage_template(body.template)
     # The template governs new uploads and imports only; existing files never move.
     set_storage_template(template)
@@ -373,12 +374,12 @@ def update_storage_settings(body: StorageSettings, _: Optional[AuthContext] = De
 
 
 @app.get("/library/scan", response_model=LibraryScanStatusOut)
-def library_scan_status(_: Optional[AuthContext] = Depends(require_auth)):
+def library_scan_status(_: Optional[AuthContext] = Depends(require_read)):
     return scan_status()
 
 
 @app.post("/library/scan", response_model=LibraryScanStatusOut, status_code=202)
-def library_scan_start(_: Optional[AuthContext] = Depends(require_auth)):
+def library_scan_start(_: Optional[AuthContext] = Depends(require_admin)):
     if not start_scan():
         raise HTTPException(status_code=409, detail="A library scan is already running")
     return scan_status()
@@ -473,7 +474,7 @@ def logout(
 
 
 @app.get("/me", response_model=MeOut)
-def me(context: Optional[AuthContext] = Depends(require_auth)):
+def me(context: Optional[AuthContext] = Depends(require_read)):
     if not auth.AUTH_ENABLED or context is None:
         raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
     with Session(engine) as s:
@@ -532,7 +533,7 @@ def update_user(user_id: str, body: UserUpdate, _: Optional[AuthContext] = Depen
         raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
     with Session(engine) as s:
         try:
-            user = accounts.set_disabled(s, user_id, body.disabled)
+            user = accounts.update_user(s, user_id, disabled=body.disabled, role=body.role)
         except accounts.AccountError as exc:
             raise HTTPException(status_code=exc.status_code, detail=str(exc)) from None
         result = user_out(user)
@@ -581,7 +582,7 @@ def multipart_form_openapi(*text_fields: str) -> dict:
 
 
 @app.post("/upload", response_model=AssetOut, openapi_extra=multipart_form_openapi("title", "notes", "tags", "folder_id"))
-async def upload(request: Request, _: Optional[AuthContext] = Depends(require_auth)):
+async def upload(request: Request, _: Optional[AuthContext] = Depends(require_write)):
     staging = asset_service.new_staging_path()
     asset: Optional[Asset] = None
     try:
@@ -634,14 +635,14 @@ async def upload(request: Request, _: Optional[AuthContext] = Depends(require_au
 
 
 @app.post("/import", response_model=AssetOut)
-def import_from_link(body: ImportRequest, _: Optional[AuthContext] = Depends(require_auth)):
+def import_from_link(body: ImportRequest, _: Optional[AuthContext] = Depends(require_write)):
     url = normalize_import_url(body.url)
     asset = import_asset_from_url(url, body)
     return to_out(asset)
 
 
 @app.post("/import/inspect", response_model=ImportInspectOut)
-def inspect_import_link(body: ImportRequest, _: Optional[AuthContext] = Depends(require_auth)):
+def inspect_import_link(body: ImportRequest, _: Optional[AuthContext] = Depends(require_write)):
     url = normalize_import_url(body.url)
     resp, final_url = open_import_response(url, body)
     with resp:
@@ -652,7 +653,7 @@ def inspect_import_link(body: ImportRequest, _: Optional[AuthContext] = Depends(
 
 
 @app.post("/import/zip/entries", response_model=ImportZipEntriesOut)
-def list_import_zip_entries(body: ImportZipEntriesRequest, _: Optional[AuthContext] = Depends(require_auth)):
+def list_import_zip_entries(body: ImportZipEntriesRequest, _: Optional[AuthContext] = Depends(require_write)):
     url = normalize_import_url(body.url)
     tmp_path, filename, _ = download_import_to_temp(url, body)
     try:
@@ -670,7 +671,7 @@ def list_import_zip_entries(body: ImportZipEntriesRequest, _: Optional[AuthConte
 
 
 @app.post("/import/zip", response_model=ImportZipResult)
-def import_zip_entries(body: ImportZipExtractRequest, _: Optional[AuthContext] = Depends(require_auth)):
+def import_zip_entries(body: ImportZipExtractRequest, _: Optional[AuthContext] = Depends(require_write)):
     url = normalize_import_url(body.url)
     tmp_path, filename, _ = download_import_to_temp(url, body)
     try:
@@ -686,7 +687,7 @@ def import_zip_entries(body: ImportZipExtractRequest, _: Optional[AuthContext] =
 
 
 @app.get("/file/{asset_id}/{name}")
-def get_file(asset_id: str, name: str, _: Optional[AuthContext] = Depends(require_auth)):
+def get_file(asset_id: str, name: str, _: Optional[AuthContext] = Depends(require_read)):
     media_type: Optional[str] = None
     with Session(engine) as s:
         a = s.get(Asset, asset_id)
@@ -708,7 +709,7 @@ def get_file(asset_id: str, name: str, _: Optional[AuthContext] = Depends(requir
 
 
 @app.get("/asset/{asset_id}/files", response_model=List[AssetFileOut])
-def get_supporting_files(asset_id: str, _: Optional[AuthContext] = Depends(require_auth)):
+def get_supporting_files(asset_id: str, _: Optional[AuthContext] = Depends(require_read)):
     with Session(engine) as session:
         if not session.get(Asset, asset_id):
             raise HTTPException(404)
@@ -719,7 +720,7 @@ def get_supporting_files(asset_id: str, _: Optional[AuthContext] = Depends(requi
 async def upload_related_file(
     asset_id: str,
     request: Request,
-    _: Optional[AuthContext] = Depends(require_auth),
+    _: Optional[AuthContext] = Depends(require_write),
 ):
     staging = asset_service.new_staging_path()
     try:
@@ -737,7 +738,7 @@ async def upload_related_file(
 
 
 @app.get("/asset/{asset_id}/files/{file_id}")
-def download_supporting_file(asset_id: str, file_id: str, _: Optional[AuthContext] = Depends(require_auth)):
+def download_supporting_file(asset_id: str, file_id: str, _: Optional[AuthContext] = Depends(require_read)):
     with Session(engine) as session:
         record = session.get(AssetFile, file_id)
         if not record or record.asset_id != asset_id or record.role != "supporting":
@@ -751,12 +752,12 @@ def download_supporting_file(asset_id: str, file_id: str, _: Optional[AuthContex
 
 
 @app.delete("/asset/{asset_id}/files/{file_id}", response_model=AssetOut)
-def remove_supporting_file(asset_id: str, file_id: str, _: Optional[AuthContext] = Depends(require_auth)):
+def remove_supporting_file(asset_id: str, file_id: str, _: Optional[AuthContext] = Depends(require_write)):
     return to_out(delete_supporting_file(asset_id, file_id))
 
 
 @app.get("/asset/{asset_id}/prepared-print")
-def get_prepared_print(asset_id: str, _: Optional[AuthContext] = Depends(require_auth)):
+def get_prepared_print(asset_id: str, _: Optional[AuthContext] = Depends(require_read)):
     with Session(engine) as session:
         asset = session.get(Asset, asset_id)
         if not asset or not asset.prepared_file_id:
@@ -773,12 +774,12 @@ def get_prepared_print(asset_id: str, _: Optional[AuthContext] = Depends(require
 
 
 @app.delete("/asset/{asset_id}/prepared-print", response_model=AssetOut)
-def remove_prepared_print(asset_id: str, _: Optional[AuthContext] = Depends(require_auth)):
+def remove_prepared_print(asset_id: str, _: Optional[AuthContext] = Depends(require_write)):
     return to_out(delete_prepared_file(asset_id))
 
 
 @app.get("/thumb/{asset_id}.jpg")
-def get_thumb(asset_id: str, _: Optional[AuthContext] = Depends(require_auth)):
+def get_thumb(asset_id: str, _: Optional[AuthContext] = Depends(require_read)):
     p = THUMBS / f"{asset_id}.jpg"
     if not p.exists():
         raise HTTPException(404)
@@ -793,7 +794,7 @@ def get_thumb(asset_id: str, _: Optional[AuthContext] = Depends(require_auth)):
 async def save_generated_thumbnail(
     asset_id: str,
     file: UploadFile = File(...),
-    _: Optional[AuthContext] = Depends(require_auth),
+    _: Optional[AuthContext] = Depends(require_write),
 ):
     if (file.content_type or "").lower() not in {"image/png", "image/jpeg", "image/webp"}:
         raise HTTPException(status_code=415, detail="Generated thumbnail must be PNG, JPEG, or WebP")
@@ -837,7 +838,7 @@ def list_assets(
     folder_id: Optional[str] = None,
     limit: Optional[int] = Query(default=None, ge=1, le=1000),
     offset: Optional[int] = Query(default=None, ge=0),
-    _: Optional[AuthContext] = Depends(require_auth),
+    _: Optional[AuthContext] = Depends(require_read),
 ):
     with Session(engine) as s:
         stmt = apply_asset_filters(select(Asset), q, tags, folder_id)
@@ -865,7 +866,7 @@ def list_tags(
     q: Optional[str] = None,
     tags: Optional[str] = Query(default=None, description="Comma-separated tags"),
     folder_id: Optional[str] = None,
-    _: Optional[AuthContext] = Depends(require_auth),
+    _: Optional[AuthContext] = Depends(require_read),
 ):
     with Session(engine) as s:
         stmt = apply_asset_filters(select(Asset.tags_json), q, tags, folder_id)
@@ -889,7 +890,7 @@ def list_tags(
 
 
 @app.post("/download/zip")
-def download_zip(body: DownloadRequest, background: BackgroundTasks, _: Optional[AuthContext] = Depends(require_auth)):
+def download_zip(body: DownloadRequest, background: BackgroundTasks, _: Optional[AuthContext] = Depends(require_read)):
     if not (body.asset_ids or body.tag or body.folder_id):
         raise HTTPException(status_code=400, detail="Provide asset_ids, tag, or folder_id to download.")
 
@@ -935,7 +936,7 @@ def require_asset_ids(raw: List[str]) -> List[str]:
 
 
 @app.post("/assets/batch/tags", response_model=BatchTagsOut)
-def batch_set_tags(body: BatchTagsRequest, _: Optional[AuthContext] = Depends(require_auth)):
+def batch_set_tags(body: BatchTagsRequest, _: Optional[AuthContext] = Depends(require_write)):
     asset_ids = require_asset_ids(body.asset_ids)
     add_tags = [t.strip() for t in body.add_tags if t and t.strip()]
     remove_tags = [t.strip() for t in body.remove_tags if t and t.strip()]
@@ -946,7 +947,7 @@ def batch_set_tags(body: BatchTagsRequest, _: Optional[AuthContext] = Depends(re
 
 
 @app.post("/assets/batch/folder", response_model=BatchFolderOut)
-def batch_move_to_folder(body: BatchFolderRequest, _: Optional[AuthContext] = Depends(require_auth)):
+def batch_move_to_folder(body: BatchFolderRequest, _: Optional[AuthContext] = Depends(require_write)):
     asset_ids = require_asset_ids(body.asset_ids)
     folder_id = body.folder_id or None
     if folder_id:
@@ -960,14 +961,14 @@ def batch_move_to_folder(body: BatchFolderRequest, _: Optional[AuthContext] = De
 
 
 @app.post("/assets/batch/delete", response_model=BatchDeleteOut)
-def batch_delete_assets(body: BatchDeleteRequest, _: Optional[AuthContext] = Depends(require_auth)):
+def batch_delete_assets(body: BatchDeleteRequest, _: Optional[AuthContext] = Depends(require_write)):
     asset_ids = require_asset_ids(body.asset_ids)
     deleted, failed = bulk_service.delete_assets(asset_ids)
     return BatchDeleteOut(deleted=deleted, failed=failed)
 
 
 @app.post("/asset/{asset_id}/tags", response_model=AssetOut)
-def set_tags(asset_id: str, body: TagUpdate, _: Optional[AuthContext] = Depends(require_auth)):
+def set_tags(asset_id: str, body: TagUpdate, _: Optional[AuthContext] = Depends(require_write)):
     with Session(engine) as s:
         a = s.get(Asset, asset_id)
         if not a:
@@ -980,7 +981,7 @@ def set_tags(asset_id: str, body: TagUpdate, _: Optional[AuthContext] = Depends(
 
 
 @app.post("/asset/{asset_id}/meta", response_model=AssetOut)
-def update_asset_meta(asset_id: str, body: AssetMetaUpdate, _: Optional[AuthContext] = Depends(require_auth)):
+def update_asset_meta(asset_id: str, body: AssetMetaUpdate, _: Optional[AuthContext] = Depends(require_write)):
     with Session(engine) as s:
         a = s.get(Asset, asset_id)
         if not a:
@@ -1022,7 +1023,7 @@ def update_asset_meta(asset_id: str, body: AssetMetaUpdate, _: Optional[AuthCont
 
 
 @app.post("/asset/{asset_id}/rename", response_model=AssetOut)
-def rename_asset(asset_id: str, body: AssetRename, _: Optional[AuthContext] = Depends(require_auth)):
+def rename_asset(asset_id: str, body: AssetRename, _: Optional[AuthContext] = Depends(require_write)):
     new_name = (body.filename or "").strip()
     if not new_name:
         raise HTTPException(400, "Filename cannot be empty")
@@ -1063,7 +1064,7 @@ def rename_asset(asset_id: str, body: AssetRename, _: Optional[AuthContext] = De
 
 
 @app.delete("/asset/{asset_id}")
-def delete_asset(asset_id: str, _: Optional[AuthContext] = Depends(require_auth)):
+def delete_asset(asset_id: str, _: Optional[AuthContext] = Depends(require_write)):
     delete_asset_permanently(asset_id)
     return {"ok": True}
 
@@ -1072,21 +1073,21 @@ def delete_asset(asset_id: str, _: Optional[AuthContext] = Depends(require_auth)
 
 
 @app.get("/folders", response_model=List[FolderOut])
-def list_folders(_: Optional[AuthContext] = Depends(require_auth)):
+def list_folders(_: Optional[AuthContext] = Depends(require_read)):
     with Session(engine) as s:
         rows = list(s.exec(select(Folder)))
     return [folder_to_out(f) for f in rows]
 
 
 @app.post("/folders", response_model=FolderOut)
-def create_folder(body: FolderIn, _: Optional[AuthContext] = Depends(require_auth)):
+def create_folder(body: FolderIn, _: Optional[AuthContext] = Depends(require_write)):
     with Session(engine) as s:
         f = folder_service.create_folder(s, body.name, json.dumps(body.tags), body.parent_id)
     return folder_to_out(f)
 
 
 @app.patch("/folder/{folder_id}", response_model=FolderOut)
-def update_folder(folder_id: str, body: FolderIn, _: Optional[AuthContext] = Depends(require_auth)):
+def update_folder(folder_id: str, body: FolderIn, _: Optional[AuthContext] = Depends(require_write)):
     with Session(engine) as s:
         f = s.get(Folder, folder_id)
         if not f:
@@ -1100,7 +1101,7 @@ def update_folder(folder_id: str, body: FolderIn, _: Optional[AuthContext] = Dep
 def delete_folder(
     folder_id: str,
     confirm_name: Optional[str] = Query(None),
-    _: Optional[AuthContext] = Depends(require_auth),
+    _: Optional[AuthContext] = Depends(require_write),
 ):
     """Delete a folder's whole directory subtree through the trash.
 
@@ -1121,7 +1122,7 @@ def delete_folder(
 
 
 @app.get("/folder/{folder_id}/delete-preview", response_model=FolderDeletePreviewOut)
-def folder_delete_preview(folder_id: str, _: Optional[AuthContext] = Depends(require_auth)):
+def folder_delete_preview(folder_id: str, _: Optional[AuthContext] = Depends(require_read)):
     with Session(engine) as s:
         folder = s.get(Folder, folder_id)
         if not folder:
@@ -1130,7 +1131,7 @@ def folder_delete_preview(folder_id: str, _: Optional[AuthContext] = Depends(req
 
 
 @app.get("/folder/{folder_id}/download")
-def download_folder(folder_id: str, background: BackgroundTasks, _: Optional[AuthContext] = Depends(require_auth)):
+def download_folder(folder_id: str, background: BackgroundTasks, _: Optional[AuthContext] = Depends(require_read)):
     with Session(engine) as s:
         folder = s.get(Folder, folder_id)
         if not folder:
@@ -1145,7 +1146,7 @@ def download_folder(folder_id: str, background: BackgroundTasks, _: Optional[Aut
 
 
 @app.get("/trash", response_model=TrashListOut)
-def list_trash(_: Optional[AuthContext] = Depends(require_auth)):
+def list_trash(_: Optional[AuthContext] = Depends(require_read)):
     entries = trash_service.list_entries()
     return TrashListOut(
         entries=[TrashEntryOut(**entry) for entry in entries],
@@ -1154,10 +1155,10 @@ def list_trash(_: Optional[AuthContext] = Depends(require_auth)):
 
 
 @app.post("/trash/purge", response_model=TrashPurgeOut)
-def purge_trash(older_than_days: Optional[int] = Query(None, ge=0), _: Optional[AuthContext] = Depends(require_auth)):
+def purge_trash(older_than_days: Optional[int] = Query(None, ge=0), _: Optional[AuthContext] = Depends(require_admin)):
     return TrashPurgeOut(**trash_service.purge(older_than_days))
 
 
 @app.post("/asset/{asset_id}/folder", response_model=AssetOut)
-def update_asset_folder(asset_id: str, body: AssetFolderUpdate, _: Optional[AuthContext] = Depends(require_auth)):
+def update_asset_folder(asset_id: str, body: AssetFolderUpdate, _: Optional[AuthContext] = Depends(require_write)):
     return to_out(move_asset_to_folder_by_id(asset_id, body.folder_id))

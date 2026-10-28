@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 
 class AssetCreate(BaseModel):
@@ -135,10 +135,21 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
-  """Only `disabled` is mutable here; role changes belong to Mf-2nbc."""
+  """Fields an administrator may change on an account (Mf-2nbc).
+
+  Both are optional so `{"disabled": true}` keeps working, and an empty patch
+  is rejected instead of silently changing nothing.
+  """
 
   model_config = ConfigDict(extra="forbid")
-  disabled: bool
+  disabled: Optional[bool] = None
+  role: Optional[str] = None
+
+  @model_validator(mode="after")
+  def require_a_change(self) -> "UserUpdate":
+    if self.disabled is None and self.role is None:
+      raise ValueError("provide disabled and/or role")
+    return self
 
 
 class UserOut(BaseModel):

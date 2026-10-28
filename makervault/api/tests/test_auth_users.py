@@ -357,7 +357,10 @@ def test_user_administration_validation(client: TestClient) -> None:
     assert short_password.status_code == 422
     assert blank_username.status_code == 422
     assert unknown_patch.status_code == 404
-    assert role_change.status_code == 422
+    # `role` became mutable in Mf-2nbc (admin only, last-admin guarded), so a
+    # patch that also changes the role is now accepted instead of rejected.
+    assert role_change.status_code == 200
+    assert role_change.json()["role"] == "admin"
 
 
 def test_refresh_tokens_are_stored_hashed(client: TestClient) -> None:

@@ -12,6 +12,9 @@ function assertOk(res: Response, message: string) {
   if (res.status === 401) {
     throw new UnauthorizedError();
   }
+  if (res.status === 403) {
+    throw new Error("Your role does not allow this action.");
+  }
   if (!res.ok) {
     throw new Error(message);
   }

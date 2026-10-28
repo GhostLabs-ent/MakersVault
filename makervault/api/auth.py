@@ -190,12 +190,3 @@ def require_auth(
       role=sessions.role_for(session_row, user),
       kind=session_row.kind,
     )
-
-
-def require_admin(context: Optional[AuthContext] = Depends(require_auth)) -> Optional[AuthContext]:
-  """Gate user administration on the admin role (break-glass counts as admin)."""
-  if context is None:
-    return None
-  if context.role != accounts.ADMIN_ROLE:
-    raise HTTPException(status_code=403, detail="Administrator access required")
-  return context

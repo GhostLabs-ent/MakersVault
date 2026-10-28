@@ -57,6 +57,19 @@ class UnknownAccount(AccountError):
     status_code = 404
 
 
+class LastAdmin(AccountError):
+    """The change would leave no enabled administrator.
+
+    The invariant is "at least one enabled administrator", checked on the state
+    the account would have after the change. It is not cosmetic: the env
+    break-glass admin only authenticates while the users table is EMPTY (see
+    `auth.login`), so once a real account exists a lockout cannot be undone
+    through the API.
+    """
+
+    status_code = 409
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -170,12 +183,54 @@ def create_user(
     return user
 
 
-def set_disabled(session: Session, user_id: str, disabled: bool) -> User:
-    """Enable or disable an account; disabled accounts lose every live session."""
+def is_viable_admin(user: User) -> bool:
+    """True when this account can still administer the deployment."""
+    return user.role == ADMIN_ROLE and not user.disabled
+
+
+def count_enabled_admins(session: Session, exclude_user_id: Optional[str] = None) -> int:
+    """Enabled admin accounts, optionally ignoring one (the account being changed)."""
+    stmt = select(User.id).where(User.role == ADMIN_ROLE, User.disabled == 0)
+    if exclude_user_id:
+        stmt = stmt.where(User.id != exclude_user_id)
+    return len(list(session.exec(stmt).all()))
+
+
+def update_user(
+    session: Session,
+    user_id: str,
+    *,
+    disabled: Optional[bool] = None,
+    role: Optional[str] = None,
+) -> User:
+    """Apply a partial change to one account; the caller commits.
+
+    Raises `UnknownAccount` for a missing id, `InvalidAccount` for a role that
+    is not in `ROLES`, and `LastAdmin` when the change would demote or disable
+    the last enabled administrator.
+
+    The guard reads the post-change viability of the target and excludes the
+    target from the count of the others, in the same transaction as the
+    mutation, so the decision and the write see one consistent state. Two
+    concurrent demotions of the last two admins can still both pass the count
+    check (SQLite serialises commits, not these reads); that is accepted for a
+    self-hosted deployment and documented in docs/PERMISSIONS.md.
+    """
     user = get_user(session, user_id)
     if user is None:
         raise UnknownAccount("no such user")
-    user.disabled = 1 if disabled else 0
+    new_role = _clean_role(role) if role is not None else user.role
+    new_disabled = user.disabled if disabled is None else (1 if disabled else 0)
+    stays_viable = new_role == ADMIN_ROLE and not new_disabled
+    loses_last_admin = (
+        is_viable_admin(user)
+        and not stays_viable
+        and count_enabled_admins(session, exclude_user_id=user.id) == 0
+    )
+    if loses_last_admin:
+        raise LastAdmin("at least one enabled administrator is required")
+    user.role = new_role
+    user.disabled = new_disabled
     user.updated_at = _now_iso()
     session.add(user)
     session.flush()
