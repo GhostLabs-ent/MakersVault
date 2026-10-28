@@ -13,9 +13,6 @@ COPY . .
 RUN ruff check .
 
 FROM lint AS test
-ENV DB_URL=sqlite:////tmp/makersvault-test.db \
-    FILE_STORAGE=/tmp/makersvault-storage \
-    IMPORT_MOUNT_ON_STARTUP=false
 CMD ["python", "-m", "pytest", "-q"]
 
 FROM base AS runtime

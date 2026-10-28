@@ -35,8 +35,26 @@ This performs:
 5. A clean container smoke test with temporary named volumes, HTTP health checks,
    non-root runtime assertions, and schema-version verification.
 
-The smoke test uses host ports `18000` and `15173` by default. Override them only
-when necessary:
+The smoke test picks a free host-port lane, so a single run still lands on the
+historical `18000` (API) and `15173` (web) whenever those are free. Lanes are
+10 ports apart:
+
+| Lane | API port | Web port |
+| ---- | -------- | -------- |
+| 0    | 18000    | 15173    |
+| 1    | 18010    | 15183    |
+| 2    | 18020    | 15193    |
+
+`MV_LANE=1 make verify-smoke` pins a lane and fails fast if that lane is
+already claimed by another run or either of its ports is busy. With `MV_LANE`
+unset the script scans lanes 0-2 in order and takes the first that is both
+unclaimed and has two free ports. A lane is claimed atomically with a lock
+directory under `/tmp/makersvault-smoke-lanes/` (POSIX `mkdir` is atomic), not
+merely probed: `compose up --build` needs minutes before it binds the ports, so
+a probe alone would let two simultaneous runs pick the same lane. A run killed
+hard leaves a stale lock, and the next run checks the recorded pid and takes
+over automatically. The documented port overrides still win and disable both
+scanning and locking:
 
 ```bash
 MAKERSVAULT_SMOKE_API_PORT=28000 \
@@ -44,8 +62,48 @@ MAKERSVAULT_SMOKE_WEB_PORT=25173 \
 make verify-smoke
 ```
 
-The smoke project is removed with its named volumes on success, failure, or
-interruption. It does not use `makervault/data` and does not open `api/app.db`.
+The smoke project is removed with its named volumes and its images on success,
+failure, or interruption. It does not use `makervault/data` and does not open
+`api/app.db`.
+
+## Parallel-safe verification
+
+Two verification runs may share one host and one Docker daemon. Every mutable
+thing a run creates is namespaced by `MV_RUN_ID`:
+
+- the API test database and storage root, under
+  `/tmp/makersvault-tests/<run id>/`;
+- the four image tags (the repository names are unchanged, only the `:` tag is
+  per run);
+- the smoke Compose project name, and therefore its container names and named
+  volumes;
+- the smoke host ports, selected per lane as described above.
+
+The default run id is the pid of the `make` process plus the worktree directory
+name, sanitised to `[a-z0-9_-]`. Set `MV_RUN_ID` yourself to join a named lane,
+for example `MV_RUN_ID=Mf-ly4o make verify`; values are lowercased and
+sanitised, so that id becomes `mf-ly4o`. `make verify-fast` runs pytest on the
+host and inherits the id, so a lane's database, storage and images share one
+name. The `verify-api` container derives its own id from its pid instead: a
+container has a private `/tmp`, so it has nothing to share with another run. The
+smoke project is named `makersvault-gate0-smoke-<run id>`, so two runs never
+share container names or named volumes.
+
+A plain `make verify` is otherwise unchanged: same targets, same commands, and
+it still lands on `18000`/`15173` whenever those are free. Each run removes the
+images it built (the make targets remove theirs after use, and the smoke project
+is torn down with `--rmi local`), so per-run tags do not accumulate.
+
+A run killed hard (SIGKILL before the interpreter exits) can leave
+`/tmp/makersvault-tests/<run id>/` behind. That directory is safe to delete and
+belongs to no other run. It can also leave lane locks under
+`/tmp/makersvault-smoke-lanes/`; those are reclaimed from their recorded pid
+automatically, but `rm -rf /tmp/makersvault-smoke-lanes/*` clears them if a
+stale lock ever blocks a run.
+
+A run never deletes a database it did not create, so pointing `DB_URL` and
+`FILE_STORAGE` at fixed paths keeps that data for investigation after the run
+finishes.
 
 ## Fast gate for individual tickets
 

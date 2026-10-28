@@ -3,9 +3,124 @@ set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 app_dir=$(CDPATH= cd -- "$script_dir/.." && pwd)
-project_name=${MAKERSVAULT_SMOKE_PROJECT:-makersvault-gate0-smoke}
-api_port=${MAKERSVAULT_SMOKE_API_PORT:-18000}
-web_port=${MAKERSVAULT_SMOKE_WEB_PORT:-15173}
+
+# The compose project name allows only [a-z0-9_-] and must start with an
+# alphanumeric, so normalise whatever MV_RUN_ID holds (Mf-ly4o).
+run_id=$(printf '%s' "${MV_RUN_ID:-}" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9_-]/-/g')
+project_name=${MAKERSVAULT_SMOKE_PROJECT:-makersvault-gate0-smoke${run_id:+-$run_id}}
+
+# curl is the only guaranteed dependency. Exit code 7 is "connection refused",
+# which means nothing is listening and the port is therefore free; anything
+# else (including a response) counts as occupied.
+port_free() {
+  rc=0
+  curl --silent --max-time 1 --output /dev/null "http://127.0.0.1:$1/" || rc=$?
+  [ "$rc" -eq 7 ]
+}
+
+# Lane locks make the claim atomic: `compose up --build` needs minutes before
+# it binds the ports, so probing alone would let two simultaneous runs pick the
+# same lane. mkdir is atomic, and the pid inside lets a later run take over a
+# lock left behind by a run that was killed (Mf-ly4o).
+lock_root=${TMPDIR:-/tmp}/makersvault-smoke-lanes
+claimed_lane=
+
+claim_lane() {
+  lane_lock="$lock_root/lane-$1"
+  mkdir -p "$lock_root"
+  if mkdir "$lane_lock" 2>/dev/null; then
+    printf '%s\n' "$$" > "$lane_lock/pid"
+    claimed_lane=$1
+    return 0
+  fi
+  owner=$(cat "$lane_lock/pid" 2>/dev/null || true)
+  if [ -n "$owner" ] && kill -0 "$owner" 2>/dev/null; then
+    return 1
+  fi
+  # The holder is gone, so the lock is stale and this run may take it over.
+  rm -rf "$lane_lock"
+  if mkdir "$lane_lock" 2>/dev/null; then
+    printf '%s\n' "$$" > "$lane_lock/pid"
+    claimed_lane=$1
+    return 0
+  fi
+  return 1
+}
+
+release_lane() {
+  if [ -n "$claimed_lane" ]; then
+    rm -rf "$lock_root/lane-$claimed_lane"
+    claimed_lane=
+  fi
+}
+
+lane=0
+if [ -n "${MV_LANE:-}" ]; then
+  lane=$MV_LANE
+  case "$lane" in
+    ''|*[!0-9]*)
+      echo "MV_LANE must be a non-negative integer" >&2
+      exit 2
+      ;;
+  esac
+fi
+
+api_port=${MAKERSVAULT_SMOKE_API_PORT:-}
+web_port=${MAKERSVAULT_SMOKE_WEB_PORT:-}
+used_lane=
+
+if [ -n "$api_port" ] || [ -n "$web_port" ]; then
+  # The documented overrides win and disable scanning. A missing partner port
+  # falls back to this lane's base ports. No lock is taken: the operator owns
+  # that port decision.
+  api_port=${api_port:-$((18000 + lane * 10))}
+  web_port=${web_port:-$((15173 + lane * 10))}
+elif [ -n "${MV_LANE:-}" ]; then
+  # A pinned lane must fail fast rather than fight for a busy port. Claim first
+  # so a run that is still building holds its lane for its whole lifetime.
+  if ! claim_lane "$lane"; then
+    echo "Smoke test failed: MV_LANE $lane is already claimed by another verification run" >&2
+    exit 1
+  fi
+  used_lane=$lane
+  api_port=$((18000 + lane * 10))
+  web_port=$((15173 + lane * 10))
+  if ! port_free "$api_port"; then
+    release_lane
+    echo "Smoke test failed: MV_LANE $lane needs API port $api_port, which is already in use" >&2
+    exit 1
+  fi
+  if ! port_free "$web_port"; then
+    release_lane
+    echo "Smoke test failed: MV_LANE $lane needs web port $web_port, which is already in use" >&2
+    exit 1
+  fi
+else
+  # No lane pinned: take the first lane that is both unclaimed and has two free
+  # ports, so two concurrent runs land on different lanes without any
+  # configuration. Lane 0 being free keeps a single run on the historical
+  # 18000/15173. The probe is the second check: it still catches ports held by
+  # something that is not one of our runs.
+  api_port=
+  web_port=
+  for candidate in 0 1 2; do
+    candidate_api=$((18000 + candidate * 10))
+    candidate_web=$((15173 + candidate * 10))
+    if claim_lane "$candidate" && port_free "$candidate_api" && port_free "$candidate_web"; then
+      api_port=$candidate_api
+      web_port=$candidate_web
+      used_lane=$candidate
+      break
+    fi
+    release_lane
+  done
+  if [ -z "$api_port" ]; then
+    echo "Smoke test failed: no free smoke lane in 0-2; set MV_LANE or MAKERSVAULT_SMOKE_API_PORT/MAKERSVAULT_SMOKE_WEB_PORT, and \`rm -rf /tmp/makersvault-smoke-lanes/*\` if a killed run left locks behind" >&2
+    exit 1
+  fi
+fi
+
+echo "Smoke project $project_name on host ports $api_port/$web_port${used_lane:+ (lane $used_lane)}"
 
 cd "$app_dir"
 
@@ -21,10 +136,20 @@ compose() {
 }
 
 cleanup() {
-  compose down --volumes --remove-orphans >/dev/null 2>&1 || true
+  # --rmi local also drops the images this run built, so per-run tags do not
+  # accumulate on the Docker daemon.
+  compose down --volumes --remove-orphans --rmi local >/dev/null 2>&1 || true
 }
 
-trap cleanup EXIT HUP INT TERM
+# Releasing the lane belongs to the exit paths only: the pre-start `cleanup`
+# below must not drop the claim this run has just made, or two runs could pick
+# the same lane (Mf-ly4o).
+on_exit() {
+  release_lane
+  cleanup
+}
+
+trap on_exit EXIT HUP INT TERM
 cleanup
 compose up --detach --build
 
