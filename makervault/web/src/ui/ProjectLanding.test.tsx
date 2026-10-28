@@ -497,7 +497,53 @@ describe("ProjectLanding details", () => {
     const details = screen.getByRole("region", { name: "Details" });
     expect(within(details).getByText("Own creation")).toBeTruthy();
     expect(within(details).queryByText("Source")).toBeNull();
-    expect(within(details).queryByText("Licence")).toBeNull();
+    // The licence row is always there; a missing licence is stated explicitly
+    // instead of the row disappearing.
+    expect(within(details).getByText("Licence")).toBeTruthy();
+    expect(within(details).getByText("Licence unknown")).toBeTruthy();
+  });
+
+  it("marks a missing licence in the hero and the details panel", async () => {
+    renderLanding();
+    await screen.findByText("Body");
+
+    const unknowns = Array.from(document.querySelectorAll("[data-licence-unknown]"));
+    expect(unknowns.map(element => element.textContent)).toEqual([
+      "Licence unknown",
+      "Licence unknown",
+    ]);
+    // Neither is dressed up as a real licence term.
+    expect(document.querySelectorAll("[data-licence-chip]").length).toBe(0);
+  });
+
+  it("treats a whitespace-only licence as missing", async () => {
+    renderLanding({ project: makeProject({ licence: "   " }) });
+    await screen.findByText("Body");
+
+    const details = screen.getByRole("region", { name: "Details" });
+    expect(within(details).getByText("Licence unknown")).toBeTruthy();
+    expect(screen.queryAllByText("Licence unknown").length).toBe(2);
+    expect(document.querySelectorAll("[data-licence-chip]").length).toBe(0);
+  });
+
+  it("marks a recorded licence as a chip linked to its licence URL", async () => {
+    renderLanding({
+      project: makeProject({
+        licence: "CC-BY-SA",
+        licence_url: "https://creativecommons.org/licenses/by-sa/4.0/",
+      }),
+    });
+    await screen.findByText("Body");
+
+    // Hero chip plus the details-panel row.
+    const chips = Array.from(document.querySelectorAll("[data-licence-chip]"));
+    expect(chips.map(element => element.textContent)).toEqual(["CC-BY-SA", "CC-BY-SA"]);
+    expect(document.querySelectorAll("[data-licence-unknown]").length).toBe(0);
+    for (const chip of chips) {
+      expect(chip.getAttribute("href")).toBe(
+        "https://creativecommons.org/licenses/by-sa/4.0/",
+      );
+    }
   });
 
   it("describes an imported project with source, licence and creator", async () => {

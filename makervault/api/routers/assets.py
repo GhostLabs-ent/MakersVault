@@ -135,7 +135,9 @@ def download_zip(body: DownloadRequest, background: BackgroundTasks, _: Optional
         safe_name = (project.name or "project").replace(" ", "_")[:50] or "project"
         download_name = f"{safe_name}.zip"
 
-    return zip_assets_response(assets, download_name, background, folder_map, allow_empty=project is not None)
+    return zip_assets_response(
+        assets, download_name, background, folder_map, allow_empty=project is not None, project=project
+    )
 
 
 # Batch endpoints -----------------------------------------------

@@ -45,6 +45,7 @@ import {
 import { saveResponseToDisk } from "../lib/download";
 import { formatBytes, formatDate } from "../lib/format";
 import { is3mfAsset, isImageAsset, isModelAsset, typeLabelFor } from "../lib/assetKinds";
+import { sourceHostLabel } from "../lib/provenance";
 import {
   slicerLabelFor,
   type EngravingSettings,
@@ -54,6 +55,7 @@ import {
 } from "../lib/settings";
 import { notifyError, notifyInfo } from "../lib/toast";
 import ConfirmDialog, { type ConfirmRequest } from "./ConfirmDialog";
+import LicenceChip from "./LicenceChip";
 import AttachFilesControl from "./project-attach/AttachFilesControl";
 import { useAttachDrop } from "./project-attach/useAttachDrop";
 import { useAttachToProject } from "./project-attach/useAttachToProject";
@@ -129,25 +131,6 @@ function placeholderIconFor(asset: Asset) {
   if (isImageAsset(asset)) return ImageIcon;
   if (isModelAsset(asset)) return FileBox;
   return FileIcon;
-}
-
-const SOURCE_HOSTS: Array<[needle: string, label: string]> = [
-  ["printables", "Printables"],
-  ["thingiverse", "Thingiverse"],
-  ["makerworld", "MakerWorld"],
-];
-
-/** The well-known host a `source_url` points at, for the "View original" badge. */
-function sourceHostLabel(url: string): string | null {
-  try {
-    const host = new URL(url).hostname.toLowerCase();
-    for (const [needle, label] of SOURCE_HOSTS) {
-      if (host.includes(needle)) return label;
-    }
-  } catch {
-    // An unparsable URL still gets the generic badge.
-  }
-  return null;
 }
 
 const FOCUS_VISIBLE =
@@ -727,7 +710,7 @@ export default function ProjectLanding({
               </>
             )}
 
-            {!editing && (project.source_url || project.licence) && (
+            {!editing && (
               <div className="flex flex-wrap items-center gap-2">
                 {project.source_url && (
                   <a
@@ -740,20 +723,12 @@ export default function ProjectLanding({
                     <ExternalLink className="h-3 w-3" aria-hidden="true" />
                   </a>
                 )}
-                {project.licence &&
-                  (project.licence_url ? (
-                    <a
-                      href={project.licence_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`${CHIP} hover:bg-panel`}
-                    >
-                      {project.licence}
-                      <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                    </a>
-                  ) : (
-                    <span className={CHIP}>{project.licence}</span>
-                  ))}
+                {/* Always rendered: an unrecorded licence says so explicitly. */}
+                <LicenceChip
+                  licence={project.licence}
+                  licenceUrl={project.licence_url}
+                  linkable
+                />
               </div>
             )}
 
@@ -902,33 +877,26 @@ export default function ProjectLanding({
             {project.origin === "imported" ? "Imported" : "Own creation"}
           </dd>
 
-          {(editing || project.licence) && (
-            <>
-              <dt className="text-muted">Licence</dt>
-              <dd className="min-w-0">
-                {editing ? (
-                  <input
-                    aria-label="Licence"
-                    placeholder="e.g. CC-BY-SA"
-                    className={INPUT_BASE}
-                    value={draft.licence}
-                    onChange={event => setDraft({ ...draft, licence: event.target.value })}
-                  />
-                ) : project.licence_url ? (
-                  <a
-                    href={project.licence_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`break-words text-accent underline-offset-2 hover:underline ${FOCUS_VISIBLE}`}
-                  >
-                    {project.licence}
-                  </a>
-                ) : (
-                  project.licence
-                )}
-              </dd>
-            </>
-          )}
+          {/* Always present: a missing licence is stated, not implied by an
+              absent row. */}
+          <dt className="text-muted">Licence</dt>
+          <dd className="min-w-0">
+            {editing ? (
+              <input
+                aria-label="Licence"
+                placeholder="e.g. CC-BY-SA"
+                className={INPUT_BASE}
+                value={draft.licence}
+                onChange={event => setDraft({ ...draft, licence: event.target.value })}
+              />
+            ) : (
+              <LicenceChip
+                licence={project.licence}
+                licenceUrl={project.licence_url}
+                linkable
+              />
+            )}
+          </dd>
 
           {(editing || project.licence_url) && (
             <>

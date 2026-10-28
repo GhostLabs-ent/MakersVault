@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useState, type ComponentProps } from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 
 import type { Project } from "../lib/api";
 
@@ -123,6 +123,51 @@ describe("ProjectView", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Open project Hydra" }));
     expect(onOpenProject).toHaveBeenCalledWith("p1");
+  });
+
+  it("shows each card's licence, including the explicit unknown state", () => {
+    render(
+      <ProjectView
+        {...viewProps({
+          projects: [
+            makeProject({ id: "p1", name: "Hydra", licence: "CC-BY-SA" }),
+            makeProject({ id: "p2", name: "Solo", creator: null }),
+          ],
+        })}
+      />,
+    );
+
+    const licensed = screen.getByRole("button", { name: "Open project Hydra" });
+    expect(within(licensed).getByText("CC-BY-SA")).toBeTruthy();
+    expect(within(licensed).queryByText("Licence unknown")).toBeNull();
+
+    const unlicensed = screen.getByRole("button", { name: "Open project Solo" });
+    expect(within(unlicensed).getByText("Licence unknown")).toBeTruthy();
+    expect(within(unlicensed).queryByText("CC-BY-SA")).toBeNull();
+  });
+
+  it("shows the source host on a card without nesting an anchor in the button", () => {
+    render(
+      <ProjectView
+        {...viewProps({
+          projects: [
+            makeProject({
+              id: "p1",
+              name: "Hydra",
+              source_url: "https://www.printables.com/model/123-hydra",
+            }),
+          ],
+        })}
+      />,
+    );
+
+    const card = screen.getByRole("button", { name: "Open project Hydra" });
+    const chip = card.querySelector("[data-source-chip]");
+    expect(chip?.textContent).toBe("Printables");
+    expect(chip?.getAttribute("title")).toBe("https://www.printables.com/model/123-hydra");
+    // The card must stay a single interactive element.
+    expect(within(card).queryByRole("link")).toBeNull();
+    expect(card.querySelector("a")).toBeNull();
   });
 
   it("renders the landing page for the open project", () => {

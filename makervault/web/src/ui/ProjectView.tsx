@@ -2,12 +2,14 @@ import { useEffect, useRef, type KeyboardEvent } from "react";
 import { Layers3 } from "lucide-react";
 
 import { fileUrl, type Project } from "../lib/api";
+import { sourceChipLabel } from "../lib/provenance";
 import type {
   EngravingSettings,
   PreviewSettings,
   ResolvedTheme,
   SlicerSettings,
 } from "../lib/settings";
+import LicenceChip from "./LicenceChip";
 import ProjectLanding from "./ProjectLanding";
 
 type Props = {
@@ -37,6 +39,10 @@ function coverFor(project: Project, className: string) {
     </span>
   );
 }
+
+/** The card's own pill: the source host as plain text (no link inside a button). */
+const SOURCE_CHIP =
+  "inline-flex min-w-0 items-center rounded-full border border-panel-strong bg-panel-soft px-2.5 py-0.5 text-xs font-medium text-muted";
 
 /**
  * Projects pane: the project card grid, and the project landing page once a
@@ -173,6 +179,20 @@ export default function ProjectView({
                 {project.creator && (
                   <span className="text-xs text-muted">By {project.creator}</span>
                 )}
+                {/* Provenance row: text only, because the whole card is one
+                    button and an anchor inside it would be invalid HTML. */}
+                <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs">
+                  <LicenceChip licence={project.licence} licenceUrl={project.licence_url} />
+                  {project.source_url && (
+                    <span
+                      data-source-chip="true"
+                      title={project.source_url}
+                      className={SOURCE_CHIP}
+                    >
+                      <span className="truncate">{sourceChipLabel(project.source_url)}</span>
+                    </span>
+                  )}
+                </span>
               </span>
             </button>
           ))}

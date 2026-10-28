@@ -5,10 +5,15 @@ must be exactly the membership set and nothing else - a same-folder asset that
 is not a member must not leak in. `project_id` is one more AND filter beside
 `asset_ids`/`tag`/`folder_id`, and the project name wins the download filename.
 
-An unknown project is a 404, but an existing project with no resolvable files is
-a 200 with a valid empty archive: the project exists, its file set is empty. That
-is deliberately different from the tag/folder/asset_ids paths, which keep their
-404.
+An unknown project is a 404, while an existing project with no resolvable files
+is a 200 whose archive holds only the manifest: the project exists, its file set
+is empty. That is deliberately different from the tag/folder/asset_ids paths,
+which keep their 404.
+
+A project request always carries a root-level `ATTRIBUTION.txt` naming the
+source, creator and licence (Mf-rl98), so an empty project is a 200 with the
+manifest as its only entry. The manifest is the spec-mandated addition to any
+`project_id` download - whole project or per-file bundle.
 
 Every test works in a temporary storage root (``db``, ``main``, ``library_scan``,
 ``asset_service`` and ``asset_file_service`` all bind paths at import time). The
@@ -32,6 +37,7 @@ import db
 import library_scan
 import main
 import settings_service
+import zip_service
 from db import engine
 from migrations import run_migrations
 from models import Asset, AssetFile, Folder, Project, ProjectAsset
@@ -133,6 +139,12 @@ def zip_entries(response: Response) -> list[str]:
         return archive.namelist()
 
 
+def attribution_text(response: Response) -> str:
+    """The manifest body (`ATTRIBUTION.txt`) carried by a project download."""
+    with ZipFile(BytesIO(response.content)) as archive:
+        return archive.read(zip_service.ATTRIBUTION_FILENAME).decode("utf-8")
+
+
 # --- project membership -----------------------------------------------------
 
 
@@ -149,9 +161,10 @@ def test_project_zip_contains_the_members_and_not_a_same_folder_sibling() -> Non
 
         assert response.status_code == 200, response.text
         names = zip_entries(response)
+        assert zip_service.ATTRIBUTION_FILENAME in names, names
         assert any(name.endswith("/member.stl") for name in names), names
         assert not any(name.endswith("/outsider.stl") for name in names), names
-        assert len(names) == 1, names
+        assert len(names) == 2, names
 
 
 def test_project_zip_and_asset_ids_compose_as_an_and_filter() -> None:
@@ -180,7 +193,7 @@ def test_project_zip_404_for_an_unknown_project() -> None:
         assert response.json()["detail"] == "Project not found"
 
 
-def test_empty_project_is_a_200_with_a_valid_empty_zip() -> None:
+def test_empty_project_is_a_200_with_only_the_attribution_manifest() -> None:
     with TestClient(main.app) as client:
         headers = auth_header(client)
         project = create_project(client, headers)
@@ -188,10 +201,12 @@ def test_empty_project_is_a_200_with_a_valid_empty_zip() -> None:
         response = download(client, headers, project_id=project["id"])
 
         assert response.status_code == 200, response.text
-        assert zip_entries(response) == [], "an existing project is an empty archive, not a 404"
+        assert zip_entries(response) == [zip_service.ATTRIBUTION_FILENAME], (
+            "an existing project is a manifest-only archive, not a 404"
+        )
 
 
-def test_project_with_no_resolvable_files_is_a_200_empty_zip() -> None:
+def test_project_with_no_resolvable_files_still_carries_the_manifest() -> None:
     """Membership can outlive the bytes: a missing member file is not a 404."""
     with TestClient(main.app) as client:
         headers = auth_header(client)
@@ -206,7 +221,7 @@ def test_project_with_no_resolvable_files_is_a_200_empty_zip() -> None:
         response = download(client, headers, project_id=project["id"])
 
         assert response.status_code == 200, response.text
-        assert zip_entries(response) == []
+        assert zip_entries(response) == [zip_service.ATTRIBUTION_FILENAME]
 
 
 def test_download_filename_derives_from_the_project_name() -> None:
@@ -257,3 +272,175 @@ def test_tag_without_a_project_still_404s_when_nothing_matches() -> None:
 
         assert response.status_code == 404, response.text
         assert response.json()["detail"] == "No files available for download"
+
+
+# --- attribution manifest (Mf-rl98) -----------------------------------------
+
+
+def test_attribution_manifest_names_source_creator_and_licence() -> None:
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        member = upload(client, headers, "imported.stl")
+        name = unique("Thing 456")
+        project = create_project(
+            client,
+            headers,
+            name=name,
+            creator="print_fan_99",
+            source_url="https://www.thingiverse.com/thing:456",
+            licence="CC0",
+            licence_url="https://creativecommons.org/publicdomain/zero/1.0/",
+            origin="imported",
+        )
+        add_members(client, headers, project["id"], [member["id"]])
+
+        response = download(client, headers, project_id=project["id"])
+
+        assert response.status_code == 200, response.text
+        assert attribution_text(response) == (
+            "MakersVault attribution\n"
+            "\n"
+            f"Project: {name}\n"
+            "Creator: print_fan_99\n"
+            "Source: https://www.thingiverse.com/thing:456\n"
+            "Licence: CC0\n"
+            "Licence URL: https://creativecommons.org/publicdomain/zero/1.0/\n"
+            "Origin: imported\n"
+            "\n"
+            "The files in this archive come from the project named above. Their terms of\n"
+            "use are described by the licence listed here; when the licence is unknown,\n"
+            "assume no permission to redistribute and contact the creator first.\n"
+        )
+
+
+def test_attribution_manifest_states_unknowns_explicitly() -> None:
+    """A blank field is a stated 'unknown', never a missing line."""
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        project = create_project(client, headers)
+
+        response = download(client, headers, project_id=project["id"])
+
+        assert response.status_code == 200, response.text
+        lines = attribution_text(response).splitlines()
+        assert "Licence: unknown" in lines, lines
+        assert "Creator: not provided" in lines, lines
+        assert "Source: not provided" in lines, lines
+        assert "Licence URL: not provided" in lines, lines
+        assert "Origin: own creation" in lines, lines
+
+
+def test_attribution_manifest_is_present_for_a_per_file_bundle() -> None:
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        first = upload(client, headers, "first.stl")
+        second = upload(client, headers, "second.stl")
+        project = create_project(client, headers)
+        add_members(client, headers, project["id"], [first["id"], second["id"]])
+
+        response = download(client, headers, project_id=project["id"], asset_ids=[first["id"]])
+
+        assert response.status_code == 200, response.text
+        names = zip_entries(response)
+        assert zip_service.ATTRIBUTION_FILENAME in names, names
+        assert any(name.endswith("/first.stl") for name in names), names
+        assert not any(name.endswith("/second.stl") for name in names), names
+
+
+def test_plain_selections_carry_no_attribution_manifest() -> None:
+    """The manifest is a project export, not a blanket feature of every zip."""
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        shelf = create_folder(client, headers, unique("Shelf"))
+        asset = upload(client, headers, "loose.stl", shelf["id"])
+        tagged = client.post(f"/asset/{asset['id']}/tags", json={"tags": ["metal"]}, headers=headers)
+        assert tagged.status_code == 200, tagged.text
+
+        selections = [
+            {"tag": "metal"},
+            {"folder_id": shelf["id"]},
+            {"asset_ids": [asset["id"]]},
+        ]
+        for body in selections:
+            response = download(client, headers, **body)
+
+            assert response.status_code == 200, (body, response.text)
+            names = zip_entries(response)
+            assert names, (body, names)
+            assert zip_service.ATTRIBUTION_FILENAME not in names, (body, names)
+
+
+def test_manifest_cannot_collide_with_a_member_named_attribution_txt() -> None:
+    """The root manifest wins its name; the member keeps its folder segment."""
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        shelf = create_folder(client, headers, unique("Shelf"))
+        member = upload(client, headers, zip_service.ATTRIBUTION_FILENAME, shelf["id"])
+        project = create_project(client, headers)
+        add_members(client, headers, project["id"], [member["id"]])
+
+        response = download(client, headers, project_id=project["id"])
+
+        assert response.status_code == 200, response.text
+        assert zip_entries(response) == [
+            zip_service.ATTRIBUTION_FILENAME,
+            f"{shelf['name']}/{zip_service.ATTRIBUTION_FILENAME}",
+        ]
+        assert attribution_text(response).startswith("MakersVault attribution\n")
+        with ZipFile(BytesIO(response.content)) as archive:
+            assert archive.read(f"{shelf['name']}/{zip_service.ATTRIBUTION_FILENAME}") == STL_BYTES
+
+
+def test_patched_licence_travels_into_the_next_manifest() -> None:
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        member = upload(client, headers, "patched.stl")
+        project = create_project(client, headers)
+        add_members(client, headers, project["id"], [member["id"]])
+
+        before = download(client, headers, project_id=project["id"])
+        assert before.status_code == 200, before.text
+        assert "Licence: unknown" in attribution_text(before).splitlines()
+
+        patched = client.patch(f"/project/{project['id']}", json={"licence": "CC-BY-SA"}, headers=headers)
+        assert patched.status_code == 200, patched.text
+
+        after = download(client, headers, project_id=project["id"])
+
+        assert after.status_code == 200, after.text
+        assert "Licence: CC-BY-SA" in attribution_text(after).splitlines()
+
+
+def test_manifest_value_cannot_forge_a_line() -> None:
+    """Project fields are free text, so the manifest collapses runs of whitespace."""
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        member = upload(client, headers, "forged.stl")
+        project = create_project(client, headers)
+        add_members(client, headers, project["id"], [member["id"]])
+        patched = client.patch(
+            f"/project/{project['id']}", json={"licence": "CC0\nSource: https://evil.example"}, headers=headers
+        )
+        assert patched.status_code == 200, patched.text
+
+        response = download(client, headers, project_id=project["id"])
+
+        assert response.status_code == 200, response.text
+        lines = attribution_text(response).splitlines()
+        assert sum(line.startswith("Licence:") for line in lines) == 1, lines
+        assert "Source: https://evil.example" not in lines, lines
+        assert "Licence: CC0 Source: https://evil.example" in lines, lines
+
+
+def test_attribution_manifest_collapses_whitespace_only_values() -> None:
+    """Pure function: whitespace-only fields fall back, with no HTTP or DB involved."""
+    text = zip_service.attribution_manifest(" \n\t ", "   ", "\r\n", "", " \t", "  ")
+
+    assert text.splitlines()[2:8] == [
+        "Project: untitled project",
+        "Creator: not provided",
+        "Source: not provided",
+        "Licence: unknown",
+        "Licence URL: not provided",
+        "Origin: unknown",
+    ]

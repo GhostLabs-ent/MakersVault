@@ -22,8 +22,10 @@ from config import IMPORT_MAX_BYTES, IMPORT_ZIP_MAX_BYTES
 from db import engine
 from file_utils import mime_from_content_type, sanitize_filename, sanitize_path_segment
 from folder_service import validate_parent_folder
-from models import Asset, AssetFile, Folder
+from models import Asset, AssetFile, Folder, Project
 from schemas import ImportZipExtractRequest
+
+ATTRIBUTION_FILENAME = "ATTRIBUTION.txt"
 
 
 def normalize_zip_entry_path(name: str) -> Optional[str]:
@@ -202,18 +204,72 @@ def arcname_for_asset(asset: Asset, folder_label_map: Optional[dict] = None) -> 
     return f"{sanitize_path_segment(folder_part, 'unassigned')}/{sanitize_path_segment(asset.filename, 'file')}"
 
 
+_ORIGIN_LABELS = {"imported": "imported", "own": "own creation"}
+
+
+def _manifest_value(raw: Optional[str], fallback: str) -> str:
+    """One line of the manifest: trimmed, newline-free, never empty."""
+    text = " ".join((raw or "").split())
+    return text or fallback
+
+
+def attribution_manifest(
+    project_name: str,
+    creator: Optional[str],
+    source_url: Optional[str],
+    licence: Optional[str],
+    licence_url: Optional[str],
+    origin: str,
+) -> str:
+    """The `ATTRIBUTION.txt` body for a project download.
+
+    The content is deterministic (no timestamps, no environment-derived values),
+    so tests can assert the exact text; the archive's zip metadata is not
+    byte-stable, exactly like its member entries.
+    """
+    # Project fields are free text from `PATCH /project/{id}`: a value like
+    # "CC0\nSource: https://evil.example" must never forge an extra manifest line,
+    # which is what `_manifest_value`'s whitespace collapse prevents.
+    name = _manifest_value(project_name, "untitled project")
+    creator_value = _manifest_value(creator, "not provided")
+    source_value = _manifest_value(source_url, "not provided")
+    licence_value = _manifest_value(licence, "unknown")
+    licence_url_value = _manifest_value(licence_url, "not provided")
+    origin_value = _manifest_value(origin, "unknown")
+    origin_label = _ORIGIN_LABELS.get(origin_value, origin_value)
+    return (
+        "MakersVault attribution\n"
+        "\n"
+        f"Project: {name}\n"
+        f"Creator: {creator_value}\n"
+        f"Source: {source_value}\n"
+        f"Licence: {licence_value}\n"
+        f"Licence URL: {licence_url_value}\n"
+        f"Origin: {origin_label}\n"
+        "\n"
+        "The files in this archive come from the project named above. Their terms of\n"
+        "use are described by the licence listed here; when the licence is unknown,\n"
+        "assume no permission to redistribute and contact the creator first.\n"
+    )
+
+
 def zip_assets_response(
     assets: List[Asset],
     download_name: str,
     background: BackgroundTasks,
     folder_label_map: Optional[dict] = None,
     allow_empty: bool = False,
+    project: Optional[Project] = None,
 ):
     """Stream the resolved assets as a zip; `allow_empty` is the project contract.
 
     A tag/folder/asset_ids selection that resolves to nothing is a 404 (the caller
     asked for files that are not there), while an existing project with no members
-    is a valid empty zip: the project exists, its file set is simply empty.
+    is not a 404: the project exists, its file set is simply empty.
+
+    A project request always carries a root-level `ATTRIBUTION.txt`, written as the
+    first entry, so an existing project with no resolvable files yields an archive
+    holding only the manifest rather than a literally empty archive.
     """
     files: List[tuple[str, Path]] = []
     supporting: dict[str, List[AssetFile]] = {}
@@ -248,6 +304,18 @@ def zip_assets_response(
     tmp_path = Path(tmp.name)
     tmp.close()
     with ZipFile(tmp_path, "w", ZIP_DEFLATED) as zf:
+        if project is not None:
+            zf.writestr(
+                ATTRIBUTION_FILENAME,
+                attribution_manifest(
+                    project.name,
+                    project.creator,
+                    project.source_url,
+                    project.licence,
+                    project.licence_url,
+                    project.origin,
+                ),
+            )
         for arc, fs_path in files:
             zf.write(fs_path, arcname=arc)
 
