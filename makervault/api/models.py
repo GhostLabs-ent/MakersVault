@@ -48,3 +48,34 @@ class AssetFile(SQLModel, table=True):
 class AppConfig(SQLModel, table=True):
   key: str = Field(primary_key=True)
   value: str
+
+
+# users and sessions are created by migration 005; these classes only describe
+# them for typed queries and must never create tables themselves.
+class User(SQLModel, table=True):
+  __tablename__ = "users"
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  username: str
+  email: Optional[str] = None
+  password_hash: Optional[str] = None
+  role: str = Field(default="viewer")
+  disabled: int = Field(default=0)
+  created_at: str
+  updated_at: str
+
+
+class UserSession(SQLModel, table=True):
+  __tablename__ = "sessions"
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  user_id: Optional[str] = Field(default=None, foreign_key="users.id")
+  username: str
+  kind: str = Field(default="password")
+  refresh_token_hash: str
+  device: Optional[str] = None
+  user_agent: Optional[str] = None
+  client_ip: Optional[str] = None
+  created_at: int
+  last_used_at: int
+  access_expires_at: int
+  refresh_expires_at: int
+  revoked_at: Optional[int] = None

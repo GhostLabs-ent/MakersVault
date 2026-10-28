@@ -95,7 +95,7 @@ def write_placeholder_file(path: Path) -> None:
 def test_fresh_database_reaches_v4(tmp_path: Path) -> None:
     database_engine = sqlite_engine(tmp_path / "fresh.db")
 
-    assert run_migrations(database_engine) == 4
+    assert run_migrations(database_engine) == MIGRATIONS[-1].version
 
     assert shipped_ledger_entries(database_engine) == SHIPPED_LEDGER
     with database_engine.connect() as conn:
@@ -127,7 +127,7 @@ def test_v3_fixture_upgrades_to_v4(tmp_path: Path, temp_storage_root: Path) -> N
     write_placeholder_file(temp_storage_root / "a-managed" / "model.stl")
     write_placeholder_file(temp_storage_root / "a-copy" / "model.stl")
 
-    assert run_migrations(database_engine) == 4
+    assert run_migrations(database_engine) == MIGRATIONS[-1].version
 
     assert folder_paths(database_engine) == {
         "f-dupe-a": "Parts/Dupe",
@@ -158,10 +158,10 @@ def test_migration_004_is_idempotent(tmp_path: Path, temp_storage_root: Path) ->
         insert_folder(conn, "f-prints", "Prints", "f-parts")
         insert_asset(conn, "a-nocopy", storage_path="a-nocopy/model.stl", source_path=str(tmp_path / "mount" / "x.stl"))
 
-    assert run_migrations(database_engine) == 4
+    assert run_migrations(database_engine) == MIGRATIONS[-1].version
     before = table_snapshot(database_engine, "folder", "asset")
 
-    assert run_migrations(database_engine) == 4
+    assert run_migrations(database_engine) == MIGRATIONS[-1].version
     assert table_snapshot(database_engine, "folder", "asset") == before
     assert shipped_ledger_entries(database_engine) == SHIPPED_LEDGER
 
@@ -184,16 +184,16 @@ def test_duplicate_sibling_names_get_deterministic_suffixes(tmp_path: Path) -> N
     with forward_engine.begin() as conn:
         for folder_id, name in siblings:
             insert_folder(conn, folder_id, name)
-    assert run_migrations(forward_engine) == 4
+    assert run_migrations(forward_engine) == MIGRATIONS[-1].version
     assert folder_paths(forward_engine) == expected
-    assert run_migrations(forward_engine) == 4
+    assert run_migrations(forward_engine) == MIGRATIONS[-1].version
     assert folder_paths(forward_engine) == expected
 
     reverse_engine = make_v3_engine(tmp_path / "reverse.db")
     with reverse_engine.begin() as conn:
         for folder_id, name in reversed(siblings):
             insert_folder(conn, folder_id, name)
-    assert run_migrations(reverse_engine) == 4
+    assert run_migrations(reverse_engine) == MIGRATIONS[-1].version
     assert folder_paths(reverse_engine) == expected
 
 
@@ -204,7 +204,7 @@ def test_folder_storage_path_unique_index_is_case_insensitive(tmp_path: Path) ->
         insert_folder(conn, "f-other", "Other")
         insert_folder(conn, "f-parts-copy", "Parts", "f-other")
 
-    assert run_migrations(database_engine) == 4
+    assert run_migrations(database_engine) == MIGRATIONS[-1].version
     paths = folder_paths(database_engine)
     assert paths["f-parts"] == "Parts"
     assert paths["f-parts-copy"] == "Other/Parts"
@@ -233,7 +233,7 @@ def test_mount_reference_assets_are_flagged(tmp_path: Path, temp_storage_root: P
     write_placeholder_file(temp_storage_root / "a-copy" / "model.stl")
     write_placeholder_file(temp_storage_root / "imports" / "scanned.stl")
 
-    assert run_migrations(database_engine) == 4
+    assert run_migrations(database_engine) == MIGRATIONS[-1].version
 
     with database_engine.connect() as conn:
         flags = conn.exec_driver_sql("SELECT id, is_reference FROM asset ORDER BY id").fetchall()
@@ -264,7 +264,7 @@ def test_migration_does_not_touch_the_filesystem(tmp_path: Path, temp_storage_ro
         insert_asset(conn, "a-nocopy", storage_path="a-nocopy/model.stl", source_path=str(tmp_path / "mount" / "x.stl"))
     before = filesystem_snapshot(temp_storage_root)
 
-    assert run_migrations(database_engine) == 4
+    assert run_migrations(database_engine) == MIGRATIONS[-1].version
 
     assert filesystem_snapshot(temp_storage_root) == before
 
@@ -276,7 +276,7 @@ def test_orphan_parent_and_parent_cycle_are_treated_as_root_level(tmp_path: Path
         insert_folder(conn, "f-cycle-a", "CycleA", "f-cycle-b")
         insert_folder(conn, "f-cycle-b", "CycleB", "f-cycle-a")
 
-    assert run_migrations(database_engine) == 4
+    assert run_migrations(database_engine) == MIGRATIONS[-1].version
 
     assert folder_paths(database_engine) == {
         "f-cycle-a": "CycleA",
@@ -289,7 +289,7 @@ def test_null_storage_path_remains_allowed_after_migration(tmp_path: Path) -> No
     database_engine = make_v3_engine(tmp_path / "late-folders.db")
     with database_engine.begin() as conn:
         insert_folder(conn, "f-parts", "Parts")
-    assert run_migrations(database_engine) == 4
+    assert run_migrations(database_engine) == MIGRATIONS[-1].version
 
     with database_engine.begin() as conn:
         conn.exec_driver_sql("INSERT INTO folder(id, name, tags_json, parent_id) VALUES ('f-late-a', 'Late A', '[]', NULL)")

@@ -797,7 +797,14 @@ export function getApiBase() {
   return apiBase();
 }
 
-export async function login(username: string, password: string): Promise<{ token: string; expires_in: number }> {
+export type AuthTokens = {
+  token: string;
+  expires_in: number;
+  refresh_token?: string;
+  token_type?: string;
+};
+
+export async function login(username: string, password: string): Promise<AuthTokens> {
   const res = await fetch(`${apiBase()}/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -816,13 +823,27 @@ export async function login(username: string, password: string): Promise<{ token
   return res.json();
 }
 
-export async function refreshToken(): Promise<{ token: string; expires_in: number }> {
+export async function refreshToken(refresh: string): Promise<AuthTokens> {
   const res = await fetch(`${apiBase()}/refresh`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: refresh }),
   });
   assertOk(res, "Token refresh failed");
   return res.json();
+}
+
+/** Best-effort server-side revocation; the caller clears local storage either way. */
+export async function logout(refresh: string): Promise<void> {
+  try {
+    await fetch(`${apiBase()}/logout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refresh }),
+    });
+  } catch {
+    // offline or already signed out: nothing left to revoke
+  }
 }
 
 export async function getMountImportSettings(): Promise<MountImportSettings> {

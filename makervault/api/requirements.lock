@@ -2,6 +2,9 @@
 # Direct dependencies remain documented in requirements.txt.
 annotated-types==0.8.0
 anyio==4.14.2
+argon2-cffi==25.1.0
+argon2-cffi-bindings==26.1.0
+cffi==2.1.1
 click==8.4.2
 fastapi==0.115.0
 greenlet==3.5.5
@@ -10,6 +13,7 @@ httptools==0.8.0
 idna==3.18
 packaging==26.3
 pillow==10.4.0
+pycparser==3.12
 pydantic==2.13.4
 pydantic_core==2.46.4
 PyJWT==2.9.0

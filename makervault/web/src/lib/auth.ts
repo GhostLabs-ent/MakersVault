@@ -1,4 +1,5 @@
 const TOKEN_KEY = "makersvault_auth_token";
+const REFRESH_TOKEN_KEY = "makersvault_auth_refresh_token";
 
 function getStorage(): Storage | null {
   if (typeof window === "undefined") return null;
@@ -25,6 +26,29 @@ export function clearToken() {
   const storage = getStorage();
   if (!storage) return;
   storage.removeItem(TOKEN_KEY);
+  storage.removeItem(REFRESH_TOKEN_KEY);
+}
+
+/**
+ * The refresh token outlives the short-lived access token, so it is stored
+ * next to it; `clearToken()` clears both and is the only sign-out path.
+ */
+export function readRefreshToken(): string | null {
+  const storage = getStorage();
+  if (!storage) return null;
+  return storage.getItem(REFRESH_TOKEN_KEY);
+}
+
+export function storeRefreshToken(token: string) {
+  const storage = getStorage();
+  if (!storage) return;
+  storage.setItem(REFRESH_TOKEN_KEY, token);
+}
+
+export function clearRefreshToken() {
+  const storage = getStorage();
+  if (!storage) return;
+  storage.removeItem(REFRESH_TOKEN_KEY);
 }
 
 export function authHeaders(init?: HeadersInit): Headers {

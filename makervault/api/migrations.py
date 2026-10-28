@@ -309,11 +309,74 @@ def _migration_004_folder_identity_and_reference_flags(conn: Connection) -> None
     _backfill_asset_reference_flags(conn)
 
 
+def _migration_005_users_and_sessions(conn: Connection) -> None:
+    """Add accounts and revocable sessions (append-only, no data backfill).
+
+    `users.username` and `users.email` are unique case-insensitively, so a
+    login cannot be shadowed by a copy that differs only in case. `sessions`
+    stores `user_id NULL` for the env break-glass admin and keeps `username`
+    denormalized so `/me` and audit trails survive user deletion. Timestamps
+    are epoch seconds where they drive expiry and ISO-8601 UTC where they are
+    only read by humans. `IF NOT EXISTS` everywhere keeps a re-applied 005
+    harmless; later session features (listing, pruning, reuse detection) belong
+    to Mf-7op4 and must not change this file.
+    """
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            username VARCHAR NOT NULL,
+            email VARCHAR,
+            password_hash VARCHAR,
+            role VARCHAR NOT NULL DEFAULT 'viewer',
+            disabled INTEGER NOT NULL DEFAULT 0,
+            created_at VARCHAR NOT NULL,
+            updated_at VARCHAR NOT NULL
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_unique ON users(username COLLATE NOCASE)"
+    )
+    conn.exec_driver_sql(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON users(email COLLATE NOCASE) "
+        "WHERE email IS NOT NULL"
+    )
+    conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS sessions (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            user_id VARCHAR,
+            username VARCHAR NOT NULL,
+            kind VARCHAR NOT NULL DEFAULT 'password',
+            refresh_token_hash VARCHAR NOT NULL,
+            device VARCHAR,
+            user_agent VARCHAR,
+            client_ip VARCHAR,
+            created_at INTEGER NOT NULL,
+            last_used_at INTEGER NOT NULL,
+            access_expires_at INTEGER NOT NULL,
+            refresh_expires_at INTEGER NOT NULL,
+            revoked_at INTEGER,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+        """
+    )
+    conn.exec_driver_sql(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_refresh_hash_unique ON sessions(refresh_token_hash)"
+    )
+    conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)")
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_sessions_refresh_expires_at ON sessions(refresh_expires_at)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
     Migration(3, "asset_metadata_and_bundles", _migration_003_asset_metadata_and_bundles),
     Migration(4, "folder_identity_and_reference_flags", _migration_004_folder_identity_and_reference_flags),
+    Migration(5, "users_and_sessions", _migration_005_users_and_sessions),
 )
 
 

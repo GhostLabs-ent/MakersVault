@@ -9,20 +9,22 @@ from typing import List, Optional
 from urllib.parse import quote, urlparse
 from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile
 
-import jwt
 from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Query, Request, Response, UploadFile
 from fastapi.responses import FileResponse
-from jwt import PyJWTError
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import ClientDisconnect
 
+import accounts
 import asset_service
+import auth
 import bulk_service
 import folder_service
 import login_throttle as login_throttle_module
 import multipart_stream
+import sessions
 import trash_service
 from asset_file_service import (
     backfill_prepared_print_metadata,
@@ -53,12 +55,8 @@ from asset_service import (
     validate_storage_template,
 )
 from auth import (
-    AUTH_ALGO,
-    AUTH_ENABLED,
-    AUTH_SECRET,
-    AUTH_TOKEN_TTL,
-    create_token,
-    credentials_match,
+    AuthContext,
+    require_admin,
     require_auth,
     validate_auth_configuration,
 )
@@ -73,7 +71,7 @@ from file_utils import (
 from import_service import download_import_to_temp, import_asset_from_url, open_import_response
 from library_scan import scan_status, start_scan
 from migrations import run_migrations
-from models import Asset, AssetFile, Folder
+from models import Asset, AssetFile, Folder, User
 from mount_import import mount_import_should_run, scan_mount_imports
 from prepared_print import prepared_filename
 from schemas import (
@@ -101,14 +99,19 @@ from schemas import (
     LibraryScanStatusOut,
     LoginRequest,
     LoginResponse,
+    MeOut,
     MountImportSettings,
     MountImportSettingsOut,
+    RefreshRequest,
     StorageSettings,
     StorageSettingsOut,
     TagUpdate,
     TrashEntryOut,
     TrashListOut,
     TrashPurgeOut,
+    UserCreate,
+    UserOut,
+    UserUpdate,
 )
 from settings_service import (
     DEFAULT_STORAGE_TEMPLATE,
@@ -123,6 +126,7 @@ from url_utils import normalize_import_url
 from zip_service import extract_zip_entries_to_assets, list_zip_entries
 
 log = logging.getLogger(__name__)
+AUTH_NOT_CONFIGURED = "Authentication is not configured on the server"
 
 
 @asynccontextmanager
@@ -320,11 +324,11 @@ def zip_assets_response(assets: List[Asset], download_name: str, background: Bac
 
 @app.get("/health")
 def health():
-    return {"ok": True, "auth_required": AUTH_ENABLED}
+    return {"ok": True, "auth_required": auth.AUTH_ENABLED}
 
 
 @app.get("/settings/mount-import", response_model=MountImportSettingsOut)
-def get_mount_import_settings(_: Optional[str] = Depends(require_auth)):
+def get_mount_import_settings(_: Optional[AuthContext] = Depends(require_auth)):
     return MountImportSettingsOut(
         enabled=get_mount_import_enabled(MOUNT_IMPORT_ENABLED),
         copy_files=get_mount_import_copy(MOUNT_IMPORT_COPY),
@@ -333,7 +337,7 @@ def get_mount_import_settings(_: Optional[str] = Depends(require_auth)):
 
 
 @app.post("/settings/mount-import", response_model=MountImportSettingsOut)
-def update_mount_import_settings(body: MountImportSettings, _: Optional[str] = Depends(require_auth)):
+def update_mount_import_settings(body: MountImportSettings, _: Optional[AuthContext] = Depends(require_auth)):
     set_mount_import_enabled(body.enabled)
     set_mount_import_copy(body.copy_files)
     return MountImportSettingsOut(
@@ -355,13 +359,13 @@ def storage_settings_out(template: str, moved: int = 0, skipped: int = 0) -> Sto
 
 
 @app.get("/settings/storage", response_model=StorageSettingsOut)
-def get_storage_settings(_: Optional[str] = Depends(require_auth)):
+def get_storage_settings(_: Optional[AuthContext] = Depends(require_auth)):
     template = validate_storage_template(get_storage_template())
     return storage_settings_out(template)
 
 
 @app.post("/settings/storage", response_model=StorageSettingsOut)
-def update_storage_settings(body: StorageSettings, _: Optional[str] = Depends(require_auth)):
+def update_storage_settings(body: StorageSettings, _: Optional[AuthContext] = Depends(require_auth)):
     template = validate_storage_template(body.template)
     # The template governs new uploads and imports only; existing files never move.
     set_storage_template(template)
@@ -369,12 +373,12 @@ def update_storage_settings(body: StorageSettings, _: Optional[str] = Depends(re
 
 
 @app.get("/library/scan", response_model=LibraryScanStatusOut)
-def library_scan_status(_: Optional[str] = Depends(require_auth)):
+def library_scan_status(_: Optional[AuthContext] = Depends(require_auth)):
     return scan_status()
 
 
 @app.post("/library/scan", response_model=LibraryScanStatusOut, status_code=202)
-def library_scan_start(_: Optional[str] = Depends(require_auth)):
+def library_scan_start(_: Optional[AuthContext] = Depends(require_auth)):
     if not start_scan():
         raise HTTPException(status_code=409, detail="A library scan is already running")
     return scan_status()
@@ -382,8 +386,8 @@ def library_scan_start(_: Optional[str] = Depends(require_auth)):
 
 @app.post("/login", response_model=LoginResponse)
 def login(body: LoginRequest, request: Request):
-    if not AUTH_ENABLED:
-        raise HTTPException(status_code=503, detail="Authentication is not configured on the server")
+    if not auth.AUTH_ENABLED:
+        raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
     client_host = request.client.host if request.client else "unknown"
     username = login_throttle_module.normalize_username(body.username)
     retry_after = login_throttle_module.limiter.retry_after(username)
@@ -394,32 +398,146 @@ def login(body: LoginRequest, request: Request):
             detail="Too many failed login attempts. Try again later.",
             headers={"Retry-After": str(retry_after)},
         )
-    if not credentials_match(body.username, body.password):
+    with Session(engine) as s:
+        result = auth.login(
+            s,
+            body.username,
+            body.password,
+            user_agent=request.headers.get("user-agent"),
+            client_ip=client_host,
+        )
+        s.commit()
+    if result is None:
         lockout_seconds = login_throttle_module.limiter.record_failure(username)
         log.warning("Failed login attempt for username %r from %s", username, client_host)
         if lockout_seconds:
             log.warning("Login throttled for username %r from %s (retry after %ss)", username, client_host, lockout_seconds)
         raise HTTPException(status_code=401, detail="Invalid username or password")
     login_throttle_module.limiter.record_success(username)
-    token = create_token(body.username)
-    return LoginResponse(token=token, expires_in=AUTH_TOKEN_TTL)
+    return LoginResponse(
+        token=result.token,
+        expires_in=result.expires_in,
+        refresh_token=result.refresh_token,
+    )
+
+
+def presented_refresh_token(
+    body: Optional[RefreshRequest],
+    credentials: Optional[HTTPAuthorizationCredentials],
+) -> Optional[str]:
+    """The refresh token from the JSON body, or the documented Bearer fallback."""
+    if body is not None and body.refresh_token:
+        return body.refresh_token
+    if credentials is not None:
+        return credentials.credentials
+    return None
 
 
 @app.post("/refresh", response_model=LoginResponse)
-def refresh_token(token: Optional[str] = Depends(require_auth)):
-    if not AUTH_ENABLED:
-        raise HTTPException(status_code=503, detail="Authentication is not configured on the server")
-    if not token:
+def refresh_token(
+    body: Optional[RefreshRequest] = None,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(auth.auth_scheme),
+):
+    if not auth.AUTH_ENABLED:
+        raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
+    presented = presented_refresh_token(body, credentials)
+    if not presented:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    try:
-        payload = jwt.decode(token, AUTH_SECRET, algorithms=[AUTH_ALGO])
-    except PyJWTError:
-        raise HTTPException(status_code=401, detail="Invalid or expired token") from None
-    username = payload.get("sub")
-    if not username:
-        raise HTTPException(status_code=401, detail="Invalid token payload")
-    new_token = create_token(username)
-    return LoginResponse(token=new_token, expires_in=AUTH_TOKEN_TTL)
+    token_hash = sessions.hash_refresh_token(presented)
+    with Session(engine) as s:
+        session_row = sessions.find_by_refresh_hash(s, token_hash)
+        user = accounts.get_user(s, session_row.user_id) if session_row is not None else None
+        if session_row is None or not sessions.is_refreshable(session_row, user):
+            raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+        refresh_token_value = sessions.rotate(s, session_row, access_ttl=auth.AUTH_ACCESS_TOKEN_TTL)
+        if refresh_token_value is None:
+            raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+        token = auth.create_access_token(session_row, sessions.role_for(session_row, user))
+        s.commit()
+    return LoginResponse(token=token, expires_in=auth.AUTH_ACCESS_TOKEN_TTL, refresh_token=refresh_token_value)
+
+
+@app.post("/logout", status_code=204)
+def logout(
+    body: Optional[RefreshRequest] = None,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(auth.auth_scheme),
+):
+    if not auth.AUTH_ENABLED:
+        raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
+    presented = presented_refresh_token(body, credentials)
+    if presented:
+        with Session(engine) as s:
+            sessions.revoke_by_refresh_hash(s, sessions.hash_refresh_token(presented))
+            s.commit()
+    return Response(status_code=204)
+
+
+@app.get("/me", response_model=MeOut)
+def me(context: Optional[AuthContext] = Depends(require_auth)):
+    if not auth.AUTH_ENABLED or context is None:
+        raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
+    with Session(engine) as s:
+        user = accounts.get_user(s, context.user_id)
+    return MeOut(
+        id=context.user_id,
+        username=context.username,
+        email=user.email if user is not None else None,
+        role=context.role,
+        disabled=bool(user.disabled) if user is not None else False,
+        kind=context.kind,
+    )
+
+
+def user_out(user: User) -> UserOut:
+    return UserOut(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        role=user.role,
+        disabled=bool(user.disabled),
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+    )
+
+
+@app.post("/users", response_model=UserOut, status_code=201)
+def create_user(body: UserCreate, _: Optional[AuthContext] = Depends(require_admin)):
+    if not auth.AUTH_ENABLED:
+        raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
+    with Session(engine) as s:
+        try:
+            user = accounts.create_user(s, body.username, body.password, body.email, body.role)
+        except accounts.AccountError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=str(exc)) from None
+        # The first account replaces the env break-glass admin, so its sessions
+        # die with it. Same transaction as the insert: either both or neither.
+        sessions.revoke_break_glass(s)
+        result = user_out(user)
+        s.commit()
+    return result
+
+
+@app.get("/users", response_model=List[UserOut])
+def list_users(_: Optional[AuthContext] = Depends(require_admin)):
+    if not auth.AUTH_ENABLED:
+        raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
+    with Session(engine) as s:
+        users = accounts.list_users(s)
+    return [user_out(user) for user in users]
+
+
+@app.patch("/users/{user_id}", response_model=UserOut)
+def update_user(user_id: str, body: UserUpdate, _: Optional[AuthContext] = Depends(require_admin)):
+    if not auth.AUTH_ENABLED:
+        raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
+    with Session(engine) as s:
+        try:
+            user = accounts.set_disabled(s, user_id, body.disabled)
+        except accounts.AccountError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=str(exc)) from None
+        result = user_out(user)
+        s.commit()
+    return result
 
 
 # nginx's "client closed request": the upload was aborted, so there is nobody
@@ -463,7 +581,7 @@ def multipart_form_openapi(*text_fields: str) -> dict:
 
 
 @app.post("/upload", response_model=AssetOut, openapi_extra=multipart_form_openapi("title", "notes", "tags", "folder_id"))
-async def upload(request: Request, _: Optional[str] = Depends(require_auth)):
+async def upload(request: Request, _: Optional[AuthContext] = Depends(require_auth)):
     staging = asset_service.new_staging_path()
     asset: Optional[Asset] = None
     try:
@@ -516,14 +634,14 @@ async def upload(request: Request, _: Optional[str] = Depends(require_auth)):
 
 
 @app.post("/import", response_model=AssetOut)
-def import_from_link(body: ImportRequest, _: Optional[str] = Depends(require_auth)):
+def import_from_link(body: ImportRequest, _: Optional[AuthContext] = Depends(require_auth)):
     url = normalize_import_url(body.url)
     asset = import_asset_from_url(url, body)
     return to_out(asset)
 
 
 @app.post("/import/inspect", response_model=ImportInspectOut)
-def inspect_import_link(body: ImportRequest, _: Optional[str] = Depends(require_auth)):
+def inspect_import_link(body: ImportRequest, _: Optional[AuthContext] = Depends(require_auth)):
     url = normalize_import_url(body.url)
     resp, final_url = open_import_response(url, body)
     with resp:
@@ -534,7 +652,7 @@ def inspect_import_link(body: ImportRequest, _: Optional[str] = Depends(require_
 
 
 @app.post("/import/zip/entries", response_model=ImportZipEntriesOut)
-def list_import_zip_entries(body: ImportZipEntriesRequest, _: Optional[str] = Depends(require_auth)):
+def list_import_zip_entries(body: ImportZipEntriesRequest, _: Optional[AuthContext] = Depends(require_auth)):
     url = normalize_import_url(body.url)
     tmp_path, filename, _ = download_import_to_temp(url, body)
     try:
@@ -552,7 +670,7 @@ def list_import_zip_entries(body: ImportZipEntriesRequest, _: Optional[str] = De
 
 
 @app.post("/import/zip", response_model=ImportZipResult)
-def import_zip_entries(body: ImportZipExtractRequest, _: Optional[str] = Depends(require_auth)):
+def import_zip_entries(body: ImportZipExtractRequest, _: Optional[AuthContext] = Depends(require_auth)):
     url = normalize_import_url(body.url)
     tmp_path, filename, _ = download_import_to_temp(url, body)
     try:
@@ -568,7 +686,7 @@ def import_zip_entries(body: ImportZipExtractRequest, _: Optional[str] = Depends
 
 
 @app.get("/file/{asset_id}/{name}")
-def get_file(asset_id: str, name: str, _: Optional[str] = Depends(require_auth)):
+def get_file(asset_id: str, name: str, _: Optional[AuthContext] = Depends(require_auth)):
     media_type: Optional[str] = None
     with Session(engine) as s:
         a = s.get(Asset, asset_id)
@@ -590,7 +708,7 @@ def get_file(asset_id: str, name: str, _: Optional[str] = Depends(require_auth))
 
 
 @app.get("/asset/{asset_id}/files", response_model=List[AssetFileOut])
-def get_supporting_files(asset_id: str, _: Optional[str] = Depends(require_auth)):
+def get_supporting_files(asset_id: str, _: Optional[AuthContext] = Depends(require_auth)):
     with Session(engine) as session:
         if not session.get(Asset, asset_id):
             raise HTTPException(404)
@@ -601,7 +719,7 @@ def get_supporting_files(asset_id: str, _: Optional[str] = Depends(require_auth)
 async def upload_related_file(
     asset_id: str,
     request: Request,
-    _: Optional[str] = Depends(require_auth),
+    _: Optional[AuthContext] = Depends(require_auth),
 ):
     staging = asset_service.new_staging_path()
     try:
@@ -619,7 +737,7 @@ async def upload_related_file(
 
 
 @app.get("/asset/{asset_id}/files/{file_id}")
-def download_supporting_file(asset_id: str, file_id: str, _: Optional[str] = Depends(require_auth)):
+def download_supporting_file(asset_id: str, file_id: str, _: Optional[AuthContext] = Depends(require_auth)):
     with Session(engine) as session:
         record = session.get(AssetFile, file_id)
         if not record or record.asset_id != asset_id or record.role != "supporting":
@@ -633,12 +751,12 @@ def download_supporting_file(asset_id: str, file_id: str, _: Optional[str] = Dep
 
 
 @app.delete("/asset/{asset_id}/files/{file_id}", response_model=AssetOut)
-def remove_supporting_file(asset_id: str, file_id: str, _: Optional[str] = Depends(require_auth)):
+def remove_supporting_file(asset_id: str, file_id: str, _: Optional[AuthContext] = Depends(require_auth)):
     return to_out(delete_supporting_file(asset_id, file_id))
 
 
 @app.get("/asset/{asset_id}/prepared-print")
-def get_prepared_print(asset_id: str, _: Optional[str] = Depends(require_auth)):
+def get_prepared_print(asset_id: str, _: Optional[AuthContext] = Depends(require_auth)):
     with Session(engine) as session:
         asset = session.get(Asset, asset_id)
         if not asset or not asset.prepared_file_id:
@@ -655,12 +773,12 @@ def get_prepared_print(asset_id: str, _: Optional[str] = Depends(require_auth)):
 
 
 @app.delete("/asset/{asset_id}/prepared-print", response_model=AssetOut)
-def remove_prepared_print(asset_id: str, _: Optional[str] = Depends(require_auth)):
+def remove_prepared_print(asset_id: str, _: Optional[AuthContext] = Depends(require_auth)):
     return to_out(delete_prepared_file(asset_id))
 
 
 @app.get("/thumb/{asset_id}.jpg")
-def get_thumb(asset_id: str, _: Optional[str] = Depends(require_auth)):
+def get_thumb(asset_id: str, _: Optional[AuthContext] = Depends(require_auth)):
     p = THUMBS / f"{asset_id}.jpg"
     if not p.exists():
         raise HTTPException(404)
@@ -675,7 +793,7 @@ def get_thumb(asset_id: str, _: Optional[str] = Depends(require_auth)):
 async def save_generated_thumbnail(
     asset_id: str,
     file: UploadFile = File(...),
-    _: Optional[str] = Depends(require_auth),
+    _: Optional[AuthContext] = Depends(require_auth),
 ):
     if (file.content_type or "").lower() not in {"image/png", "image/jpeg", "image/webp"}:
         raise HTTPException(status_code=415, detail="Generated thumbnail must be PNG, JPEG, or WebP")
@@ -719,7 +837,7 @@ def list_assets(
     folder_id: Optional[str] = None,
     limit: Optional[int] = Query(default=None, ge=1, le=1000),
     offset: Optional[int] = Query(default=None, ge=0),
-    _: Optional[str] = Depends(require_auth),
+    _: Optional[AuthContext] = Depends(require_auth),
 ):
     with Session(engine) as s:
         stmt = apply_asset_filters(select(Asset), q, tags, folder_id)
@@ -747,7 +865,7 @@ def list_tags(
     q: Optional[str] = None,
     tags: Optional[str] = Query(default=None, description="Comma-separated tags"),
     folder_id: Optional[str] = None,
-    _: Optional[str] = Depends(require_auth),
+    _: Optional[AuthContext] = Depends(require_auth),
 ):
     with Session(engine) as s:
         stmt = apply_asset_filters(select(Asset.tags_json), q, tags, folder_id)
@@ -771,7 +889,7 @@ def list_tags(
 
 
 @app.post("/download/zip")
-def download_zip(body: DownloadRequest, background: BackgroundTasks, _: Optional[str] = Depends(require_auth)):
+def download_zip(body: DownloadRequest, background: BackgroundTasks, _: Optional[AuthContext] = Depends(require_auth)):
     if not (body.asset_ids or body.tag or body.folder_id):
         raise HTTPException(status_code=400, detail="Provide asset_ids, tag, or folder_id to download.")
 
@@ -817,7 +935,7 @@ def require_asset_ids(raw: List[str]) -> List[str]:
 
 
 @app.post("/assets/batch/tags", response_model=BatchTagsOut)
-def batch_set_tags(body: BatchTagsRequest, _: Optional[str] = Depends(require_auth)):
+def batch_set_tags(body: BatchTagsRequest, _: Optional[AuthContext] = Depends(require_auth)):
     asset_ids = require_asset_ids(body.asset_ids)
     add_tags = [t.strip() for t in body.add_tags if t and t.strip()]
     remove_tags = [t.strip() for t in body.remove_tags if t and t.strip()]
@@ -828,7 +946,7 @@ def batch_set_tags(body: BatchTagsRequest, _: Optional[str] = Depends(require_au
 
 
 @app.post("/assets/batch/folder", response_model=BatchFolderOut)
-def batch_move_to_folder(body: BatchFolderRequest, _: Optional[str] = Depends(require_auth)):
+def batch_move_to_folder(body: BatchFolderRequest, _: Optional[AuthContext] = Depends(require_auth)):
     asset_ids = require_asset_ids(body.asset_ids)
     folder_id = body.folder_id or None
     if folder_id:
@@ -842,14 +960,14 @@ def batch_move_to_folder(body: BatchFolderRequest, _: Optional[str] = Depends(re
 
 
 @app.post("/assets/batch/delete", response_model=BatchDeleteOut)
-def batch_delete_assets(body: BatchDeleteRequest, _: Optional[str] = Depends(require_auth)):
+def batch_delete_assets(body: BatchDeleteRequest, _: Optional[AuthContext] = Depends(require_auth)):
     asset_ids = require_asset_ids(body.asset_ids)
     deleted, failed = bulk_service.delete_assets(asset_ids)
     return BatchDeleteOut(deleted=deleted, failed=failed)
 
 
 @app.post("/asset/{asset_id}/tags", response_model=AssetOut)
-def set_tags(asset_id: str, body: TagUpdate, _: Optional[str] = Depends(require_auth)):
+def set_tags(asset_id: str, body: TagUpdate, _: Optional[AuthContext] = Depends(require_auth)):
     with Session(engine) as s:
         a = s.get(Asset, asset_id)
         if not a:
@@ -862,7 +980,7 @@ def set_tags(asset_id: str, body: TagUpdate, _: Optional[str] = Depends(require_
 
 
 @app.post("/asset/{asset_id}/meta", response_model=AssetOut)
-def update_asset_meta(asset_id: str, body: AssetMetaUpdate, _: Optional[str] = Depends(require_auth)):
+def update_asset_meta(asset_id: str, body: AssetMetaUpdate, _: Optional[AuthContext] = Depends(require_auth)):
     with Session(engine) as s:
         a = s.get(Asset, asset_id)
         if not a:
@@ -904,7 +1022,7 @@ def update_asset_meta(asset_id: str, body: AssetMetaUpdate, _: Optional[str] = D
 
 
 @app.post("/asset/{asset_id}/rename", response_model=AssetOut)
-def rename_asset(asset_id: str, body: AssetRename, _: Optional[str] = Depends(require_auth)):
+def rename_asset(asset_id: str, body: AssetRename, _: Optional[AuthContext] = Depends(require_auth)):
     new_name = (body.filename or "").strip()
     if not new_name:
         raise HTTPException(400, "Filename cannot be empty")
@@ -945,7 +1063,7 @@ def rename_asset(asset_id: str, body: AssetRename, _: Optional[str] = Depends(re
 
 
 @app.delete("/asset/{asset_id}")
-def delete_asset(asset_id: str, _: Optional[str] = Depends(require_auth)):
+def delete_asset(asset_id: str, _: Optional[AuthContext] = Depends(require_auth)):
     delete_asset_permanently(asset_id)
     return {"ok": True}
 
@@ -954,21 +1072,21 @@ def delete_asset(asset_id: str, _: Optional[str] = Depends(require_auth)):
 
 
 @app.get("/folders", response_model=List[FolderOut])
-def list_folders(_: Optional[str] = Depends(require_auth)):
+def list_folders(_: Optional[AuthContext] = Depends(require_auth)):
     with Session(engine) as s:
         rows = list(s.exec(select(Folder)))
     return [folder_to_out(f) for f in rows]
 
 
 @app.post("/folders", response_model=FolderOut)
-def create_folder(body: FolderIn, _: Optional[str] = Depends(require_auth)):
+def create_folder(body: FolderIn, _: Optional[AuthContext] = Depends(require_auth)):
     with Session(engine) as s:
         f = folder_service.create_folder(s, body.name, json.dumps(body.tags), body.parent_id)
     return folder_to_out(f)
 
 
 @app.patch("/folder/{folder_id}", response_model=FolderOut)
-def update_folder(folder_id: str, body: FolderIn, _: Optional[str] = Depends(require_auth)):
+def update_folder(folder_id: str, body: FolderIn, _: Optional[AuthContext] = Depends(require_auth)):
     with Session(engine) as s:
         f = s.get(Folder, folder_id)
         if not f:
@@ -982,7 +1100,7 @@ def update_folder(folder_id: str, body: FolderIn, _: Optional[str] = Depends(req
 def delete_folder(
     folder_id: str,
     confirm_name: Optional[str] = Query(None),
-    _: Optional[str] = Depends(require_auth),
+    _: Optional[AuthContext] = Depends(require_auth),
 ):
     """Delete a folder's whole directory subtree through the trash.
 
@@ -1003,7 +1121,7 @@ def delete_folder(
 
 
 @app.get("/folder/{folder_id}/delete-preview", response_model=FolderDeletePreviewOut)
-def folder_delete_preview(folder_id: str, _: Optional[str] = Depends(require_auth)):
+def folder_delete_preview(folder_id: str, _: Optional[AuthContext] = Depends(require_auth)):
     with Session(engine) as s:
         folder = s.get(Folder, folder_id)
         if not folder:
@@ -1012,7 +1130,7 @@ def folder_delete_preview(folder_id: str, _: Optional[str] = Depends(require_aut
 
 
 @app.get("/folder/{folder_id}/download")
-def download_folder(folder_id: str, background: BackgroundTasks, _: Optional[str] = Depends(require_auth)):
+def download_folder(folder_id: str, background: BackgroundTasks, _: Optional[AuthContext] = Depends(require_auth)):
     with Session(engine) as s:
         folder = s.get(Folder, folder_id)
         if not folder:
@@ -1027,7 +1145,7 @@ def download_folder(folder_id: str, background: BackgroundTasks, _: Optional[str
 
 
 @app.get("/trash", response_model=TrashListOut)
-def list_trash(_: Optional[str] = Depends(require_auth)):
+def list_trash(_: Optional[AuthContext] = Depends(require_auth)):
     entries = trash_service.list_entries()
     return TrashListOut(
         entries=[TrashEntryOut(**entry) for entry in entries],
@@ -1036,10 +1154,10 @@ def list_trash(_: Optional[str] = Depends(require_auth)):
 
 
 @app.post("/trash/purge", response_model=TrashPurgeOut)
-def purge_trash(older_than_days: Optional[int] = Query(None, ge=0), _: Optional[str] = Depends(require_auth)):
+def purge_trash(older_than_days: Optional[int] = Query(None, ge=0), _: Optional[AuthContext] = Depends(require_auth)):
     return TrashPurgeOut(**trash_service.purge(older_than_days))
 
 
 @app.post("/asset/{asset_id}/folder", response_model=AssetOut)
-def update_asset_folder(asset_id: str, body: AssetFolderUpdate, _: Optional[str] = Depends(require_auth)):
+def update_asset_folder(asset_id: str, body: AssetFolderUpdate, _: Optional[AuthContext] = Depends(require_auth)):
     return to_out(move_asset_to_folder_by_id(asset_id, body.folder_id))

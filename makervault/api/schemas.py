@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class AssetCreate(BaseModel):
@@ -119,6 +119,45 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
   token: str
   expires_in: int
+  refresh_token: str
+  token_type: str = "bearer"
+
+
+class RefreshRequest(BaseModel):
+  refresh_token: Optional[str] = None
+
+
+class UserCreate(BaseModel):
+  username: str
+  password: str
+  email: Optional[str] = None
+  role: str = "viewer"
+
+
+class UserUpdate(BaseModel):
+  """Only `disabled` is mutable here; role changes belong to Mf-2nbc."""
+
+  model_config = ConfigDict(extra="forbid")
+  disabled: bool
+
+
+class UserOut(BaseModel):
+  id: str
+  username: str
+  email: Optional[str]
+  role: str
+  disabled: bool
+  created_at: str
+  updated_at: str
+
+
+class MeOut(BaseModel):
+  id: Optional[str]
+  username: str
+  email: Optional[str]
+  role: str
+  disabled: bool
+  kind: str
 
 
 class DownloadRequest(BaseModel):

@@ -3,7 +3,7 @@ import { login } from "../lib/api";
 import { ResolvedTheme } from "../lib/settings";
 
 type Props = {
-  onSuccess: (token: string, expires_in: number) => void;
+  onSuccess: (token: string, expires_in: number, refresh_token: string) => void;
   apiUp: boolean | null;
   theme: ResolvedTheme;
 };
@@ -35,7 +35,7 @@ export default function Login({ onSuccess, apiUp, theme }: Props) {
     setLoading(true);
     try {
       const res = await login(username, password);
-      onSuccess(res.token, res.expires_in);
+      onSuccess(res.token, res.expires_in, res.refresh_token ?? "");
     } catch (err) {
       console.error(err);
       if (err instanceof Error) {

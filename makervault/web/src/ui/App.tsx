@@ -5,12 +5,19 @@ import Sidebar from "./Sidebar";
 import Login from "./Login";
 import Settings from "./Settings";
 import UploadQueuePanel from "./UploadQueuePanel";
-import { apiHealth, getApiBase, refreshToken, type HealthInfo } from "../lib/api";
+import { apiHealth, getApiBase, logout, refreshToken, type HealthInfo } from "../lib/api";
 import { notifyError } from "../lib/toast";
 import ConfirmDialog from "./ConfirmDialog";
-import { clearToken, readToken, storeToken } from "../lib/auth";
+import {
+  clearRefreshToken,
+  clearToken,
+  readRefreshToken,
+  readToken,
+  storeRefreshToken,
+  storeToken,
+} from "../lib/auth";
 import { type AppSettings, type ResolvedTheme, loadSettings, resolveTheme, saveSettings } from "../lib/settings";
-const DEFAULT_REFRESH_SECONDS = 6 * 60 * 60; // 6 hours
+const DEFAULT_REFRESH_SECONDS = 900; // 15 minutes: the access token lifetime
 
 const logoForTheme = (theme: ResolvedTheme) => {
   switch (theme) {
@@ -43,6 +50,10 @@ export default function App() {
   const [confirmingLogout, setConfirmingLogout] = React.useState(false);
   // Scroll container for the asset grid's virtualization (see useVirtualRows).
   const mainScrollRef = React.useRef<HTMLElement | null>(null);
+  // Access token value the post-reload refresh was already fired for. The
+  // refresh token is single-use server-side, so the one-shot must not fire
+  // twice for the same access token (React.StrictMode runs effects twice).
+  const reloadRefreshFor = React.useRef<string | null>(null);
   const resolvedTheme = React.useMemo(
     () => resolveTheme(settings.theme.selected),
     [settings.theme.selected]
@@ -67,8 +78,15 @@ export default function App() {
   const apiUp = health?.ok ?? null;
   const authRequired = health?.auth_required ?? true;
 
-  const handleLogin = (tok: string, ttl: number) => {
+  const handleLogin = (tok: string, ttl: number, refresh: string) => {
     storeToken(tok);
+    // Never leave a refresh token from a previous sign-in paired with the new
+    // access token: store the new one, or drop whatever was stored before.
+    if (refresh) {
+      storeRefreshToken(refresh);
+    } else {
+      clearRefreshToken();
+    }
     setToken(tok);
     setTokenTtl(ttl);
     setSessionExpired(false);
@@ -97,6 +115,8 @@ export default function App() {
   }, []);
 
   const handleLogout = () => {
+    const refresh = readRefreshToken();
+    if (refresh) void logout(refresh);
     clearToken();
     setToken(null);
     setTokenTtl(null);
@@ -112,25 +132,50 @@ export default function App() {
     }));
   };
 
+  /**
+   * Swap the stored refresh token for a fresh token pair and persist both. The
+   * refresh token is single-use server-side, so the rotated one has to replace
+   * the old value before the next refresh can happen.
+   */
+  const refreshSession = React.useCallback(async () => {
+    const refresh = readRefreshToken();
+    if (!refresh) return false;
+    try {
+      const res = await refreshToken(refresh);
+      storeToken(res.token);
+      if (res.refresh_token) storeRefreshToken(res.refresh_token);
+      setToken(res.token);
+      setTokenTtl(res.expires_in);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
   React.useEffect(() => {
     if (!token) return;
+    if (tokenTtl === null && reloadRefreshFor.current !== token && readRefreshToken()) {
+      // A reload restores the access token but not its age, so it may already
+      // have expired. Trade the refresh token for a live one right away instead
+      // of waiting for a timer computed from the fallback TTL. The ref makes
+      // this one-shot per access token, so a double-invoked effect cannot spend
+      // the same single-use refresh token twice.
+      reloadRefreshFor.current = token;
+      void (async () => {
+        if (!(await refreshSession())) handleUnauthorized();
+      })();
+      return;
+    }
     const ttl = tokenTtl ?? DEFAULT_REFRESH_SECONDS;
     const refreshMs = Math.max(
       5 * 60 * 1000,
       Math.min(ttl * 0.8 * 1000, ttl * 1000 - 5 * 60 * 1000)
     );
     const timer = window.setTimeout(async () => {
-      try {
-        const res = await refreshToken();
-        storeToken(res.token);
-        setToken(res.token);
-        setTokenTtl(res.expires_in);
-      } catch {
-        handleUnauthorized();
-      }
+      if (!(await refreshSession())) handleUnauthorized();
     }, refreshMs);
     return () => window.clearTimeout(timer);
-  }, [token, tokenTtl, handleUnauthorized]);
+  }, [token, tokenTtl, refreshSession, handleUnauthorized]);
 
   if (authRequired && !token) {
     return (
