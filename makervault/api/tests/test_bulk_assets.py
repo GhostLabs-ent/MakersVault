@@ -269,10 +269,14 @@ def test_batch_delete_reports_a_missing_id_per_id(isolated_storage: Path) -> Non
         uploaded = [upload(client, headers, f"{name}.stl", f"solid {name}\n".encode()) for name in ("alpha", "beta", "gamma")]
         gone = uploaded[1]["id"]
 
-        response = client.delete(f"/asset/{gone}", headers=headers)
+        response = client.delete(f"/asset/{gone}", params={"confirm_name": uploaded[1]["filename"]}, headers=headers)
         assert response.status_code == 200, response.text
 
-        response = client.post("/assets/batch/delete", json={"asset_ids": [asset["id"] for asset in uploaded]}, headers=headers)
+        response = client.post(
+            "/assets/batch/delete",
+            json={"asset_ids": [asset["id"] for asset in uploaded], "confirm_count": 3},
+            headers=headers,
+        )
         assert response.status_code == 200, response.text
         body = response.json()
         assert body["deleted"] == [uploaded[0]["id"], uploaded[2]["id"]]
@@ -311,8 +315,10 @@ def test_single_item_endpoints_still_work(isolated_storage: Path) -> None:
         response = client.post(f"/asset/{conflicting['id']}/folder", json={"folder_id": None}, headers=headers)
         assert response.status_code == 200, response.text
 
-        response = client.delete(f"/asset/{tagged['id']}", headers=headers)
+        response = client.delete(f"/asset/{tagged['id']}", params={"confirm_name": tagged["filename"]}, headers=headers)
         assert response.status_code == 200, response.text
-        assert response.json() == {"ok": True}
-        response = client.delete(f"/asset/{tagged['id']}", headers=headers)
+        body = response.json()
+        assert body["ok"] is True
+        assert body["trash_path"].startswith(".trash/")
+        response = client.delete(f"/asset/{tagged['id']}", params={"confirm_name": tagged["filename"]}, headers=headers)
         assert response.status_code == 404, response.text

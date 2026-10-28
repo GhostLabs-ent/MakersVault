@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
 import type { BatchFailure } from "../lib/api";
 
@@ -40,8 +40,9 @@ function parseTagList(raw: string): string[] {
  * Sticky bar for actions that apply to exactly the current selection.
  *
  * Presentational only: every action delegates to a caller-provided callback,
- * and the parent owns busy/error state. Delete is an inline two-step confirm so
- * it never has to use `window.confirm`.
+ * and the parent owns busy/error state. Delete delegates straight to
+ * `onDelete`, which opens the caller's confirmation dialog: the stepped confirm
+ * (and the typed name on the single-asset path) lives there, never in the bar.
  */
 export default function BulkActionBar({
   count,
@@ -63,13 +64,8 @@ export default function BulkActionBar({
 }: BulkActionBarProps) {
   const [moveTarget, setMoveTarget] = useState("");
   const [tagDraft, setTagDraft] = useState("");
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const disabled = busy !== null;
-
-  useEffect(() => {
-    if (count === 0 || disabled) setConfirmingDelete(false);
-  }, [count, disabled]);
 
   if (count <= 0) return null;
 
@@ -168,39 +164,14 @@ export default function BulkActionBar({
           Download zip
         </button>
 
-        {confirmingDelete ? (
-          <span className="flex flex-wrap items-center gap-2 rounded-md border border-red-300 bg-red-50 px-2 py-1 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
-            <span>Permanently delete {count} items? This cannot be undone.</span>
-            <button
-              type="button"
-              onClick={() => {
-                setConfirmingDelete(false);
-                onDelete();
-              }}
-              disabled={disabled}
-              className="px-3 py-1 rounded-md border border-red-400 font-medium disabled:opacity-60"
-            >
-              Delete permanently
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmingDelete(false)}
-              disabled={disabled}
-              className="px-3 py-1 rounded-md border border-panel-strong disabled:opacity-60"
-            >
-              Cancel
-            </button>
-          </span>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setConfirmingDelete(true)}
-            disabled={disabled}
-            className="px-3 py-1 rounded-md border border-red-300 text-red-700 dark:text-red-300 disabled:opacity-60"
-          >
-            Delete
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={disabled}
+          className="px-3 py-1 rounded-md border border-red-300 text-red-700 dark:text-red-300 disabled:opacity-60"
+        >
+          Delete
+        </button>
 
         <button
           type="button"

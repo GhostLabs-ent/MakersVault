@@ -105,7 +105,10 @@ def test_successful_upload_still_works():
         assets = client.get("/assets", headers=auth_header(client)).json()
         assert [a["id"] for a in assets] == [body["id"]]
         # leave the library clean for other tests
-        assert client.delete(f"/asset/{body['id']}", headers=auth_header(client)).status_code == 200
+        response = client.delete(
+            f"/asset/{body['id']}", params={"confirm_name": body["filename"]}, headers=auth_header(client)
+        )
+        assert response.status_code == 200, response.text
 
 
 # --- H2: sqlite must be in WAL mode with a busy timeout ----------------------

@@ -11,8 +11,8 @@ from sqlmodel import Session, select
 import audit
 import bulk_service
 import project_service
+import trash_service
 from asset_service import (
-    delete_asset_permanently,
     filename_for_model_name,
     managed_asset_path,
     move_asset_to_folder_by_id,
@@ -199,7 +199,18 @@ def batch_delete_assets(
     request: Request,
     context: Optional[AuthContext] = Depends(require_write),
 ):
+    """Delete each asset through the trash, reporting one result per id.
+
+    ``confirm_count`` is compared by hand and declared optional, like the
+    single-item name gate: a required field would answer 422 for a missing
+    value, while the contract is a 400 "you did not confirm this selection".
+    The confirmation is a count rather than one name per id because typing N
+    filenames is absurd for a batch, while a count still proves the client is
+    deleting exactly the rows it displayed.
+    """
     asset_ids = require_asset_ids(body.asset_ids)
+    if body.confirm_count is None or body.confirm_count != len(asset_ids):
+        raise HTTPException(status_code=400, detail="confirm_count must equal the number of assets to delete")
     deleted, failed = bulk_service.delete_assets(asset_ids, audit_ctx=audit.context_for(request, context))
     return BatchDeleteOut(deleted=deleted, failed=failed)
 
@@ -323,9 +334,30 @@ def rename_asset(
 
 
 @router.delete("/asset/{asset_id}")
-def delete_asset(asset_id: str, request: Request, context: Optional[AuthContext] = Depends(require_write)):
-    delete_asset_permanently(asset_id, audit_ctx=audit.context_for(request, context))
-    return {"ok": True}
+def delete_asset(
+    asset_id: str,
+    request: Request,
+    confirm_name: Optional[str] = Query(None),
+    context: Optional[AuthContext] = Depends(require_write),
+):
+    """Delete one asset through the trash.
+
+    ``confirm_name`` is compared by hand and declared optional: a required query
+    parameter would make FastAPI answer 422 for a missing name, while the API
+    contract is a 400 "you did not confirm this asset".
+
+    The gate compares ``filename``, not ``asset.name``: ``Asset.name`` defaults
+    to ``""``, so a name gate would degenerate into a no-op for any row that was
+    never renamed, and the filename is what the card actually shows.
+    """
+    with Session(engine) as s:
+        asset = s.get(Asset, asset_id)
+        if not asset:
+            raise HTTPException(404)
+        if confirm_name is None or confirm_name != asset.filename:
+            raise HTTPException(status_code=400, detail="confirm_name must match the asset filename exactly")
+        result = trash_service.trash_asset(s, asset, audit_ctx=audit.context_for(request, context))
+    return {"ok": True, **result}
 
 
 @router.post("/asset/{asset_id}/folder", response_model=AssetOut)

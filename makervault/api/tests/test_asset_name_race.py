@@ -184,7 +184,10 @@ def test_sequential_duplicate_upload_is_409(isolated_storage: Path) -> None:
 
         assert rows_named("cube") == 1
         assert (storage / "Unassigned/cube/cube.stl").read_bytes() == payload
-        assert client.delete(f"/asset/{asset_id}", headers=headers).status_code == 200
+        response = client.delete(
+            f"/asset/{asset_id}", params={"confirm_name": first.json()["filename"]}, headers=headers
+        )
+        assert response.status_code == 200, response.text
 
 
 def test_stale_precheck_name_collision_is_409(isolated_storage: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -277,9 +280,13 @@ def test_concurrent_uploads_never_500(isolated_storage: Path) -> None:
     assert rows_named("cube") == 1
     assert (storage / "Unassigned/cube/cube.stl").read_bytes() == payload
 
-    winner_id = next(outcome.json()["id"] for outcome in outcomes if outcome.status_code == 200)
+    winner = next(outcome for outcome in outcomes if outcome.status_code == 200)
+    winner_id = winner.json()["id"]
     with TestClient(app, raise_server_exceptions=False) as client:
-        assert client.delete(f"/asset/{winner_id}", headers=headers).status_code == 200
+        response = client.delete(
+            f"/asset/{winner_id}", params={"confirm_name": winner.json()["filename"]}, headers=headers
+        )
+        assert response.status_code == 200, response.text
 
 
 def test_concurrent_renames_never_500_and_keep_disk_consistent(isolated_storage: Path) -> None:

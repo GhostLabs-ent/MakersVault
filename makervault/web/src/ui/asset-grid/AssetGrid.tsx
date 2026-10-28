@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import { type Asset } from "../../lib/api";
+import { type Asset, UnauthorizedError, deleteAsset } from "../../lib/api";
 import { chunkRows, colsForWidth } from "../../lib/virtualGrid";
 import { previewQueue } from "../../lib/previewQueue";
 import { EngravingSettings, PreviewSettings, ResolvedTheme, SlicerSettings, engraverLabelFor, slicerLabelFor } from "../../lib/settings";
 import { useStableCallback } from "../../lib/useStableCallback";
+import AssetDeleteDialog, { type AssetDeleteFailure } from "../AssetDeleteDialog";
 import BulkActionBar from "../BulkActionBar";
 import ConfirmDialog from "../ConfirmDialog";
 import FolderBreadcrumbs, { FolderTiles } from "../FolderNav";
@@ -46,6 +47,11 @@ type Props = {
   onProjectsChanged?: () => void;
 };
 
+function errorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message.trim()) return err.message;
+  return fallback;
+}
+
 export default function AssetGrid({
   folderId,
   projectId,
@@ -63,6 +69,10 @@ export default function AssetGrid({
 }: Props) {
   const isProject = projectId != null;
   const [previewItem, setPreviewItem] = useState<Asset | null>(null);
+  // The assets the user asked to delete, or null when the dialog is closed. The
+  // parent stays the only owner of the request so the grid's optimistic update
+  // and selection retention keep a single path.
+  const [deleteTargets, setDeleteTargets] = useState<Asset[] | null>(null);
   const slicerEnabled = Boolean(slicerSettings?.enabled);
   const slicerLabel = slicerLabelFor(slicerSettings?.selected);
   const engravingEnabled = Boolean(engravingSettings?.enabled);
@@ -141,7 +151,6 @@ export default function AssetGrid({
 
   const {
     downloadingId,
-    deletingId,
     movingId,
     rescanning,
     replaceAsset,
@@ -172,9 +181,40 @@ export default function AssetGrid({
     engravingSettings,
     selectedIds,
     bulkSetTags,
-    bulkDelete,
+    onRequestDelete: setDeleteTargets,
     onAddToProject: openProjectPicker,
   });
+
+  // One request per path: a single asset needs its file name confirmed (the
+  // server 400s otherwise), a selection is one batch call whose per-asset
+  // failures come back for the dialog and stay listed in the bar.
+  const runDelete = useStableCallback(async (targets: Asset[]) => {
+    if (targets.length > 1) {
+      const failures = await bulkDelete();
+      const failed: AssetDeleteFailure[] = failures.map(failure => ({
+        id: failure.id,
+        message: failure.error,
+      }));
+      return { failed };
+    }
+    const [asset] = targets;
+    try {
+      await deleteAsset(asset.id, asset.filename);
+      await refresh();
+      return { failed: [] };
+    } catch (err) {
+      if (err instanceof UnauthorizedError) onUnauthorized?.();
+      return { failed: [{ id: asset.id, message: errorMessage(err, "Delete failed.") }] };
+    }
+  });
+
+  // The bar's Delete opens the same dialog for exactly the current selection.
+  const openBulkDelete = useStableCallback(() => {
+    const targets = items.filter(item => selectedIds.has(item.id));
+    if (targets.length) setDeleteTargets(targets);
+  });
+
+  const closeDeleteDialog = useStableCallback(() => setDeleteTargets(null));
 
   const {
     sortKey,
@@ -241,7 +281,6 @@ export default function AssetGrid({
       downloading={downloadingId === item.id}
       onDelete={removeAsset}
       onAddToProject={addToProject}
-      deleting={deletingId === item.id}
       onMoveFolder={onMoveFolder}
       folderOptions={folderOptions}
       showFolderControls={!isProject}
@@ -308,7 +347,7 @@ export default function AssetGrid({
         onRemoveTags={bulkRemoveTags}
         onAddToProject={bulkAddToProject}
         onDownload={downloadSelected}
-        onDelete={bulkDelete}
+        onDelete={openBulkDelete}
         onClear={clearSelection}
         onSelectAll={selectAllLoaded}
         onDismissFailures={dismissBulkFailures}
@@ -373,6 +412,14 @@ export default function AssetGrid({
           busy={confirmBusy}
           onCancel={() => setPendingConfirm(null)}
           onConfirm={() => { void runPendingConfirm(); }}
+        />
+      )}
+      {deleteTargets && (
+        <AssetDeleteDialog
+          assets={deleteTargets}
+          onDelete={runDelete}
+          onCancel={closeDeleteDialog}
+          onClosed={closeDeleteDialog}
         />
       )}
       {projectPickerIds && (

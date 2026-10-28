@@ -4,6 +4,9 @@ Every item runs in its own transaction and its own failure is caught, so one bad
 id cannot roll back its neighbours: a request that changes nothing is the only
 one that fails whole, and partial success is the contract, not an error. The
 service returns plain models and dicts; ``main`` owns the HTTP shapes.
+
+Delete goes through ``trash_service.trash_asset``, the same trash-backed path as
+the single-item route, so a batch delete never unlinks bytes either.
 """
 
 import json
@@ -15,6 +18,7 @@ from sqlmodel import Session
 
 import asset_service
 import audit
+import trash_service
 from db import engine
 from models import Asset
 
@@ -121,12 +125,22 @@ def delete_assets(
     *,
     audit_ctx: Optional[audit.AuditContext],
 ) -> Tuple[List[str], List[dict]]:
-    """Delete each asset, one transaction per item."""
+    """Trash and delete each asset, one session and transaction per item.
+
+    The row is re-read in that session, so an id another request already deleted
+    is reported as ``not_found`` for this item only; a failure inside
+    ``trash_asset`` has already rolled its own item back, which leaves the
+    neighbours untouched.
+    """
     deleted: List[str] = []
     failed: List[dict] = []
     for asset_id in asset_ids:
         try:
-            asset_service.delete_asset_permanently(asset_id, audit_ctx=audit_ctx)
+            with Session(engine) as s:
+                asset = s.get(Asset, asset_id)
+                if not asset:
+                    raise HTTPException(status_code=404, detail="Asset not found")
+                trash_service.trash_asset(s, asset, audit_ctx=audit_ctx)
             deleted.append(asset_id)
         except Exception as error:
             failed.append(_failure(asset_id, error))

@@ -83,6 +83,11 @@ export type Asset = {
   slicer_filename?: string | null;
   /** UTC ISO-8601 timestamp of when the file was first found missing, if it is. */
   missing_since?: string | null;
+  /**
+   * True when the row points at a mounted/external file rather than a managed
+   * copy the server owns; deleting the row never touches that file.
+   */
+  is_reference?: boolean;
 };
 
 export type PreparedPrint = {
@@ -146,6 +151,15 @@ export type BatchFolderResult = {
 export type BatchDeleteResult = {
   deleted: string[];
   failed: BatchFailure[];
+};
+
+/** One asset's delete outcome; the files went to the server's trash, not away. */
+export type AssetDeleteResult = {
+  ok: boolean;
+  /** null when the row had no file on disk (a scan-created or mounted record). */
+  trash_path: string | null;
+  files: number;
+  bytes: number;
 };
 
 export type MountImportSettings = {
@@ -661,18 +675,38 @@ export async function updateAssetMeta(id: string, payload: {
   return res.json();
 }
 
-export async function deleteAsset(id: string) {
-  const res = await fetch(`${apiBase()}/asset/${id}`, { method: "DELETE", headers: authHeaders() });
-  assertOk(res, "Delete asset failed");
+/**
+ * Deletes one asset. `confirmName` must be the asset's file name exactly: the
+ * server enforces it with a 400, so the typed gate in the dialog is not
+ * cosmetic.
+ */
+export async function deleteAsset(id: string, confirmName: string): Promise<AssetDeleteResult> {
+  const qs = new URLSearchParams({ confirm_name: confirmName });
+  const res = await fetch(`${apiBase()}/asset/${id}?${qs.toString()}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) {
+    // Surface the server's 400 (mismatched confirm_name) detail in the dialog.
+    throw new Error(await readErrorMessage(res, "Delete asset failed"));
+  }
   return res.json();
 }
 
-/** Deletes many assets in one request; per-asset results are reported, not thrown. */
-export async function batchDeleteAssets(asset_ids: string[]): Promise<BatchDeleteResult> {
+/**
+ * Deletes many assets in one request; per-asset results are reported, not
+ * thrown. `confirmCount` must equal `asset_ids.length` — the server rejects
+ * any other number with a 400, so the stepped confirm is not cosmetic either.
+ */
+export async function batchDeleteAssets(
+  asset_ids: string[],
+  confirmCount: number,
+): Promise<BatchDeleteResult> {
   const res = await fetch(`${apiBase()}/assets/batch/delete`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ asset_ids }),
+    body: JSON.stringify({ asset_ids, confirm_count: confirmCount }),
   });
   if (res.status === 401) throw new UnauthorizedError();
   if (!res.ok) {

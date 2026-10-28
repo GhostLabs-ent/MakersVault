@@ -145,7 +145,9 @@ class Ids:
     other_folder_id: str
     asset_id: str
     spare_asset_id: str
+    spare_asset_filename: str
     batch_asset_id: str
+    batch_asset_filename: str
     file_id: str
     doomed_folder_id: str
     project_id: str
@@ -210,7 +212,9 @@ def seed_library(client: TestClient, headers: dict[str, str]) -> Ids:
         other_folder_id=other["id"],
         asset_id=cube["id"],
         spare_asset_id=spare["id"],
+        spare_asset_filename=spare["filename"],
         batch_asset_id=batch["id"],
+        batch_asset_filename=batch["filename"],
         file_id=supporting[0]["id"],
         doomed_folder_id=doomed["id"],
         project_id=project.json()["id"],
@@ -272,11 +276,17 @@ def call_login(client, headers, ids, monkeypatch) -> Response:
 
 
 def call_delete_asset(client, headers, ids, monkeypatch) -> Response:
-    return client.delete(f"/asset/{ids.spare_asset_id}", headers=headers)
+    return client.delete(
+        f"/asset/{ids.spare_asset_id}", params={"confirm_name": ids.spare_asset_filename}, headers=headers
+    )
 
 
 def call_batch_delete(client, headers, ids, monkeypatch) -> Response:
-    return client.post("/assets/batch/delete", json={"asset_ids": [ids.spare_asset_id]}, headers=headers)
+    return client.post(
+        "/assets/batch/delete",
+        json={"asset_ids": [ids.spare_asset_id], "confirm_count": 1},
+        headers=headers,
+    )
 
 
 def call_rename_asset(client, headers, ids, monkeypatch) -> Response:
@@ -412,7 +422,11 @@ def test_every_audited_route_emits_one_of_its_actions(client, ids, key, monkeypa
 
 def test_asset_delete_row_names_the_asset_and_file(client: TestClient, ids: Ids) -> None:
     value = request_id_for("asset-delete")
-    response = client.delete(f"/asset/{ids.spare_asset_id}", headers=audit_headers(ids.admin_token, value))
+    response = client.delete(
+        f"/asset/{ids.spare_asset_id}",
+        params={"confirm_name": ids.spare_asset_filename},
+        headers=audit_headers(ids.admin_token, value),
+    )
     assert response.status_code == 200, response.text
 
     row = one_event(value)
@@ -578,7 +592,11 @@ def test_no_op_requests_write_nothing(client: TestClient, ids: Ids) -> None:
 
 def test_a_denied_write_writes_no_row(client: TestClient, ids: Ids) -> None:
     value = request_id_for("denied")
-    response = client.delete(f"/asset/{ids.spare_asset_id}", headers=audit_headers(ids.viewer_token, value))
+    response = client.delete(
+        f"/asset/{ids.spare_asset_id}",
+        params={"confirm_name": ids.spare_asset_filename},
+        headers=audit_headers(ids.viewer_token, value),
+    )
 
     assert response.status_code == 403
     assert events_for(value) == []
@@ -590,8 +608,16 @@ def test_a_denied_write_writes_no_row(client: TestClient, ids: Ids) -> None:
 def test_admin_view_filters_page_and_sorts_newest_first(client: TestClient, ids: Ids) -> None:
     first = request_id_for("view-a")
     second = request_id_for("view-b")
-    assert client.delete(f"/asset/{ids.spare_asset_id}", headers=audit_headers(ids.admin_token, first)).status_code == 200
-    assert client.delete(f"/asset/{ids.batch_asset_id}", headers=audit_headers(ids.admin_token, second)).status_code == 200
+    assert client.delete(
+        f"/asset/{ids.spare_asset_id}",
+        params={"confirm_name": ids.spare_asset_filename},
+        headers=audit_headers(ids.admin_token, first),
+    ).status_code == 200
+    assert client.delete(
+        f"/asset/{ids.batch_asset_id}",
+        params={"confirm_name": ids.batch_asset_filename},
+        headers=audit_headers(ids.admin_token, second),
+    ).status_code == 200
 
     response = client.get(
         "/audit",
@@ -684,7 +710,11 @@ def explode(_session, _row) -> None:
 def test_audit_failure_rolls_back_the_asset_delete(client: TestClient, ids: Ids, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(audit, "_add", explode)
 
-    response = client.delete(f"/asset/{ids.spare_asset_id}", headers=bearer(ids.admin_token))
+    response = client.delete(
+        f"/asset/{ids.spare_asset_id}",
+        params={"confirm_name": ids.spare_asset_filename},
+        headers=bearer(ids.admin_token),
+    )
 
     assert response.status_code == 500
     with Session(engine) as session:
@@ -698,7 +728,7 @@ def test_audit_failure_is_reported_per_asset_in_a_batch_delete(
 
     response = client.post(
         "/assets/batch/delete",
-        json={"asset_ids": [ids.batch_asset_id]},
+        json={"asset_ids": [ids.batch_asset_id], "confirm_count": 1},
         headers=bearer(ids.admin_token),
     )
 
@@ -855,7 +885,11 @@ def test_an_absent_request_id_is_generated(client: TestClient) -> None:
 
 def test_the_audit_row_carries_the_echoed_request_id(client: TestClient, ids: Ids) -> None:
     value = request_id_for("echo")
-    response = client.delete(f"/asset/{ids.spare_asset_id}", headers=audit_headers(ids.admin_token, value))
+    response = client.delete(
+        f"/asset/{ids.spare_asset_id}",
+        params={"confirm_name": ids.spare_asset_filename},
+        headers=audit_headers(ids.admin_token, value),
+    )
 
     assert response.headers[REQUEST_ID_HEADER] == value
     assert one_event(value).request_id == value

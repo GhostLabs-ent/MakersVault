@@ -19,7 +19,6 @@ const AssetCard = React.memo(function AssetCard({
   downloading,
   onDelete,
   onAddToProject,
-  deleting,
   onMoveFolder,
   folderOptions,
   showFolderControls = true,
@@ -274,9 +273,8 @@ const AssetCard = React.memo(function AssetCard({
             <button
               className="text-sm px-2 py-1 rounded-md border border-red-300 text-red-700 dark:text-red-300 disabled:opacity-60"
               onClick={() => onForgetMissing(item)}
-              disabled={deleting}
             >
-              {deleting ? "Forgetting..." : "Forget entry"}
+              Forget entry
             </button>
           </div>
         </div>
@@ -543,16 +541,14 @@ const AssetCard = React.memo(function AssetCard({
             <button
               className="text-sm px-2 py-1 rounded-md border border-panel-strong"
               onClick={() => onAddToProject(item)}
-              disabled={deleting}
             >
               Add to project…
             </button>
             <button
               className="text-sm px-2 py-1 rounded-md border border-red-300 text-red-700 dark:text-red-300 disabled:opacity-60"
               onClick={() => onDelete(item)}
-              disabled={deleting}
             >
-              {deleting ? "Deleting..." : "Delete"}
+              Delete
             </button>
           </div>
         )}

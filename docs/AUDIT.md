@@ -184,9 +184,11 @@ failure:
 | `asset_service.move_asset_to_folder_by_id` | `restore_moved_file` undoes the cross-folder move |
 | `folder_service.move_folder` | `os.rename(target, source)` undoes the directory move |
 | `trash_service.trash_folder` | `_undo_moves` reverses every move into `.trash`, then 500 |
+| `trash_service.trash_asset` | `_undo_moves` reverses the primary-file and sidecar moves, `_prune_empty_entry` removes the emptied entry, then 500 |
 
 Batch delete is fail-closed per asset: the failed item lands in the response's
-`failed` list and its row survives, so one broken item does not silently vanish.
+`failed` list, its row and its bytes survive, so one broken item does not
+silently vanish and its neighbours are not rolled back.
 
 **Fail-loud: `POST /trash/purge` and `POST /library/scan`.** Both destroy or
 launch something that carries no database row, so there is nothing to roll back.
@@ -206,23 +208,23 @@ The database is the authority; the filesystem is best-effort with existing undo.
 These windows existed before the audit log and are neither widened nor fixed by
 it. They are listed so nobody assumes more atomicity than there is.
 
-* **`AssetFile` rows deleted before the asset row.**
-  `asset_service.delete_asset_permanently` calls `delete_all_asset_files` in its
-  own session first, then deletes the asset row in a second transaction. A failed
-  audit insert rolls back the second transaction only: the asset survives, its
-  supporting-file rows are already gone.
+* **`AssetFile` rows deleted before the asset row (`cleanup_asset` only).**
+  `asset_service.cleanup_asset`, the failed-upload path, calls
+  `delete_all_asset_files` in its own session first, then deletes the asset row
+  in a second transaction. The user-facing delete no longer has this window:
+  `trash_service.trash_asset` deletes the `AssetFile` rows, the asset row and
+  the audit row in one transaction.
 * **A filesystem rename or move precedes the commit.** The bytes move before
   `session.commit()` on every rename/move route. A commit failure (audit
   included) is undone by `restore_moved_file`, `os.rename` or `_undo_moves`, and
   those undos are themselves best-effort and logged rather than raised: a crash
   in that window leaves disk and rows out of sync.
-* **Post-commit cleanup is best-effort.** In `delete_asset_permanently` the
-  managed-file unlink, the empty-directory prune and the thumbnail unlink run
-  after the commit inside `try: ... except Exception: pass`. In
-  `trash_service.trash_folder` the thumbnail unlinks and the emptied-directory
-  `rmdir` run after the commit, each `except OSError: pass`. Bytes and thumbnails
-  can therefore outlive their rows. The audit row records the authoritative row
-  deletion, which did happen.
+* **Post-commit cleanup is best-effort.** In `trash_service.trash_asset` and
+  `trash_service.trash_folder` the thumbnail unlink and the emptied-directory
+  `rmdir` run after the commit, each `except OSError: pass`. Bytes and
+  thumbnails can therefore outlive their rows, and an emptied directory can be
+  left behind. The audit row records the authoritative row deletion, which did
+  happen.
 * **The purge/scan window.** For `POST /trash/purge` the bytes are removed before
   the audit row is written; for `POST /library/scan` the background thread is
   already running. If the audit write then fails, the action happened and is not

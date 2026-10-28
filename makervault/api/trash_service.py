@@ -1,29 +1,44 @@
-"""Trash-backed destructive folder delete, and the explicit purge that follows it.
+"""Trash-backed destructive deletes, and the explicit purge that follows them.
 
-Deleting a folder must never unlink bytes. The whole directory subtree is moved
-with ``os.rename`` into ``<STORAGE>/.trash/<UTC timestamp>-<sanitised name>/``
+Deleting a folder or a single asset must never unlink bytes. The bytes are moved
+with ``os.rename`` into ``<STORAGE>/.trash/<UTC timestamp>-<sanitised label>/``
 and only then are the database rows removed; an irreversible ``rm -r`` happens
 only when somebody asks for a purge. Until then the bytes are recoverable with a
 plain ``mv``, which is also why delete cannot depend on a wrapping transaction:
 the filesystem is always changed first and the rows second, with the moves
 undone if the commit fails.
 
+Per-folder and per-asset delete share one entry scheme and one set of
+carve-outs. A folder entry holds the whole subtree; an asset entry holds only
+that asset's primary managed file at ``<entry>/.assets/<asset_id>/<filename>``
+and its whole app-owned sidecar directory at ``<entry>/.bundles/<asset_id>``
+(where supporting and prepared files live, so one rename reclaims all of them).
+Because an entry is per-asset, restoring is a file-level operation: move
+``.assets/<id>/<filename>`` back into the library by hand and run a rescan.
+
 Semantics that callers must not loose sight of:
 
-* The delete is whole-subtree (``rm -r``): child folders and every asset in them
-  go with the parent. Nothing outside the subtree may relocate: the storage
-  template is never rendered and no metadata-relocation helper runs here.
+* Folder delete is whole-subtree (``rm -r``): child folders and every asset in
+  them go with the parent. Nothing outside the subtree may relocate: the
+  storage template is never rendered and no metadata-relocation helper runs
+  here.
 * ``is_reference`` assets point at files outside the storage root. They lose
   their rows only; the external file is never touched, and neither is anything
-  referenced by ``source_path``.
+  referenced by ``source_path``. One inherited blind spot: a reference asset is
+  not refused a supporting-file upload, so it can own ``bundles/<asset_id>``
+  bytes that neither this delete nor the folder delete moves (Mf-e27h).
 * Files that live inside the directory but have no DB row are untracked: they
   move with the directory because the directory moves. They are never
   enumerated, targeted individually, or counted.
-* There are exactly two deliberate carve-outs from "nothing outside the subtree
-  moves". App-owned sidecars at ``bundles/<asset_id>/`` and a tracked asset's
-  managed file whose path sits outside the folder directory are moved *into* the
-  trash entry (under ``.bundles/`` and ``.assets/``) so a purge can reclaim them
-  and a delete cannot leave orphaned bytes behind.
+* There are exactly two deliberate carve-outs from "nothing outside the moved
+  directory moves". App-owned sidecars at ``bundles/<asset_id>/`` and a tracked
+  asset's managed file whose path sits outside the moved directory are moved
+  *into* the trash entry (under ``.bundles/`` and ``.assets/``) so a purge can
+  reclaim them and a delete cannot leave orphaned bytes behind.
+* A file that is missing from disk, resolves outside the storage root, or is a
+  symlink is never moved. Its rows are still deleted, because the row is the
+  user-facing object and a file that cannot be moved must not keep a ghost row
+  alive; nothing outside the root is ever unlinked or followed.
 * Restore is file-level only. Rows were deleted because they describe assets
   that no longer existed at delete time. Hand-moving an entry back and running a
   library rescan re-registers the files as new assets. There is no row-level
@@ -113,15 +128,16 @@ def resolve_inside_storage(relative: str) -> Path:
     return candidate
 
 
-def entry_name(folder_name: str, now: datetime) -> str:
+def entry_name(label: str, now: datetime) -> str:
     """Build a unique, filesystem-safe entry name for a delete at ``now``.
 
-    The timestamp is UTC (``now`` is expected to be aware) and the folder name is
-    sanitised and truncated so an absurd name cannot push the path over the
-    filesystem limit. Two deletes of same-named folders within one second get
-    ``-2``, ``-3``, ... rather than colliding.
+    The timestamp is UTC (``now`` is expected to be aware) and the label (a
+    folder name or an asset's display name) is sanitised and truncated so an
+    absurd name cannot push the path over the filesystem limit. Two deletes of
+    same-named objects within one second get ``-2``, ``-3``, ... rather than
+    colliding.
     """
-    segment = file_utils.sanitize_path_segment(folder_name, fallback="folder")[:80]
+    segment = file_utils.sanitize_path_segment(label, fallback="folder")[:80]
     base = f"{now:%Y%m%dT%H%M%SZ}-{segment}"
     root = trash_root()
     name = base
@@ -215,11 +231,11 @@ def _managed_file(asset: Asset) -> Optional[Path]:
     return candidate
 
 
-def _ensure_entry(entry: Optional[Path], folder_name: str, now: datetime) -> Path:
+def _ensure_entry(entry: Optional[Path], label: str, now: datetime) -> Path:
     """Return the trash entry, creating it on first actual move."""
     if entry is not None:
         return entry
-    entry = trash_root() / entry_name(folder_name, now)
+    entry = trash_root() / entry_name(label, now)
     entry.mkdir(parents=True, exist_ok=True)
     return entry
 
@@ -278,6 +294,54 @@ def _move_to_trash(
             # directory empty; it must not survive as a future scan folder.
             if _strictly_inside(managed.parent, storage_root()):
                 empty_after_move.append(managed.parent)
+
+    return entry
+
+
+def _move_asset_to_trash(
+    asset: Asset,
+    now: datetime,
+    moves: list[tuple[Path, Path]],
+    empty_after_move: list[Path],
+) -> Optional[Path]:
+    """Move one asset's primary file and its whole sidecar directory; record every move.
+
+    The entry is created only when something actually moves, so a missing file
+    or a reference asset leaves no empty `.trash` entry behind. A reference
+    asset returns before ``_managed_file`` is consulted: its ``storage_path``
+    describes a file outside the root that this delete must never look at.
+
+    The whole ``bundles/<asset_id>`` directory is renamed in one step rather
+    than its individual files, because supporting and prepared files both live
+    there and one rename reclaims all of them. The primary file is the only
+    other tracked byte; a symlinked or out-of-root one is skipped by
+    ``_managed_file`` and the row is deleted anyway.
+    """
+    if asset.is_reference:
+        return None
+
+    entry: Optional[Path] = None
+    label = asset.name or asset.filename
+
+    bundle = bundles_root() / asset.id
+    if bundle.is_dir() and not bundle.is_symlink():
+        entry = _ensure_entry(entry, label, now)
+        target = entry / BUNDLE_CARVEOUT_DIRNAME / asset.id
+        target.parent.mkdir(parents=True, exist_ok=True)
+        os.rename(bundle, target)
+        moves.append((target, bundle))
+
+    managed = _managed_file(asset)
+    if managed is not None and managed.is_file():
+        entry = _ensure_entry(entry, label, now)
+        target = entry / ASSET_CARVEOUT_DIRNAME / asset.id / asset.filename
+        target.parent.mkdir(parents=True, exist_ok=True)
+        os.rename(managed, target)
+        moves.append((target, managed))
+        # A flat template or a NULL storage_path leaves the file's parent
+        # directory empty; it must not survive as a future scan folder.
+        if _strictly_inside(managed.parent, storage_root()):
+            empty_after_move.append(managed.parent)
 
     return entry
 
@@ -380,7 +444,7 @@ def trash_folder(session: Session, folder: Folder, *, audit_ctx: Optional[audit.
 
     # Only after the rows are gone: a thumbnail for a row that still exists is
     # merely stale, while a missing one is a broken UI. Best effort, like
-    # delete_asset in main.py.
+    # `trash_asset` below.
     thumb_root = thumbs_root()
     for asset_id in asset_ids:
         try:
@@ -400,6 +464,91 @@ def trash_folder(session: Session, folder: Folder, *, audit_ctx: Optional[audit.
         "assets": len(assets),
         "bytes": asset_bytes,
     }
+
+
+# Per-asset delete ----------------------------------------------
+
+
+def _prune_empty_entry(entry: Optional[Path]) -> None:
+    """Remove an entry that a failed delete left empty, deepest directory first.
+
+    Only ``rmdir`` is used, so a directory that still holds bytes because an
+    undo itself failed is left alone. A delete that never moved anything must
+    not leave an empty entry in the trash listing.
+    """
+    if entry is None:
+        return
+    for current, _dirnames, _filenames in os.walk(entry, topdown=False):
+        try:
+            Path(current).rmdir()
+        except OSError:
+            pass
+
+
+def trash_asset(session: Session, asset: Asset, *, audit_ctx: Optional[audit.AuditContext]) -> dict:
+    """Move one asset's bytes into the trash, then delete its row and its files' rows.
+
+    Same fixed order as `trash_folder`: move bytes, commit rows, only then
+    unlink the thumbnail and rmdir directories the move emptied. A failure
+    while moving or committing reverses every move and reports a 500, so the
+    caller never sees a partial delete; the empty entry is pruned because a
+    failed delete must leave the filesystem exactly as it found it.
+
+    A file that is missing, outside the root, or a symlink is not moved, yet
+    the row is still deleted: otherwise a row whose bytes are gone could never
+    be removed through the UI. That is why ``trash_path`` is nullable.
+
+    The audit row joins the row-delete transaction, so a failed audit insert is
+    a failed commit: the moves are undone and the asset survives. ``files`` and
+    ``bytes`` are computed before the delete, because after the commit the row
+    (and its counters) are gone. ``bytes`` is 0 for a reference asset: nothing of
+    ours moves, so claiming its recorded size as reclaimed would be a lie. The
+    detail keeps only ``filename``, matching the audit tests that pin it.
+    """
+    asset_id = asset.id
+    filename = asset.filename
+    supporting_count = int(asset.supporting_file_count or 0)
+    file_count = 0 if asset.is_reference else 1 + supporting_count
+    asset_bytes = 0 if asset.is_reference else int(asset.size or 0)
+    now = datetime.now(timezone.utc)
+
+    entry: Optional[Path] = None
+    moves: list[tuple[Path, Path]] = []
+    empty_after_move: list[Path] = []
+    try:
+        entry = _move_asset_to_trash(asset, now, moves, empty_after_move)
+        # Core delete with a rowcount check rather than ``session.delete``: this
+        # row was read in the caller's session, so a concurrent delete that
+        # committed in between would make an ORM delete quietly affect no rows
+        # and let this call report success for work it did not do. Deleting
+        # ``AssetFile`` first keeps migration 007's foreign keys satisfied; the
+        # project membership goes through the database's own ON DELETE CASCADE.
+        session.execute(delete(AssetFile).where(AssetFile.asset_id == asset_id))
+        removed = session.execute(delete(Asset).where(Asset.id == asset_id))
+        if removed.rowcount != 1:
+            raise HTTPException(status_code=404, detail="Asset not found")
+        audit.stage(session, audit_ctx, audit.Event(audit.ASSET_DELETE, asset_id, {"filename": filename}))
+        session.commit()
+    except BaseException as error:
+        session.rollback()
+        _undo_moves(moves)
+        _prune_empty_entry(entry)
+        if isinstance(error, HTTPException):
+            raise
+        raise HTTPException(status_code=500, detail="Asset delete failed; no rows were changed") from error
+
+    try:
+        (thumbs_root() / f"{asset_id}.jpg").unlink(missing_ok=True)
+    except OSError:
+        pass
+    for directory in empty_after_move:
+        try:
+            directory.rmdir()
+        except OSError:
+            # Still holds other files: not ours to remove.
+            pass
+
+    return {"trash_path": _relative_to_storage(entry), "files": file_count, "bytes": asset_bytes}
 
 
 # Trash listing and purge ----------------------------------------

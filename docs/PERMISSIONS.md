@@ -24,7 +24,7 @@ blank ranks as `public`, i.e. it is denied even reads - fail closed.
 | Download a zip of a selection/folder/tag     |  yes  |  yes   |  yes   |
 | Poll library scan status                     |  yes  |  yes   |  yes   |
 | Upload / import / rename / edit metadata     |  yes  |  yes   |   no   |
-| Delete assets, folders, supporting files     |  yes  |  yes   |   no   |
+| Delete assets, folders (to the trash), supporting files |  yes  |  yes   |   no   |
 | Bulk tag / move / delete                     |  yes  |  yes   |   no   |
 | Create / edit / delete projects, edit membership |  yes  |  yes   |   no   |
 | Start a library scan                         |  yes  |  yes   |   no   |
@@ -134,11 +134,11 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | POST   | `/asset/{asset_id}/thumbnail-generated`     | writes a thumbnail |
 | POST   | `/assets/batch/tags`                        | bulk tag mutation |
 | POST   | `/assets/batch/folder`                      | bulk move |
-| POST   | `/assets/batch/delete`                      | bulk delete |
+| POST   | `/assets/batch/delete`                      | bulk delete (to trash; confirmed by item count) |
 | POST   | `/asset/{asset_id}/tags`                    | metadata mutation |
 | POST   | `/asset/{asset_id}/meta`                    | metadata mutation (may rename on disk) |
 | POST   | `/asset/{asset_id}/rename`                  | rename on disk |
-| DELETE | `/asset/{asset_id}`                         | delete an asset |
+| DELETE | `/asset/{asset_id}`                         | delete an asset (to trash; the file name must be confirmed) |
 | POST   | `/folders`                                  | create a folder |
 | PATCH  | `/folder/{folder_id}`                       | rename/move/retag a folder |
 | DELETE | `/folder/{folder_id}`                       | delete a folder (to trash) |
@@ -163,6 +163,24 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | GET    | `/users`                       | user administration |
 | PATCH  | `/users/{user_id}`             | user administration (including role changes) |
 | POST   | `/trash/purge`                 | destroying deleted data is irreversible |
+
+## Destructive confirmations
+
+Deleting is recoverable, but it still asks the caller to prove it meant the
+object it named. These gates are enforced by the API, not by the web client, and
+they are deliberately declared as optional fields: a missing value is a readable
+`400`, never a FastAPI `422`.
+
+| Route | Gate |
+|---|---|
+| `DELETE /folder/{folder_id}` | `?confirm_name=<folder name>` must match exactly |
+| `DELETE /asset/{asset_id}` | `?confirm_name=<file name>` must match exactly |
+| `POST /assets/batch/delete` | `confirm_count` must equal the number of ids |
+
+The asset gate compares the file name rather than the model name because
+`Asset.name` may be empty, which would make the gate a no-op. A batch confirms
+with a count instead of one name per id: typing N names is absurd, while a count
+still proves the client is deleting exactly the rows it showed the user.
 
 ## Authentication modes
 

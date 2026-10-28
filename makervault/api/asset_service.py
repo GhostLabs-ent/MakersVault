@@ -475,44 +475,6 @@ def move_asset_to_folder_by_id(asset_id: str, folder_id: Optional[str], *, audit
         return asset
 
 
-def delete_asset_permanently(asset_id: str, *, audit_ctx: Optional[audit.AuditContext]) -> None:
-    """Delete one asset and its files: the single-item and batch routes share this.
-
-    Two sessions on purpose: the dependent ``AssetFile`` rows go first, and the
-    row is re-read before deletion so a concurrent delete surfaces as a 404
-    rather than deleting a row this call never saw. The unlink/prune is
-    best-effort - bytes that cannot be removed must not stop the row from going.
-
-    The audit row joins the asset-row transaction, so a failed audit insert
-    rolls that delete back; the earlier ``AssetFile`` delete has already
-    committed, which is the same residual window the unlink/prune has always
-    had.
-    """
-    managed_path: Optional[Path] = None
-    with Session(engine) as s:
-        a = s.get(Asset, asset_id)
-        if not a:
-            raise HTTPException(404)
-        managed_path = managed_asset_path(a)
-    delete_all_asset_files(asset_id)
-    with Session(engine) as s:
-        a = s.get(Asset, asset_id)
-        if not a:
-            raise HTTPException(404)
-        audit.stage(s, audit_ctx, audit.Event(audit.ASSET_DELETE, asset_id, {"filename": a.filename}))
-        s.delete(a)
-        s.commit()
-    # best-effort cleanup
-    try:
-        if managed_path and managed_path.exists():
-            parent = managed_path.parent
-            managed_path.unlink(missing_ok=True)
-            prune_empty_storage_dirs(parent)
-        (THUMBS / f"{asset_id}.jpg").unlink(missing_ok=True)
-    except Exception:
-        pass
-
-
 def save_thumb_image(asset_id: str, image: Image.Image) -> Optional[str]:
     tmp_path: Optional[Path] = None
     try:
@@ -671,8 +633,8 @@ def cleanup_asset(asset_id: str) -> None:
     The dependent ``AssetFile`` rows go first: migration 007 turns on
     ``PRAGMA foreign_keys``, so an asset row with remaining children would now
     fail the delete instead of orphaning them. The unlink/prune afterwards stays
-    best-effort for the same reason as ``delete_asset_permanently`` - bytes that
-    cannot be removed must not keep the row alive.
+    best-effort for the same reason as ``trash_service.trash_asset`` - bytes
+    that cannot be removed must not keep the row alive.
     """
     managed_path: Optional[Path] = None
     with Session(engine) as s:

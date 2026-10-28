@@ -123,7 +123,8 @@ def test_missing_files_are_counted_not_deleted(library_root):
     # the row survives: a mount hiccup must not silently lose the catalogue entry
     assert rel in _assets_by_path()
     assert _assets_by_path()[rel].missing_since is not None
-    library_root.remove(rel)
+    # Keep it in `library_root`: the fixture's cleanup owns every row this test
+    # made, so dropping the path here leaks a row into the shared session DB.
 
 
 def test_scan_endpoint_runs_in_background(library_root):
@@ -465,10 +466,14 @@ def test_delete_asset_with_missing_file_succeeds(temp_library: Path) -> None:
 
     with TestClient(main.app) as client:
         headers = _auth_header(client)
-        response = client.delete(f"/asset/{asset_id}", headers=headers)
+        response = client.delete(f"/asset/{asset_id}", params={"confirm_name": "missing.stl"}, headers=headers)
 
     assert response.status_code == 200, response.text
-    assert response.json() == {"ok": True}
+    body = response.json()
+    # The bytes are already gone, so nothing moves; the row still goes.
+    assert body["ok"] is True
+    assert body["trash_path"] is None
+    assert body["files"] == 1
     assert _asset_by_id(asset_id) is None
 
 

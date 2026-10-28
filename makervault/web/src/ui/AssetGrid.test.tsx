@@ -1047,19 +1047,28 @@ describe("AssetGrid missing assets", () => {
     expect(screen.getByText("Calibration cube")).toBeTruthy();
   });
 
-  it("Forget entry deletes only that asset after confirming", async () => {
+  it("Forget entry opens the same delete dialog and requires the typed file name", async () => {
     render(<AssetGrid theme="dark" />);
 
     await screen.findByText(/File missing/i);
     fireEvent.click(screen.getByRole("button", { name: "Forget entry" }));
 
-    const dialog = screen.getByRole("dialog", { name: /Forget "lost-model\.stl"\?/ });
+    const dialog = within(screen.getByRole("dialog", { name: /Forget/ }));
     expect(deleteAssetMock).not.toHaveBeenCalled();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Forget" }));
 
-    await waitFor(() => expect(deleteAssetMock).toHaveBeenCalledWith(missingAsset.id));
+    const forget = dialog.getByRole("button", { name: "Forget entry" }) as HTMLButtonElement;
+    expect(forget.disabled).toBe(true);
+
+    fireEvent.change(dialog.getByLabelText("Type the file name to confirm"), {
+      target: { value: missingAsset.filename },
+    });
+    fireEvent.click(forget);
+
+    await waitFor(() =>
+      expect(deleteAssetMock).toHaveBeenCalledWith(missingAsset.id, missingAsset.filename),
+    );
     for (const other of assets) {
-      expect(deleteAssetMock).not.toHaveBeenCalledWith(other.id);
+      expect(deleteAssetMock).not.toHaveBeenCalledWith(other.id, other.filename);
     }
   });
 
@@ -1107,6 +1116,11 @@ describe("AssetGrid bulk actions", () => {
     return within(screen.getByTestId("bulk-action-bar"));
   }
 
+  /** The grid's asset-delete dialog (the bar's Delete opens it). */
+  function deleteDialog() {
+    return within(screen.getByRole("dialog", { name: /Delete/ }));
+  }
+
   async function waitForGrid() {
     await screen.findByText("Calibration cube");
     await waitFor(() => expect(screen.queryByText("Loading...")).toBeNull());
@@ -1121,12 +1135,13 @@ describe("AssetGrid bulk actions", () => {
 
     selectCards(3);
     fireEvent.click(bulkBar().getByRole("button", { name: "Delete" }));
-    fireEvent.click(bulkBar().getByRole("button", { name: "Delete permanently" }));
+    fireEvent.click(deleteDialog().getByRole("button", { name: "Delete 3 items" }));
 
     await waitFor(() => expect(batchDeleteAssetsMock).toHaveBeenCalledTimes(1));
-    const requested = batchDeleteAssetsMock.mock.calls[0][0];
+    const [requested, confirmCount] = batchDeleteAssetsMock.mock.calls[0];
     expect(requested).toHaveLength(3);
     expect(requested).toEqual(expect.arrayContaining(["a1", "b2", "c3"]));
+    expect(confirmCount).toBe(3);
     expect(deleteAssetMock).not.toHaveBeenCalled();
 
     await waitFor(() => expect(screen.queryByText("Calibration cube")).toBeNull());
@@ -1136,7 +1151,7 @@ describe("AssetGrid bulk actions", () => {
     expect(listAssetsMock.mock.calls.length).toBe(callsBefore);
   });
 
-  it("bulk delete rolls back only the failed asset and lists it", async () => {
+  it("bulk delete keeps the failed asset selected and reports it in the dialog and the bar", async () => {
     batchDeleteAssetsMock.mockResolvedValue({
       deleted: ["a1"],
       failed: [
@@ -1150,10 +1165,23 @@ describe("AssetGrid bulk actions", () => {
 
     selectCards(3);
     fireEvent.click(bulkBar().getByRole("button", { name: "Delete" }));
-    fireEvent.click(bulkBar().getByRole("button", { name: "Delete permanently" }));
+    fireEvent.click(deleteDialog().getByRole("button", { name: "Delete 3 items" }));
 
     await waitFor(() => expect(screen.queryByText("Calibration cube")).toBeNull());
     expect(screen.getByText("Spool holder")).toBeTruthy();
+
+    // The dialog does not claim success: it stays open and names the failed row.
+    const dialog = within(screen.getByRole("dialog", { name: /Delete/ }));
+    const dialogFailures = await dialog.findByTestId("asset-delete-failures");
+    const dialogLines = within(dialogFailures).getAllByRole("listitem");
+    expect(dialogLines).toHaveLength(1);
+    expect(dialogLines[0].getAttribute("data-failed-id")).toBe("b2");
+    expect(dialogLines[0].textContent).toBe("spool-holder.stl — Storage path already exists: X");
+
+    // Closing it leaves the same report in the bar, with the failed row selected.
+    fireEvent.click(dialog.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(bulkBar().getByText("1 selected")).toBeTruthy();
 
     const failures = await screen.findByTestId("bulk-failures");
     const lines = within(failures).getAllByRole("listitem");
@@ -1173,7 +1201,7 @@ describe("AssetGrid bulk actions", () => {
 
     selectCards(3);
     fireEvent.click(bulkBar().getByRole("button", { name: "Delete" }));
-    fireEvent.click(bulkBar().getByRole("button", { name: "Delete permanently" }));
+    fireEvent.click(deleteDialog().getByRole("button", { name: "Delete 3 items" }));
 
     await waitFor(() => expect(batchDeleteAssetsMock).toHaveBeenCalledTimes(1));
 
@@ -1182,9 +1210,13 @@ describe("AssetGrid bulk actions", () => {
     expect(screen.getByText("Spool holder")).toBeTruthy();
     expect(screen.getByText("Engraved sign")).toBeTruthy();
 
-    // The whole-request failure is reported in the bar, not as a toast.
+    // The whole-request failure is reported in the bar, not as a toast, and the
+    // dialog stays open with it instead of closing as if the run had finished.
     await waitFor(() =>
       expect(bulkBar().getByRole("alert").textContent).toBe("Bulk delete failed: server exploded"),
+    );
+    await waitFor(() =>
+      expect(deleteDialog().getByText("Bulk delete failed: server exploded")).toBeTruthy(),
     );
 
     // Rollback is local: no refetch, and no per-asset deletes.
@@ -1207,7 +1239,7 @@ describe("AssetGrid bulk actions", () => {
 
     selectCards(2);
     fireEvent.click(bulkBar().getByRole("button", { name: "Delete" }));
-    fireEvent.click(bulkBar().getByRole("button", { name: "Delete permanently" }));
+    fireEvent.click(deleteDialog().getByRole("button", { name: "Delete 2 items" }));
     await waitFor(() => expect(batchDeleteAssetsMock).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.queryByText("Asset 1")).toBeNull());
 
@@ -1347,9 +1379,9 @@ describe("AssetGrid shared dialogs and toasts", () => {
 
     fireEvent.click(cardDeleteButton());
 
-    screen.getByRole("dialog", {
-      name: 'Delete "calibration-cube.stl"? This cannot be undone.',
-    });
+    // The dialog says what actually happens and gates the button on the file name.
+    screen.getByRole("dialog", { name: /Delete/ });
+    expect(screen.getAllByText(/\.trash/).length).toBeGreaterThan(0);
     expect(deleteAssetMock).not.toHaveBeenCalled();
   });
 
@@ -1367,19 +1399,27 @@ describe("AssetGrid shared dialogs and toasts", () => {
     expect(deleteAssetMock).not.toHaveBeenCalled();
   });
 
-  it("confirming the delete dialog calls deleteAsset exactly once", async () => {
+  it("confirming the delete dialog sends the typed file name and calls deleteAsset once", async () => {
     listAssetsMock.mockResolvedValue({ items: [assets[0]], hasMore: false });
-    deleteAssetMock.mockResolvedValue(undefined);
+    deleteAssetMock.mockResolvedValue({ ok: true, trash_path: ".trash/x", files: 1, bytes: 1200 });
 
     render(<AssetGrid theme="dark" />);
     await waitForGrid();
 
     fireEvent.click(cardDeleteButton());
-    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" }));
+    const dialog = within(screen.getByRole("dialog", { name: /Delete/ }));
+    fireEvent.change(dialog.getByLabelText("Type the file name to confirm"), {
+      target: { value: assets[0].filename },
+    });
+    fireEvent.click(dialog.getByRole("button", { name: "Delete asset" }));
 
-    await waitFor(() => expect(deleteAssetMock).toHaveBeenCalledWith(assets[0].id));
+    await waitFor(() =>
+      expect(deleteAssetMock).toHaveBeenCalledWith(assets[0].id, assets[0].filename),
+    );
     expect(deleteAssetMock).toHaveBeenCalledTimes(1);
     expect(batchDeleteAssetsMock).not.toHaveBeenCalled();
+    // A clean delete closes the dialog without a second confirmation.
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("a multi-select delete confirms once and uses the batch endpoint", async () => {
@@ -1393,14 +1433,16 @@ describe("AssetGrid shared dialogs and toasts", () => {
     fireEvent.click(boxes[1]);
 
     fireEvent.click(cardDeleteButton());
-    const dialog = screen.getByRole("dialog", {
-      name: "Delete 2 selected items? This cannot be undone.",
-    });
+    const dialog = within(screen.getByRole("dialog", { name: "Delete 2 selected items?" }));
+    // Several assets are confirmed by the step, never by typing N names.
+    expect(dialog.queryByLabelText("Type the file name to confirm")).toBeNull();
     expect(batchDeleteAssetsMock).not.toHaveBeenCalled();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+    fireEvent.click(dialog.getByRole("button", { name: "Delete 2 items" }));
 
     await waitFor(() => expect(batchDeleteAssetsMock).toHaveBeenCalledTimes(1));
-    expect(batchDeleteAssetsMock.mock.calls[0][0]).toHaveLength(2);
+    const [ids, confirmCount] = batchDeleteAssetsMock.mock.calls[0];
+    expect(ids).toHaveLength(2);
+    expect(confirmCount).toBe(2);
     expect(deleteAssetMock).not.toHaveBeenCalled();
   });
 

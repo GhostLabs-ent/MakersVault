@@ -104,22 +104,36 @@ describe("bulk API client", () => {
     expect(JSON.parse(String(init.body))).toEqual({ asset_ids: ["a1"], folder_id: null });
   });
 
-  it("posts one request for a bulk delete", async () => {
+  it("posts one request for a bulk delete with the confirmed count", async () => {
     const payload = { deleted: ["a1"], failed: [] };
     const fetchMock = installFetch(respond(payload));
 
-    await expect(batchDeleteAssets(["a1", "b2"])).resolves.toEqual(payload);
+    await expect(batchDeleteAssets(["a1", "b2"], 2)).resolves.toEqual(payload);
 
     const { url, init } = onlyCall(fetchMock);
     expect(url.endsWith("/assets/batch/delete")).toBe(true);
     expect(init.method).toBe("POST");
-    expect(JSON.parse(String(init.body))).toEqual({ asset_ids: ["a1", "b2"] });
+    expect(JSON.parse(String(init.body))).toEqual({ asset_ids: ["a1", "b2"], confirm_count: 2 });
   });
 
   it("throws UnauthorizedError on 401", async () => {
     installFetch(respond(null, { ok: false, status: 401, body: "" }));
 
-    await expect(batchDeleteAssets(["a1"])).rejects.toBeInstanceOf(UnauthorizedError);
+    await expect(batchDeleteAssets(["a1"], 1)).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+
+  it("surfaces the server detail when confirm_count does not match the ids", async () => {
+    installFetch(
+      respond(null, {
+        ok: false,
+        status: 400,
+        body: JSON.stringify({ detail: "confirm_count must equal the number of assets to delete" }),
+      }),
+    );
+
+    const error = await batchDeleteAssets(["a1", "b2"], 1).catch((err: unknown) => err);
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toBe("confirm_count must equal the number of assets to delete");
   });
 
   it("surfaces the server detail on a whole-request 400", async () => {

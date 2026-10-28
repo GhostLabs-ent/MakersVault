@@ -174,6 +174,7 @@ VITE_ALLOWED_HOSTS=
   <li>Toggle between light and dark mode for better viewing of differently colored 3D models.</li>
   <li>Create username and password for added security when running behind a reverse proxy.</li>
   <li>Move or delete files from within the application.</li>
+  <li>Trash-backed deletes: removed files wait in <code>.trash</code> until you empty it.</li>
   <li>Drag and drop upload.</li> 
   <li>Customization Themes.</li>
   <li>Open in Slicer (Beta).</li>
@@ -269,8 +270,10 @@ In the future there are plans to add support for more websites, but in this curr
 
 
 <h3>Batch Tagging and Deleting</h3>
-<p>The batch tagging and batch deleting feature utilizes the available select button on each individual render tile. Simply select as many models as needed and applying a tag to one will apply the tag to all selected. The same logic applies to batch deleting, any selected models will be deleted by utilizing the single delete button on any tile. </p>
-<p>Selecting one or more models also reveals a bulk action bar above the grid. It applies to exactly the models that are selected and offers move to folder, add tags, remove tags, download as a single ZIP, and permanent deletion behind an explicit confirmation. Each action is one batched request rather than one per model, shows progress while it runs, and lists any per-model failures inline; the models that succeeded stay changed and nothing is retried automatically.</p>
+<p>The batch tagging and batch deleting feature utilizes the available select button on each individual render tile. Simply select as many models as needed and applying a tag to one will apply the tag to all selected. The same logic applies to batch deleting: select the models and use the single delete button on any tile, which opens one confirmation for the whole selection. </p>
+<p>Selecting one or more models also reveals a bulk action bar above the grid. It applies to exactly the models that are selected and offers move to folder, add tags, remove tags, download as a single ZIP, and deletion to the server&rsquo;s trash behind an explicit confirmation. Each action is one batched request rather than one per model, shows progress while it runs, and lists any per-model failures inline; the models that succeeded stay changed and nothing is retried automatically.</p>
+<h3>Deleting is recoverable</h3>
+<p>Deleting a model or a folder never frees the bytes straight away. The files are moved into a <code>.trash</code> folder inside the storage root first, and a single model&rsquo;s delete asks you to type the file name before it runs. Nothing is freed until someone empties the trash in Settings &rarr; Storage. Restoring is file-level: move the entry back out of <code>.trash</code> and run a rescan, and the files are re-registered (their metadata is not). Files that are mounted from outside the storage folder are references: deleting one removes only its library record, never the file on disk.</p>
 <h4>Batch Tagging</h4>
 
 <img width="1892" height="930" alt="Screenshot 2025-12-31 103532" src="https://github.com/user-attachments/assets/20b104e6-53ad-4019-b6e7-252a5e3a2cbf" />

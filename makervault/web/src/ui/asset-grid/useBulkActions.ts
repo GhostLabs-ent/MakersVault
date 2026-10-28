@@ -51,7 +51,8 @@ export type BulkActionsApi = {
   bulkRequestError: string | null;
   bulkFailureLabels: { id: string; label: string; message: string }[];
   dismissBulkFailures: () => void;
-  bulkDelete: () => Promise<void>;
+  /** Resolves with the per-asset failures of the run (empty when all were deleted). */
+  bulkDelete: () => Promise<BatchFailure[]>;
   bulkMoveToFolder: (targetFolderId: string | null) => Promise<void>;
   bulkAddTags: (tags: string[]) => Promise<void>;
   bulkRemoveTags: (tags: string[]) => Promise<void>;
@@ -151,8 +152,8 @@ export function useBulkActions({
     setBulkRequestError(err instanceof Error ? err.message : fallback);
   };
 
-  const bulkDelete = useStableCallback(async () => {
-    if (bulkBusy || selectedIds.size === 0) return;
+  const bulkDelete = useStableCallback(async (): Promise<BatchFailure[]> => {
+    if (bulkBusy || selectedIds.size === 0) return [];
     const before = items;
     const startOffset = offset;
     const ids = Array.from(selectedIds);
@@ -163,20 +164,27 @@ export function useBulkActions({
     setItems(dropIds(before, ids));
     setOffset(Math.max(0, startOffset - droppedCount));
     try {
-      const result = await batchDeleteAssets(ids);
+      // The server rejects any confirm_count that is not the id count exactly.
+      const result = await batchDeleteAssets(ids, ids.length);
       finishBulk(before, startOffset, {
         kind: "delete",
         deleted: result.deleted,
         failed: result.failed,
         view: { folderId, activeTags },
       });
+      return result.failed;
     } catch (err) {
+      // A whole-request failure (network, 400, sign-out) is reported through the
+      // bar *and* rethrown, so the caller's dialog can show it and stay open:
+      // nothing was deleted, and closing as if the run finished cleanly would
+      // say otherwise.
       if (err instanceof UnauthorizedError) {
         onUnauthorized?.();
         setBulkRequestError("You were signed out. The delete may still have been applied.");
-      } else {
-        rollbackBulk(before, startOffset, ids, err, "Bulk delete failed.");
+        throw new Error("You were signed out. The delete may still have been applied.");
       }
+      rollbackBulk(before, startOffset, ids, err, "Bulk delete failed.");
+      throw err instanceof Error ? err : new Error("Bulk delete failed.");
     } finally {
       setBulkBusy(null);
     }

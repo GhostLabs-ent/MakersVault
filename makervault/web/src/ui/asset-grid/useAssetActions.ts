@@ -9,7 +9,6 @@ import {
 import {
   type Asset,
   UnauthorizedError,
-  deleteAsset,
   downloadAsset,
   fileUrl,
   getLibraryScanStatus,
@@ -43,13 +42,13 @@ type AssetActionsOptions = {
   engravingSettings?: EngravingSettings;
   selectedIds: Set<string>;
   bulkSetTags: (add: string[], remove: string[]) => Promise<void>;
-  bulkDelete: () => Promise<void>;
+  /** Opens the grid's delete dialog for exactly these targets. */
+  onRequestDelete: (assets: Asset[]) => void;
   onAddToProject: (ids: string[]) => void;
 };
 
 export type AssetActionsApi = {
   downloadingId: string | null;
-  deletingId: string | null;
   movingId: string | null;
   rescanning: boolean;
   replaceAsset: (updated: Asset) => void;
@@ -76,7 +75,9 @@ export type AssetActionsApi = {
 
 /**
  * Per-asset actions (download, rename, move, delete, re-scan) and the single
- * parent-owned confirmation queue every card asks for a dialog through.
+ * parent-owned confirmation queue every card asks for a dialog through. Deletes
+ * are only *requested* here: the grid's dialog owns the confirmation and the
+ * request (Mf-cea1).
  */
 export function useAssetActions({
   items,
@@ -89,11 +90,10 @@ export function useAssetActions({
   engravingSettings,
   selectedIds,
   bulkSetTags,
-  bulkDelete,
+  onRequestDelete,
   onAddToProject,
 }: AssetActionsOptions): AssetActionsApi {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [rescanning, setRescanning] = useState(false);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState<ConfirmRequest | null>(null);
@@ -113,9 +113,10 @@ export function useAssetActions({
     setPreviewItem(current => current?.id === updated.id ? updated : current);
   });
 
-  // One parent-owned dialog serves every confirmation (card deletes, forgets,
-  // supporting-file removals, prepared-print clears). Stable so memoised cards
-  // can request one without re-rendering.
+  // One parent-owned dialog serves the card-local confirmations (supporting-file
+  // removals, prepared-print clears). Asset deletes go through their own dialog,
+  // because those need a typed/stepped confirmation the grid owns. Stable so
+  // memoised cards can request one without re-rendering.
   const requestConfirm = useStableCallback((request: ConfirmRequest) => {
     setPendingConfirm(request);
   });
@@ -218,35 +219,14 @@ export function useAssetActions({
     window.location.href = target;
   });
 
+  // Deletes never run from here any more: the grid's delete dialog owns the
+  // typed/stepped confirmation and the request. This only hands it the target
+  // set — a card inside a multi-selection acts on the whole selection.
   const removeAsset = useStableCallback((asset: Asset) => {
     const targets = selectedIds.has(asset.id) && selectedIds.size > 1
-      ? Array.from(selectedIds)
-      : [asset.id];
-    const title = targets.length > 1
-      ? `Delete ${targets.length} selected items? This cannot be undone.`
-      : `Delete "${asset.title || asset.filename}"? This cannot be undone.`;
-    requestConfirm({
-      title,
-      danger: true,
-      confirmLabel: "Delete",
-      run: async () => {
-        // A multi-card delete is one batch request; the single-card path is the
-        // pre-existing per-asset call.
-        if (targets.length > 1) {
-          await bulkDelete();
-          return;
-        }
-        setDeletingId(asset.id);
-        try {
-          await deleteAsset(asset.id);
-          await refresh();
-        } catch (err) {
-          handleApiError(err, "Delete failed.");
-        } finally {
-          setDeletingId(null);
-        }
-      },
-    });
+      ? items.filter(item => selectedIds.has(item.id))
+      : [asset];
+    onRequestDelete(targets);
   });
 
   // The card's "Add to project" is a selection-scoped affordance exactly like
@@ -259,28 +239,11 @@ export function useAssetActions({
     onAddToProject(ids);
   });
 
+  // "Forget entry" is the missing-file card's delete: the same dialog, because
+  // the server demands the same `confirm_name` for it. It is never scoped to the
+  // selection — the card which lost its file is the only row in question.
   const forgetMissingAsset = useStableCallback((asset: Asset) => {
-    requestConfirm({
-      title: `Forget "${asset.title || asset.filename}"? The file is already gone; this removes the library entry, thumbnail and sidecars.`,
-      danger: true,
-      confirmLabel: "Forget",
-      run: async () => {
-        setDeletingId(asset.id);
-        try {
-          await deleteAsset(asset.id);
-          await refresh();
-        } catch (err) {
-          if (err instanceof UnauthorizedError) {
-            onUnauthorized?.();
-            return;
-          }
-          console.error(err);
-          notifyError(`Forget failed for: ${asset.filename}`);
-        } finally {
-          setDeletingId(null);
-        }
-      },
-    });
+    onRequestDelete([asset]);
   });
 
   const rescanMissing = useStableCallback(async (_asset: Asset) => {
@@ -308,7 +271,6 @@ export function useAssetActions({
 
   return {
     downloadingId,
-    deletingId,
     movingId,
     rescanning,
     replaceAsset,

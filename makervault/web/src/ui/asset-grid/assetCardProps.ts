@@ -14,7 +14,6 @@ export type AssetCardProps = {
   downloading: boolean;
   onDelete: (asset: Asset) => void;
   onAddToProject: (asset: Asset) => void;
-  deleting: boolean;
   onMoveFolder: (id: string, folder_id: string | null) => void;
   folderOptions: { id: string | null; name: string }[];
   /** Project mode hides every folder control (projects have no folder axis). */

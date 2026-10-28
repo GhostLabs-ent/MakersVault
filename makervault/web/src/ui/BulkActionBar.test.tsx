@@ -110,24 +110,16 @@ describe("BulkActionBar", () => {
     expect(props.onAddToProject).toHaveBeenCalledTimes(1);
   });
 
-  it("requires a second click before deleting and lets Cancel abort", () => {
+  it("opens the confirm dialog with one click instead of confirming inline", () => {
     const { props } = renderBar();
     const bar = within(screen.getByTestId("bulk-action-bar"));
 
     fireEvent.click(bar.getByRole("button", { name: "Delete" }));
-    expect(props.onDelete).not.toHaveBeenCalled();
-    expect(
-      screen.getByText("Permanently delete 3 items? This cannot be undone."),
-    ).toBeTruthy();
 
-    fireEvent.click(bar.getByRole("button", { name: "Cancel" }));
-    expect(props.onDelete).not.toHaveBeenCalled();
-    expect(bar.getByRole("button", { name: "Delete" })).toBeTruthy();
-
-    fireEvent.click(bar.getByRole("button", { name: "Delete" }));
-    fireEvent.click(bar.getByRole("button", { name: "Delete permanently" }));
-
+    // The bar has no second step of its own: the dialog it opens is the step.
     expect(props.onDelete).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "Delete permanently" })).toBeNull();
+    expect(screen.queryByText(/Permanently delete/)).toBeNull();
   });
 
   it("clears and selects all through the explicit controls", () => {

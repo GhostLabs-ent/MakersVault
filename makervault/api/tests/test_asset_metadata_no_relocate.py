@@ -426,4 +426,7 @@ def test_new_upload_uses_the_template_and_a_later_tag_edit_leaves_it_alone(isola
         assert read_asset(asset_id).storage_path == "Uncollected/cube/cube.stl"
 
         # Keep the temp tree tidy; the fixture removes the row at teardown.
-        assert client.delete(f"/asset/{asset_id}", headers=headers).status_code == 200
+        response = client.delete(
+            f"/asset/{asset_id}", params={"confirm_name": body["filename"]}, headers=headers
+        )
+        assert response.status_code == 200, response.text

@@ -4,10 +4,11 @@
 the old "delete the parent row and let the children fend for themselves" delete
 paths now fail unless they delete the dependent rows first. These tests run on
 the real app engine and cover the three delete paths: `cleanup_asset`, which
-owns the bytes; `delete_asset_row_only`, whose contract is that no bytes are
-touched at all; and `delete_asset_permanently`, the user-facing path the single
-and bulk delete routes share, which must take the dependents and the bytes while
-leaving the project that referenced the asset standing.
+owns the bytes of a failed upload; `delete_asset_row_only`, whose contract is
+that no bytes are touched at all; and `trash_service.trash_asset`, the
+user-facing path the single and bulk delete routes share, which must take the
+dependents and move the bytes into `.trash` while leaving the project that
+referenced the asset standing.
 """
 
 import shutil
@@ -25,6 +26,7 @@ import asset_service
 import audit
 import main
 import request_id
+import trash_service
 from db import STORAGE, engine
 from migrations import run_migrations
 from models import Asset, AssetFile, AuditEvent, Project, ProjectAsset
@@ -146,18 +148,28 @@ def test_delete_asset_row_only_deletes_dependents_but_keeps_bytes(deletable_asse
     assert deletable_asset.managed_path.read_bytes() == STL_BYTES
 
 
-def test_delete_asset_permanently_deletes_dependents_membership_and_bytes(
+def test_trash_asset_deletes_dependents_membership_and_moves_bytes(
     deletable_asset: DeletableAsset,
 ) -> None:
     asset_id = deletable_asset.asset_id
-    asset_service.delete_asset_permanently(asset_id, audit_ctx=audit_context(f"/asset/{asset_id}"))
-
-    # The membership goes with the asset through project_asset's ON DELETE
-    # CASCADE, which only fires because the pragma is on in this engine.
-    assert_rows_gone(asset_id)
-    assert not deletable_asset.managed_path.exists()
     with Session(engine) as session:
-        assert session.get(Project, deletable_asset.project_id) is not None
-        assert session.exec(
-            select(AuditEvent).where(AuditEvent.action == audit.ASSET_DELETE, AuditEvent.target == asset_id)
-        ).first() is not None
+        asset = session.get(Asset, asset_id)
+        result = trash_service.trash_asset(session, asset, audit_ctx=audit_context(f"/asset/{asset_id}"))
+
+    try:
+        # The membership goes with the asset through project_asset's ON DELETE
+        # CASCADE, which only fires because the pragma is on in this engine.
+        assert_rows_gone(asset_id)
+        assert not deletable_asset.managed_path.exists()
+        assert result["files"] == 1
+        entry = STORAGE / result["trash_path"]
+        assert (entry / ".assets" / asset_id / "model.stl").read_bytes() == STL_BYTES
+        with Session(engine) as session:
+            assert session.get(Project, deletable_asset.project_id) is not None
+            assert session.exec(
+                select(AuditEvent).where(AuditEvent.action == audit.ASSET_DELETE, AuditEvent.target == asset_id)
+            ).first() is not None
+    finally:
+        # The real engine's storage root is the per-run temp tree; the trash
+        # entry this test created is not a row, so the fixture cannot undo it.
+        shutil.rmtree(STORAGE / result["trash_path"], ignore_errors=True)

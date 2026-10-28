@@ -111,7 +111,9 @@ class Ids:
     asset_filename: str = ""
     file_id: str = ""
     spare_asset_id: str = ""
+    spare_asset_filename: str = ""
     batch_asset_id: str = ""
+    batch_asset_filename: str = ""
     storage_template: str = ""
     mount_enabled: bool = False
     mount_copy: bool = False
@@ -294,7 +296,9 @@ def seed_library(client: TestClient, headers: dict[str, str]) -> Ids:
         asset_filename=cube["filename"],
         file_id=supporting[0]["id"],
         spare_asset_id=spare["id"],
+        spare_asset_filename=spare["filename"],
         batch_asset_id=batch["id"],
+        batch_asset_filename=batch["filename"],
         storage_template=storage["template"],
         mount_enabled=mount["enabled"],
         mount_copy=mount["copy_files"],
@@ -540,7 +544,11 @@ def call_batch_folder(client: TestClient, headers: dict[str, str], ids: Ids, mon
 
 
 def call_batch_delete(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
-    return client.post("/assets/batch/delete", json={"asset_ids": [ids.batch_asset_id]}, headers=headers)
+    return client.post(
+        "/assets/batch/delete",
+        json={"asset_ids": [ids.batch_asset_id], "confirm_count": 1},
+        headers=headers,
+    )
 
 
 def call_set_tags(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
@@ -556,7 +564,9 @@ def call_rename_asset(client: TestClient, headers: dict[str, str], ids: Ids, mon
 
 
 def call_delete_asset(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
-    return client.delete(f"/asset/{ids.spare_asset_id}", headers=headers)
+    return client.delete(
+        f"/asset/{ids.spare_asset_id}", params={"confirm_name": ids.spare_asset_filename}, headers=headers
+    )
 
 
 def call_create_folder(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:

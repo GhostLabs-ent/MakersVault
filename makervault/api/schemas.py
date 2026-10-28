@@ -96,6 +96,9 @@ class AssetOut(BaseModel):
   storage_path: Optional[str]
   missing_since: Optional[str] = None
   supporting_file_count: int = 0
+  # A mounted reference points at a file outside the storage root; deleting its
+  # row never touches those bytes, so a delete confirmation has to say so.
+  is_reference: bool = False
   prepared_print: Optional[PreparedPrintOut] = None
   slicer_url: Optional[str] = None
   slicer_filename: Optional[str] = None
@@ -302,6 +305,9 @@ class BatchFolderOut(BaseModel):
 
 class BatchDeleteRequest(BaseModel):
   asset_ids: List[str] = []
+  # Optional so a missing confirmation is a hand-rolled 400 in the route, not a
+  # FastAPI 422; the client sends the number of rows it displayed.
+  confirm_count: Optional[int] = None
 
 
 class BatchDeleteOut(BaseModel):

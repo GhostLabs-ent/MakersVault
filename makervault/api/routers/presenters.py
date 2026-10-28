@@ -66,6 +66,7 @@ def to_out(a: Asset) -> AssetOut:
         storage_path=a.storage_path,
         missing_since=a.missing_since,
         supporting_file_count=int(a.supporting_file_count or 0),
+        is_reference=bool(a.is_reference),
         prepared_print=prepared,
         slicer_url=slicer_url,
         slicer_filename=(prepared_filename(a.name, prepared) if a.prepared_file_id else a.filename),

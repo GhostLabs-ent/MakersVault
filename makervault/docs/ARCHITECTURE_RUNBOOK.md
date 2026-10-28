@@ -502,7 +502,10 @@ and recoverable.
   behavior.
 - Do not implement “all server matches” until an API-side bulk contract can operate
   without loading every ID into the browser.
-- Keep permanent mass deletion constrained until the trash gate exists.
+- Keep permanent mass deletion constrained until the trash gate exists. The gate
+  now exists (Mf-5gh0 for folders, Mf-cea1 for single and bulk asset delete):
+  every user-facing delete moves bytes into `.trash` first, purge is the only
+  irreversible step, and each delete carries a typed or stepped confirmation.
 
 **Exit evidence:** end-to-end tests cover navigation, selection scope, mixed
 success/failure, concurrent rename conflict, supporting/prepared visibility, and

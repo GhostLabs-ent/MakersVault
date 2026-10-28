@@ -1102,7 +1102,9 @@ def test_deleting_the_cover_asset_clears_the_cover_and_the_membership() -> None:
         project = create_project(client, headers, cover_asset_id=cover["id"])
         add_members(client, headers, project["id"], [cover["id"]])
 
-        response = client.delete(f"/asset/{cover['id']}", headers=headers)
+        response = client.delete(
+            f"/asset/{cover['id']}", params={"confirm_name": cover["filename"]}, headers=headers
+        )
 
         assert response.status_code == 200, response.text
         with Session(engine) as session:
