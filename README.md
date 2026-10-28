@@ -329,14 +329,14 @@ In the future there are plans to add support for more websites, but in this curr
 <h3>Storage Structure</h3>
 <p>Managed files can be organized with a configurable path template. The default is <code>{folder}/{model}/{filename}</code>. The tokens the settings picker offers are <code>{folder}</code>, <code>{tags}</code>, <code>{creator}</code>, <code>{model}</code>, <code>{name}</code>, <code>{filename}</code>, and <code>{id}</code>. The template must contain <code>{filename}</code> in its final path segment.</p>
 <p><code>{collection}</code> is deprecated. Templates that already contain it keep working and render <code>Uncollected</code> for new files, but collections are no longer offered anywhere in the UI; use Projects to group files. Existing managed files are never moved because of this change.</p>
-<p>Model names are unique inside each MakerVault folder. Renaming a model renames the stored file while preserving its extension. Use <strong>Reorganize existing managed files now</strong> to apply a new template to the current library; mounted no-copy files are left in place.</p>
+<p>Model names are unique inside each MakerVault folder. Renaming a model renames the stored file while preserving its extension. The path template applies only to new uploads and imports; existing files are never moved because of a template change. Use <strong>Rescan storage folder</strong> to register files you copied into the storage folder with another tool.</p>
 
 <h2>Imports Settings</h2>
 <p>MakerWorld limits anonymous downloads (currently 5). Import from Link uses that anonymous access, so a few imports can exhaust the allowance. The optional session cookie field in the import settings exists only to lift that anonymous rate limit for free, public models. It is a rate-limit workaround, not a way to reach anything else.</p>
 
 <p>MakersVault never downloads paid or account-gated files. Files that need a purchase or a signed-in account are supplied by you: download them yourself, then upload the files (or a zip of them) so they are attached to the model. Pointing the importer at a recognised paid or checkout URL is refused with that instruction before any request is made to the site.</p>
 
-<p><strong>Storage:</strong> by default the cookie is kept in this tab and forgotten when the tab closes. Tick <strong>Remember this cookie on this device</strong> to keep it in this browser instead. Your browser only ever sends this value to your own MakersVault API.</p>
+<p><strong>Storage:</strong> by default the cookie is kept in this tab and forgotten when the tab closes. Tick <strong>Remember import cookies on this device</strong> to keep it in this browser instead. Your browser only ever sends this value to your own MakersVault API.</p>
 
 <p><strong>Server side:</strong> the API attaches the cookie to an outbound request only when it is fetching from makerworld.com (or a subdomain) or thingiverse.com, drops it on a cross-origin redirect, and never logs the value. An operator can instead (or additionally) set <code>MAKERWORLD_COOKIE</code> or <code>THINGIVERSE_COOKIE</code> for the API process; the same host restriction applies.</p>
 

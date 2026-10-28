@@ -518,7 +518,7 @@ const AssetCard = React.memo(function AssetCard({
             <div className={`text-sm ${noteText ? "text-foreground" : "opacity-60"}`}>
               {noteText
                 ? `${noteText.slice(0, 60)}${noteText.length > 60 ? "..." : ""}`
-                : [item.creator, item.collection].filter(Boolean).join(" · ") || "No details"}
+                : [item.creator, item.collection ? `${item.collection} (legacy)` : null].filter(Boolean).join(" · ") || "No details"}
             </div>
           )}
         </div>

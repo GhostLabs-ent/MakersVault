@@ -143,7 +143,7 @@ The browser stores theme, preview mode, selected slicer/engraver, the network
 override, and the import "remember" preference in local storage. The
 MakerWorld/Thingiverse session cookie is session-scoped by default (it lives in
 the current tab and is forgotten when the tab closes) and is written to local
-storage only when the user opts in with "Remember this cookie on this device".
+storage only when the user opts in with "Remember import cookies on this device".
 These are per-browser and are not server `AppConfig` values; the optional
 `MAKERWORLD_COOKIE`/`THINGIVERSE_COOKIE` variables are process environment, not
 `AppConfig`. Gate 1 re-evaluates authentication-token storage separately.

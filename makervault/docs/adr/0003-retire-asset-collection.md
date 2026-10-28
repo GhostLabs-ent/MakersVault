@@ -17,19 +17,20 @@ user-facing groupings of assets, and the web client already calls a project a
 "collection of files from any folder". A second, unrelated Collection field is
 therefore active confusion rather than harmless legacy.
 
-Verified facts at the time of this decision (main @ 106e326):
+Verified facts at the time of this decision (main @ 106e326; code anchors
+re-pinned during the Mf-p0g8 integration gate):
 
 - Exactly one production write site exists: the metadata endpoint
-  (`api/routers/assets.py:256-257`). An absent or null field leaves the column
+  (`api/routers/assets.py:267-268`). An absent or null field leaves the column
   untouched; an empty or whitespace value clears it to NULL.
-- No creation path sets it. `create_asset_record` (`api/asset_service.py:619`)
+- No creation path sets it. `create_asset_record` (`api/asset_service.py:586`)
   and `library_scan.build_asset` (`api/library_scan.py:457`) are the only two
   `Asset(...)` constructions outside tests, and neither assigns collection.
   Upload, URL import, zip import, import-into-project, library scan and mount
   import all reach one of those two; no bulk endpoint, project endpoint or
   background job writes it.
 - Because no creation path sets it, `{collection}` always renders the
-  Uncollected fallback for new files (`api/asset_service.py:115`), and setting
+  Uncollected fallback for new files (`api/asset_service.py:120`), and setting
   the field afterwards never moves bytes
   (`api/tests/test_asset_metadata_no_relocate.py`).
 - The column and `idx_asset_collection` come from migration 003
