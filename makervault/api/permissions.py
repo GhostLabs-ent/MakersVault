@@ -8,7 +8,7 @@ reviewer of the table below can see every level in one place:
 * `PUBLIC`  - no authentication at all (`/health`, the token endpoints).
 * `READ`    - any authenticated principal, whatever its role. Viewers live here.
 * `WRITE`   - editors and administrators: every route that mutates the library.
-* `ADMIN`   - administrators only: settings, user administration, purge, scan.
+* `ADMIN`   - administrators only: settings, user administration, purge.
 
 Enforcement is the *route declaration*: each guarded route names
 `Depends(require_read | require_write | require_admin)`, which is the only way to
@@ -120,7 +120,7 @@ require_admin = require_permission(ADMIN)
 
 # The audited matrix. Path strings are the FastAPI templates exactly as declared
 # on the routes; `(method, path)` is the key so one path can carry two levels
-# (`GET /library/scan` is a read, `POST /library/scan` is admin).
+# (`GET /library/scan` is a read, `POST /library/scan` is write).
 ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     # public: no authentication; the token endpoints 503 when auth is disabled.
     ("GET", "/health"): PUBLIC,
@@ -174,16 +174,16 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("POST", "/project/{project_id}/assets"): WRITE,
     ("DELETE", "/project/{project_id}/assets"): WRITE,
     ("POST", "/asset/{asset_id}/folder"): WRITE,
-    # admin: settings, user administration, library maintenance, destruction,
-    # and the audit trail itself.
+    # Registering files found on disk is library work, not administration, and
+    # the missing-file banner offers Re-scan to editors; the audit event stays.
+    ("POST", "/library/scan"): WRITE,
+    # admin: settings, user administration, destruction, and the audit trail
+    # itself.
     ("GET", "/audit"): ADMIN,
     ("GET", "/settings/mount-import"): ADMIN,
     ("POST", "/settings/mount-import"): ADMIN,
     ("GET", "/settings/storage"): ADMIN,
     ("POST", "/settings/storage"): ADMIN,
-    # Library-wide maintenance job, not an asset operation; the GET above stays
-    # readable because every client polls the status.
-    ("POST", "/library/scan"): ADMIN,
     ("POST", "/users"): ADMIN,
     ("GET", "/users"): ADMIN,
     ("PATCH", "/users/{user_id}"): ADMIN,

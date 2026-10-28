@@ -27,7 +27,7 @@ blank ranks as `public`, i.e. it is denied even reads - fail closed.
 | Delete assets, folders, supporting files     |  yes  |  yes   |   no   |
 | Bulk tag / move / delete                     |  yes  |  yes   |   no   |
 | Create / edit / delete projects, edit membership |  yes  |  yes   |   no   |
-| Start a library scan                         |  yes  |   no   |   no   |
+| Start a library scan                         |  yes  |  yes   |   no   |
 | Change storage / mount-import settings       |  yes  |   no   |   no   |
 | Create users, set roles, disable accounts    |  yes  |   no   |   no   |
 | Read the audit log                           |  yes  |   no   |   no   |
@@ -82,7 +82,7 @@ mutating route is neither audited nor exempt with a reason. See
 ## The route matrix
 
 Paths are FastAPI templates exactly as declared. 55 routes: 4 public, 16 read,
-25 write, 10 admin.
+26 write, 9 admin.
 
 The collection/instance templates are deliberately asymmetric: the collection is
 `/projects` while one project is `/project/{project_id}`, exactly like `/folders`
@@ -147,6 +147,7 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | DELETE | `/project/{project_id}`                     | delete a project and its memberships (never an asset) |
 | POST   | `/project/{project_id}/assets`              | add project memberships |
 | DELETE | `/project/{project_id}/assets`              | remove project memberships (the one DELETE with a JSON body) |
+| POST   | `/library/scan`                             | starts a scan: registers files found on disk and refreshes `missing_since`; audited as `library.scan.start` |
 
 ### admin (administrators only)
 
@@ -157,7 +158,6 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | POST   | `/settings/mount-import`       | mutates settings |
 | GET    | `/settings/storage`            | settings namespace is admin-only |
 | POST   | `/settings/storage`            | storage template governs every future upload |
-| POST   | `/library/scan`                | library-wide maintenance job, not an asset operation |
 | POST   | `/users`                       | user administration |
 | GET    | `/users`                       | user administration |
 | PATCH  | `/users/{user_id}`             | user administration (including role changes) |
@@ -223,11 +223,12 @@ sessions stay valid.
 
 ## Known consequences worth knowing
 
-* **`POST /library/scan` is admin**, while `GET /library/scan` is read. A scan is
-  a library-wide maintenance job (it walks storage and writes `missing_since`),
-  not an asset operation, so it does not belong to the editor's toolset. UX side
-  effect: an editor clicking a "re-scan missing" action in the asset grid now
-  gets an error toast, because the action maps to the POST.
+* **`POST /library/scan` is write**, while `GET /library/scan` is read. A scan
+  is library work - it walks storage, registers files found on disk and
+  refreshes `missing_since` - not an administration job, so editors may start
+  one and it is still audited as `library.scan.start`. The GET stays read
+  because every client polls the status. A viewer clicking the same "Re-scan"
+  action still gets a 403: starting a scan is not a viewer action.
 * **`GET /library/scan` returns `errors: List[str]`** that may contain storage
   filenames. That is the same disclosure class as `storage_path` on `AssetOut`
   and `FolderOut`, which viewers already receive, so it is not a new leak.
