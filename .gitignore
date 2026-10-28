@@ -1,6 +1,9 @@
 # Local ticket store (tk)
 .tickets/
 
+# Scheduler lanes: one git worktree per ticket, never committed
+.lanes/
+
 # Local secrets and environment overrides
 .env
 .env.*

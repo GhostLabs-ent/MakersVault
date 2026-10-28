@@ -9,10 +9,13 @@ Adapted from `~/ggreq_agent/docs/project_notes/TICKET_WORKFLOW.md` and
 `oracle-gated-ticket-batch` skill.
 
 ## Roles
-- **scheduler** (`.pi/agents/scheduler.md`) — drives an ordered list of tickets
-  one-at-a-time. For each: shows the ticket, launches the orchestrator
-  (FOREGROUND, via the Agent tool), then trust-but-verifies the ticket is closed
-  and the suite is green before moving on. Produces a per-ticket report.
+- **scheduler** (`.pi/agents/scheduler.md`) — the **wave planner**: packs 2
+  tickets (max 3) whose plan-gate touch-sets are disjoint into lanes, dispatches
+  those lanes in parallel into git worktrees, merges them into `main` one at a
+  time with the full gate after each merge, then trust-but-verifies each ticket
+  is closed before moving on. It decides packing with
+  `makervault/scripts/wave_plan.py`, never by judgement. Produces a per-ticket
+  report.
 - **orchestrator** (built-in Pantheon orchestrator) — plans, delegates to
   specialists (oracle / fixer / explorer / designer), plumbs, commits, verifies.
 - **oracle** — the review authority: approves the plan (plan-gate) before code,
@@ -21,11 +24,127 @@ Adapted from `~/ggreq_agent/docs/project_notes/TICKET_WORKFLOW.md` and
 ## Hard rules
 1. **Oracle plan-gate** before any code; **oracle commit-gate** before commit.
 2. **Delegate by default** — oracle for review, fixer for implementation.
-3. **Sequential, one ticket at a time**; dependencies first.
+3. **Waves, not a queue.** Pack 2 tickets (hard max 3) into one wave when their
+   plan-gate touch-sets are **pairwise disjoint** and none serialises; a
+   serialiser — `Makefile`, migrations, locks, `main.py`, the UI shell — never
+   rides in a lane (see [Lanes](#lanes)). Lanes run in parallel and merge
+   **serially** into `main`; dependencies first; a single-lane wave is the
+   fallback.
 4. **Verify-close before advancing** — commit references the ticket ID, ticket is
    `closed`, and the verify suite is green (run it yourself, don't trust the report).
-5. No hidden processes; only the Agent tool launches work (foreground, so it streams).
+5. No hidden processes; only the Agent tool launches work. Lane dispatch is the
+   one sanctioned `run_in_background: true` — background Agent tasks stream in
+   the UI, unlike the bash-spawned `pi` processes this rule exists to stop.
 6. One commit per ticket with the ticket ID in the subject.
+
+## Lanes
+
+A **wave** is 2 tickets (hard max 3); a **lane** is one ticket in its own git
+worktree. A wave is allowed only when every candidate's oracle plan-gate has
+returned a `touches` set and the sets are pairwise disjoint. The decision is the
+helper's, and its verdict is recorded:
+
+```bash
+python3 makervault/scripts/wave_plan.py --plan /tmp/wave-<n>.json            # exit 0 accept, 1 refuse with the reason
+python3 makervault/scripts/wave_plan.py --plan /tmp/wave-<n>.json --max-lanes 3   # only when packing a third lane
+python3 makervault/scripts/wave_plan.py --list-serialisers
+```
+
+The plan file holds one `{"id", "touches", "serialises", "reason"}` entry per lane
+(the ticket id as `id`), with repo-relative file paths — tests and doc updates
+included, because a permission change that edits `docs/PERMISSIONS.md` must
+declare it or the disjointness evidence is a lie. A refusal exits 1 with the
+reason on stderr (shared path, serialiser hit, over max lanes, malformed path):
+drop the last candidate and run it sequentially in the next wave. A warning that
+two lanes work in the same directory is still an acceptance, but the review is
+what costs, so prefer a candidate elsewhere. A single-lane wave is legal and is
+the fallback; `.pi/agents/scheduler.md` is the executable version of this
+section, including the full serialiser table.
+
+### Serialisers — never in a lane
+
+| Group | Files | Why |
+|---|---|---|
+| schema | `makervault/api/migrations.py`, any new migration (`makervault/api/migrations/`, `migration_*.py`) | append-only ledger (1-7 immutable); needs the full gate and a boot-guard recheck |
+| locks | `makervault/api/requirements*.txt` / `requirements*.lock`, `makervault/web/package.json`, `package-lock.json` | unseen by the fast gate; two lanes bumping one lock cannot be reconciled by git |
+| the gate | `Makefile`, `.github/workflows/*`, `makervault/scripts/` | an edit changes the commands every lane runs |
+| config | `makervault/web/nginx.conf`, `makervault/web/security-headers.conf`, the Dockerfiles, `makervault/docker-compose.yml`, `docker-compose.deploy.yml`, `docker-compose.smoke.yml`, `docker-deploy.yml` | no unit test covers it: the full gate is mandatory per ticket |
+| fixtures | `makervault/api/tests/conftest.py` | re-baselines the whole API suite |
+| training wheels: API contracts | `makervault/api/main.py` (152 lines, 12 routers), `models.py` (129), `schemas.py` (398) | shared wiring and contracts: two lanes merge cleanly, then fail semantically |
+| training wheels: UI shell | `makervault/web/src/lib/api.ts` (1179), `src/ui/App.tsx` (427), `src/ui/Sidebar.tsx` (730), the `src/ui/asset-grid/` and `src/ui/settings/` directories | one HTTP client and the components every view mounts through |
+
+The two training-wheels groups are what the router split and the component
+split were for; they stay serialised until nothing hot hangs off a single entry
+point. The helper also serialises a same-directory sibling with the same stem
+(`src/ui/Sidebar.test.tsx` matches `src/ui/Sidebar.tsx`), so a test-only lane
+cannot defeat the gate.
+
+### Worktrees
+
+```bash
+git worktree add .lanes/<ticket> -b ticket/<ticket>            # from the repo root
+# lane works, commits and verifies inside .lanes/<ticket>
+git worktree remove .lanes/<ticket> && git branch -d ticket/<ticket>   # after a green merge
+```
+
+`.lanes/` is gitignored. A failed lane keeps its worktree until the wave drains,
+then goes the same way — you may need its state to explain the failure.
+
+### Lane bootstrap
+
+```bash
+cd .lanes/<ticket>
+uv venv --python 3.12 .venv
+cd makervault/api && uv pip install --python ../../.venv/bin/python -r requirements.lock -r requirements-dev.lock ruff && cd ../..
+cd makervault/web && npm ci --no-audit --no-fund && cd ../..
+```
+
+Measured on this host with warm caches: each `uv` step under 1 s, `npm ci` about
+4 s (235 MB of `node_modules`), so about 6 s of setup and then ~83 s for the
+lane's first `make verify-fast`. Borrowing the main checkout's interpreter
+(`make verify-fast VENV=/abs/main/.venv`) is allowed for the python, ruff and
+bridge half only — it saves under 2 s. **Never symlink the lane's `node_modules`
+at the main checkout's:** `vite.config.js` sets no `cacheDir`, so the
+dep-optimiser cache is `node_modules/.vite` and concurrent vitest runs would race
+it, and `npm ci` deletes `node_modules` first, so the lane would delete the main
+checkout's modules.
+
+### Isolation
+
+`MV_RUN_ID` namespaces everything a verification run creates: the API test
+database and storage root (`/tmp/makersvault-tests/<id>/`), the four image tags,
+the smoke Compose project name and the smoke host ports. Lanes set it explicitly
+(`MV_RUN_ID=<ticket> make verify-fast`) and **never pin a port** — the smoke
+script claims lanes 0-2 by scanning and atomically locking
+`/tmp/makersvault-smoke-lanes/`. Two lanes may therefore run `make verify-fast`
+at once, with `make verify` on `main` at the same time.
+
+### Merging
+
+One lane at a time, in dispatch (priority) order, from the repo root:
+
+```bash
+git merge --no-ff ticket/<ticket>
+make verify        # full gate after every merge
+```
+
+`--no-ff` keeps one commit per ticket. A conflict is resolved **on `main`, by a
+foreground orchestrator task — never in the lane** — and that resolution is
+oracle commit-gated. A merge that conflicts twice ends the wave.
+
+### Stop conditions
+
+A lane fails (red gate, refused commit-gate, or a diff outside its declared
+touch-set), a merge conflicts twice, or a lane finds it needs a serialiser:
+dispatch nothing new, drain the lanes already running, `make verify` on `main`,
+record the reason on every ticket in the wave, report. Never start a lane while
+an unmerged lane ahead of it touches the same files. The planner notes its
+decision per lane (`tk add-note <ticket>` with the helper's accept/refuse output
+and the merge order), so a wave can be audited afterwards.
+
+A scheduler that is already running is unaffected by an edit to
+`.pi/agents/scheduler.md`: its instructions are in its context, and the change
+governs the next invocation.
 
 ## Tickets
 Tickets live in `.tickets/` (gitignored) via `tk`:
@@ -45,13 +164,17 @@ Docker runs on this host (daemon up), so `make verify` is the gate. Use the host
 toolchains for fast iteration:
 
 ```bash
-cd makervault/api && source /home/mal/fuck_it_ill_do_it_myself/MakersVault/.venv/bin/activate \
+cd makervault/api && source ../../.venv/bin/activate \
   && ruff check . && python -m pytest -q
 
 cd makervault/web && npm run verify      # eslint + tsc + vitest + vite build
 ```
 
-**Per ticket: the fast gate (~70 s).** Run before every commit:
+The venv is the repo-local one `make verify-fast` uses. Never borrow another
+checkout's `.venv`: a lane is its own worktree with its own `.venv`, and a
+foreign interpreter hides a missing dependency until the merge.
+
+**Per ticket: the fast gate (~71-83 s).** Run before every commit:
 
 ```bash
 make verify-fast        # ruff+pytest (api), lint+tsc+vitest (web), go test (bridge)
@@ -62,10 +185,19 @@ It uses a repo-local `.venv` if one exists (`uv venv --python 3.12 .venv` then
 makervault/api/requirements-dev.lock ruff`), otherwise `python3`/`ruff` from
 PATH. The web target needs `npm ci` once per clone.
 
-**Per wave: the full gate (~4 min).** Run once after the last ticket of a batch,
-and per ticket whenever it touches migrations, Dockerfiles, `nginx.conf`, the
-compose manifests or a dependency lockfile — exactly the things the fast gate
-does not cover:
+In a lane, always name the run from inside the lane's worktree:
+
+```bash
+MV_RUN_ID=<ticket> make verify-fast
+```
+
+so its test database, storage root, image tags and smoke ports collide with
+neither another lane nor `main`.
+
+**Per merge: the full gate (~90-96 s).** Run on `main` after every lane merge
+(`--no-ff`, one at a time), and per ticket whenever it touches migrations,
+Dockerfiles, `nginx.conf`, the compose manifests or a dependency lockfile —
+exactly the things the fast gate does not cover:
 
 ```bash
 make verify             # lint in images, API tests, web build, bridge, compose, container smoke
@@ -95,8 +227,8 @@ ticket at a time (see the fork-stance ticket), never with `git cherry-pick` or
 - **Never touch the live deployment** (`root@192.168.0.197`, `/opt/makersvault`,
   the Cosmos app, `/mnt/ceph/3D_models`) unless the ticket says so. Tests must use
   temp directories.
-- **Do not modify migrations that have already shipped** (versions 1-3, and 4 once
-  landed). Migrations are append-only and immutable — add a new version.
+- **Do not modify migrations that have already shipped** (versions 1-7).
+  Migrations are append-only and immutable — add a new version.
 - **Stop before destructive behaviour.** Recursive folder deletion
   (`Mf-5gh0`) needs the owner's explicit go-ahead; until then folder DELETE keeps
   its current semantics.
@@ -108,4 +240,7 @@ ticket at a time (see the fork-stance ticket), never with `git cherry-pick` or
 ## Invoking
 Launch the `scheduler` sub-agent (background) with a self-contained brief: repo
 path, ordered ticket IDs, this doc plus the `oracle-gated-ticket-batch` skill,
-the verify suite above, and the scope guards.
+the verify suite above, and the scope guards. For a wave, the scheduler runs the
+candidates' oracle plan-gates in parallel, packs the wave with
+`makervault/scripts/wave_plan.py` (see [Lanes](#lanes)), and merges serially; it
+needs nothing beyond this doc and `.pi/agents/scheduler.md` to do that.
