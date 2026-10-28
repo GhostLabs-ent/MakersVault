@@ -655,6 +655,22 @@ export function fileUrl(rel: string) {
   return appendTokenToUrl(`${apiBase()}${rel}`);
 }
 
+/**
+ * Same join as `fileUrl`, minus the session token and with the same-origin
+ * `/api` prefix that nginx proxies to the API.
+ *
+ * `fileUrl` appends the caller's *current* access token, which rotates every
+ * 15 minutes, so it can never be written into project content; and
+ * `getApiBase()` is always absolute (the shipped compose defaults it to
+ * `http://localhost:8000`), which would bake an origin that is dead for every
+ * remote viewer into the description. Use this for URLs that get persisted —
+ * a markdown image reference in a project description (Mf-dhtm).
+ */
+export function stableFileUrl(rel: string): string {
+  if (!rel) return rel;
+  return `/api${rel}`;
+}
+
 // Folders -------------------------------------------------------
 
 export type Folder = {

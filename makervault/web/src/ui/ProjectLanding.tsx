@@ -55,6 +55,7 @@ import {
 import { notifyError, notifyInfo } from "../lib/toast";
 import ConfirmDialog, { type ConfirmRequest } from "./ConfirmDialog";
 import Markdown from "./Markdown";
+import MarkdownEditor from "./project-editor/MarkdownEditor";
 import TagBadge from "./TagBadge";
 
 type Props = {
@@ -996,13 +997,15 @@ export default function ProjectLanding({
           Description
         </h2>
         {editing ? (
-          <textarea
-            aria-label="Description"
-            rows={10}
-            className={`${INPUT_BASE} mt-2 leading-relaxed`}
+          <MarkdownEditor
+            className="mt-2"
             value={draft.description}
+            onChange={description => setDraft({ ...draft, description })}
+            images={imageMembers}
+            rows={10}
             autoFocus={focusField === "description"}
-            onChange={event => setDraft({ ...draft, description: event.target.value })}
+            placeholder="Describe the project — markdown is supported"
+            textareaClassName={`${INPUT_BASE} leading-relaxed`}
           />
         ) : project.description ? (
           <div className="mt-2 min-w-0">

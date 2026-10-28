@@ -15,6 +15,7 @@ vi.mock("../lib/api", () => ({
   listAssets: vi.fn(),
   listProjectAssets: vi.fn(),
   removeProjectAssets: vi.fn(),
+  stableFileUrl: vi.fn((rel: string) => `/api${rel}`),
   updateProject: vi.fn(),
   uploadAssetFile: vi.fn(),
 }));
@@ -642,5 +643,59 @@ describe("ProjectLanding add-files dialog", () => {
       expect(screen.queryByRole("dialog", { name: /Add files to Hydra/ })).toBeNull(),
     );
     expect(addProjectAssetsMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("ProjectLanding unsaved changes", () => {
+  it("guards a dirty description behind the discard confirmation", async () => {
+    renderLanding();
+    await screen.findByText("Body");
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    const description = screen.getByRole("textbox", { name: "Description" });
+    fireEvent.change(description, { target: { value: "A revised description" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Discard changes?" });
+    expect(dialog.textContent).toMatch(/unsaved changes/i);
+    // The editor survives until the discard is confirmed.
+    expect(screen.getByRole("textbox", { name: "Description" })).toBeTruthy();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Discard" }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("textbox", { name: "Description" })).toBeNull(),
+    );
+    // The original rendered description is back and nothing was saved.
+    expect(screen.getByText("bold").tagName).toBe("STRONG");
+    expect(screen.getByText(/multi-part print/)).toBeTruthy();
+    expect(updateProjectMock).not.toHaveBeenCalled();
+  });
+
+  it("clears the dirty flag after saving so a fresh cancel does not prompt", async () => {
+    const onProjectUpdated = vi.fn();
+    const view = renderLanding({ onProjectUpdated });
+    await screen.findByText("Body");
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Description" }), {
+      target: { value: "Saved description" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(updateProjectMock).toHaveBeenCalledTimes(1));
+    expect(updateProjectMock).toHaveBeenCalledWith("p1", { description: "Saved description" });
+    await waitFor(() => expect(onProjectUpdated).toHaveBeenCalledTimes(1));
+
+    // The parent splices the saved row back in, as App does.
+    const updated = onProjectUpdated.mock.calls[0][0] as Project;
+    view.rerender(<ProjectLanding {...landingProps({ onProjectUpdated, project: updated })} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog", { name: "Discard changes?" })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Description" })).toBeNull();
+    expect(updateProjectMock).toHaveBeenCalledTimes(1);
   });
 });
