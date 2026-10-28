@@ -62,7 +62,9 @@ VITE_ALLOWED_HOSTS=
 AUTH_USERNAME=admin
 AUTH_PASSWORD=replace-with-a-strong-password
 AUTH_SECRET=replace-with-random-secret
-AUTH_TOKEN_TTL=43200
+AUTH_ACCESS_TOKEN_TTL=900
+AUTH_REFRESH_TTL_SECONDS=2592000
+AUTH_ALLOW_INSECURE_DEFAULTS=0
 IMPORT_MOUNT_PATH=/imports
 IMPORT_MOUNT_PATH_HOST=/path/to/imports
 IMPORT_MOUNT_EXTS=stl,3mf,step,stp,obj,svg,png,jpg,jpeg,webp,bmp,lbrn,lbrn2,zip
@@ -83,6 +85,8 @@ SECURITY_HEADERS_CONTENT_TYPE_OPTIONS=
 ```
 
 <p>An empty <code>SECURITY_HEADERS_*</code> value means "keep the built-in default"; the literal value <code>off</code> omits that one header; <code>SECURITY_HEADERS_ENABLED=false</code> disables all of them (useful when an external proxy already sends its own headers).</p>
+
+<p><strong>Authentication and sessions:</strong> an access token is a 15-minute JWT (<code>AUTH_ACCESS_TOKEN_TTL</code>, default <code>900</code>) bound to a live server-side session row, so signing out, revoking the session, or disabling the user locks it out on the very next request. The refresh token is an opaque value the server stores only as a sha256 hash; each refresh rotates it once and it expires after 30 days (<code>AUTH_REFRESH_TTL_SECONDS</code>, default <code>2592000</code>). The <code>AUTH_USERNAME</code>/<code>AUTH_PASSWORD</code> environment admin is break-glass only: it is rejected as soon as a real user account exists, so a real account always wins over the published sample credentials. <code>AUTH_TOKEN_TTL</code> is deprecated and ignored; it is still read only so an old <code>.env</code> keeps starting.</p>
 
 <p>For direct/LAN mode, set <code>VITE_API_URL</code> to a browser-reachable API URL (for example, <code>http://10.0.0.160:8000</code>).</p>
 

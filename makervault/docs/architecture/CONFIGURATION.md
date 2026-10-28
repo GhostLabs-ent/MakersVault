@@ -22,15 +22,39 @@ deployment guidance required by Gate 1.
 | `CHOWN_MODE` | `minimal` | API entrypoint; `recursive` opts into a full data-tree ownership repair. |
 | `FILE_STORAGE` | `./storage` in code; `/app/storage` in Compose | Managed primary, thumbnail, and bundle root. |
 | `DB_URL` | `sqlite:///./app.db` in code | SQLAlchemy database URL; Compose uses `/app/data/app.db`. |
-| `AUTH_USERNAME` | `admin` | Current single-admin identity. Gate 1 must remove unsafe production fallback behavior. |
-| `AUTH_PASSWORD` | `super-secret` | Current single-admin secret. Confirmed Gate 1 blocker. |
-| `AUTH_SECRET` | `changeme-secret` | JWT signing secret. Confirmed Gate 1 blocker. |
+| `AUTH_USERNAME` | `admin` | Username of the break-glass admin, accepted only while the users table is empty, so a real user account always disables it. |
+| `AUTH_PASSWORD` | `super-secret` | Single-admin bootstrap secret; the API refuses to start while this published sample value is still active. |
+| `AUTH_SECRET` | `changeme-secret` | JWT signing secret; the API refuses to start while this published sample value is still active. |
 | `AUTH_ALLOW_INSECURE_DEFAULTS` | unset (false) | Opts out of the startup guard that refuses the published sample credentials while auth is enabled. |
-| `AUTH_TOKEN_TTL` | `43200` seconds | JWT lifetime. |
+| `AUTH_ACCESS_TOKEN_TTL` | `900` | Access-token (JWT) lifetime in seconds; the token also stops working as soon as its session row stops being live. |
+| `AUTH_REFRESH_TTL_SECONDS` | `2592000` | Refresh-token lifetime in seconds (30 days). Only the sha256 of the opaque token is stored, and rotation is single-use. |
+| `AUTH_TOKEN_TTL` | ignored | Deprecated no-op kept so an old `.env` still starts; the value does nothing. |
 | `PUBLIC_URL` | empty | Public browser origin; also allows web runtime API derivation. |
 | `CORS_ORIGINS` | derived or localhost | Comma-separated browser origins accepted by API CORS middleware. |
 | `API_PORT` | `8000` | Published API port. |
 | `WEB_PORT` | `5173` | Published web port. |
+
+## Authentication and sessions
+
+Owned by `api/auth.py` and `api/sessions.py`.
+
+- An access token is a 15-minute HS256 JWT (`AUTH_ACCESS_TOKEN_TTL`, default
+  `900` seconds). It carries `sub`, `sid`, `typ=access`, `role`, `username`,
+  `iat` and `exp`, but it is not a self-contained identity: `sid` must still map
+  to a live `UserSession` row, and role plus disabled state are re-read on every
+  request. Signing out or revoking a session sets `revoked_at`, which kills the
+  access token on its next use, and a disabled user is locked out immediately.
+- A refresh token is an opaque `secrets.token_urlsafe(32)` value of which only
+  the sha256 hash is stored. Rotation is single-use per session, and the token
+  expires after 30 days (`AUTH_REFRESH_TTL_SECONDS`, default `2592000`
+  seconds).
+- The `AUTH_USERNAME`/`AUTH_PASSWORD` environment admin is break-glass only: it
+  is accepted while the users table is empty, so a real user account always wins
+  over the published sample credentials.
+- At startup, `validate_auth_configuration()` refuses to run while
+  `AUTH_PASSWORD` or `AUTH_SECRET` are still the published sample values, unless
+  `AUTH_ALLOW_INSECURE_DEFAULTS` is set. `AUTH_TOKEN_TTL` is deprecated and
+  ignored; it is read only so an existing environment keeps starting.
 
 ## Login throttle settings
 
