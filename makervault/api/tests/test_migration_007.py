@@ -181,6 +181,15 @@ def test_fresh_database_reaches_v7(tmp_path: Path) -> None:
     }
 
 
+# Migration 009 appends `assetfile.position` after this upgrade path, so "the
+# existing rows are kept" is asserted over the columns a v6 database had. `SELECT
+# *` would compare one column against two and fail on an unchanged row.
+ASSETFILE_V6_COLUMNS_SELECT = (
+    "SELECT id, asset_id, filename, mime, size, role, storage_path, metadata_json "
+    "FROM assetfile ORDER BY id"
+)
+
+
 def test_v6_database_upgrades_and_keeps_existing_rows(tmp_path: Path) -> None:
     database_engine = make_v6_engine(tmp_path / "upgrade.db")
     with database_engine.begin() as conn:
@@ -196,14 +205,14 @@ def test_v6_database_upgrades_and_keeps_existing_rows(tmp_path: Path) -> None:
         insert_asset_file(conn, "f-1", "a-1")
     with database_engine.connect() as conn:
         assets_before = tuple(conn.exec_driver_sql("SELECT * FROM asset ORDER BY id").fetchall())
-        files_before = tuple(conn.exec_driver_sql("SELECT * FROM assetfile ORDER BY id").fetchall())
+        files_before = tuple(conn.exec_driver_sql(ASSETFILE_V6_COLUMNS_SELECT).fetchall())
         users_before = tuple(conn.exec_driver_sql("SELECT * FROM users ORDER BY id").fetchall())
 
     assert run_migrations(database_engine) == MIGRATIONS[-1].version
 
     with database_engine.connect() as conn:
         assert tuple(conn.exec_driver_sql("SELECT * FROM asset ORDER BY id").fetchall()) == assets_before
-        assert tuple(conn.exec_driver_sql("SELECT * FROM assetfile ORDER BY id").fetchall()) == files_before
+        assert tuple(conn.exec_driver_sql(ASSETFILE_V6_COLUMNS_SELECT).fetchall()) == files_before
         assert tuple(conn.exec_driver_sql("SELECT * FROM users ORDER BY id").fetchall()) == users_before
     assert row_count(database_engine, "project") == 0
     assert row_count(database_engine, "project_asset") == 0

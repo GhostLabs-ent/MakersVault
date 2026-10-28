@@ -21,7 +21,12 @@ every storage fixture patches `db.THUMBS` too and the *db* binding is the one
 every service already uses.
 
 This module must not import `main` at module level: `main` imports the routers,
-so that would be an import cycle - hence the `sys.modules` lookup.
+so that would be an import cycle - hence the `sys.modules` lookup. The same
+reason keeps `import_service`, `library_scan` and `url_utils` out of the module
+header: they import `asset_service`, which imports `asset_file_service`, which
+needs these seams for the supporting-file caps, so a top-level import of any of
+them here would close that cycle. Each accessor imports what it needs at call
+time, which is a `sys.modules` lookup after the first request.
 
 `start_scan`/`scan_status` resolve against MAIN's copy rather than calling
 `library_scan` directly, because `main` is the name the suite patches. That is
@@ -32,9 +37,6 @@ today's exact semantics, not an accident to be "fixed": a direct
 import sys
 
 import config
-import import_service
-import library_scan
-import url_utils
 
 _MISSING = object()
 
@@ -63,41 +65,84 @@ def import_max_bytes() -> int:
     return _resolved("IMPORT_MAX_BYTES", config.IMPORT_MAX_BYTES)
 
 
+def asset_file_max_bytes() -> int:
+    """The per-supporting-file cap in force now (`main.ASSET_FILE_MAX_BYTES`, else config)."""
+    return _resolved("ASSET_FILE_MAX_BYTES", config.ASSET_FILE_MAX_BYTES)
+
+
+def asset_file_total_max_bytes() -> int:
+    """The per-model supporting-file total in force now (`main.ASSET_FILE_TOTAL_MAX_BYTES`)."""
+    return _resolved("ASSET_FILE_TOTAL_MAX_BYTES", config.ASSET_FILE_TOTAL_MAX_BYTES)
+
+
+def asset_file_max_count() -> int:
+    """The per-model supporting-file count in force now (`main.ASSET_FILE_MAX_COUNT`)."""
+    return _resolved("ASSET_FILE_MAX_COUNT", config.ASSET_FILE_MAX_COUNT)
+
+
+def asset_file_upload_max_bytes() -> int:
+    """The per-file cap an upload actually hits: the tighter nonzero cap.
+
+    The import cap predates the supporting-file cap, and an existing deployment
+    kept refusing the bytes it refused before; the new cap can only tighten it.
+    A zero cap means "no cap", so it must not win the minimum. Both zero means
+    the upload is uncapped.
+    """
+    limits = [limit for limit in (import_max_bytes(), asset_file_max_bytes()) if limit]
+    return min(limits) if limits else 0
+
+
 def start_scan() -> bool:
     """Start a scan through `main.start_scan` (the suite's patch point)."""
+    import library_scan
+
     return _resolved("start_scan", library_scan.start_scan)()
 
 
 def scan_status() -> dict:
     """Read scan status through `main.scan_status` (the suite's patch point)."""
+    import library_scan
+
     return _resolved("scan_status", library_scan.scan_status)()
 
 
 def normalize_import_url(url: str) -> str:
     """Normalise an import URL through `main.normalize_import_url` (the patch point)."""
+    import url_utils
+
     return _resolved("normalize_import_url", url_utils.normalize_import_url)(url)
 
 
 def import_asset_from_url(url: str, body):
     """Import a URL through `main.import_asset_from_url` (the suite's patch point)."""
+    import import_service
+
     return _resolved("import_asset_from_url", import_service.import_asset_from_url)(url, body)
 
 
 def open_import_response(url: str, body):
     """Open the remote response through `main.open_import_response` (the patch point)."""
+    import import_service
+
     return _resolved("open_import_response", import_service.open_import_response)(url, body)
 
 
 def download_import_to_temp(url: str, body):
     """Fetch an import to a temp file through `main.download_import_to_temp`."""
+    import import_service
+
     return _resolved("download_import_to_temp", import_service.download_import_to_temp)(url, body)
 
 
 def import_asset_attempt(url: str, body):
     """One single-file attempt through `main.import_asset_attempt` (patch point)."""
+    import import_service
+
     return _resolved("import_asset_attempt", import_service.import_asset_attempt)(url, body)
 
 
 def download_zip_attempt(url: str, body):
     """One zip attempt through `main.download_zip_attempt` (patch point)."""
+    import import_service
+
     return _resolved("download_zip_attempt", import_service.download_zip_attempt)(url, body)

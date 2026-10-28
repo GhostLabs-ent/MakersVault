@@ -22,7 +22,13 @@ import permissions
 from asset_file_service import backfill_prepared_print_metadata
 from asset_service import backfill_embedded_thumbnails
 from auth import validate_auth_configuration
-from config import IMPORT_MAX_BYTES, MAX_UPLOAD_BYTES
+from config import (
+    ASSET_FILE_MAX_BYTES,
+    ASSET_FILE_MAX_COUNT,
+    ASSET_FILE_TOTAL_MAX_BYTES,
+    IMPORT_MAX_BYTES,
+    MAX_UPLOAD_BYTES,
+)
 from db import THUMBS, engine
 from import_service import (
     download_import_to_temp,
@@ -150,6 +156,9 @@ __all__ = (
     "THUMBS",
     "MAX_UPLOAD_BYTES",
     "IMPORT_MAX_BYTES",
+    "ASSET_FILE_MAX_BYTES",
+    "ASSET_FILE_TOTAL_MAX_BYTES",
+    "ASSET_FILE_MAX_COUNT",
     "start_scan",
     "scan_status",
     "normalize_import_url",

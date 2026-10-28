@@ -105,7 +105,17 @@ export type AssetFile = {
   filename: string;
   mime: string;
   size: number;
+  position: number;
   url: string;
+};
+
+/** Per-asset supporting-file quotas; a `0` limit means that quota is disabled. */
+export type AssetFileLimits = {
+  count: number;
+  total_bytes: number;
+  max_count: number;
+  max_file_bytes: number;
+  max_total_bytes: number;
 };
 
 export type ImportInspectInfo = {
@@ -690,6 +700,43 @@ export async function listAssetFiles(id: string): Promise<AssetFile[]> {
   return res.json();
 }
 
+export async function listAssetFileLimits(assetId: string): Promise<AssetFileLimits> {
+  const res = await fetch(`${apiBase()}/asset/${assetId}/files/limits`, {
+    headers: authHeaders(),
+  });
+  assertOk(res, "Failed to load supporting-file limits");
+  return res.json();
+}
+
+export async function renameAssetFile(
+  assetId: string,
+  fileId: string,
+  filename: string,
+): Promise<AssetFile> {
+  const res = await fetch(`${apiBase()}/asset/${assetId}/files/${fileId}`, {
+    method: "PATCH",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ filename }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Rename failed"));
+  return res.json();
+}
+
+export async function reorderAssetFiles(
+  assetId: string,
+  fileIds: string[],
+): Promise<AssetFile[]> {
+  const res = await fetch(`${apiBase()}/asset/${assetId}/files/order`, {
+    method: "PUT",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ file_ids: fileIds }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to reorder supporting files"));
+  return res.json();
+}
+
 export async function uploadAssetFile(id: string, file: File): Promise<Asset> {
   const body = new FormData();
   body.set("file", file, file.name);
@@ -825,6 +872,14 @@ export function fileUrl(rel: string) {
   // API returns relative URLs. Join with API base.
   if (!rel) return rel;
   return appendTokenToUrl(`${apiBase()}${rel}`);
+}
+
+/**
+ * Inline-display variant of `fileUrl`: the server answers with `Content-Disposition:
+ * inline` (and 415 for types it refuses to preview), so iframes/images can load it.
+ */
+export function assetFilePreviewUrl(rel: string): string {
+  return fileUrl(rel + (rel.includes("?") ? "&" : "?") + "inline=1");
 }
 
 /**

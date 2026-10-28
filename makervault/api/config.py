@@ -54,6 +54,15 @@ IMPORT_HTML_MAX_BYTES = max(64, IMPORT_HTML_MAX_KB) * 1024
 # 0 disables the check (not recommended).
 MAX_UPLOAD_MB = env_int("MAX_UPLOAD_MB", 4096)
 MAX_UPLOAD_BYTES = max(0, MAX_UPLOAD_MB) * 1024 * 1024
+
+# Supporting-file caps. The per-file cap defaults to the import cap, so an
+# existing deployment keeps refusing the bytes it refused before; the total and
+# the count are new ceilings. 0 disables that check.
+ASSET_FILE_MAX_MB = env_int("ASSET_FILE_MAX_MB", IMPORT_MAX_MB)
+ASSET_FILE_MAX_BYTES = max(0, ASSET_FILE_MAX_MB) * 1024 * 1024
+ASSET_FILE_TOTAL_MAX_MB = env_int("ASSET_FILE_TOTAL_MAX_MB", 2048)
+ASSET_FILE_TOTAL_MAX_BYTES = max(0, ASSET_FILE_TOTAL_MAX_MB) * 1024 * 1024
+ASSET_FILE_MAX_COUNT = max(0, env_int("ASSET_FILE_MAX_COUNT", 50))
 IMPORT_USER_AGENT = "MakerVault/1.0"
 IMPORT_BROWSER_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "

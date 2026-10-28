@@ -63,7 +63,7 @@ could honestly reconstruct.
 
 ## The action taxonomy
 
-`audit.ACTIONS` holds exactly these 19 strings. Action names are stable and
+`audit.ACTIONS` holds exactly these 21 strings. Action names are stable and
 `namespace.verb`; a reader of a row does not need the code to know what it means.
 
 | Action | Route(s) that emit it | `target` | `detail` | Failure |
@@ -72,6 +72,8 @@ could honestly reconstruct.
 | `asset.rename` | `POST /asset/{asset_id}/rename`; `POST /asset/{asset_id}/meta` (only when the name changes) | asset id | `{"from", "to"}` names | fail-closed |
 | `asset.move` | `POST /asset/{asset_id}/folder`; `POST /assets/batch/folder` (one row per asset) | asset id | `{"folder_id"}` (new folder, or `null` for the root) | fail-closed |
 | `asset.file.delete` | `DELETE /asset/{asset_id}/files/{file_id}` | asset id | `{"file_id", "filename"}` | fail-closed |
+| `asset.file.rename` | `PATCH /asset/{asset_id}/files/{file_id}` (only when the name changes) | asset id | `{"file_id", "from", "to"}` names | fail-closed |
+| `asset.file.reorder` | `PUT /asset/{asset_id}/files/order` (only when the order changes) | asset id | `{"order"}` - the file ids in their new order | fail-closed |
 | `asset.prepared_print.delete` | `DELETE /asset/{asset_id}/prepared-print` | asset id | none | fail-closed |
 | `folder.delete` | `DELETE /folder/{folder_id}` | folder id | `{"name", "folders", "assets", "bytes"}` counted before the delete | fail-closed |
 | `folder.rename` | `PATCH /folder/{folder_id}` (only when the name changes) | folder id | `{"from", "to"}` names | fail-closed |
@@ -105,8 +107,8 @@ more than one fact:
 The rule `assert_audit_coverage()` enforces: **every route in
 `permissions.ROUTE_PERMISSIONS` whose method is not `GET` must be in
 `ROUTE_ACTIONS` or in `EXEMPT_ROUTES` with a non-empty reason.** `GET` routes are
-out of scope by construction: they change nothing. The matrix has 60 routes, 23
-of them `GET`; the remaining 37 split into 19 audited keys and 18 exempt keys.
+out of scope by construction: they change nothing. The matrix has 63 routes, 24
+of them `GET`; the remaining 39 split into 21 audited keys and 18 exempt keys.
 
 The guard also refuses stale keys (an entry for a route that no longer exists), a
 key in both tables, an action that is not in `ACTIONS`, and an exemption without

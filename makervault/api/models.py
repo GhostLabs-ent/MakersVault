@@ -41,6 +41,7 @@ class AssetFile(SQLModel, table=True):
   mime: str
   size: int = Field(default=0)
   role: str = Field(default="supporting", index=True)
+  position: int = Field(default=0)
   storage_path: str
   metadata_json: Optional[str] = None
 

@@ -11,6 +11,7 @@ raises must roll the mutation back (the row is still there); fail-loud means the
 two filesystem-only actions return 500 and log instead of pretending success.
 """
 
+import json
 import logging
 import re
 from dataclasses import dataclass, replace
@@ -313,6 +314,31 @@ def call_delete_supporting_file(client, headers, ids, monkeypatch) -> Response:
     return client.delete(f"/asset/{ids.asset_id}/files/{ids.file_id}", headers=headers)
 
 
+def call_rename_supporting_file(client, headers, ids, monkeypatch) -> Response:
+    # A real rename every call: an unchanged name writes no audit row.
+    return client.patch(
+        f"/asset/{ids.asset_id}/files/{ids.file_id}",
+        json={"filename": f"renamed-{uuid4().hex}.txt"},
+        headers=headers,
+    )
+
+
+def call_reorder_supporting_files(client, headers, ids, monkeypatch) -> Response:
+    # A second supporting file, then the reverse of the current order: the
+    # seeded asset has one file, and an unchanged order writes no row.
+    ok(client.post(
+        f"/asset/{ids.asset_id}/files",
+        files={"file": ("extra.txt", b"extra\n", "text/plain")},
+        headers=headers,
+    ))
+    current = [row["id"] for row in ok(client.get(f"/asset/{ids.asset_id}/files", headers=headers)).json()]
+    return client.put(
+        f"/asset/{ids.asset_id}/files/order",
+        json={"file_ids": list(reversed(current))},
+        headers=headers,
+    )
+
+
 def call_delete_prepared_print(client, headers, ids, monkeypatch) -> Response:
     return client.delete(f"/asset/{ids.asset_id}/prepared-print", headers=headers)
 
@@ -374,6 +400,8 @@ CALLS: dict[tuple[str, str], CallSpec] = {
     ("POST", "/asset/{asset_id}/folder"): call_move_asset,
     ("POST", "/assets/batch/folder"): call_batch_move,
     ("DELETE", "/asset/{asset_id}/files/{file_id}"): call_delete_supporting_file,
+    ("PATCH", "/asset/{asset_id}/files/{file_id}"): call_rename_supporting_file,
+    ("PUT", "/asset/{asset_id}/files/order"): call_reorder_supporting_files,
     ("DELETE", "/asset/{asset_id}/prepared-print"): call_delete_prepared_print,
     ("PATCH", "/folder/{folder_id}"): call_rename_folder,
     ("DELETE", "/folder/{folder_id}"): call_delete_folder,
@@ -448,6 +476,46 @@ def test_asset_move_row_names_the_new_folder(client: TestClient, ids: Ids) -> No
     assert row.action == audit.ASSET_MOVE
     assert row.target == ids.spare_asset_id
     assert row.detail_json == f'{{"folder_id": "{ids.folder_id}"}}'
+
+
+def test_supporting_file_rename_row_names_the_old_and_the_new_name(client: TestClient, ids: Ids) -> None:
+    value = request_id_for("file-rename")
+    response = client.patch(
+        f"/asset/{ids.asset_id}/files/{ids.file_id}",
+        json={"filename": "Renamed notes.txt"},
+        headers=audit_headers(ids.admin_token, value),
+    )
+    assert response.status_code == 200, response.text
+
+    row = one_event(value)
+    assert row.action == audit.ASSET_FILE_RENAME
+    assert row.target == ids.asset_id
+    assert row.detail_json == json.dumps(
+        {"file_id": ids.file_id, "from": "notes.txt", "to": "Renamed notes.txt"}, sort_keys=True
+    )
+
+
+def test_supporting_file_reorder_row_records_the_new_order(client: TestClient, ids: Ids) -> None:
+    value = request_id_for("file-reorder")
+    ok(client.post(
+        f"/asset/{ids.asset_id}/files",
+        files={"file": ("second.txt", b"second\n", "text/plain")},
+        headers=audit_headers(ids.admin_token, value),
+    ))
+    current = [row["id"] for row in ok(client.get(f"/asset/{ids.asset_id}/files", headers=bearer(ids.admin_token))).json()]
+    reversed_ids = list(reversed(current))
+    response = client.put(
+        f"/asset/{ids.asset_id}/files/order",
+        json={"file_ids": reversed_ids},
+        headers=audit_headers(ids.admin_token, value),
+    )
+    assert response.status_code == 200, response.text
+    assert [row["id"] for row in response.json()] == reversed_ids
+
+    row = one_event(value)
+    assert row.action == audit.ASSET_FILE_REORDER
+    assert row.target == ids.asset_id
+    assert row.detail_json == json.dumps({"order": reversed_ids})
 
 
 def test_folder_patch_records_rename_and_move_as_two_facts(client: TestClient, ids: Ids) -> None:

@@ -75,7 +75,24 @@ class AssetFileOut(BaseModel):
   filename: str
   mime: str
   size: int
+  position: int = 0
   url: str
+
+
+class AssetFileRename(BaseModel):
+  filename: str
+
+
+class AssetFileOrderUpdate(BaseModel):
+  file_ids: List[str]
+
+
+class AssetFileLimitsOut(BaseModel):
+  count: int
+  total_bytes: int
+  max_count: int
+  max_file_bytes: int
+  max_total_bytes: int
 
 
 class AssetOut(BaseModel):

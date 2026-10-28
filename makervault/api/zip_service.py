@@ -195,6 +195,38 @@ def extract_zip_entries_to_assets(zip_path: Path, selections: List[str], body: I
     return assets, failed
 
 
+def dedupe_arcnames(entries: List[tuple[str, Path]]) -> List[tuple[str, Path]]:
+    """Make every archive member name unique, keeping the first occurrence.
+
+    Two assets can land on the same arcname (same folder label, same file name),
+    and so can a primary file and a supporting file; a zip with duplicate member
+    names extracts as "which one won". The first entry keeps its name and each
+    later collision becomes `name (2).ext`, `name (3).ext`, ... in input order,
+    so the archive is deterministic for a given selection.
+    """
+    used: set[str] = set()
+    result: List[tuple[str, Path]] = []
+    for arcname, path in entries:
+        candidate = arcname
+        stem, extension = _split_arcname(arcname)
+        suffix = 2
+        while candidate.casefold() in used:
+            candidate = f"{stem} ({suffix}){extension}"
+            suffix += 1
+        used.add(candidate.casefold())
+        result.append((candidate, path))
+    return result
+
+
+def _split_arcname(arcname: str) -> tuple[str, str]:
+    """`a/b/c.stl` -> (`a/b/c`, `.stl`); a dotless name keeps no extension."""
+    head, _, tail = arcname.rpartition("/")
+    stem, dot, extension = tail.rpartition(".")
+    if not dot or not stem:
+        return arcname, ""
+    return (f"{head}/{stem}" if head else stem), f".{extension}"
+
+
 def arcname_for_asset(asset: Asset, folder_label_map: Optional[dict] = None) -> str:
     folder_part = "unassigned"
     if asset.folder_id:
@@ -277,7 +309,9 @@ def zip_assets_response(
     if asset_ids:
         with Session(engine) as session:
             for row in session.exec(
-                select(AssetFile).where(AssetFile.asset_id.in_(asset_ids), AssetFile.role == "supporting")
+                select(AssetFile)
+                .where(AssetFile.asset_id.in_(asset_ids), AssetFile.role == "supporting")
+                .order_by(AssetFile.position, AssetFile.filename, AssetFile.id)
             ):
                 supporting.setdefault(row.asset_id, []).append(row)
     for a in assets:
@@ -299,6 +333,7 @@ def zip_assets_response(
                 ))
     if not files and not allow_empty:
         raise HTTPException(status_code=404, detail="No files available for download")
+    unique_files = dedupe_arcnames(files)
 
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
     tmp_path = Path(tmp.name)
@@ -316,7 +351,7 @@ def zip_assets_response(
                     project.origin,
                 ),
             )
-        for arc, fs_path in files:
+        for arc, fs_path in unique_files:
             zf.write(fs_path, arcname=arc)
 
     background.add_task(lambda p=tmp_path: p.unlink(missing_ok=True))

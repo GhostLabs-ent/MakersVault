@@ -520,6 +520,36 @@ def _migration_008_import_run_history(conn: Connection) -> None:
     )
 
 
+def _migration_009_asset_file_order(conn: Connection) -> None:
+    """Give supporting files an explicit, user-visible order (append-only).
+
+    `position` is the only thing a reorder changes: a file's bytes, its
+    `storage_path` and its role never move, so reordering is metadata. The
+    backfill runs only when the column is newly added - a re-applied 009 must
+    never reset an order the user chose - and it assigns 0..n-1 per asset from
+    (filename, id), which is the order every earlier build displayed, so no
+    existing library changes shape because of this migration. Non-supporting
+    (prepared) rows keep 0: they are not listed and never reordered. `IF NOT
+    EXISTS` on the index keeps a re-applied 009 harmless, like 004-008.
+    """
+    had_column = "position" in _columns(conn, "assetfile")
+    _add_column(conn, "assetfile", "position", "INTEGER NOT NULL DEFAULT 0")
+    if not had_column:
+        conn.exec_driver_sql(
+            "UPDATE assetfile SET position = ("
+            "SELECT COUNT(*) FROM assetfile AS earlier "
+            "WHERE earlier.asset_id = assetfile.asset_id "
+            "AND earlier.role = 'supporting' "
+            "AND (earlier.filename < assetfile.filename "
+            "OR (earlier.filename = assetfile.filename AND earlier.id < assetfile.id))"
+            ") "
+            "WHERE assetfile.role = 'supporting'"
+        )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_assetfile_asset_position ON assetfile(asset_id, position)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
@@ -529,6 +559,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(6, "audit_log", _migration_006_audit_log),
     Migration(7, "projects", _migration_007_projects),
     Migration(8, "import_run_history", _migration_008_import_run_history),
+    Migration(9, "asset_file_order", _migration_009_asset_file_order),
 )
 
 

@@ -1,9 +1,22 @@
 import React, { useEffect, useRef, useState } from "react";
-import { type AssetFile, deleteAssetFile, deletePreparedPrint, fileUrl, listAssetFiles, uploadAssetFile } from "../../lib/api";
+import {
+  type AssetFile,
+  type AssetFileLimits,
+  deleteAssetFile,
+  deletePreparedPrint,
+  fileUrl,
+  listAssetFileLimits,
+  listAssetFiles,
+  renameAssetFile,
+  reorderAssetFiles,
+  uploadAssetFile,
+} from "../../lib/api";
+import { formatBytes } from "../../lib/format";
 import { normaliseCreator, normaliseName, normaliseNotes } from "../../lib/metadataValidation";
 import { notifyError } from "../../lib/toast";
 import TagBadge from "../TagBadge";
 import TagInput from "../TagInput";
+import AssetFilePreview from "./AssetFilePreview";
 import { ENGRAVING_EXTS, MODEL_EXTS, extOf, formatMissingSince } from "./assetGridMeta";
 import { PreparedPrintSummary, renderPreviewContent } from "./preview";
 import type { AssetCardProps } from "./assetCardProps";
@@ -57,8 +70,14 @@ const AssetCard = React.memo(function AssetCard({
   const [downloadChoice, setDownloadChoice] = useState("");
   const [filesExpanded, setFilesExpanded] = useState(false);
   const [supportingFiles, setSupportingFiles] = useState<AssetFile[]>([]);
+  const [fileLimits, setFileLimits] = useState<AssetFileLimits | null>(null);
   const [filesLoading, setFilesLoading] = useState(false);
   const [filesUploading, setFilesUploading] = useState(false);
+  const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [fileRenameError, setFileRenameError] = useState<string | null>(null);
+  const [fileBusy, setFileBusy] = useState(false);
+  const [previewFile, setPreviewFile] = useState<AssetFile | null>(null);
   const [preparedClearing, setPreparedClearing] = useState(false);
   const relatedInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -86,7 +105,16 @@ const AssetCard = React.memo(function AssetCard({
   const loadSupportingFiles = async () => {
     setFilesLoading(true);
     try {
-      setSupportingFiles(await listAssetFiles(item.id));
+      const [files, limits] = await Promise.all([
+        listAssetFiles(item.id),
+        // A broken limits endpoint must not hide a list that loaded fine.
+        listAssetFileLimits(item.id).catch(err => {
+          console.error(err);
+          return null;
+        }),
+      ]);
+      setSupportingFiles(files);
+      setFileLimits(limits);
     } catch (err) {
       console.error(err);
       notifyError(err instanceof Error ? err.message : "Failed to load supporting files");
@@ -99,6 +127,12 @@ const AssetCard = React.memo(function AssetCard({
     if (filesExpanded) void loadSupportingFiles();
   }, [filesExpanded, item.id]);
 
+  useEffect(() => {
+    setPreviewFile(null);
+    setRenamingFileId(null);
+    setFileRenameError(null);
+  }, [item.id]);
+
   const addRelatedFiles = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     event.target.value = "";
@@ -110,13 +144,16 @@ const AssetCard = React.memo(function AssetCard({
         updated = await uploadAssetFile(item.id, file);
         onAssetChanged(updated);
       }
-      setSupportingFiles(await listAssetFiles(item.id));
       setFilesExpanded(true);
+      await loadSupportingFiles();
     } catch (err) {
       console.error(err);
       notifyError(err instanceof Error ? err.message : "Failed to add files");
     } finally {
       setFilesUploading(false);
+      // Refresh even after a partial failure: files before the failing one are
+      // already stored, and a limit error must leave the list showing reality.
+      await loadSupportingFiles();
     }
   };
 
@@ -129,13 +166,80 @@ const AssetCard = React.memo(function AssetCard({
         try {
           const updated = await deleteAssetFile(item.id, file.id);
           onAssetChanged(updated);
-          setSupportingFiles(current => current.filter(entry => entry.id !== file.id));
+          await loadSupportingFiles();
         } catch (err) {
           console.error(err);
           notifyError(err instanceof Error ? err.message : "Failed to remove file");
         }
       },
     });
+  };
+
+  const startFileRename = (file: AssetFile) => {
+    setRenamingFileId(file.id);
+    setRenameValue(file.filename);
+    setFileRenameError(null);
+  };
+
+  const cancelFileRename = () => {
+    setRenamingFileId(null);
+    setRenameValue("");
+    setFileRenameError(null);
+  };
+
+  const commitFileRename = async (file: AssetFile) => {
+    const filename = renameValue.trim();
+    if (!filename) {
+      setFileRenameError("Enter a file name.");
+      return;
+    }
+    if (filename === file.filename) {
+      cancelFileRename();
+      return;
+    }
+    setFileBusy(true);
+    setFileRenameError(null);
+    try {
+      const updated = await renameAssetFile(item.id, file.id, filename);
+      setSupportingFiles(current => current.map(entry => (entry.id === file.id ? updated : entry)));
+      setRenamingFileId(null);
+      await loadSupportingFiles();
+    } catch (err) {
+      console.error(err);
+      const message = err instanceof Error && err.message ? err.message : "Rename failed";
+      setFileRenameError(message);
+      notifyError(message);
+    } finally {
+      setFileBusy(false);
+    }
+  };
+
+  const handleFileRenameKey = (event: React.KeyboardEvent<HTMLInputElement>, file: AssetFile) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void commitFileRename(file);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      cancelFileRename();
+    }
+  };
+
+  const moveFile = async (file: AssetFile, direction: -1 | 1) => {
+    const index = supportingFiles.findIndex(entry => entry.id === file.id);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= supportingFiles.length) return;
+    const swapped = [...supportingFiles];
+    [swapped[index], swapped[target]] = [swapped[target], swapped[index]];
+    setFileBusy(true);
+    try {
+      setSupportingFiles(await reorderAssetFiles(item.id, swapped.map(entry => entry.id)));
+      await loadSupportingFiles();
+    } catch (err) {
+      console.error(err);
+      notifyError(err instanceof Error ? err.message : "Failed to reorder supporting files");
+    } finally {
+      setFileBusy(false);
+    }
   };
 
   const clearPreparedPrint = () => {
@@ -253,6 +357,24 @@ const AssetCard = React.memo(function AssetCard({
 
   const canOpenInSlicer = slicerEnabled && (Boolean(item.prepared_print) || MODEL_EXTS.has(extOf(item.filename)));
   const canOpenInEngraving = engravingEnabled && ENGRAVING_EXTS.has(extOf(item.filename));
+
+  const fileCount = fileLimits?.count ?? item.supporting_file_count ?? 0;
+  const maxFileCount = fileLimits?.max_count ?? 0;
+  const atFileLimit = maxFileCount > 0 && fileCount >= maxFileCount;
+  const fileCountLabel = maxFileCount > 0 ? `${fileCount} / ${maxFileCount}` : String(fileCount);
+  const fileLimitsTitle = fileLimits
+    ? [
+        `Supporting files: ${fileCount} of ${maxFileCount > 0 ? maxFileCount : "unlimited"}`,
+        `${formatBytes(fileLimits.total_bytes)} used${
+          fileLimits.max_total_bytes > 0
+            ? ` of ${formatBytes(fileLimits.max_total_bytes)}`
+            : " (no total limit)"
+        }`,
+        fileLimits.max_file_bytes > 0
+          ? `${formatBytes(fileLimits.max_file_bytes)} max per file`
+          : "no per-file limit",
+      ].join(" · ")
+    : undefined;
 
   return (
     <div
@@ -422,10 +544,11 @@ const AssetCard = React.memo(function AssetCard({
               type="button"
               className="flex min-w-0 items-center gap-2 text-left"
               onClick={() => setFilesExpanded(value => !value)}
+              title={fileLimitsTitle}
             >
               <span className="font-medium">Supporting files</span>
-              <span className="rounded-full bg-panel px-2 py-0.5 text-[11px] text-muted">
-                {item.supporting_file_count || 0}
+              <span className="rounded-full bg-panel px-2 py-0.5 text-[11px] text-muted" title={fileLimitsTitle}>
+                {fileCountLabel}
               </span>
             </button>
             <>
@@ -434,15 +557,19 @@ const AssetCard = React.memo(function AssetCard({
                 type="file"
                 multiple
                 className="hidden"
-                accept=".pdf,.txt,.md,.doc,.docx,.rtf,.csv,.html,.zip,.gcode,.gco,.bgcode,.3mf"
+                accept=".pdf,.txt,.md,.markdown,.csv,.log,.json,.html,.htm,.xml,.yaml,.yml,.png,.jpg,.jpeg,.gif,.webp,.bmp,.doc,.docx,.rtf,.zip,.gcode,.gco,.bgcode,.3mf"
                 onChange={addRelatedFiles}
               />
               <button
                 type="button"
                 className="rounded-md border border-panel-strong px-2 py-1 text-xs disabled:opacity-60"
-                disabled={filesUploading}
+                disabled={filesUploading || atFileLimit}
                 onClick={() => relatedInputRef.current?.click()}
-                title="Add documentation or a prepared print"
+                title={
+                  atFileLimit
+                    ? `Supporting file limit reached (${maxFileCount})`
+                    : "Add documentation or a prepared print"
+                }
               >
                 {filesUploading ? "Adding..." : "Add files"}
               </button>
@@ -454,23 +581,98 @@ const AssetCard = React.memo(function AssetCard({
                 <div className="text-xs text-muted">Loading files...</div>
               ) : supportingFiles.length ? (
                 <div className="space-y-1">
-                  {supportingFiles.map(file => (
-                    <div key={file.id} className="flex items-center justify-between gap-2 rounded px-1 py-1 hover:bg-panel-soft">
-                      <a
-                        className="min-w-0 truncate text-xs underline-offset-2 hover:underline"
-                        href={fileUrl(file.url)}
-                        download={file.filename}
-                        title={file.filename}
-                      >
-                        {file.filename}
-                      </a>
-                      <button
-                        type="button"
-                        className="text-[11px] text-red-700 dark:text-red-300"
-                        onClick={() => removeRelatedFile(file)}
-                      >
-                        Remove
-                      </button>
+                  {supportingFiles.map((file, index) => (
+                    <div key={file.id} className="rounded px-1 py-1 hover:bg-panel-soft">
+                      {renamingFileId === file.id ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <input
+                            value={renameValue}
+                            onChange={event => {
+                              setRenameValue(event.target.value);
+                              setFileRenameError(null);
+                            }}
+                            onKeyDown={event => handleFileRenameKey(event, file)}
+                            aria-label={`Rename ${file.filename}`}
+                            className="min-w-0 flex-1 rounded-md border border-panel-strong bg-panel-soft px-2 py-1 text-xs"
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            className="rounded-md bg-accent px-2 py-1 text-[11px] disabled:opacity-60"
+                            disabled={fileBusy}
+                            onClick={() => commitFileRename(file)}
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-md border border-panel-strong px-2 py-1 text-[11px] disabled:opacity-60"
+                            disabled={fileBusy}
+                            onClick={cancelFileRename}
+                          >
+                            Cancel
+                          </button>
+                          {fileRenameError && (
+                            <p role="alert" className="w-full text-xs text-red-700 dark:text-red-300">
+                              {fileRenameError}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            className="min-w-0 truncate text-left text-xs underline-offset-2 hover:underline"
+                            title={file.filename}
+                            aria-label={`Preview ${file.filename}`}
+                            onClick={() => setPreviewFile(file)}
+                          >
+                            {file.filename}
+                          </button>
+                          <div className="flex shrink-0 items-center gap-2 text-[11px]">
+                            <span className="text-muted">{formatBytes(file.size)}</span>
+                            <a
+                              className="underline-offset-2 hover:underline"
+                              href={fileUrl(file.url)}
+                              download={file.filename}
+                            >
+                              Download
+                            </a>
+                            <button
+                              type="button"
+                              className="px-1 disabled:opacity-40"
+                              aria-label={`Move ${file.filename} up`}
+                              disabled={fileBusy || index === 0}
+                              onClick={() => moveFile(file, -1)}
+                            >
+                              ↑
+                            </button>
+                            <button
+                              type="button"
+                              className="px-1 disabled:opacity-40"
+                              aria-label={`Move ${file.filename} down`}
+                              disabled={fileBusy || index === supportingFiles.length - 1}
+                              onClick={() => moveFile(file, 1)}
+                            >
+                              ↓
+                            </button>
+                            <button
+                              type="button"
+                              disabled={fileBusy}
+                              onClick={() => startFileRename(file)}
+                            >
+                              Rename
+                            </button>
+                            <button
+                              type="button"
+                              className="text-red-700 dark:text-red-300"
+                              onClick={() => removeRelatedFile(file)}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -480,6 +682,14 @@ const AssetCard = React.memo(function AssetCard({
             </div>
           )}
         </div>
+        {previewFile && (
+          <AssetFilePreview
+            key={previewFile.id}
+            assetId={item.id}
+            file={previewFile}
+            onClose={() => setPreviewFile(null)}
+          />
+        )}
         <div className="border border-dashed border-panel-strong rounded-md p-2 text-sm flex flex-col gap-2">
           <div className="flex items-center justify-between text-xs uppercase tracking-wide text-muted">
             <span>Model details</span>

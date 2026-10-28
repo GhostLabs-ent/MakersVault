@@ -9,10 +9,16 @@ from sqlmodel import Session
 import audit
 import db
 from asset_file_service import (
+    PREVIEW_TEXT_MEDIA_TYPE,
+    UNPREVIEWABLE_DETAIL,
     delete_prepared_file,
     delete_supporting_file,
     list_supporting_files,
     managed_asset_file_path,
+    preview_media_type,
+    rename_supporting_file,
+    reorder_supporting_files,
+    supporting_file_limits,
 )
 from asset_service import resolve_asset_file, save_thumb_bytes
 from auth import AuthContext
@@ -20,7 +26,7 @@ from db import engine
 from models import Asset, AssetFile
 from permissions import require_read, require_write
 from routers.presenters import asset_file_to_out, to_out
-from schemas import AssetFileOut, AssetOut
+from schemas import AssetFileLimitsOut, AssetFileOrderUpdate, AssetFileOut, AssetFileRename, AssetOut
 
 router = APIRouter()
 
@@ -55,8 +61,34 @@ def get_supporting_files(asset_id: str, _: Optional[AuthContext] = Depends(requi
     return [asset_file_to_out(row) for row in list_supporting_files(asset_id)]
 
 
+@router.get("/asset/{asset_id}/files/limits", response_model=AssetFileLimitsOut)
+def get_supporting_file_limits(asset_id: str, _: Optional[AuthContext] = Depends(require_read)):
+    # Declared before `/{file_id}` so "limits" is never read as a file id.
+    return supporting_file_limits(asset_id)
+
+
+@router.put("/asset/{asset_id}/files/order", response_model=List[AssetFileOut])
+def reorder_supporting_files_route(
+    asset_id: str,
+    body: AssetFileOrderUpdate,
+    request: Request,
+    context: Optional[AuthContext] = Depends(require_write),
+):
+    rows = reorder_supporting_files(
+        asset_id,
+        body.file_ids,
+        audit_ctx=audit.context_for(request, context),
+    )
+    return [asset_file_to_out(row) for row in rows]
+
+
 @router.get("/asset/{asset_id}/files/{file_id}")
-def download_supporting_file(asset_id: str, file_id: str, _: Optional[AuthContext] = Depends(require_read)):
+def download_supporting_file(
+    asset_id: str,
+    file_id: str,
+    inline: bool = False,
+    _: Optional[AuthContext] = Depends(require_read),
+):
     with Session(engine) as session:
         record = session.get(AssetFile, file_id)
         if not record or record.asset_id != asset_id or record.role != "supporting":
@@ -64,9 +96,42 @@ def download_supporting_file(asset_id: str, file_id: str, _: Optional[AuthContex
         path = managed_asset_file_path(record)
         mime = record.mime
         filename = record.filename
+        preview_type = preview_media_type(record) if inline else None
     if not path.exists():
         raise HTTPException(404)
-    return FileResponse(path, media_type=mime or "application/octet-stream", filename=filename)
+    if not inline:
+        return FileResponse(path, media_type=mime or "application/octet-stream", filename=filename)
+    if preview_type is None:
+        raise HTTPException(status_code=415, detail=UNPREVIEWABLE_DETAIL)
+    # `nosniff` on every inline response; the CSP sandbox is for text only,
+    # because it stops Chrome's built-in PDF viewer from rendering at all.
+    headers = {"X-Content-Type-Options": "nosniff"}
+    if preview_type == PREVIEW_TEXT_MEDIA_TYPE:
+        headers["Content-Security-Policy"] = "sandbox"
+    return FileResponse(
+        path,
+        media_type=preview_type,
+        filename=filename,
+        content_disposition_type="inline",
+        headers=headers,
+    )
+
+
+@router.patch("/asset/{asset_id}/files/{file_id}", response_model=AssetFileOut)
+def rename_supporting_file_route(
+    asset_id: str,
+    file_id: str,
+    body: AssetFileRename,
+    request: Request,
+    context: Optional[AuthContext] = Depends(require_write),
+):
+    record = rename_supporting_file(
+        asset_id,
+        file_id,
+        body.filename,
+        audit_ctx=audit.context_for(request, context),
+    )
+    return asset_file_to_out(record)
 
 
 @router.delete("/asset/{asset_id}/files/{file_id}", response_model=AssetOut)

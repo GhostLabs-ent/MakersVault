@@ -49,6 +49,8 @@ ASSET_DELETE = "asset.delete"
 ASSET_RENAME = "asset.rename"
 ASSET_MOVE = "asset.move"
 ASSET_FILE_DELETE = "asset.file.delete"
+ASSET_FILE_RENAME = "asset.file.rename"
+ASSET_FILE_REORDER = "asset.file.reorder"
 ASSET_PREPARED_PRINT_DELETE = "asset.prepared_print.delete"
 FOLDER_DELETE = "folder.delete"
 FOLDER_RENAME = "folder.rename"
@@ -70,6 +72,8 @@ ACTIONS: frozenset[str] = frozenset({
     ASSET_RENAME,
     ASSET_MOVE,
     ASSET_FILE_DELETE,
+    ASSET_FILE_RENAME,
+    ASSET_FILE_REORDER,
     ASSET_PREPARED_PRINT_DELETE,
     FOLDER_DELETE,
     FOLDER_RENAME,
@@ -254,6 +258,8 @@ ROUTE_ACTIONS: dict[tuple[str, str], tuple[str, ...]] = {
     ("POST", "/asset/{asset_id}/folder"): (ASSET_MOVE,),
     ("POST", "/assets/batch/folder"): (ASSET_MOVE,),
     ("DELETE", "/asset/{asset_id}/files/{file_id}"): (ASSET_FILE_DELETE,),
+    ("PATCH", "/asset/{asset_id}/files/{file_id}"): (ASSET_FILE_RENAME,),
+    ("PUT", "/asset/{asset_id}/files/order"): (ASSET_FILE_REORDER,),
     ("DELETE", "/asset/{asset_id}/prepared-print"): (ASSET_PREPARED_PRINT_DELETE,),
     ("PATCH", "/folder/{folder_id}"): (FOLDER_RENAME, FOLDER_MOVE),
     ("DELETE", "/folder/{folder_id}"): (FOLDER_DELETE,),

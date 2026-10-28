@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createRef, type ReactElement } from "react";
 
-import type { Asset, Folder } from "../lib/api";
+import type { Asset, AssetFile, Folder } from "../lib/api";
 import {
   ESTIMATED_ROW_HEIGHT,
   GRID_GAP_PX,
@@ -28,7 +28,17 @@ vi.mock("../lib/api", () => ({
   downloadZip: vi.fn(),
   fileUrl: vi.fn((rel: string) => rel),
   getLibraryScanStatus: vi.fn(),
+  assetFilePreviewUrl: vi.fn((rel: string) => `${rel}?inline=1`),
+  listAssetFileLimits: vi.fn(async () => ({
+    count: 0,
+    total_bytes: 0,
+    max_count: 0,
+    max_file_bytes: 0,
+    max_total_bytes: 0,
+  })),
   listAssetFiles: vi.fn(async () => []),
+  renameAssetFile: vi.fn(),
+  reorderAssetFiles: vi.fn(async (_assetId: string, fileIds: string[]) => fileIds),
   listAssets: vi.fn(),
   listFolders: vi.fn(async () => []),
   listProjects: vi.fn(async () => []),
@@ -65,15 +75,19 @@ import {
   deletePreparedPrint,
   fileUrl,
   getLibraryScanStatus,
+  listAssetFileLimits,
   listAssetFiles,
   listAssets,
   listCreators,
   listFolders,
   listTags,
+  renameAssetFile,
+  reorderAssetFiles,
   setTags,
   startLibraryScan,
   updateAssetMeta,
   uploadAsset,
+  uploadAssetFile,
 } from "../lib/api";
 
 const listAssetsMock = vi.mocked(listAssets);
@@ -91,10 +105,22 @@ const startLibraryScanMock = vi.mocked(startLibraryScan);
 const getLibraryScanStatusMock = vi.mocked(getLibraryScanStatus);
 const updateAssetMetaMock = vi.mocked(updateAssetMeta);
 const uploadAssetMock = vi.mocked(uploadAsset);
+const uploadAssetFileMock = vi.mocked(uploadAssetFile);
 const createFolderMock = vi.mocked(createFolder);
 const deleteAssetFileMock = vi.mocked(deleteAssetFile);
 const deletePreparedPrintMock = vi.mocked(deletePreparedPrint);
 const listAssetFilesMock = vi.mocked(listAssetFiles);
+const listAssetFileLimitsMock = vi.mocked(listAssetFileLimits);
+const renameAssetFileMock = vi.mocked(renameAssetFile);
+const reorderAssetFilesMock = vi.mocked(reorderAssetFiles);
+
+const NO_FILE_LIMITS = {
+  count: 0,
+  total_bytes: 0,
+  max_count: 0,
+  max_file_bytes: 0,
+  max_total_bytes: 0,
+};
 
 /** Chip requests are asserted in the mode-aware filter tests; default them to none. */
 beforeEach(() => {
@@ -1517,6 +1543,11 @@ describe("AssetGrid shared dialogs and toasts", () => {
     deletePreparedPrintMock.mockReset();
     listAssetFilesMock.mockReset();
     listAssetFilesMock.mockResolvedValue([]);
+    listAssetFileLimitsMock.mockReset();
+    listAssetFileLimitsMock.mockResolvedValue(NO_FILE_LIMITS);
+    renameAssetFileMock.mockReset();
+    reorderAssetFilesMock.mockReset();
+    uploadAssetFileMock.mockReset();
     updateAssetMetaMock.mockReset();
     uploadAssetMock.mockReset();
     createFolderMock.mockReset();
@@ -1534,6 +1565,28 @@ describe("AssetGrid shared dialogs and toasts", () => {
   async function waitForGrid() {
     await screen.findByText("Calibration cube");
     await waitFor(() => expect(screen.queryByText("Loading...")).toBeNull());
+  }
+
+  /** One supporting-file record with the contract's `position` field filled in. */
+  function supportingFile(
+    id: string,
+    filename: string,
+    position: number,
+    overrides: Partial<AssetFile> = {},
+  ): AssetFile {
+    return {
+      id,
+      filename,
+      mime: "application/octet-stream",
+      size: 12,
+      position,
+      url: `/files/${id}`,
+      ...overrides,
+    };
+  }
+
+  async function expandSupportingFiles() {
+    fireEvent.click(screen.getByRole("button", { name: /Supporting files/ }));
   }
 
   /** The card's own Delete button, never the bulk bar's identically named one. */
@@ -1669,7 +1722,14 @@ describe("AssetGrid shared dialogs and toasts", () => {
   it("cancelling the supporting-file remove dialog makes no request", async () => {
     listAssetsMock.mockResolvedValue({ items: [assets[1]], hasMore: false });
     listAssetFilesMock.mockResolvedValue([
-      { id: "sf1", filename: "instructions.pdf", mime: "application/pdf", size: 10, url: "/x" },
+      {
+        id: "sf1",
+        filename: "instructions.pdf",
+        mime: "application/pdf",
+        size: 10,
+        position: 0,
+        url: "/x",
+      },
     ]);
 
     render(<AssetGrid theme="dark" />);
@@ -1684,6 +1744,182 @@ describe("AssetGrid shared dialogs and toasts", () => {
 
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(deleteAssetFileMock).not.toHaveBeenCalled();
+  });
+
+  it("renames a supporting file inline and shows the new name", async () => {
+    listAssetsMock.mockResolvedValue({ items: [assets[1]], hasMore: false });
+    let files = [
+      supportingFile("sf1", "instructions.pdf", 0, { mime: "application/pdf" }),
+      supportingFile("sf2", "notes.txt", 1, { mime: "text/plain" }),
+    ];
+    listAssetFilesMock.mockImplementation(async () => files);
+    renameAssetFileMock.mockImplementation(async (_assetId, fileId, filename) => {
+      files = files.map(entry => (entry.id === fileId ? { ...entry, filename } : entry));
+      return files.find(entry => entry.id === fileId)!;
+    });
+
+    render(<AssetGrid theme="dark" />);
+    await screen.findByText("Spool holder");
+    await expandSupportingFiles();
+    await screen.findByText("instructions.pdf");
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Rename" })[0]);
+    const input = screen.getByLabelText("Rename instructions.pdf");
+    fireEvent.change(input, { target: { value: "guide.pdf" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(renameAssetFileMock).toHaveBeenCalledWith("b2", "sf1", "guide.pdf"),
+    );
+    await screen.findByText("guide.pdf");
+    expect(screen.queryByText("instructions.pdf")).toBeNull();
+  });
+
+  it("reorders supporting files with the up/down buttons", async () => {
+    listAssetsMock.mockResolvedValue({ items: [assets[1]], hasMore: false });
+    let files = [
+      supportingFile("sf1", "instructions.pdf", 0, { mime: "application/pdf" }),
+      supportingFile("sf2", "notes.txt", 1, { mime: "text/plain" }),
+    ];
+    listAssetFilesMock.mockImplementation(async () => files);
+    reorderAssetFilesMock.mockImplementation(async (_assetId, fileIds) => {
+      files = fileIds.map((id, position) => ({
+        ...files.find(entry => entry.id === id)!,
+        position,
+      }));
+      return files;
+    });
+
+    render(<AssetGrid theme="dark" />);
+    await screen.findByText("Spool holder");
+    await expandSupportingFiles();
+    await screen.findByText("instructions.pdf");
+
+    fireEvent.click(screen.getByRole("button", { name: "Move instructions.pdf down" }));
+    await waitFor(() =>
+      expect(reorderAssetFilesMock).toHaveBeenCalledWith("b2", ["sf2", "sf1"]),
+    );
+    await waitFor(() => {
+      const names = screen
+        .getAllByRole("button", { name: /^Preview / })
+        .map(button => button.textContent);
+      expect(names).toEqual(["notes.txt", "instructions.pdf"]);
+    });
+  });
+
+  it("opens a PDF supporting file in an inline preview dialog", async () => {
+    listAssetsMock.mockResolvedValue({ items: [assets[1]], hasMore: false });
+    listAssetFilesMock.mockResolvedValue([
+      supportingFile("sf1", "instructions.pdf", 0, { mime: "application/pdf" }),
+    ]);
+
+    render(<AssetGrid theme="dark" />);
+    await screen.findByText("Spool holder");
+    await expandSupportingFiles();
+    await screen.findByText("instructions.pdf");
+
+    fireEvent.click(screen.getByRole("button", { name: "Preview instructions.pdf" }));
+    const dialog = screen.getByRole("dialog", { name: "instructions.pdf" });
+    const frame = within(dialog).getByTitle("instructions.pdf") as HTMLIFrameElement;
+    expect(frame.getAttribute("src")).toBe("/files/sf1?inline=1");
+  });
+
+  it("fetches and renders text supporting files in the preview dialog", async () => {
+    listAssetsMock.mockResolvedValue({ items: [assets[1]], hasMore: false });
+    listAssetFilesMock.mockResolvedValue([
+      supportingFile("sf2", "notes.txt", 0, { mime: "text/plain" }),
+    ]);
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      text: async () => "assembly notes",
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      render(<AssetGrid theme="dark" />);
+      await screen.findByText("Spool holder");
+      await expandSupportingFiles();
+      await screen.findByText("notes.txt");
+
+      fireEvent.click(screen.getByRole("button", { name: "Preview notes.txt" }));
+      const dialog = screen.getByRole("dialog", { name: "notes.txt" });
+      await within(dialog).findByText("assembly notes");
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/files/sf2?inline=1",
+        expect.objectContaining({ signal: expect.anything() }),
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("shows the support count against its ceiling and disables Add at the limit", async () => {
+    listAssetsMock.mockResolvedValue({ items: [assets[1]], hasMore: false });
+    listAssetFilesMock.mockResolvedValue([
+      supportingFile("sf1", "instructions.pdf", 0, { mime: "application/pdf" }),
+    ]);
+    listAssetFileLimitsMock.mockResolvedValue({
+      count: 1,
+      total_bytes: 12,
+      max_count: 2,
+      max_file_bytes: 100,
+      max_total_bytes: 1000,
+    });
+
+    render(<AssetGrid theme="dark" />);
+    await screen.findByText("Spool holder");
+    await expandSupportingFiles();
+    await screen.findByText("instructions.pdf");
+
+    expect(screen.getByText("1 / 2")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Add files" }) as HTMLButtonElement).disabled).toBe(
+      false,
+    );
+  });
+
+  it("disables Add files once the support count limit is reached", async () => {
+    listAssetsMock.mockResolvedValue({ items: [assets[1]], hasMore: false });
+    listAssetFilesMock.mockResolvedValue([
+      supportingFile("sf1", "instructions.pdf", 0, { mime: "application/pdf" }),
+    ]);
+    listAssetFileLimitsMock.mockResolvedValue({
+      count: 1,
+      total_bytes: 12,
+      max_count: 1,
+      max_file_bytes: 100,
+      max_total_bytes: 1000,
+    });
+
+    render(<AssetGrid theme="dark" />);
+    await screen.findByText("Spool holder");
+    await expandSupportingFiles();
+    await screen.findByText("instructions.pdf");
+
+    const add = screen.getByRole("button", { name: "Add files" }) as HTMLButtonElement;
+    await waitFor(() => expect(add.disabled).toBe(true));
+    expect(add.getAttribute("title")).toBe("Supporting file limit reached (1)");
+    expect(screen.getByText("1 / 1")).toBeTruthy();
+  });
+
+  it("surfaces a 413 supporting-file upload message in a toast", async () => {
+    listAssetsMock.mockResolvedValue({ items: [assets[1]], hasMore: false });
+    uploadAssetFileMock.mockRejectedValue(
+      new Error("File is larger than the 10 MB per-file limit"),
+    );
+
+    const { container } = renderWithToaster(<AssetGrid theme="dark" />);
+    await screen.findByText("Spool holder");
+
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, {
+      target: { files: [new File(["x"], "huge.pdf", { type: "application/pdf" })] },
+    });
+
+    await waitFor(() => expect(uploadAssetFileMock).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(toaster().getByText(/File is larger than the 10 MB per-file limit/)).toBeTruthy(),
+    );
   });
 
   it("cancelling the prepared-print clear dialog makes no request", async () => {

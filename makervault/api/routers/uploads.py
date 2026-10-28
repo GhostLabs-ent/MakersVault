@@ -14,7 +14,7 @@ import asset_service
 import db
 import multipart_stream
 import seams
-from asset_file_service import save_asset_file
+from asset_file_service import save_asset_file, size_limit_label
 from asset_service import (
     create_asset_record,
     ensure_model_thumbnail,
@@ -62,9 +62,11 @@ def delete_asset_row_only(asset_id: str) -> None:
 
 
 def upload_too_large_detail(limit: int) -> str:
-    if limit >= 1024 * 1024:
-        return f"Upload exceeds the {limit // (1024 * 1024)} MB limit"
-    return f"Upload exceeds the {limit} byte limit"
+    return f"Upload exceeds the {size_limit_label(limit)} limit"
+
+
+def supporting_file_too_large_detail(limit: int) -> str:
+    return f"Supporting file exceeds the {size_limit_label(limit)} limit"
 
 
 def multipart_form_openapi(*text_fields: str) -> dict:
@@ -139,12 +141,13 @@ async def upload_related_file(
     _: Optional[AuthContext] = Depends(require_write),
 ):
     staging = asset_service.new_staging_path()
+    limit = seams.asset_file_upload_max_bytes()
     try:
-        staged = await multipart_stream.stream_file_part(request, staging, max_bytes=seams.import_max_bytes())
+        staged = await multipart_stream.stream_file_part(request, staging, max_bytes=limit)
         asset = await save_asset_file(asset_id, staged)
         return to_out(asset)
     except multipart_stream.UploadTooLarge:
-        raise HTTPException(status_code=413, detail="Related file exceeds size limit") from None
+        raise HTTPException(status_code=413, detail=supporting_file_too_large_detail(limit)) from None
     except multipart_stream.UploadRequestError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from None
     except ClientDisconnect:

@@ -81,8 +81,8 @@ mutating route is neither audited nor exempt with a reason. See
 
 ## The route matrix
 
-Paths are FastAPI templates exactly as declared. 60 routes: 4 public, 19 read,
-28 write, 9 admin.
+Paths are FastAPI templates exactly as declared. 63 routes: 4 public, 20 read,
+30 write, 9 admin.
 
 The collection/instance templates are deliberately asymmetric: the collection is
 `/projects` while one project is `/project/{project_id}`, exactly like `/folders`
@@ -108,6 +108,7 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | GET    | `/file/{asset_id}/{name}`               | download |
 | GET    | `/asset/{asset_id}/files`               | list supporting files |
 | GET    | `/asset/{asset_id}/files/{file_id}`     | download a supporting file |
+| GET    | `/asset/{asset_id}/files/limits`        | supporting-file count/total against the caps; no secrets |
 | GET    | `/asset/{asset_id}/prepared-print`      | download a prepared print |
 | GET    | `/thumb/{asset_id}.jpg`                 | thumbnail |
 | GET    | `/assets`                               | list assets |
@@ -133,6 +134,8 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | POST   | `/import/zip`                               | creates assets from a zip |
 | POST   | `/asset/{asset_id}/files`                   | uploads a supporting file |
 | DELETE | `/asset/{asset_id}/files/{file_id}`         | deletes a supporting file |
+| PATCH  | `/asset/{asset_id}/files/{file_id}`         | renames a supporting file (display only; the bytes never move) |
+| PUT    | `/asset/{asset_id}/files/order`             | rewrites the supporting-file display order |
 | DELETE | `/asset/{asset_id}/prepared-print`          | deletes a prepared print |
 | POST   | `/asset/{asset_id}/thumbnail-generated`     | writes a thumbnail |
 | POST   | `/assets/batch/tags`                        | bulk tag mutation |

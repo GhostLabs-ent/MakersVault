@@ -80,6 +80,9 @@ fall back to the defaults below.
 | `IMPORT_MAX_MB` | `512` | Maximum remote response size for link imports, and the per-entry cap for each entry extracted from a zip. |
 | `IMPORT_ZIP_MAX_MB` | `2048` | Cumulative expanded-size budget for the entries selected from one zip import. A selection whose declared sizes exceed it is rejected with 413 before anything is written; if an entry understates its size, the whole request is rolled back and rejected once the streamed bytes cross the budget. |
 | `MAX_UPLOAD_MB` | `4096` | Direct upload cap enforced by the API; the reverse proxy needs a matching `client_max_body_size`. |
+| `ASSET_FILE_MAX_MB` | `IMPORT_MAX_MB` (`512`) | Per-supporting-file cap. The cap in force is the smaller of this and `IMPORT_MAX_MB`, so an existing deployment keeps refusing what it refused before. `0` removes this cap, but `IMPORT_MAX_MB` still applies. |
+| `ASSET_FILE_TOTAL_MAX_MB` | `2048` | Total bytes across one model's supporting files. An upload that would cross it is rejected with 413 inside the write transaction, leaving no row and no bytes. `0` disables it. |
+| `ASSET_FILE_MAX_COUNT` | `50` | Maximum supporting files on one model. The next upload is rejected with 413; `0` disables it. |
 | `IMPORT_HTML_MAX_KB` | `4096` | Maximum resolver HTML size. |
 | `MAKERWORLD_COOKIE` | empty | Optional server-side source credential. Browser-provided values are not persisted by the API. |
 | `THINGIVERSE_COOKIE` | empty | Optional server-side source credential. Browser-provided values are not persisted by the API. |

@@ -269,7 +269,7 @@ def test_max_upload_mb_still_enforced_mid_stream(isolated_storage: Path, monkeyp
             headers=headers,
         )
     assert response.status_code == 413, response.text
-    assert response.json()["detail"] == "Upload exceeds the 10 byte limit"
+    assert response.json()["detail"] == "Upload exceeds the 10 bytes limit"
     assert asset_ids() == before
     assert stored_files(storage) == []
     assert incoming_files(storage) == []
@@ -594,7 +594,9 @@ def test_related_file_streams_off_the_event_loop_and_enforces_limit(
             headers=headers,
         )
         assert oversized.status_code == 413, oversized.text
-        assert oversized.json()["detail"] == "Related file exceeds size limit"
+        # The supporting-file cap is the tighter of IMPORT_MAX_BYTES and
+        # ASSET_FILE_MAX_BYTES, and the message says which cap refused it.
+        assert oversized.json()["detail"] == "Supporting file exceeds the 262144 bytes limit"
 
         supporting = client.get(f"/asset/{asset_id}/files", headers=headers).json()
 

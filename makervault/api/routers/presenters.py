@@ -128,5 +128,6 @@ def asset_file_to_out(asset_file: AssetFile) -> AssetFileOut:
         filename=asset_file.filename,
         mime=asset_file.mime,
         size=asset_file.size,
+        position=asset_file.position,
         url=f"/asset/{asset_file.asset_id}/files/{asset_file.id}",
     )

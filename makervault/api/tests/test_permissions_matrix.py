@@ -541,6 +541,26 @@ def call_delete_supporting_file(client: TestClient, headers: dict[str, str], ids
     return client.delete(f"/asset/{ids.asset_id}/files/{ids.file_id}", headers=headers)
 
 
+def call_supporting_file_limits(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    return client.get(f"/asset/{ids.asset_id}/files/limits", headers=headers)
+
+
+def call_rename_supporting_file(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    # A real rename, never a no-op: the audit sweep for this route is in
+    # test_audit_log.py, and a no-op writes no row.
+    return client.patch(
+        f"/asset/{ids.asset_id}/files/{ids.file_id}",
+        json={"filename": f"renamed-{uuid4().hex}.txt"},
+        headers=headers,
+    )
+
+
+def call_reorder_supporting_files(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    # The seed has one supporting file, so the current order is a valid request
+    # that changes nothing; this sweep only checks the permission outcome.
+    return client.put(f"/asset/{ids.asset_id}/files/order", json={"file_ids": [ids.file_id]}, headers=headers)
+
+
 def call_delete_prepared_print(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
     return client.delete(f"/asset/{ids.asset_id}/prepared-print", headers=headers)
 
@@ -718,6 +738,7 @@ CALLS: dict[tuple[str, str], CallSpec] = {
     ("GET", "/file/{asset_id}/{name}"): call_file,
     ("GET", "/asset/{asset_id}/files"): call_supporting_files,
     ("GET", "/asset/{asset_id}/files/{file_id}"): call_supporting_file,
+    ("GET", "/asset/{asset_id}/files/limits"): call_supporting_file_limits,
     ("GET", "/asset/{asset_id}/prepared-print"): call_prepared_print,
     ("GET", "/thumb/{asset_id}.jpg"): call_thumb,
     ("GET", "/assets"): call_assets,
@@ -738,6 +759,8 @@ CALLS: dict[tuple[str, str], CallSpec] = {
     ("GET", "/imports/runs/{run_id}"): call_import_run_detail,
     ("POST", "/asset/{asset_id}/files"): call_upload_supporting_file,
     ("DELETE", "/asset/{asset_id}/files/{file_id}"): call_delete_supporting_file,
+    ("PATCH", "/asset/{asset_id}/files/{file_id}"): call_rename_supporting_file,
+    ("PUT", "/asset/{asset_id}/files/order"): call_reorder_supporting_files,
     ("DELETE", "/asset/{asset_id}/prepared-print"): call_delete_prepared_print,
     ("POST", "/asset/{asset_id}/thumbnail-generated"): call_thumbnail_generated,
     ("POST", "/assets/batch/tags"): call_batch_tags,
@@ -786,6 +809,7 @@ EXPECTED_STATUS: dict[tuple[str, str], int] = {
     ("GET", "/file/{asset_id}/{name}"): 200,
     ("GET", "/asset/{asset_id}/files"): 200,
     ("GET", "/asset/{asset_id}/files/{file_id}"): 200,
+    ("GET", "/asset/{asset_id}/files/limits"): 200,
     ("GET", "/asset/{asset_id}/prepared-print"): 200,
     ("GET", "/thumb/{asset_id}.jpg"): 200,
     ("GET", "/assets"): 200,
@@ -799,6 +823,8 @@ EXPECTED_STATUS: dict[tuple[str, str], int] = {
     ("POST", "/upload"): 200,
     ("POST", "/asset/{asset_id}/files"): 200,
     ("DELETE", "/asset/{asset_id}/files/{file_id}"): 200,
+    ("PATCH", "/asset/{asset_id}/files/{file_id}"): 200,
+    ("PUT", "/asset/{asset_id}/files/order"): 200,
     ("DELETE", "/asset/{asset_id}/prepared-print"): 200,
     ("POST", "/asset/{asset_id}/thumbnail-generated"): 200,
     ("POST", "/assets/batch/tags"): 200,
@@ -885,10 +911,10 @@ def test_every_api_route_has_a_level() -> None:
 
 
 def test_the_matrix_is_the_documented_size() -> None:
-    """The matrix is pinned at 60 routes; a new route means updating this and docs/PERMISSIONS.md."""
+    """The matrix is pinned at 63 routes; a new route means updating this and docs/PERMISSIONS.md."""
     counts = {level: len(keys_at(level)) for level in (permissions.PUBLIC, permissions.READ, permissions.WRITE, permissions.ADMIN)}
-    assert len(permissions.ROUTE_PERMISSIONS) == 60, counts
-    assert counts == {permissions.PUBLIC: 4, permissions.READ: 19, permissions.WRITE: 28, permissions.ADMIN: 9}, counts
+    assert len(permissions.ROUTE_PERMISSIONS) == 63, counts
+    assert counts == {permissions.PUBLIC: 4, permissions.READ: 20, permissions.WRITE: 30, permissions.ADMIN: 9}, counts
 
 
 def test_every_guarded_route_has_a_call_spec() -> None:
