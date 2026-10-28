@@ -2,13 +2,13 @@ import json
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import HTTPException, UploadFile
+from fastapi import HTTPException
 from sqlmodel import Session, select
 
-from config import IMPORT_MAX_BYTES
 from db import STORAGE, engine
 from file_utils import mime_from_content_type, sanitize_filename
 from models import Asset, AssetFile
+from multipart_stream import StreamedUpload
 from prepared_print import inspect_prepared_print, is_prepared_print_filename
 
 
@@ -29,10 +29,11 @@ def list_supporting_files(asset_id: str) -> List[AssetFile]:
         ))
 
 
-async def save_asset_file(asset_id: str, upload: UploadFile) -> Asset:
-    safe_name = sanitize_filename(upload.filename or "supporting-file")
+async def save_asset_file(asset_id: str, staged: StreamedUpload) -> Asset:
+    safe_name = sanitize_filename(staged.filename or "supporting-file")
     role = "prepared" if is_prepared_print_filename(safe_name) else "supporting"
-    mime = mime_from_content_type(upload.content_type or "", safe_name)
+    mime = mime_from_content_type(staged.content_type or "", safe_name)
+    staging = staged.path
 
     with Session(engine) as session:
         asset = session.get(Asset, asset_id)
@@ -52,17 +53,15 @@ async def save_asset_file(asset_id: str, upload: UploadFile) -> Asset:
 
     destination = managed_asset_file_path(record)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    size = 0
+    moved = False
     try:
-        with destination.open("wb") as output:
-            while True:
-                chunk = await upload.read(1024 * 1024)
-                if not chunk:
-                    break
-                size += len(chunk)
-                if size > IMPORT_MAX_BYTES:
-                    raise HTTPException(status_code=413, detail="Related file exceeds size limit")
-                output.write(chunk)
+        # asset_service imports this module at load time; importing its mover
+        # lazily keeps the dependency one-way inside this function.
+        from asset_service import move_managed_file
+
+        move_managed_file(staging, destination)
+        moved = True
+        size = staged.size
 
         metadata = inspect_prepared_print(destination, safe_name) if role == "prepared" or safe_name.lower().endswith(".3mf") else None
         if metadata:
@@ -100,14 +99,19 @@ async def save_asset_file(asset_id: str, upload: UploadFile) -> Asset:
                 pass
         return asset
     except Exception:
-        destination.unlink(missing_ok=True)
-        _prune_bundle_dirs(destination.parent)
+        # Only remove a destination this upload actually moved into place: a
+        # move rejected with 409 means the existing bytes belong to someone else.
+        if moved:
+            destination.unlink(missing_ok=True)
+            _prune_bundle_dirs(destination.parent)
         with Session(engine) as session:
             failed = session.get(AssetFile, record.id)
             if failed:
                 session.delete(failed)
                 session.commit()
         raise
+    finally:
+        staging.unlink(missing_ok=True)
 
 
 def delete_supporting_file(asset_id: str, file_id: str) -> Asset:

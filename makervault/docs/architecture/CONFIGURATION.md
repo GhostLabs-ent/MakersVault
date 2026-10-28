@@ -60,6 +60,13 @@ fall back to the defaults below.
 | `MAKERWORLD_COOKIE` | empty | Optional server-side source credential. Browser-provided values are not persisted by the API. |
 | `THINGIVERSE_COOKIE` | empty | Optional server-side source credential. Browser-provided values are not persisted by the API. |
 
+Upload bodies are streamed straight into storage: a body lands in
+`<storage>/.incoming/<uuid>` and is renamed atomically into its rendered path
+once the form fields that shape that path have arrived. Nothing is spooled into
+container temp, so a 2 GB upload needs one 2 GB file rather than 2 GB of
+scratch. `MAX_UPLOAD_MB` is enforced while the body streams, so an oversize
+upload is cut off as soon as the cap is crossed.
+
 ## Mounted import settings
 
 | Variable | Current default | Effect |

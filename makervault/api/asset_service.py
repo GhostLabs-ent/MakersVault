@@ -8,6 +8,7 @@ import tempfile
 import threading
 from pathlib import Path
 from typing import List, Optional
+from uuid import uuid4
 from zipfile import BadZipFile, ZipFile
 
 from fastapi import HTTPException
@@ -205,6 +206,43 @@ def available_model_name(session: Session, requested: str, folder_id: Optional[s
 def managed_asset_path(asset: Asset) -> Path:
     relative = asset.storage_path or f"{asset.id}/{asset.filename}"
     return STORAGE / relative
+
+
+# Uploads stream into this app-owned directory before their rendered destination
+# exists, because that path depends on form fields that may arrive after the file
+# part. A move prunes the directory, so ``new_staging_path`` recreates it.
+STAGING_DIRNAME = ".incoming"
+
+
+def staging_dir() -> Path:
+    return STORAGE / STAGING_DIRNAME
+
+
+def new_staging_path() -> Path:
+    directory = staging_dir()
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory / uuid4().hex
+
+
+def sweep_staging_dir() -> int:
+    """Remove files a crashed or disconnected upload left behind."""
+    directory = staging_dir()
+    if not directory.is_dir():
+        return 0
+    removed = 0
+    try:
+        entries = list(directory.iterdir())
+    except OSError:
+        log.warning("Could not list staging directory %s", directory, exc_info=True)
+        return 0
+    for entry in entries:
+        try:
+            if entry.is_file() or entry.is_symlink():
+                entry.unlink()
+                removed += 1
+        except OSError:
+            log.warning("Could not remove stale staging entry %s", entry, exc_info=True)
+    return removed
 
 
 def prune_empty_storage_dirs(start: Path) -> None:

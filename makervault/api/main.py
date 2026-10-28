@@ -10,17 +10,19 @@ from urllib.parse import quote, urlparse
 from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile
 
 import jwt
-from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Query, Request, Response, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Query, Request, Response, UploadFile
 from fastapi.responses import FileResponse
 from jwt import PyJWTError
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
-from starlette.concurrency import run_in_threadpool
 from starlette.middleware.cors import CORSMiddleware
+from starlette.requests import ClientDisconnect
 
+import asset_service
 import bulk_service
 import folder_service
 import login_throttle as login_throttle_module
+import multipart_stream
 import trash_service
 from asset_file_service import (
     backfill_prepared_print_metadata,
@@ -33,7 +35,6 @@ from asset_file_service import (
 from asset_service import (
     STORAGE_TEMPLATE_TOKENS,
     backfill_embedded_thumbnails,
-    cleanup_asset,
     create_asset_record,
     delete_asset_permanently,
     ensure_model_thumbnail,
@@ -41,6 +42,7 @@ from asset_service import (
     finalize_asset_record,
     managed_asset_path,
     move_asset_to_folder_by_id,
+    move_managed_file,
     raise_asset_conflict,
     rename_asset_in_place,
     restore_moved_file,
@@ -60,7 +62,7 @@ from auth import (
     require_auth,
     validate_auth_configuration,
 )
-from config import MAX_UPLOAD_BYTES, MOUNT_IMPORT_COPY, MOUNT_IMPORT_ENABLED, MOUNT_IMPORT_PATH
+from config import IMPORT_MAX_BYTES, MAX_UPLOAD_BYTES, MOUNT_IMPORT_COPY, MOUNT_IMPORT_ENABLED, MOUNT_IMPORT_PATH
 from db import THUMBS, engine
 from file_utils import (
     build_import_filename,
@@ -128,6 +130,9 @@ async def lifespan(_app: FastAPI):
     validate_auth_configuration()
     login_throttle_module.limiter.reset()
     run_migrations(engine)
+    # Runs before the server accepts connections, so a single-process deployment
+    # cannot have an in-flight upload for the sweep to race.
+    asset_service.sweep_staging_dir()
     threading.Thread(target=backfill_embedded_thumbnails, daemon=True).start()
     threading.Thread(target=backfill_prepared_print_metadata, daemon=True).start()
     if mount_import_should_run():
@@ -417,70 +422,83 @@ def refresh_token(token: Optional[str] = Depends(require_auth)):
     return LoginResponse(token=new_token, expires_in=AUTH_TOKEN_TTL)
 
 
-class UploadTooLarge(Exception):
-    def __init__(self, limit: int):
-        super().__init__(f"upload exceeds {limit} bytes")
-        self.limit = limit
+# nginx's "client closed request": the upload was aborted, so there is nobody
+# left to read a body.
+CLIENT_CLOSED_REQUEST = 499
 
 
-def persist_upload_to_disk(upload: UploadFile, dest: Path, max_bytes: int) -> int:
-    """Write an uploaded body to disk, off the event loop.
+def delete_asset_row_only(asset_id: str) -> None:
+    """Drop the row an upload created without touching any bytes on disk.
 
-    Every byte here is file I/O against storage that may be a network mount, so
-    doing it inline in an ``async def`` handler stalls every other request. This
-    runs in a worker thread instead. Raises UploadTooLarge if the body exceeds
-    ``max_bytes`` (0 disables the check).
+    ``cleanup_asset`` unlinks ``managed_asset_path(row)``, which is exactly the
+    wrong move when a no-clobber move found a foreign file already at that path.
     """
-    upload.file.seek(0)
-    total = 0
-    with open(dest, "wb") as f:
-        while True:
-            chunk = upload.file.read(1024 * 1024)
-            if not chunk:
-                break
-            total += len(chunk)
-            if max_bytes and total > max_bytes:
-                raise UploadTooLarge(max_bytes)
-            f.write(chunk)
-    return total
-
-
-@app.post("/upload", response_model=AssetOut)
-async def upload(
-    file: UploadFile = File(...),
-    title: Optional[str] = Form(default=None),
-    notes: Optional[str] = Form(default=None),
-    tags: Optional[str] = Form(default=None),  # comma-separated
-    folder_id: Optional[str] = Form(default=None),
-    _: Optional[str] = Depends(require_auth),
-):
-    safe_name = sanitize_filename(file.filename)
-    asset = create_asset_record(
-        safe_name,
-        file.content_type or "application/octet-stream",
-        title,
-        notes,
-        [t.strip() for t in (tags or "").split(",") if t.strip()],
-        folder_id,
-    )
-
-    # persist file
-    dest = managed_asset_path(asset)
+    with Session(engine) as session:
+        asset = session.get(Asset, asset_id)
+        if asset:
+            session.delete(asset)
+            session.commit()
     try:
+        (THUMBS / f"{asset_id}.jpg").unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
+def upload_too_large_detail(limit: int) -> str:
+    if limit >= 1024 * 1024:
+        return f"Upload exceeds the {limit // (1024 * 1024)} MB limit"
+    return f"Upload exceeds the {limit} byte limit"
+
+
+def multipart_form_openapi(*text_fields: str) -> dict:
+    """Describe a streamed multipart body, which FastAPI no longer derives itself."""
+    properties = {"file": {"type": "string", "format": "binary"}}
+    for name in text_fields:
+        properties[name] = {"type": "string"}
+    return {"requestBody": {"content": {"multipart/form-data": {"schema": {
+        "type": "object",
+        "required": ["file"],
+        "properties": properties,
+    }}}}}
+
+
+@app.post("/upload", response_model=AssetOut, openapi_extra=multipart_form_openapi("title", "notes", "tags", "folder_id"))
+async def upload(request: Request, _: Optional[str] = Depends(require_auth)):
+    staging = asset_service.new_staging_path()
+    asset: Optional[Asset] = None
+    try:
+        staged = await multipart_stream.stream_file_part(request, staging, max_bytes=MAX_UPLOAD_BYTES)
+        safe_name = sanitize_filename(staged.filename)
+        tags = [t.strip() for t in (staged.fields.get("tags") or "").split(",") if t.strip()]
+        asset = create_asset_record(
+            safe_name,
+            staged.content_type or "application/octet-stream",
+            staged.fields.get("title"),
+            staged.fields.get("notes"),
+            tags,
+            staged.fields.get("folder_id"),
+        )
+        dest = managed_asset_path(asset)
         dest.parent.mkdir(parents=True, exist_ok=True)
-        size = await run_in_threadpool(persist_upload_to_disk, file, dest, MAX_UPLOAD_BYTES)
-    except UploadTooLarge:
-        # the row was committed before any bytes were written; drop it so a
-        # rejected upload does not leave a phantom asset behind
-        cleanup_asset(asset.id)
-        if MAX_UPLOAD_BYTES >= 1024 * 1024:
-            detail = f"Upload exceeds the {MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit"
-        else:
-            detail = f"Upload exceeds the {MAX_UPLOAD_BYTES} byte limit"
-        raise HTTPException(status_code=413, detail=detail) from None
+        move_managed_file(staging, dest)
+    except multipart_stream.UploadTooLarge:
+        raise HTTPException(status_code=413, detail=upload_too_large_detail(MAX_UPLOAD_BYTES)) from None
+    except multipart_stream.UploadRequestError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from None
+    except ClientDisconnect:
+        return Response(status_code=CLIENT_CLOSED_REQUEST)
+    except HTTPException:
+        # A move rejected with 409 found foreign bytes at the destination; the
+        # row we created goes, the bytes stay.
+        if asset:
+            delete_asset_row_only(asset.id)
+        raise
     except Exception as exc:
-        cleanup_asset(asset.id)
+        if asset:
+            delete_asset_row_only(asset.id)
         raise HTTPException(status_code=500, detail="Failed to store uploaded file") from exc
+    finally:
+        staging.unlink(missing_ok=True)
 
     # make a thumbnail for common image formats (best effort: a thumbnail
     # failure must not discard a file that is already safely on disk)
@@ -492,7 +510,7 @@ async def upload(
     except Exception:
         pass
 
-    asset = finalize_asset_record(asset.id, size, asset.mime) or asset
+    asset = finalize_asset_record(asset.id, staged.size, asset.mime) or asset
 
     return to_out(asset)
 
@@ -579,14 +597,25 @@ def get_supporting_files(asset_id: str, _: Optional[str] = Depends(require_auth)
     return [asset_file_to_out(row) for row in list_supporting_files(asset_id)]
 
 
-@app.post("/asset/{asset_id}/files", response_model=AssetOut)
+@app.post("/asset/{asset_id}/files", response_model=AssetOut, openapi_extra=multipart_form_openapi())
 async def upload_related_file(
     asset_id: str,
-    file: UploadFile = File(...),
+    request: Request,
     _: Optional[str] = Depends(require_auth),
 ):
-    asset = await save_asset_file(asset_id, file)
-    return to_out(asset)
+    staging = asset_service.new_staging_path()
+    try:
+        staged = await multipart_stream.stream_file_part(request, staging, max_bytes=IMPORT_MAX_BYTES)
+        asset = await save_asset_file(asset_id, staged)
+        return to_out(asset)
+    except multipart_stream.UploadTooLarge:
+        raise HTTPException(status_code=413, detail="Related file exceeds size limit") from None
+    except multipart_stream.UploadRequestError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from None
+    except ClientDisconnect:
+        return Response(status_code=CLIENT_CLOSED_REQUEST)
+    finally:
+        staging.unlink(missing_ok=True)
 
 
 @app.get("/asset/{asset_id}/files/{file_id}")

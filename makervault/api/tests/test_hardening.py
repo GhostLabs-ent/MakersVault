@@ -7,7 +7,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 import auth
+import db
 import main
+import multipart_stream
 from db import engine
 from file_utils import sanitize_path_segment
 from import_resolvers import is_makerworld_page_host
@@ -60,10 +62,10 @@ def test_startup_allows_disabled_auth_and_explicit_opt_out(monkeypatch):
 # --- C2: a failed upload must not leave an orphan row or partial file --------
 
 def test_failed_upload_leaves_no_orphan_row(monkeypatch):
-    def boom(upload, dest, max_bytes):
+    def boom(_sink, _data):
         raise OSError("storage went away")
 
-    monkeypatch.setattr(main, "persist_upload_to_disk", boom)
+    monkeypatch.setattr(multipart_stream.FileSink, "write", boom)
     with TestClient(main.app, raise_server_exceptions=False) as client:
         res = client.post(
             "/upload",
@@ -72,6 +74,9 @@ def test_failed_upload_leaves_no_orphan_row(monkeypatch):
         )
         assert res.status_code == 500
         assert client.get("/assets", headers=auth_header(client)).json() == []
+        assert list(db.STORAGE.rglob("cube.stl")) == []
+        incoming = db.STORAGE / ".incoming"
+        assert not incoming.exists() or list(incoming.iterdir()) == []
 
 
 def test_oversized_upload_rejected_without_orphan(monkeypatch):

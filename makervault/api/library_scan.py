@@ -86,7 +86,7 @@ from prepared_print import inspect_prepared_print
 from zip_service import sanitize_folder_name
 
 # App-owned directories inside the storage root. Never library content.
-RESERVED_DIRS = {"thumbs", "bundles"}
+RESERVED_DIRS = {"thumbs", "bundles", ".incoming"}
 # OS/tool debris that is never a library item.
 IGNORED_FILENAMES = {"Thumbs.db", "desktop.ini", ".DS_Store"}
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
