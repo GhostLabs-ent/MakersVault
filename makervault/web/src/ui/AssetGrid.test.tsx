@@ -65,6 +65,7 @@ import {
   listAssetFiles,
   listAssets,
   listFolders,
+  listTags,
   setTags,
   startLibraryScan,
   updateAssetMeta,
@@ -72,6 +73,7 @@ import {
 } from "../lib/api";
 
 const listAssetsMock = vi.mocked(listAssets);
+const listTagsMock = vi.mocked(listTags);
 const listFoldersMock = vi.mocked(listFolders);
 const batchDeleteAssetsMock = vi.mocked(batchDeleteAssets);
 const batchMoveAssetsMock = vi.mocked(batchMoveAssets);
@@ -87,6 +89,12 @@ const createFolderMock = vi.mocked(createFolder);
 const deleteAssetFileMock = vi.mocked(deleteAssetFile);
 const deletePreparedPrintMock = vi.mocked(deletePreparedPrint);
 const listAssetFilesMock = vi.mocked(listAssetFiles);
+
+/** Chip requests are asserted in the mode-aware filter tests; default them to none. */
+beforeEach(() => {
+  listTagsMock.mockReset();
+  listTagsMock.mockResolvedValue([]);
+});
 
 /** The toast stack, scoped so `BulkActionBar`'s own `role="alert"` is never hit. */
 function toaster() {
@@ -125,6 +133,11 @@ function callQuery(index: number) {
   }
   const { limit, offset } = params;
   return { ...params, limit, offset };
+}
+
+/** The per-card selectors only: the toolbar filter is a checkbox too. */
+function cardCheckboxes(): HTMLInputElement[] {
+  return screen.getAllByRole("checkbox", { name: "Select" }) as HTMLInputElement[];
 }
 
 const assets: Asset[] = [
@@ -283,7 +296,8 @@ function mountedRowIndexes(): number[] {
 }
 
 function checkboxCount(): number {
-  return screen.queryAllByRole("checkbox").length;
+  // Card selectors only: the toolbar's "Not in any project" filter is a checkbox too.
+  return screen.queryAllByRole("checkbox", { name: "Select" }).length;
 }
 
 /** Observers still observing `target` (a `disconnect` empties the target list). */
@@ -385,7 +399,7 @@ describe("AssetGrid asset refresh", () => {
     ) as HTMLInputElement;
     fireEvent.change(searchInput, { target: { value: "cube" } });
 
-    const selection = screen.getAllByRole("checkbox")[0] as HTMLInputElement;
+    const selection = cardCheckboxes()[0];
     fireEvent.click(selection);
     expect(selection.checked).toBe(true);
 
@@ -412,7 +426,7 @@ describe("AssetGrid asset refresh", () => {
     expect(searchAfter).toBe(searchInput);
     expect(searchAfter.value).toBe("cube");
 
-    const selectionAfter = screen.getAllByRole("checkbox").find(el => el === selection);
+    const selectionAfter = cardCheckboxes().find(el => el === selection);
     expect(selectionAfter).toBe(selection);
     expect(selection.isConnected).toBe(true);
     expect(selection.checked).toBe(true);
@@ -531,7 +545,7 @@ describe("AssetGrid asset refresh", () => {
 
     it("re-renders only the card whose selection changed", async () => {
       await renderFirstBatch();
-      const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+      const checkboxes = cardCheckboxes();
       expect(checkboxes.length).toBe(flatOrder.length);
 
       // The first click flips `hasSelection` false -> true, which may legally
@@ -621,6 +635,70 @@ describe("AssetGrid asset refresh", () => {
       expect(modalImage.getAttribute("loading")).toBeNull();
       expect(modalImage.getAttribute("decoding")).toBe("async");
     });
+  });
+});
+
+describe("files-mode \"not in any project\" filter", () => {
+  beforeEach(() => {
+    resetToasts();
+    listAssetsMock.mockReset();
+    listAssetsMock.mockResolvedValue({ items: assets, hasMore: false });
+    fileUrlMock.mockClear();
+  });
+
+  afterEach(cleanup);
+
+  function notInProjectBox(): HTMLInputElement {
+    return screen.getByRole("checkbox", { name: "Not in any project" }) as HTMLInputElement;
+  }
+
+  it("narrows the grid and the tag chips to unassigned assets when checked", async () => {
+    render(<AssetGrid theme="dark" />);
+    await screen.findByText("Calibration cube");
+    const callsBefore = listAssetsMock.mock.calls.length;
+
+    fireEvent.click(notInProjectBox());
+
+    await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(callsBefore + 1));
+    const refreshCall = callQuery(callsBefore);
+    expect(refreshCall.not_in_project).toBe(true);
+    // A filter change resets the paging window rather than keeping loaded pages.
+    expect(refreshCall.offset).toBe(0);
+
+    await waitFor(() =>
+      expect(listTagsMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ not_in_project: true }),
+      ),
+    );
+  });
+
+  it("drops the flag from both requests when unchecked again", async () => {
+    render(<AssetGrid theme="dark" />);
+    await screen.findByText("Calibration cube");
+
+    fireEvent.click(notInProjectBox());
+    await waitFor(() => expect(notInProjectBox().checked).toBe(true));
+
+    const callsBefore = listAssetsMock.mock.calls.length;
+    fireEvent.click(notInProjectBox());
+
+    await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(callsBefore + 1));
+    expect(callQuery(callsBefore).not_in_project).toBeFalsy();
+    expect(listTagsMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ not_in_project: false }),
+    );
+  });
+
+  it("sends no unassigned filter on first load", async () => {
+    render(<AssetGrid theme="dark" />);
+    await screen.findByText("Calibration cube");
+
+    expect(notInProjectBox().checked).toBe(false);
+    expect(callQuery(0).not_in_project).toBeFalsy();
+    expect(listTagsMock).toHaveBeenCalledTimes(1);
+    expect(listTagsMock.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ not_in_project: false }),
+    );
   });
 });
 
@@ -1020,7 +1098,7 @@ describe("AssetGrid bulk actions", () => {
 
   /** Clicks the first `count` card checkboxes (flat grid order: filename asc). */
   function selectCards(count: number): HTMLInputElement[] {
-    const boxes = (screen.getAllByRole("checkbox") as HTMLInputElement[]).slice(0, count);
+    const boxes = cardCheckboxes().slice(0, count);
     for (const box of boxes) fireEvent.click(box);
     return boxes;
   }
@@ -1310,7 +1388,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
     render(<AssetGrid theme="dark" />);
     await waitForGrid();
 
-    const boxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+    const boxes = cardCheckboxes();
     fireEvent.click(boxes[0]);
     fireEvent.click(boxes[1]);
 

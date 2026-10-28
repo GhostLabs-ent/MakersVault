@@ -105,8 +105,13 @@ describe("AssetGrid in project mode", () => {
     });
     expect(listAssetsMock).not.toHaveBeenCalled();
     expect(listFoldersMock).not.toHaveBeenCalled();
-    // Tag chips remain library-wide for now, so no folder scope is sent.
-    expect(listTagsMock).toHaveBeenCalledWith({ q: "", folder_id: undefined });
+    // Tag chips follow the open project now (Mf-o4vi), so they carry its id.
+    expect(listTagsMock).toHaveBeenCalledWith({
+      q: "",
+      project_id: "p1",
+      folder_id: undefined,
+      not_in_project: undefined,
+    });
   });
 
   it("hides every folder affordance", async () => {
@@ -135,6 +140,18 @@ describe("AssetGrid in project mode", () => {
     });
 
     expect(screen.queryByText(/Drop files or folders to upload/)).toBeNull();
+  });
+
+  it("hides the files-mode unassigned filter entirely", async () => {
+    projectGrid();
+    await screen.findByText("Calibration cube");
+
+    // Membership already scopes a project listing, so the checkbox is files-only.
+    expect(screen.queryByRole("checkbox", { name: "Not in any project" })).toBeNull();
+    for (const [params] of listProjectAssetsMock.mock.calls) {
+      expect(params).not.toHaveProperty("not_in_project");
+    }
+    expect(listAssetsMock).not.toHaveBeenCalled();
   });
 
   it("passes the submitted query to listProjectAssets", async () => {

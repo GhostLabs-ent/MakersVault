@@ -100,7 +100,8 @@ const hundredAssets: Asset[] = Array.from({ length: 100 }, (_, index) =>
 );
 
 function cardCheckboxes(): HTMLInputElement[] {
-  return screen.getAllByRole("checkbox") as HTMLInputElement[];
+  // The files-mode toolbar also renders a checkbox, so name-scope to card selectors.
+  return screen.getAllByRole("checkbox", { name: "Select" }) as HTMLInputElement[];
 }
 
 beforeEach(() => {

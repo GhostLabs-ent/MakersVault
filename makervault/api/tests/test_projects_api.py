@@ -154,6 +154,18 @@ def project_asset_ids(client: TestClient, headers: dict, project_id: str, **para
     return [asset["id"] for asset in response.json()]
 
 
+def library_asset_ids(client: TestClient, headers: dict, **params) -> list[str]:
+    response = client.get("/assets", params=params, headers=headers)
+    assert response.status_code == 200, response.text
+    return [asset["id"] for asset in response.json()]
+
+
+def library_tags(client: TestClient, headers: dict, **params) -> list[str]:
+    response = client.get("/tags", params=params, headers=headers)
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
 def events_for(request_id: str) -> list[AuditEvent]:
     with Session(engine) as session:
         return list(session.exec(select(AuditEvent).where(AuditEvent.request_id == request_id)))
@@ -522,6 +534,139 @@ def test_project_assets_filter_by_q_and_tags() -> None:
         assert by_q == [tagged["id"]]
         assert by_tags == [tagged["id"]]
         assert miss == []
+
+
+def test_not_in_project_filter_returns_only_assets_in_no_project() -> None:
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        prefix = unique("pile")
+        first = create_project(client, headers)
+        second = create_project(client, headers)
+        # Membership counts 0, 1 and 2: only the count matters, not which projects.
+        in_no_project = upload(client, headers, f"{prefix}-zero.stl")
+        in_one_project = upload(client, headers, f"{prefix}-one.stl")
+        in_two_projects = upload(client, headers, f"{prefix}-two.stl")
+        add_members(client, headers, first["id"], [in_one_project["id"], in_two_projects["id"]])
+        add_members(client, headers, second["id"], [in_two_projects["id"]])
+
+        plain = library_asset_ids(client, headers, q=prefix)
+        unassigned_only = library_asset_ids(client, headers, q=prefix, not_in_project="true")
+
+        assert set(plain) == {
+            in_no_project["id"],
+            in_one_project["id"],
+            in_two_projects["id"],
+        }, "the default listing is unchanged"
+        assert unassigned_only == [in_no_project["id"]], "exactly the complement of membership"
+
+
+def test_not_in_project_filter_excludes_an_asset_in_two_projects() -> None:
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        prefix = unique("shared")
+        first = create_project(client, headers)
+        second = create_project(client, headers)
+        unassigned = upload(client, headers, f"{prefix}-zero.stl")
+        shared = upload(client, headers, f"{prefix}-two.stl")
+        add_members(client, headers, first["id"], [shared["id"]])
+        add_members(client, headers, second["id"], [shared["id"]])
+
+        plain = library_asset_ids(client, headers, q=prefix)
+        unassigned_only = library_asset_ids(client, headers, q=prefix, not_in_project="true")
+
+        assert set(plain) == {unassigned["id"], shared["id"]}
+        assert shared["id"] not in unassigned_only, "membership in any project is enough to be excluded"
+        assert unassigned_only == [unassigned["id"]]
+
+
+def test_not_in_project_filter_pages_like_get_assets() -> None:
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        prefix = unique("paged")
+        for name in ("alpha", "beta", "gamma"):
+            upload(client, headers, f"{prefix}-{name}.stl")
+
+        first = client.get("/assets", params={"q": prefix, "not_in_project": "true", "limit": 2}, headers=headers)
+
+        assert first.status_code == 200, first.text
+        assert len(first.json()) == 2
+        assert first.headers["X-Has-More"] == "true"
+        assert first.headers["X-Next-Offset"] == "2"
+
+
+def test_tags_scope_to_the_open_project() -> None:
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        prefix = unique("colour")
+        project_a = create_project(client, headers)
+        project_b = create_project(client, headers)
+        red = unique("red")
+        blue = unique("blue")
+        green = unique("green")
+        in_a = upload(client, headers, f"{prefix}-a.stl")
+        in_b = upload(client, headers, f"{prefix}-b.stl")
+        unassigned = upload(client, headers, f"{prefix}-c.stl")
+        for asset, tag in ((in_a, red), (in_b, blue), (unassigned, green)):
+            response = client.post(f"/asset/{asset['id']}/tags", json={"tags": [tag]}, headers=headers)
+            assert response.status_code == 200, response.text
+        add_members(client, headers, project_a["id"], [in_a["id"]])
+        add_members(client, headers, project_b["id"], [in_b["id"]])
+
+        scoped = library_tags(client, headers, project_id=project_a["id"])
+        unscoped = library_tags(client, headers, q=prefix)
+
+        assert scoped == [red]
+        assert set(unscoped) == {red, blue, green}, "without the scope all three tags are visible"
+
+
+def test_tags_not_in_project_filter_matches_the_unassigned_pile() -> None:
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        prefix = unique("loose")
+        project = create_project(client, headers)
+        member_tag = unique("joined")
+        unassigned_tag = unique("alone")
+        member = upload(client, headers, f"{prefix}-member.stl")
+        unassigned = upload(client, headers, f"{prefix}-loose.stl")
+        for asset, tag in ((member, member_tag), (unassigned, unassigned_tag)):
+            response = client.post(f"/asset/{asset['id']}/tags", json={"tags": [tag]}, headers=headers)
+            assert response.status_code == 200, response.text
+        add_members(client, headers, project["id"], [member["id"]])
+
+        found = library_tags(client, headers, q=prefix, not_in_project="true")
+
+        assert unassigned_tag in found
+        assert member_tag not in found
+
+
+def test_tags_404_for_an_unknown_project() -> None:
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+
+        response = client.get("/tags", params={"project_id": uuid4().hex}, headers=headers)
+
+        assert response.status_code == 404, response.text
+        assert response.json()["detail"] == "Project not found"
+
+
+def test_tags_project_scope_composes_with_the_folder_scope() -> None:
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        prefix = unique("bench")
+        project = create_project(client, headers)
+        shelf = create_folder(client, headers, unique("Shelf"))
+        member_tag = unique("member")
+        stranger_tag = unique("stranger")
+        member = upload(client, headers, f"{prefix}-member.stl", shelf["id"])
+        stranger = upload(client, headers, f"{prefix}-stranger.stl", shelf["id"])
+        for asset, tag in ((member, member_tag), (stranger, stranger_tag)):
+            response = client.post(f"/asset/{asset['id']}/tags", json={"tags": [tag]}, headers=headers)
+            assert response.status_code == 200, response.text
+        add_members(client, headers, project["id"], [member["id"]])
+
+        found = library_tags(client, headers, project_id=project["id"], folder_id=shelf["id"])
+
+        assert found == [member_tag], "the project and folder scopes are ANDed"
 
 
 def test_project_assets_span_folders() -> None:

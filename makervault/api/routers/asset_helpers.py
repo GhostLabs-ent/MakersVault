@@ -3,10 +3,10 @@
 from typing import List, Optional
 
 from fastapi import HTTPException, Response
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 import bulk_service
-from models import Asset
+from models import Asset, ProjectAsset
 
 
 # The 400 half of the batch contract documented above the batch routes in
@@ -18,7 +18,14 @@ def require_asset_ids(raw: List[str]) -> List[str]:
     return asset_ids
 
 
-def apply_asset_filters(stmt, q: Optional[str], tags: Optional[str], folder_id: Optional[str]):
+def apply_asset_filters(
+    stmt,
+    q: Optional[str],
+    tags: Optional[str],
+    folder_id: Optional[str],
+    project_id: Optional[str] = None,
+    not_in_project: bool = False,
+):
     if q:
         qlike = f"%{q}%"
         stmt = stmt.where(
@@ -31,6 +38,13 @@ def apply_asset_filters(stmt, q: Optional[str], tags: Optional[str], folder_id: 
         )
     if folder_id:
         stmt = stmt.where(Asset.folder_id == folder_id)
+    if project_id:
+        stmt = stmt.where(Asset.id.in_(select(ProjectAsset.asset_id).where(ProjectAsset.project_id == project_id)))
+    if not_in_project:
+        # asset_id is half of project_asset's composite primary key, so it is
+        # never NULL and NOT IN is the exact complement of the membership filter
+        # used by the project listing and by POST /download/zip.
+        stmt = stmt.where(Asset.id.not_in(select(ProjectAsset.asset_id)))
     tag_filter = [t.strip() for t in (tags or "").split(",") if t.strip()]
     for tag in tag_filter:
         stmt = stmt.where(Asset.tags_json.like(f'%"{tag}"%'))

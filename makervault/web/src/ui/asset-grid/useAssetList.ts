@@ -45,11 +45,14 @@ export type AssetListApi = {
   offset: number;
   setOffset: Dispatch<SetStateAction<number>>;
   hasMore: boolean;
+  /** Files mode only: the grid is narrowed to assets that belong to no project. */
+  notInProject: boolean;
   /** Latest typed query; a ref so typing never re-renders the grid. */
   queryRef: MutableRefObject<string>;
   refresh: (opts?: RefreshOpts) => Promise<void>;
   loadMore: () => Promise<void>;
   toggleTag: (tag: string) => void;
+  toggleNotInProject: (next: boolean) => void;
   handleApiError: (err: unknown, message?: string) => boolean;
 };
 
@@ -76,6 +79,7 @@ export function useAssetList({
   const [loadingMore, setLoadingMore] = useState(false);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
+  const [notInProject, setNotInProject] = useState(false);
   const [pageSize] = useState<number>(() => {
     if (typeof window === "undefined") return ROWS_PER_BATCH;
     return rowsBatchSizeForWidth(window.innerWidth);
@@ -100,6 +104,9 @@ export function useAssetList({
     const search = opts.search ?? queryRef.current;
     const tags = opts.tags ?? activeTags;
     const targetFolderId = folderId || undefined;
+    // One value for both requests, so the chips can never describe a different
+    // pile than the grid.
+    const effectiveNotInProject = opts.notInProject ?? notInProject;
     const paging = refreshWindow(offset, pageSize, opts.keepLoadedPages);
     const [assetsResult, tagsResult] = await Promise.allSettled([
       fetchAssetPage({
@@ -107,14 +114,15 @@ export function useAssetList({
         q: search,
         tags,
         folderId: targetFolderId,
+        notInProject: effectiveNotInProject,
         limit: paging.limit,
         offset: paging.offset,
       }),
-      // Project mode has no folder scope, so its tag chips stay library-wide
-      // for now; scoping them per project is Mf-o4vi's job.
       listTags({
         q: search,
         folder_id: isProject ? undefined : targetFolderId,
+        project_id: projectId ?? undefined,
+        not_in_project: isProject ? undefined : effectiveNotInProject,
       }),
     ]);
 
@@ -145,6 +153,7 @@ export function useAssetList({
         q: queryRef.current,
         tags: activeTags,
         folderId: folderId || undefined,
+        notInProject,
         limit: pageSize,
         offset,
       });
@@ -192,6 +201,13 @@ export function useAssetList({
     refresh({ tags: next });
   };
 
+  const toggleNotInProject = useStableCallback((next: boolean) => {
+    setNotInProject(next);
+    // No `keepLoadedPages`: like every other filter change, the paging window
+    // resets to the first page.
+    refresh({ notInProject: next });
+  });
+
   return {
     items,
     setItems,
@@ -205,10 +221,12 @@ export function useAssetList({
     offset,
     setOffset,
     hasMore,
+    notInProject,
     queryRef,
     refresh,
     loadMore,
     toggleTag,
+    toggleNotInProject,
     handleApiError,
   };
 }

@@ -56,6 +56,8 @@ type AssetToolbarProps = {
   activeTags: string[];
   setActiveTags: Dispatch<SetStateAction<string[]>>;
   toggleTag: (tag: string) => void;
+  notInProject: boolean;
+  onToggleNotInProject: (next: boolean) => void;
   refresh: (opts?: RefreshOpts) => Promise<void>;
   onQueryChange: (query: string) => void;
   onSearch: (query: string) => void;
@@ -78,6 +80,8 @@ export default function AssetToolbar({
   activeTags,
   setActiveTags,
   toggleTag,
+  notInProject,
+  onToggleNotInProject,
   refresh,
   onQueryChange,
   onSearch,
@@ -111,6 +115,17 @@ export default function AssetToolbar({
             {sortDir === "asc" ? "Asc" : "Desc"}
           </button>
         </div>
+        {!isProject && (
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={notInProject}
+              onChange={e => onToggleNotInProject(e.target.checked)}
+              className="w-4 h-4"
+            />
+            <span>Not in any project</span>
+          </label>
+        )}
       </div>
 
       {!!allTags.length && (

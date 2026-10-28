@@ -86,10 +86,12 @@ export default function AssetGrid({
     offset,
     setOffset,
     hasMore,
+    notInProject,
     queryRef,
     refresh,
     loadMore,
     toggleTag,
+    toggleNotInProject,
     handleApiError,
   } = useAssetList({
     folderId,
@@ -323,6 +325,8 @@ export default function AssetGrid({
         activeTags={activeTags}
         setActiveTags={setActiveTags}
         toggleTag={toggleTag}
+        notInProject={notInProject}
+        onToggleNotInProject={toggleNotInProject}
         refresh={refresh}
         onQueryChange={query => { queryRef.current = query; }}
         onSearch={query => { refresh({ search: query }); }}

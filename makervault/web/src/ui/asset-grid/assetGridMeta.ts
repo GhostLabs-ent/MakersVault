@@ -10,7 +10,12 @@ import { colsForWidth } from "../../lib/virtualGrid";
 export type SortKey = "name" | "size" | "type" | "folder";
 export type SortDir = "asc" | "desc";
 
-export type RefreshOpts = { tags?: string[]; search?: string; keepLoadedPages?: boolean };
+export type RefreshOpts = {
+  tags?: string[];
+  search?: string;
+  keepLoadedPages?: boolean;
+  notInProject?: boolean;
+};
 export type GroupBucket = { id: string; title: string; items: Asset[] };
 export type PreviewVariant = "card" | "modal";
 
@@ -68,12 +73,14 @@ export function noop(): void {}
 /**
  * The one place that decides between the folder-scoped and project-scoped asset
  * listing. A project has no folder axis, so `folderId` is ignored there.
+ * `notInProject` is files-only: a project listing is already scoped by membership.
  */
 export function fetchAssetPage(opts: {
   projectId?: string | null;
   q?: string;
   tags?: string[];
   folderId?: string;
+  notInProject?: boolean;
   limit?: number;
   offset?: number;
 }): Promise<ListAssetsResult> {
@@ -90,6 +97,7 @@ export function fetchAssetPage(opts: {
     q: opts.q,
     tags: opts.tags,
     folder_id: opts.folderId,
+    not_in_project: opts.notInProject,
     limit: opts.limit,
     offset: opts.offset,
   });

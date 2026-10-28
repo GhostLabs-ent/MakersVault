@@ -238,6 +238,8 @@ export async function listAssets(params: {
   q?: string;
   tags?: string[];
   folder_id?: string;
+  /** Only assets that belong to no project (the files-mode "unsorted pile"). */
+  not_in_project?: boolean;
   limit?: number;
   offset?: number;
 } = {}): Promise<ListAssetsResult> {
@@ -245,6 +247,7 @@ export async function listAssets(params: {
   if (params.q) qs.set("q", params.q);
   if (params.tags && params.tags.length) qs.set("tags", params.tags.join(","));
   if (params.folder_id) qs.set("folder_id", params.folder_id);
+  if (params.not_in_project) qs.set("not_in_project", "true");
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
   if (typeof params.offset === "number") qs.set("offset", String(params.offset));
   const res = await fetch(`${apiBase()}/assets?${qs.toString()}`, {
@@ -262,11 +265,17 @@ export async function listTags(params: {
   q?: string;
   tags?: string[];
   folder_id?: string;
+  /** Scope the chip set to one project's members (project mode). */
+  project_id?: string;
+  /** Scope the chip set to assets in no project (files-mode "unsorted pile"). */
+  not_in_project?: boolean;
 } = {}): Promise<string[]> {
   const qs = new URLSearchParams();
   if (params.q) qs.set("q", params.q);
   if (params.tags && params.tags.length) qs.set("tags", params.tags.join(","));
   if (params.folder_id) qs.set("folder_id", params.folder_id);
+  if (params.project_id) qs.set("project_id", params.project_id);
+  if (params.not_in_project) qs.set("not_in_project", "true");
   const res = await fetch(`${apiBase()}/tags?${qs.toString()}`, {
     headers: authHeaders(),
   });

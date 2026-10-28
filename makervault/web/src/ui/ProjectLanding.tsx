@@ -273,7 +273,8 @@ export default function ProjectLanding({
     return fallback?.thumb_url ? fileUrl(fallback.thumb_url) : null;
   }, [project.cover_thumb_url, members]);
 
-  // The tag union is read-only here; project-scoped tags are Mf-o4vi.
+  // The tag union is read-only here and derived from the members this page
+  // already loaded, so the chips cost no extra request.
   const allTags = useMemo(() => {
     const set = new Set<string>();
     for (const member of members) {

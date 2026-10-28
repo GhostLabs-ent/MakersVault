@@ -52,12 +52,13 @@ def list_assets(
     q: Optional[str] = None,
     tags: Optional[str] = Query(default=None, description="Comma-separated tags"),
     folder_id: Optional[str] = None,
+    not_in_project: bool = Query(default=False, description="Only assets that belong to no project"),
     limit: Optional[int] = Query(default=None, ge=1, le=1000),
     offset: Optional[int] = Query(default=None, ge=0),
     _: Optional[AuthContext] = Depends(require_read),
 ):
     with Session(engine) as s:
-        stmt = apply_asset_filters(select(Asset), q, tags, folder_id)
+        stmt = apply_asset_filters(select(Asset), q, tags, folder_id, not_in_project=not_in_project)
         stmt = stmt.order_by(Asset.name, Asset.filename, Asset.id)
         assets = asset_page(s, stmt, response, limit, offset)
 
@@ -70,10 +71,18 @@ def list_tags(
     q: Optional[str] = None,
     tags: Optional[str] = Query(default=None, description="Comma-separated tags"),
     folder_id: Optional[str] = None,
+    project_id: Optional[str] = Query(default=None, description="Only tags on this project's assets"),
+    not_in_project: bool = Query(default=False, description="Only tags on assets that belong to no project"),
     _: Optional[AuthContext] = Depends(require_read),
 ):
     with Session(engine) as s:
-        stmt = apply_asset_filters(select(Asset.tags_json), q, tags, folder_id)
+        # An unknown project is a 404 here like every other project route, so the
+        # chips and the listing fail together instead of silently going empty.
+        if project_id:
+            project_service.get_project(s, project_id)
+        stmt = apply_asset_filters(
+            select(Asset.tags_json), q, tags, folder_id, project_id=project_id, not_in_project=not_in_project
+        )
         rows = list(s.exec(stmt))
 
     found: set[str] = set()
