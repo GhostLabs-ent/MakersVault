@@ -10,10 +10,18 @@ failure path leaves an orphan row or a partial file behind.
 
 Every test works in a temporary storage root (the database is shared for the
 whole session, so rows and the template are restored at teardown).
+
+Storing a related file does database and filesystem work, so ``save_asset_file``
+hands the whole store to a worker thread (Mf-rmfb) while the multipart bytes keep
+streaming elsewhere. These tests pin that the write and the prepared-print
+inspection never run on the event loop, that ``/health`` stays answerable while a
+large supporting file is being stored, and that a failing inspection keeps the
+stored bytes instead of unwinding the upload.
 """
 
 import asyncio
 import json
+import logging
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -615,3 +623,204 @@ def test_both_upload_endpoints_document_a_binary_file_part() -> None:
         schema = paths[route]["post"]["requestBody"]["content"]["multipart/form-data"]["schema"]
         assert schema["required"] == ["file"]
         assert schema["properties"]["file"] == {"type": "string", "format": "binary"}
+
+
+def created_asset_id(client: TestClient, headers: dict) -> str:
+    """Create one asset through the regular upload route and return its id."""
+    created = client.post(
+        "/upload",
+        files={"file": ("probe.stl", b"solid probe\n", "model/stl")},
+        headers=headers,
+    )
+    assert created.status_code == 200, created.text
+    return created.json()["id"]
+
+
+def probe_payload() -> bytes:
+    """About two megabytes of gcode-ish text, so the store is more than a memcpy."""
+    return b"; probe print\n" + b"G1 X10 Y10 E1\n" * (2 * 1024 * 1024 // 14)
+
+
+def test_asset_file_write_and_inspection_run_off_the_event_loop(
+    isolated_storage: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    loop_threads: List[str] = []
+    move_threads: List[str] = []
+    inspect_threads: List[str] = []
+    real_new_staging_path = asset_service.new_staging_path
+    real_move_managed_file = asset_service.move_managed_file
+    real_inspect_prepared_print = asset_file_service.inspect_prepared_print
+
+    def recording_new_staging_path() -> Path:
+        loop_threads.append(threading.current_thread().name)
+        return real_new_staging_path()
+
+    def recording_move_managed_file(old_path: Path, new_path: Path) -> bool:
+        move_threads.append(threading.current_thread().name)
+        return real_move_managed_file(old_path, new_path)
+
+    def recording_inspect_prepared_print(path: Path, filename: Optional[str] = None) -> Optional[dict]:
+        inspect_threads.append(threading.current_thread().name)
+        return real_inspect_prepared_print(path, filename)
+
+    monkeypatch.setattr(asset_service, "new_staging_path", recording_new_staging_path)
+    monkeypatch.setattr(asset_service, "move_managed_file", recording_move_managed_file)
+    monkeypatch.setattr(asset_file_service, "inspect_prepared_print", recording_inspect_prepared_print)
+
+    payload = probe_payload()
+    with TestClient(main.app, raise_server_exceptions=False) as client:
+        headers = auth_header(client)
+        asset_id = created_asset_id(client, headers)
+        response = client.post(
+            f"/asset/{asset_id}/files",
+            files={"file": ("PROBE.gcode.3mf", payload, "model/3mf")},
+            headers=headers,
+        )
+    assert response.status_code == 200, response.text
+    assert move_threads and inspect_threads
+    assert set(move_threads).isdisjoint(loop_threads)
+    assert set(inspect_threads).isdisjoint(loop_threads)
+
+
+def test_health_answers_while_a_large_supporting_file_is_being_stored(
+    isolated_storage: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    started = threading.Event()
+    finished = threading.Event()
+    release = threading.Event()
+    real_inspect_prepared_print = asset_file_service.inspect_prepared_print
+
+    def blocking_inspect_prepared_print(path: Path, filename: Optional[str] = None) -> Optional[dict]:
+        started.set()
+        try:
+            release.wait(timeout=2)
+        finally:
+            finished.set()
+        return real_inspect_prepared_print(path, filename)
+
+    monkeypatch.setattr(asset_file_service, "inspect_prepared_print", blocking_inspect_prepared_print)
+
+    body = multipart_body([("file", "PROBE.gcode", "text/x-gcode", probe_payload())])
+    content_type = f"multipart/form-data; boundary={BOUNDARY}"
+    with TestClient(main.app, raise_server_exceptions=False) as client:
+        headers = auth_header(client)
+        asset_id = created_asset_id(client, headers)
+
+    async def upload_task() -> List[dict]:
+        scope = asgi_scope(bearer_headers(headers, content_type))
+        scope["path"] = f"/asset/{asset_id}/files"
+        scope["raw_path"] = scope["path"].encode()
+        sent = {"done": False}
+
+        async def receive() -> dict:
+            if not sent["done"]:
+                sent["done"] = True
+                return {"type": "http.request", "body": body, "more_body": False}
+            return {"type": "http.disconnect"}
+
+        return await call_app(scope, receive)
+
+    async def health_task() -> List[dict]:
+        scope = asgi_scope(bearer_headers(headers, "application/json"))
+        scope["method"] = "GET"
+        scope["path"] = "/health"
+        scope["raw_path"] = b"/health"
+
+        async def receive() -> dict:
+            return {"type": "http.disconnect"}
+
+        return await call_app(scope, receive)
+
+    async def scenario() -> Tuple[int, int, bool]:
+        upload = asyncio.ensure_future(upload_task())
+        try:
+            # Bounded wait: a broken upload must fail the test, not hang it.
+            while not started.is_set() and not upload.done():
+                await asyncio.sleep(0.01)
+            health_messages = await asyncio.wait_for(health_task(), timeout=10)
+            answered_before_release = not finished.is_set() and not upload.done()
+        finally:
+            release.set()
+        upload_messages = await asyncio.wait_for(upload, timeout=10)
+        return response_status(health_messages), response_status(upload_messages), answered_before_release
+
+    health_status, upload_status, answered_before_release = asyncio.run(
+        asyncio.wait_for(scenario(), timeout=30)
+    )
+
+    assert upload_status == 200
+    assert health_status == 200
+    assert answered_before_release is True
+
+
+def test_prepared_inspection_failure_keeps_the_stored_file(
+    isolated_storage: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    def exploding_inspect_prepared_print(path: Path, filename: Optional[str] = None) -> Optional[dict]:
+        raise RuntimeError("inspection exploded")
+
+    monkeypatch.setattr(asset_file_service, "inspect_prepared_print", exploding_inspect_prepared_print)
+    payload = b"; probe print\nG1 X0 Y0 E1\n" + b"G1 X10 Y10 E1\n" * 500
+    with TestClient(main.app, raise_server_exceptions=False) as client:
+        headers = auth_header(client)
+        asset_id = created_asset_id(client, headers)
+        with caplog.at_level(logging.WARNING):
+            response = client.post(
+                f"/asset/{asset_id}/files",
+                files={"file": ("PROBE.gcode", payload, "text/x-gcode")},
+                headers=headers,
+            )
+        assert response.status_code == 200, response.text
+        download = client.get(f"/asset/{asset_id}/prepared-print", headers=headers)
+
+    assert download.status_code == 200
+    assert download.content == payload
+
+    with Session(engine) as session:
+        rows = list(session.exec(select(AssetFile).where(AssetFile.asset_id == asset_id)))
+        assert len(rows) == 1
+        row = rows[0]
+        stored = asset_file_service.managed_asset_file_path(row)
+        assert row.role == "prepared"
+        assert row.size == len(payload)
+        assert stored.exists()
+        assert stored.read_bytes() == payload
+        asset = session.get(Asset, asset_id)
+        assert asset is not None
+        assert asset.prepared_file_id == row.id
+        assert json.loads(asset.prepared_metadata_json) == {"format": "gcode"}
+    assert incoming_files(isolated_storage) == []
+    assert any("inspection failed" in record.getMessage() for record in caplog.records)
+
+
+def test_inspection_failure_on_a_plain_3mf_still_stores_it(
+    isolated_storage: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def exploding_inspect_prepared_print(path: Path, filename: Optional[str] = None) -> Optional[dict]:
+        raise RuntimeError("inspection exploded")
+
+    monkeypatch.setattr(asset_file_service, "inspect_prepared_print", exploding_inspect_prepared_print)
+    payload = b"PK\x03\x04 not really a zip\n" + b"x" * 1024
+    with TestClient(main.app, raise_server_exceptions=False) as client:
+        headers = auth_header(client)
+        asset_id = created_asset_id(client, headers)
+        response = client.post(
+            f"/asset/{asset_id}/files",
+            files={"file": ("model.3mf", payload, "model/3mf")},
+            headers=headers,
+        )
+
+    assert response.status_code == 200, response.text
+
+    with Session(engine) as session:
+        rows = list(session.exec(select(AssetFile).where(AssetFile.asset_id == asset_id)))
+        assert len(rows) == 1
+        row = rows[0]
+        stored = asset_file_service.managed_asset_file_path(row)
+        assert row.role == "supporting"
+        assert stored.exists()
+        assert stored.read_bytes() == payload
+        asset = session.get(Asset, asset_id)
+        assert asset is not None
+        assert asset.supporting_file_count == 1
+    assert incoming_files(isolated_storage) == []

@@ -1,15 +1,19 @@
 import json
+import logging
 from pathlib import Path
 from typing import List, Optional
 
 from fastapi import HTTPException
 from sqlmodel import Session, select
+from starlette.concurrency import run_in_threadpool
 
 from db import STORAGE, engine
 from file_utils import mime_from_content_type, sanitize_filename
 from models import Asset, AssetFile
 from multipart_stream import StreamedUpload
 from prepared_print import inspect_prepared_print, is_prepared_print_filename
+
+log = logging.getLogger(__name__)
 
 
 def managed_asset_file_path(asset_file: AssetFile) -> Path:
@@ -33,6 +37,11 @@ async def save_asset_file(asset_id: str, staged: StreamedUpload) -> Asset:
     safe_name = sanitize_filename(staged.filename or "supporting-file")
     role = "prepared" if is_prepared_print_filename(safe_name) else "supporting"
     mime = mime_from_content_type(staged.content_type or "", safe_name)
+    return await run_in_threadpool(_store_asset_file, asset_id, staged, safe_name, role, mime)
+
+
+def _store_asset_file(asset_id: str, staged: StreamedUpload, safe_name: str, role: str, mime: str) -> Asset:
+    """Store a staged upload: row, move, inspect, then the parent asset update."""
     staging = staged.path
 
     with Session(engine) as session:
@@ -52,9 +61,11 @@ async def save_asset_file(asset_id: str, staged: StreamedUpload) -> Asset:
         session.refresh(record)
 
     destination = managed_asset_file_path(record)
-    destination.parent.mkdir(parents=True, exist_ok=True)
     moved = False
     try:
+        # A failed mkdir must delete the pending row, so it belongs inside the
+        # guarded block; no destination bytes exist yet, so nothing is unlinked.
+        destination.parent.mkdir(parents=True, exist_ok=True)
         # asset_service imports this module at load time; importing its mover
         # lazily keeps the dependency one-way inside this function.
         from asset_service import move_managed_file
@@ -63,7 +74,20 @@ async def save_asset_file(asset_id: str, staged: StreamedUpload) -> Asset:
         moved = True
         size = staged.size
 
-        metadata = inspect_prepared_print(destination, safe_name) if role == "prepared" or safe_name.lower().endswith(".3mf") else None
+        metadata: Optional[dict] = None
+        if role == "prepared" or safe_name.lower().endswith(".3mf"):
+            try:
+                metadata = inspect_prepared_print(destination, safe_name)
+            except Exception as exc:
+                # The bytes are already stored: a parser failure only costs the
+                # metadata, and the filename keeps the row's prepared role.
+                log.warning(
+                    "Prepared-print inspection failed for %s: %s; keeping the stored file",
+                    destination,
+                    exc,
+                    exc_info=True,
+                )
+                metadata = None
         if metadata:
             role = "prepared"
         old_prepared_path: Optional[Path] = None
