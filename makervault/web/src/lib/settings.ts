@@ -60,6 +60,10 @@ export type ThingiverseSettings = {
   cookie: string;
 };
 
+export type ImportSettings = {
+  rememberCookies: boolean;
+};
+
 export type NetworkSettings = {
   publicUrl: string;
 };
@@ -76,12 +80,14 @@ export type AppSettings = {
   theme: ThemeSettings;
   makerworld: MakerWorldSettings;
   thingiverse: ThingiverseSettings;
+  imports: ImportSettings;
   network: NetworkSettings;
   previews: PreviewSettings;
 };
 
 const STORAGE_KEY = "makersvault_settings";
 const LEGACY_THEME_KEY = "makersvault_theme";
+const SESSION_COOKIES_KEY = "makersvault_session_cookies";
 
 const DEFAULT_SETTINGS: AppSettings = {
   slicer: {
@@ -101,6 +107,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   thingiverse: {
     cookie: "",
   },
+  imports: {
+    rememberCookies: false,
+  },
   network: {
     publicUrl: "",
   },
@@ -109,9 +118,78 @@ const DEFAULT_SETTINGS: AppSettings = {
   },
 };
 
+type StoredCookies = {
+  makerworld: string;
+  thingiverse: string;
+};
+
+const EMPTY_COOKIES: StoredCookies = { makerworld: "", thingiverse: "" };
+
+type SessionCookieSnapshot = {
+  raw: string | null;
+  cookies: StoredCookies;
+};
+
+/** Parses a raw session-cookie payload; unknown shapes degrade to empty cookies and never throw. */
+function parseSessionCookies(raw: string): StoredCookies {
+  try {
+    const parsed = JSON.parse(raw) || {};
+    return {
+      makerworld: typeof parsed.makerworld === "string" ? parsed.makerworld : "",
+      thingiverse: typeof parsed.thingiverse === "string" ? parsed.thingiverse : "",
+    };
+  } catch {
+    return EMPTY_COOKIES;
+  }
+}
+
+/**
+ * Reads the session-scoped cookie snapshot.
+ *
+ * `sessionStorage` throws in some privacy modes, which is treated as an empty
+ * store. The raw string is returned alongside the parsed cookies so the
+ * settings cache can revalidate on it; an absent key is never parsed.
+ */
+function readSessionCookies(): SessionCookieSnapshot {
+  let raw: string | null;
+  try {
+    raw = window.sessionStorage.getItem(SESSION_COOKIES_KEY);
+  } catch {
+    return { raw: null, cookies: EMPTY_COOKIES };
+  }
+  if (!raw) return { raw, cookies: EMPTY_COOKIES };
+  return { raw, cookies: parseSessionCookies(raw) };
+}
+
+/** Writes the session-scoped cookie snapshot, dropping the key when both values are empty. */
+function persistSessionCookies(cookies: StoredCookies): void {
+  try {
+    if (!cookies.makerworld && !cookies.thingiverse) {
+      window.sessionStorage.removeItem(SESSION_COOKIES_KEY);
+      return;
+    }
+    window.sessionStorage.setItem(SESSION_COOKIES_KEY, JSON.stringify(cookies));
+  } catch {
+    // Session storage unavailable; the cookie just stays in memory.
+  }
+}
+
+/**
+ * Picks the cookie value a load should hand back.
+ *
+ * A remembered cookie lives in the long-lived blob; otherwise the session copy
+ * wins and the blob value is only the fallback, so a build that predates the
+ * opt-in keeps its cookie in memory until the first save migrates it out.
+ */
+function resolveCookie(remembered: boolean, storedValue: string, sessionValue: string): string {
+  if (remembered) return storedValue;
+  return sessionValue || storedValue;
+}
+
 type SettingsCacheEntry = {
   raw: string | null;
   legacyTheme: string | null;
+  sessionCookies: string | null;
   settings: AppSettings;
 };
 
@@ -125,9 +203,14 @@ let settingsCache: SettingsCacheEntry | null = null;
  *
  * Pure: callers pass the raw storage values in, so this never reads
  * `localStorage` itself. `legacyTheme` is only consulted when the stored theme
- * is missing or invalid. Malformed JSON yields `DEFAULT_SETTINGS`.
+ * is missing or invalid. `sessionCookies` supplies the session-scoped cookie
+ * values. Malformed JSON yields `DEFAULT_SETTINGS`.
  */
-function parseStoredSettings(raw: string | null, legacyTheme: string | null): AppSettings {
+function parseStoredSettings(
+  raw: string | null,
+  legacyTheme: string | null,
+  sessionCookies: StoredCookies,
+): AppSettings {
   try {
     const parsed = raw ? JSON.parse(raw) || {} : {};
     const slicer = parsed.slicer || {};
@@ -145,12 +228,27 @@ function parseStoredSettings(raw: string | null, legacyTheme: string | null): Ap
     const theme = parsed.theme || {};
     let themeSelected = typeof theme.selected === "string" ? theme.selected : DEFAULT_SETTINGS.theme.selected;
     const themeValid = THEME_OPTIONS.some(opt => opt.id === themeSelected);
+    const imports = parsed.imports || {};
+    const rememberCookies = typeof imports.rememberCookies === "boolean"
+      ? imports.rememberCookies
+      : DEFAULT_SETTINGS.imports.rememberCookies;
     const makerworld = parsed.makerworld || {};
-    const cookie = typeof makerworld.cookie === "string" ? makerworld.cookie : DEFAULT_SETTINGS.makerworld.cookie;
+    const storedCookie = typeof makerworld.cookie === "string"
+      ? makerworld.cookie
+      : DEFAULT_SETTINGS.makerworld.cookie;
     const thingiverse = parsed.thingiverse || {};
-    const thingiverseCookie = typeof thingiverse.cookie === "string"
+    const storedThingiverseCookie = typeof thingiverse.cookie === "string"
       ? thingiverse.cookie
       : DEFAULT_SETTINGS.thingiverse.cookie;
+    // A legacy blob holding cookies with no `imports` key resolves to the blob
+    // fallback here; the App mount save then blanks the blob and writes the
+    // session store, so migration needs no separate pass.
+    const cookie = resolveCookie(rememberCookies, storedCookie, sessionCookies.makerworld);
+    const thingiverseCookie = resolveCookie(
+      rememberCookies,
+      storedThingiverseCookie,
+      sessionCookies.thingiverse,
+    );
     const network = parsed.network || {};
     const publicUrl = typeof network.publicUrl === "string" ? network.publicUrl : DEFAULT_SETTINGS.network.publicUrl;
     const previews = parsed.previews || {};
@@ -182,6 +280,9 @@ function parseStoredSettings(raw: string | null, legacyTheme: string | null): Ap
       thingiverse: {
         cookie: thingiverseCookie,
       },
+      imports: {
+        rememberCookies,
+      },
       network: {
         publicUrl,
       },
@@ -203,6 +304,7 @@ function freezeSettings(settings: AppSettings): AppSettings {
   Object.freeze(settings.theme);
   Object.freeze(settings.makerworld);
   Object.freeze(settings.thingiverse);
+  Object.freeze(settings.imports);
   Object.freeze(settings.network);
   Object.freeze(settings.previews);
   return Object.freeze(settings);
@@ -213,10 +315,12 @@ function freezeSettings(settings: AppSettings): AppSettings {
  *
  * The result is a cached, frozen, shared reference - do not mutate it; copy
  * before editing. The cache revalidates on every call by comparing both stored
- * strings, so a change from this tab, another tab, devtools or a test stub is
- * picked up by the very next call. A hit costs two `getItem` calls and two
- * string comparisons (no `JSON.parse`); a miss re-parses once and caches,
- * including malformed JSON, which is cached as the default settings.
+ * strings plus the session cookie string, so a change from this tab, another
+ * tab, devtools or a test stub is picked up by the very next call. A hit costs
+ * three `getItem` calls and three string comparisons (no `JSON.parse`); a miss
+ * re-parses once and caches, including malformed JSON, which is cached as the
+ * default settings. Read-only: any migration of a legacy blob happens on the
+ * next `saveSettings`, never here.
  */
 export function loadSettings(): AppSettings {
   if (typeof window === "undefined") return DEFAULT_SETTINGS;
@@ -237,12 +341,19 @@ export function loadSettings(): AppSettings {
     legacyTheme = null;
   }
 
-  if (settingsCache && settingsCache.raw === raw && settingsCache.legacyTheme === legacyTheme) {
+  const session = readSessionCookies();
+
+  if (
+    settingsCache
+    && settingsCache.raw === raw
+    && settingsCache.legacyTheme === legacyTheme
+    && settingsCache.sessionCookies === session.raw
+  ) {
     return settingsCache.settings;
   }
 
-  const settings = parseStoredSettings(raw, legacyTheme);
-  settingsCache = { raw, legacyTheme, settings };
+  const settings = parseStoredSettings(raw, legacyTheme, session.cookies);
+  settingsCache = { raw, legacyTheme, sessionCookies: session.raw, settings };
   return settings;
 }
 
@@ -251,13 +362,26 @@ export function resetSettingsCache(): void {
   settingsCache = null;
 }
 
-export function saveSettings(settings: AppSettings) {
+export function saveSettings(settings: AppSettings): void {
   if (typeof window === "undefined") return;
+  const { rememberCookies } = settings.imports;
+  // The session store is the only at-rest copy unless the user opted in, and a
+  // remembered cookie must not linger in a second store.
+  const persisted: AppSettings = {
+    ...settings,
+    makerworld: { cookie: rememberCookies ? settings.makerworld.cookie : "" },
+    thingiverse: { cookie: rememberCookies ? settings.thingiverse.cookie : "" },
+  };
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
   } catch {
     // ignore storage errors
   }
+  persistSessionCookies(
+    rememberCookies
+      ? EMPTY_COOKIES
+      : { makerworld: settings.makerworld.cookie, thingiverse: settings.thingiverse.cookie },
+  );
 }
 
 export function slicerLabelFor(id?: string | null) {

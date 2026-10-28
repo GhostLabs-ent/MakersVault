@@ -30,7 +30,7 @@ export default function ImportCookiesCard({
       <p className="text-xs opacity-70">{description}</p>
       <div className="flex items-center justify-between gap-3">
         <label className="text-xs uppercase tracking-wide text-muted">
-          Session cookie
+          Session cookie (rate-limit workaround)
         </label>
         {editing ? (
           <button

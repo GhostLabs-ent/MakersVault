@@ -10,6 +10,7 @@ from fastapi import HTTPException
 from asset_service import persist_asset_from_response, stream_response_to_file
 from config import IMPORT_HTML_MAX_BYTES, IMPORT_TIMEOUT_SECONDS, IMPORT_USER_AGENT
 from file_utils import build_import_filename, is_html_content_type, mime_from_content_type
+from import_policy import credentialed_source_for, refuse_paid_or_gated
 from import_resolvers import (
     find_download_url,
     is_makerworld_page_host,
@@ -29,24 +30,36 @@ from schemas import ImportRequest
 from url_utils import validate_remote_url
 
 
-def open_import_response(url: str, body: ImportRequest, referer: Optional[str] = None, depth: int = 0):
-    if depth > 3:
-        raise HTTPException(status_code=400, detail="Too many redirects while resolving download link")
-    url = validate_remote_url(url)
+def import_request_headers(url: str, body: ImportRequest, referer: Optional[str] = None) -> dict:
+    """Headers for one import hop; the only place a session cookie can enter an
+    outbound request.
+
+    A cookie is attached only when the hop's host belongs to a credentialed
+    public resolver (import_policy.credentialed_source_for), which is what keeps
+    the credential scoped to anonymous rate-limit workarounds.
+    """
     headers = {"User-Agent": IMPORT_USER_AGENT, "Accept": "*/*"}
     host = (urlparse(url).hostname or "").lower()
-    makerworld_cookie = None
-    thingiverse_cookie = None
-    if is_makerworld_page_host(host):
-        makerworld_cookie = resolve_makerworld_cookie(body)
-        headers = makerworld_html_headers(referer or url, cookie=makerworld_cookie)
-    elif is_thingiverse_page_host(host):
-        thingiverse_cookie = resolve_thingiverse_cookie(body)
-        headers = thingiverse_html_headers(referer or url, cookie=thingiverse_cookie)
+    source = credentialed_source_for(host)
+    if source == "makerworld":
+        headers = makerworld_html_headers(referer or url, cookie=resolve_makerworld_cookie(body))
+    elif source == "thingiverse":
+        headers = thingiverse_html_headers(referer or url, cookie=resolve_thingiverse_cookie(body))
     elif is_printables_page_host(host):
         headers = printables_html_headers(referer or url)
     if referer:
         headers["Referer"] = referer
+    return headers
+
+
+def open_import_response(url: str, body: ImportRequest, referer: Optional[str] = None, depth: int = 0):
+    # URL-only guard: no DNS, no request and no cookie for a paid/gated URL. It
+    # also covers HTML-discovered download URLs because they re-enter here.
+    refuse_paid_or_gated(url)
+    if depth > 3:
+        raise HTTPException(status_code=400, detail="Too many redirects while resolving download link")
+    url = validate_remote_url(url)
+    headers = import_request_headers(url, body, referer)
     req = Request(url, headers=headers)
     try:
         resp = safe_urlopen(req, timeout=IMPORT_TIMEOUT_SECONDS)
@@ -68,13 +81,9 @@ def open_import_response(url: str, body: ImportRequest, referer: Optional[str] =
         download_url = None
         host = urlparse(final_url).hostname or ""
         if is_makerworld_page_host(host):
-            if not makerworld_cookie:
-                makerworld_cookie = resolve_makerworld_cookie(body)
-            download_url = resolve_makerworld_download_url(html, final_url, makerworld_cookie)
+            download_url = resolve_makerworld_download_url(html, final_url, resolve_makerworld_cookie(body))
         if not download_url and is_thingiverse_page_host(host):
-            if thingiverse_cookie is None:
-                thingiverse_cookie = resolve_thingiverse_cookie(body)
-            download_url = resolve_thingiverse_download_url(final_url, thingiverse_cookie)
+            download_url = resolve_thingiverse_download_url(final_url, resolve_thingiverse_cookie(body))
         if not download_url and is_printables_page_host(host):
             download_url = resolve_printables_download_url(final_url)
         if not download_url:

@@ -61,7 +61,7 @@ export default function SettingsRootMenu({ onOpen }: Props) {
       >
         <div className="text-xs uppercase tracking-wide text-muted">Imports</div>
         <div className="text-lg font-semibold">Imports & Folder Scan</div>
-        <div className="text-sm opacity-70">Manage import cookies and scan local folders.</div>
+        <div className="text-sm opacity-70">Manage import rate-limit workarounds and scan local folders.</div>
       </button>
     </div>
   );

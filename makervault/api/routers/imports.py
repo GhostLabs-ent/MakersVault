@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 import seams
 from auth import AuthContext
 from file_utils import build_import_filename, mime_from_content_type
+from import_policy import refuse_paid_or_gated
 from permissions import require_write
 from routers.presenters import to_out
 from schemas import (
@@ -27,6 +28,9 @@ router = APIRouter()
 
 @router.post("/import", response_model=AssetOut)
 def import_from_link(body: ImportRequest, _: Optional[AuthContext] = Depends(require_write)):
+    # Before normalize_import_url: normalization resolves DNS, so the refusal must
+    # precede it to keep a paid/gated URL off the network entirely.
+    refuse_paid_or_gated(body.url)
     url = seams.normalize_import_url(body.url)
     asset = seams.import_asset_from_url(url, body)
     return to_out(asset)
@@ -34,6 +38,7 @@ def import_from_link(body: ImportRequest, _: Optional[AuthContext] = Depends(req
 
 @router.post("/import/inspect", response_model=ImportInspectOut)
 def inspect_import_link(body: ImportRequest, _: Optional[AuthContext] = Depends(require_write)):
+    refuse_paid_or_gated(body.url)
     url = seams.normalize_import_url(body.url)
     resp, final_url = seams.open_import_response(url, body)
     with resp:
@@ -45,6 +50,7 @@ def inspect_import_link(body: ImportRequest, _: Optional[AuthContext] = Depends(
 
 @router.post("/import/zip/entries", response_model=ImportZipEntriesOut)
 def list_import_zip_entries(body: ImportZipEntriesRequest, _: Optional[AuthContext] = Depends(require_write)):
+    refuse_paid_or_gated(body.url)
     url = seams.normalize_import_url(body.url)
     tmp_path, filename, _ = seams.download_import_to_temp(url, body)
     try:
@@ -63,6 +69,7 @@ def list_import_zip_entries(body: ImportZipEntriesRequest, _: Optional[AuthConte
 
 @router.post("/import/zip", response_model=ImportZipResult)
 def import_zip_entries(body: ImportZipExtractRequest, _: Optional[AuthContext] = Depends(require_write)):
+    refuse_paid_or_gated(body.url)
     url = seams.normalize_import_url(body.url)
     tmp_path, filename, _ = seams.download_import_to_temp(url, body)
     try:

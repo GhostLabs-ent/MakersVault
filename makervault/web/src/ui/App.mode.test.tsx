@@ -22,6 +22,7 @@ vi.mock("../lib/settings", () => ({
     theme: { selected: "light" },
     makerworld: { cookie: "" },
     thingiverse: { cookie: "" },
+    imports: { rememberCookies: false },
     network: { publicUrl: "" },
     previews: { mode: "automatic" },
   }),

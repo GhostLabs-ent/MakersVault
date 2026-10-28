@@ -18,9 +18,10 @@ vi.mock("../lib/api", () => ({
 }));
 
 import Settings from "./settings/Settings";
-import { getStorageSettings, updateStorageSettings } from "../lib/api";
+import { getMountImportSettings, getStorageSettings, updateStorageSettings } from "../lib/api";
 import type { AppSettings } from "../lib/settings";
 
+const getMountImportSettingsMock = vi.mocked(getMountImportSettings);
 const getStorageSettingsMock = vi.mocked(getStorageSettings);
 const updateStorageSettingsMock = vi.mocked(updateStorageSettings);
 
@@ -30,6 +31,7 @@ const settings: AppSettings = {
   theme: { selected: "system" },
   makerworld: { cookie: "" },
   thingiverse: { cookie: "" },
+  imports: { rememberCookies: false },
   network: { publicUrl: "" },
   previews: { mode: "automatic" },
 };
@@ -93,5 +95,32 @@ describe("Settings storage structure", () => {
     expect(payload).toEqual({ template: "{folder}/{model}" });
 
     await screen.findByText(/Storage structure saved\. New uploads and imports use this template; existing files are never moved\./);
+  });
+});
+
+describe("Settings imports", () => {
+  beforeEach(() => {
+    getMountImportSettingsMock.mockReset();
+    getMountImportSettingsMock.mockResolvedValue({ enabled: false, copy_files: true, path: null });
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("scopes the cookie copy to rate limits and reports the remember opt-in", async () => {
+    const onChange = vi.fn();
+    render(<Settings settings={settings} onChange={onChange} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Imports & Folder Scan/ }));
+
+    // Both cards state that the cookie is never used for paid content.
+    expect((await screen.findAllByText(/Never used for paid content/)).length).toBe(2);
+
+    fireEvent.click(screen.getByLabelText(/Remember import cookies on this device/));
+
+    const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1];
+    const next = lastCall?.[0] as AppSettings;
+    expect(next.imports.rememberCookies).toBe(true);
   });
 });

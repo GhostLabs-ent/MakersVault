@@ -326,12 +326,15 @@ In the future there are plans to add support for more websites, but in this curr
 <p>Model names are unique inside each MakerVault folder. Renaming a model renames the stored file while preserving its extension. Use <strong>Reorganize existing managed files now</strong> to apply a new template to the current library; mounted no-copy files are left in place.</p>
 
 <h2>Imports Settings</h2>
-<p>Makerworld enforces a 5 download only policy if not logged in. This will limit the amount of "Import from Link" requests you can make unless you place a cookie authentication token in the session cookie field in the import settings.
-	
-<strong> NOTE: The cookie session header is stored ONLY in the browser for security purpouses. Never share this value with anyone and avoid storing it elsewhere that can easily be accessed by someone else.</strong> </p>
+<p>MakerWorld limits anonymous downloads (currently 5). Import from Link uses that anonymous access, so a few imports can exhaust the allowance. The optional session cookie field in the import settings exists only to lift that anonymous rate limit for free, public models. It is a rate-limit workaround, not a way to reach anything else.</p>
 
-<img width="1912" height="929" alt="Screenshot 2025-12-31 113127" src="https://github.com/user-attachments/assets/8a0c3f83-6fc9-41be-874d-d9b90dc86797" />
+<p>MakersVault never downloads paid or account-gated files. Files that need a purchase or a signed-in account are supplied by you: download them yourself, then upload the files (or a zip of them) so they are attached to the model. Pointing the importer at a recognised paid or checkout URL is refused with that instruction before any request is made to the site.</p>
 
+<p><strong>Storage:</strong> by default the cookie is kept in this tab and forgotten when the tab closes. Tick <strong>Remember this cookie on this device</strong> to keep it in this browser instead. Your browser only ever sends this value to your own MakersVault API.</p>
+
+<p><strong>Server side:</strong> the API attaches the cookie to an outbound request only when it is fetching from makerworld.com (or a subdomain) or thingiverse.com, drops it on a cross-origin redirect, and never logs the value. An operator can instead (or additionally) set <code>MAKERWORLD_COOKIE</code> or <code>THINGIVERSE_COOKIE</code> for the API process; the same host restriction applies.</p>
+
+<p><strong>NOTE: Never share this value with anyone, and avoid storing it anywhere that someone else can easily reach.</strong></p>
 
 <h3>Finding the Cookie Session Header</h3>
 <p><strong>Chrome / Edge</strong></p>

@@ -15,6 +15,7 @@ function buildSettings(publicUrl: string, theme = "dark"): AppSettings {
     theme: { selected: theme as ThemeId },
     makerworld: { cookie: "" },
     thingiverse: { cookie: "" },
+    imports: { rememberCookies: false },
     network: { publicUrl },
     previews: { mode: "automatic" },
   };
