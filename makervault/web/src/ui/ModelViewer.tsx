@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import occtWasmUrl from "occt-import-js/dist/occt-import-js.wasm?url";
-import occtWorkerUrl from "occt-import-js/dist/occt-import-js-worker.js?url";
 import { uploadGeneratedThumbnail } from "../lib/api";
 import { PREVIEW_MAX_ATTEMPTS, PREVIEW_RETRY_MS, PREVIEW_SETTLE_MS, previewQueue } from "../lib/previewQueue";
 import type { PreviewQueue, PreviewQueueStats } from "../lib/previewQueue";
 import { ResolvedTheme } from "../lib/settings";
+import { buildStepGroup } from "../lib/step/buildStepGroup";
+import { parseStepInWorker, stepSizeNotice } from "../lib/step/parseStepInWorker";
+import { STEP_MAX_BYTES } from "../lib/step/protocol";
 
 type ModelViewerProps = { url: string; ext: string; assetId?: string; theme: ResolvedTheme };
 
@@ -79,14 +80,28 @@ function applyThemeToObject(obj: THREE.Object3D, palette: ModelPalette) {
 export default function ModelViewer({ url, ext, assetId, theme }: ModelViewerProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const [viewError, setViewError] = useState<string | null>(null);
+  const [sizeNotice, setSizeNotice] = useState<string | null>(null);
+  const [stepStatus, setStepStatus] = useState<string | null>(null);
 
   useEffect(() => {
     let disposed = false;
     let activeObject: THREE.Object3D | null = null;
+    const controller = new AbortController();
     const mount = mountRef.current; 
     if (!mount) return;
     const palette = paletteForTheme(theme);
     setViewError(null);
+    setSizeNotice(null);
+    setStepStatus(null);
+    // Progress callbacks outlive the modal: a disposed viewer must stay silent.
+    const stepReport: StepLoadReport = {
+      onSize: (bytes: number) => {
+        if (!disposed) setSizeNotice(stepSizeNotice(bytes));
+      },
+      onStatus: (status: string | null) => {
+        if (!disposed) setStepStatus(status);
+      },
+    };
     const reportError = (message: string) => {
       if (!disposed) {
         setViewError(message);
@@ -167,7 +182,7 @@ export default function ModelViewer({ url, ext, assetId, theme }: ModelViewerPro
         const e = (ext || "").toLowerCase();
 
         try {
-          const obj = await loadObjectFromAsset(e, url);
+          const obj = await loadObjectFromAsset(e, url, controller.signal, stepReport);
           if (!obj) {
             reportError("Preview unsupported for this file type.");
             return;
@@ -184,7 +199,11 @@ export default function ModelViewer({ url, ext, assetId, theme }: ModelViewerPro
             centerSceneOn(box);
           }
         } catch (err) {
+          // Closing the modal aborts the load; that is not a failure to report.
+          if (controller.signal.aborted) return;
           console.error("Viewer asset load failed:", err);
+          // The error overlay must not sit under a stale "Parsing..." pill.
+          setStepStatus(null);
           reportError("Preview failed to load.");
         }
       } catch (err) {
@@ -211,6 +230,7 @@ export default function ModelViewer({ url, ext, assetId, theme }: ModelViewerPro
     })();
 
   return () => {
+    controller.abort();
     disposed = true;
     try {
       teardown?.();
@@ -240,6 +260,22 @@ export default function ModelViewer({ url, ext, assetId, theme }: ModelViewerPro
           {viewError}
         </div>
       )}
+      {stepStatus && (
+        <div className="pointer-events-none absolute left-2 top-2 rounded-md bg-panel-overlay px-2 py-1 text-xs font-medium text-muted">
+          {stepStatus}
+        </div>
+      )}
+      <StepSizeNotice notice={sizeNotice} />
+    </div>
+  );
+}
+
+/** Input-only STEP progress UI, split out so it can render without WebGL. */
+export function StepSizeNotice({ notice }: { notice: string | null }) {
+  if (!notice) return null;
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-panel-overlay px-3 py-2 text-xs font-medium text-amber-800 dark:text-amber-200">
+      {notice}
     </div>
   );
 }
@@ -791,8 +827,9 @@ function findFirstElement(node: Document | Element, localName: string) {
 
 /**
  * Renders a snapshot for one asset. Cancellation is cooperative: it is checked
- * at await boundaries (asset load, renderer-lock wait), so it cannot interrupt
- * occt WASM parsing, a renderer draw, a `toDataURL` readback, or the
+ * at await boundaries (asset load, renderer-lock wait), and the STEP parse runs
+ * in a worker that gets terminated on abort, as does the STEP/3MF download. It
+ * still cannot interrupt a renderer draw, a `toDataURL` readback, or the
  * STL/OBJ XHR loads (three's loaders take no signal).
  */
 async function generateModelSnapshot(
@@ -848,7 +885,8 @@ async function generateModelSnapshot(
 async function loadObjectFromAsset(
   ext: string,
   url: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  report?: StepLoadReport
 ): Promise<THREE.Object3D | null> {
   if (ext === "stl") {
     const { STLLoader } = await import("three/examples/jsm/loaders/STLLoader.js");
@@ -875,73 +913,56 @@ async function loadObjectFromAsset(
     });
   }
   if (ext === "step" || ext === "stp") {
-    return await loadStepGroup(url, signal);
+    return await loadStepObject(url, signal, report);
   }
   return null;
 }
 
-async function loadStepGroup(url: string, signal?: AbortSignal) {
-  type OcctMesh = {
-    color?: [number, number, number];
-    attributes: {
-      position?: { array: ArrayLike<number> };
-      normal?: { array: ArrayLike<number> };
-    };
-    index?: { array: ArrayLike<number> };
-  };
+type StepLoadReport = {
+  onSize(bytes: number): void;
+  onStatus(status: string | null): void;
+};
 
-  const initOcct = (await import("occt-import-js")).default;
-  const resp = await fetch(url, { signal });
-  const buf = new Uint8Array(await resp.arrayBuffer());
-  ensureNotCancelled(signal);
-  const occt = await initOcct({
-    locateFile: (file: string) => {
-      if (file.endsWith(".wasm")) return occtWasmUrl;
-      if (file.endsWith(".worker.js")) return occtWorkerUrl;
-      return file;
-    },
-  });
-  const res = await occt.ReadStepFile(buf, null);
+/**
+ * Downloads a STEP file and hands the bytes to the worker, so the parser's WASM
+ * module is never instantiated on this thread; only transferable geometry comes
+ * back.
+ */
+async function loadStepObject(
+  url: string,
+  signal: AbortSignal | undefined,
+  report?: StepLoadReport
+): Promise<THREE.Group> {
+  report?.onStatus("Downloading STEP file...");
+  const response = await fetch(url, { signal });
+  if (!response.ok) {
+    throw new Error(`STEP fetch failed with status ${response.status}`);
+  }
 
-  const group = new THREE.Group();
-  for (const m of res.meshes as OcctMesh[]) {
-    const pos = m.attributes?.position?.array;
-    if (!pos || !pos.length) continue;
-
-    const geom = new THREE.BufferGeometry();
-    const toFloat32 = (data: ArrayLike<number>) => Float32Array.from(data);
-
-    geom.setAttribute("position", new THREE.Float32BufferAttribute(toFloat32(pos), 3));
-
-    const normals = m.attributes?.normal?.array;
-    if (normals && normals.length) {
-      geom.setAttribute("normal", new THREE.Float32BufferAttribute(toFloat32(normals), 3));
-    }
-
-    const indices = m.index?.array;
-    if (indices && indices.length) {
-      geom.setIndex(
-        Array.isArray(indices) ? indices : Array.from(indices as ArrayLike<number>)
+  const declared = Number(response.headers.get("content-length"));
+  const declaredBytes = Number.isFinite(declared) && declared > 0 ? declared : null;
+  if (declaredBytes !== null) {
+    report?.onSize(declaredBytes);
+    // Refuse from the header alone: a 1 GB body must never be pulled into memory.
+    if (declaredBytes > STEP_MAX_BYTES) {
+      throw new Error(
+        `STEP preview is limited to ${Math.floor(STEP_MAX_BYTES / (1024 * 1024))} MB`
       );
-    } else {
-      geom.computeVertexNormals();
     }
-    geom.computeBoundingSphere();
-
-    const color = m.color
-      ? new THREE.Color(m.color[0] / 255, m.color[1] / 255, m.color[2] / 255)
-      : new THREE.Color(0xf1f5f9);
-    const mesh = new THREE.Mesh(
-      geom,
-      new THREE.MeshStandardMaterial({ color, metalness: 0.2, roughness: 0.8 })
-    );
-    group.add(mesh);
   }
 
-  if (!group.children.length) {
-    throw new Error("STEP preview produced no meshes");
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  ensureNotCancelled(signal);
+  if (declaredBytes === null) {
+    // No content-length: still warn on the real size, and still before parsing.
+    report?.onSize(bytes.byteLength);
   }
-  return group;
+
+  report?.onStatus("Parsing STEP off the main thread...");
+  const geometry = await parseStepInWorker(bytes, { signal });
+  ensureNotCancelled(signal);
+  report?.onStatus(null);
+  return buildStepGroup(geometry);
 }
 
 async function load3MFObject(url: string, signal?: AbortSignal) {
