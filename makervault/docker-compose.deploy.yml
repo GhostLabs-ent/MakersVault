@@ -5,17 +5,41 @@ services:
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
+      # `recursive` opts into a full data-tree ownership repair at entrypoint.
+      - CHOWN_MODE=${CHOWN_MODE:-minimal}
       # The API refuses to start while these are the published sample values,
       # so a deployment without a real .env fails loudly instead of serving a
       # publicly-known login.
       - AUTH_USERNAME=${AUTH_USERNAME:-admin}
       - AUTH_PASSWORD=${AUTH_PASSWORD:-super-secret}
       - AUTH_SECRET=${AUTH_SECRET:-changeme-secret}
-      - AUTH_TOKEN_TTL=${AUTH_TOKEN_TTL:-43200}
+      # AUTH_TOKEN_TTL is deprecated and ignored (a no-op since the access/refresh
+      # split), so it is deliberately not forwarded. An old .env that still sets
+      # it still starts, but the value does nothing.
+      - AUTH_ACCESS_TOKEN_TTL=${AUTH_ACCESS_TOKEN_TTL:-900}
+      - AUTH_REFRESH_TTL_SECONDS=${AUTH_REFRESH_TTL_SECONDS:-2592000}
+      - AUTH_ALLOW_INSECURE_DEFAULTS=${AUTH_ALLOW_INSECURE_DEFAULTS:-false}
       - FILE_STORAGE=/app/storage
       - DB_URL=sqlite:////app/data/app.db
       - PUBLIC_URL=${PUBLIC_URL:-}
       - CORS_ORIGINS=${CORS_ORIGINS:-}
+      # Upload and remote-import caps. ASSET_FILE_MAX_MB is forwarded empty on
+      # purpose: config.env_int then falls through to IMPORT_MAX_MB, so it keeps
+      # following an operator's import cap. The cap in force is the smaller of
+      # the two.
+      - MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-4096}
+      - IMPORT_MAX_MB=${IMPORT_MAX_MB:-512}
+      - IMPORT_ZIP_MAX_MB=${IMPORT_ZIP_MAX_MB:-2048}
+      - IMPORT_TIMEOUT_SECONDS=${IMPORT_TIMEOUT_SECONDS:-30}
+      - IMPORT_MAX_REDIRECTS=${IMPORT_MAX_REDIRECTS:-5}
+      - IMPORT_HTML_MAX_KB=${IMPORT_HTML_MAX_KB:-4096}
+      - ASSET_FILE_MAX_MB=${ASSET_FILE_MAX_MB:-}
+      - ASSET_FILE_TOTAL_MAX_MB=${ASSET_FILE_TOTAL_MAX_MB:-2048}
+      - ASSET_FILE_MAX_COUNT=${ASSET_FILE_MAX_COUNT:-50}
+      # Optional server-side source credentials. A browser-supplied value wins
+      # and is never persisted.
+      - MAKERWORLD_COOKIE=${MAKERWORLD_COOKIE:-}
+      - THINGIVERSE_COOKIE=${THINGIVERSE_COOKIE:-}
       - IMPORT_MOUNT_PATH=${IMPORT_MOUNT_PATH:-}
       - IMPORT_MOUNT_EXTS=${IMPORT_MOUNT_EXTS:-stl,3mf,step,stp,obj,svg,png,jpg,jpeg,webp,bmp,lbrn,lbrn2,zip}
       - IMPORT_MOUNT_INCLUDE_HIDDEN=${IMPORT_MOUNT_INCLUDE_HIDDEN:-false}

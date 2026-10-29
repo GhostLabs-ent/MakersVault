@@ -14,6 +14,15 @@ deployment guidance required by Gate 1.
 | Historical production alias | `makervault/docker-deploy.yml` |
 | API example environment | `makervault/api/.env.example` |
 
+The production manifest forwards every operator-tunable setting listed below
+with the code default as its `${VAR:-default}` fallback, so overriding a
+variable in `.env` is enough to change it. The deliberate exceptions are
+disclosed in the rows below: `ASSET_FILE_MAX_MB` is forwarded empty so it keeps
+following `IMPORT_MAX_MB` (the cap in force is the smaller of the two), and the
+deprecated `AUTH_TOKEN_TTL` is not forwarded at all because it is a no-op. The
+guard that keeps these forwards and fallbacks honest is
+`makervault/api/tests/test_deploy_manifest_env.py`.
+
 ## API and container settings
 
 | Variable | Current default | Owner and effect |
