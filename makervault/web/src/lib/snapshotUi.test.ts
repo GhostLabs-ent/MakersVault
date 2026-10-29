@@ -31,9 +31,10 @@ function makeCapabilities(...volumes: StorageVolumeCapability[]): StorageCapabil
 }
 
 describe("DB_CAVEAT", () => {
-  it("is the exact caveat the card renders", () => {
+  it("matches the backend's wording exactly", () => {
     expect(DB_CAVEAT).toBe(
-      "the database is not covered unless it lives on a snapshottable volume",
+      "a library snapshot covers the filesystem only, not the SQLite database; " +
+        "pair it with a database backup (see Mf-ljld)",
     );
   });
 });

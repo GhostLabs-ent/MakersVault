@@ -15,9 +15,10 @@ One mechanism, in three parts:
 
 `audit.record(*events, ctx=...)` is the second emission function and exists for
 the actions whose effect is outside the database (`trash.purge`,
-`library.scan.start`, and the two `destructive.snapshot_*` actions the snapshot
-guard writes); it opens its own session and commits. There is no third way to
-write a row.
+`library.scan.start`, `snapshot.create`, `snapshot.prune`, `snapshot.delete`,
+`snapshot.restore`, the two `snapshot.schedule.*` actions the scheduler thread
+writes, and the two `destructive.snapshot_*` actions the snapshot guard writes);
+it opens its own session and commits. There is no third way to write a row.
 
 **The emission point is the action site, not `permissions.authorize()`.**
 Authorization and events are different facts. `permissions.authorize()` decides
@@ -95,7 +96,7 @@ could honestly reconstruct.
 | `snapshot.prune` | `POST /snapshots` (emitted by retention inside `create()` in `snapshots.py`, one row per pruned snapshot) | pruned snapshot name | `{"rule", "trigger"}` | fail-loud |
 | `snapshot.delete` | `DELETE /snapshots/{name}` | snapshot name | `{"method"}` | fail-loud |
 | `snapshot.restore` | `POST /snapshots/{name}/restore` | snapshot name | `{"path", "destination", "files", "bytes", "scan_started"}` | fail-loud |
-| `destructive.snapshot_taken` | `DELETE /folder/{folder_id}`; `POST /trash/purge`; `POST /assets/batch/delete`; written by `snapshot_guard.guard` | the operation's subject: the folder id, `"trash"` or `"assets"` | `{"reason", "policy", "name", "method"}` - `name` is the snapshot's exact name | fail-loud |
+| `destructive.snapshot_taken` | `DELETE /folder/{folder_id}`; `POST /trash/purge`; `POST /assets/batch/delete`; written by `snapshot_guard.guard` | the operation's subject: the folder id, `"trash"` or `"assets"` | `{"reason", "policy", "name", "method", "pruned"}` - `name` is the snapshot's exact name and `pruned` is how many snapshots this create's retention removed | fail-loud |
 | `destructive.snapshot_missed` | the same three routes, when no snapshot was taken | the same subject | `{"reason", "policy", "cause", "error"}` - `cause` is `"unavailable"` or `"failed"`, `error` is the exception text or `null` | fail-loud |
 | `snapshot.schedule.skipped` | written by `snapshot_schedule.run_once` when the scheduled tick was due but the volume cannot snapshot; no route emits it | `"snapshot_schedule"` | `{"cause", "method", "hours"}` | logged; the tick continues |
 | `snapshot.schedule.failed` | the same tick, when taking the snapshot raised; no route emits it | `"snapshot_schedule"` | `{"cause", "method", "hours"}` | logged; the tick continues |
@@ -116,8 +117,8 @@ fact with no transaction to join. They are the one pair of actions in
 `ROUTE_ACTIONS` whose rows are written before their route's mutation, and the
 snapshot's exact name is in their `detail`. The guard hands the provider no audit
 context, so a route owns exactly one snapshot fact: a create whose retention then
-prunes writes no `snapshot.prune` row on that path, and the name in the
-`destructive.snapshot_taken` row is the whole record of it.
+prunes writes no `snapshot.prune` row on that path, and the name and the `pruned`
+count in the `destructive.snapshot_taken` row are the whole record of it.
 
 The two `snapshot.schedule.*` actions come from S8's background thread instead.
 They are in `ACTIONS` and deliberately not in `ROUTE_ACTIONS`, because there is
@@ -134,9 +135,18 @@ that is supposed to keep ticking. A failed write is logged, the dedupe key stays
 unset so the next identical tick retries it, and the tick's outcome is reported
 through the status surface either way.
 
-Two routes can emit more than one row per request, because a request can change
-more than one fact:
+Several routes can emit more than one row per request, because a request can
+change more than one fact or act on more than one target:
 
+* `POST /snapshots` - one `snapshot.create`, plus one `snapshot.prune` row per
+  snapshot that retention removed in the same call.
+* `DELETE /folder/{folder_id}` - one `destructive.snapshot_taken` (or
+  `destructive.snapshot_missed`) row before the delete, then `folder.delete`.
+* `POST /trash/purge` - one `destructive.snapshot_*` row before the purge, then
+  `trash.purge`.
+* `POST /assets/batch/delete` - one `destructive.snapshot_*` row, then one
+  `asset.delete` per asset.
+* `POST /assets/batch/folder` - one `asset.move` per moved asset.
 * `PATCH /users/{user_id}` - one row per changed field. Changing role and
   disabling in the same request writes `user.role_change` and `user.disable`.
 * `PATCH /folder/{folder_id}` - renaming and reparenting in the same request

@@ -142,10 +142,11 @@ release evidence.
 
 `tests/test_snapshots_integration.py` is the only evidence that a snapshot is a
 real copy-on-write view, so it is manual: it is skipped unless
-`SNAPSHOT_INTEGRATION=1`, and it refuses a root that is not an explicit scratch
-directory. `SNAPSHOT_INTEGRATION_ROOT` must be an existing directory whose name
-starts with `makersvault-snapshot-scratch-`, at least three path components deep,
-and neither the library root nor an ancestor nor a descendant of it.
+`SNAPSHOT_INTEGRATION=1`, and it `pytest.skip`s a root that is not an explicit
+scratch directory (it refuses nothing and fails nothing: a bad root is a skip
+with the reason). `SNAPSHOT_INTEGRATION_ROOT` must be an existing directory whose
+name starts with `makersvault-snapshot-scratch-`, at least three path components
+deep, and neither the library root nor an ancestor nor a descendant of it.
 
 ```bash
 cd makervault/api
@@ -156,8 +157,9 @@ SNAPSHOT_INTEGRATION=1 SNAPSHOT_INTEGRATION_ROOT="$scratch" \
 ```
 
 CI never sets either variable, and neither one belongs in `.env.example` or a
-compose manifest: a forwarded key that nothing reads fails
-`tests/test_deploy_manifest_env.py`.
+compose manifest. Only the manifest half is guarded: a forwarded key that nothing
+reads fails `tests/test_deploy_manifest_env.py`. An extra `.env.example` key
+fails nothing, so that half is documentation discipline, not a gate.
 
 ## Schema migration rules
 

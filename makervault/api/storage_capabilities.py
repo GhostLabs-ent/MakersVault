@@ -301,10 +301,10 @@ def detect(library_root: Optional[Path] = None, database_url: Optional[str] = No
     """Report the library volume and, when it is a separate volume, the database.
 
     A sqlite database that lives on the same device as the library is folded into
-    one entry with both roles: it is one filesystem. Subtree-scoped methods
-    (cephfs, btrfs) still snapshot per path, so the snapshot slice re-derives the
-    per-role paths from ``database_directory(db.DB_URL)`` rather than trusting the
-    merged entry's ``path``.
+    one entry with both roles: it is one filesystem. The merged entry is a report,
+    not a promise about snapshots: ``database_directory`` is consulted only here,
+    inside ``detect()``, and every provider snapshots the library root alone, so a
+    library snapshot never covers the SQLite database.
     """
     if library_root is None:
         library_root = _storage_root()

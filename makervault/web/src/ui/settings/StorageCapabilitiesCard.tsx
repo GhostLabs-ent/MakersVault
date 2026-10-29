@@ -1,12 +1,6 @@
 import type { StorageVolumeCapability } from "../../lib/api";
+import { snapshotMethodLabel } from "../../lib/snapshotUi";
 import type { StorageCapabilitiesState } from "./useStorageCapabilities";
-
-const SNAPSHOT_METHOD_LABELS: Record<string, string> = {
-  cephfs_snapdir: "CephFS .snap directory",
-  zfs_dataset: "ZFS dataset snapshot",
-  btrfs_subvol: "Btrfs subvolume snapshot",
-  none: "No snapshot method",
-};
 
 const ROLE_LABELS: Record<string, string> = {
   library: "Library",
@@ -22,10 +16,6 @@ function roleLine(volume: StorageVolumeCapability): string {
   return labels.length ? labels.join(" + ") : "Storage volume";
 }
 
-function methodLabel(method: string): string {
-  return SNAPSHOT_METHOD_LABELS[method] ?? method;
-}
-
 function VolumeRow({ volume }: { volume: StorageVolumeCapability }) {
   const usableLabel = volume.usable ? "Usable" : "Not usable";
   const usableClass = volume.usable ? "text-emerald-400" : "text-red-400";
@@ -38,7 +28,7 @@ function VolumeRow({ volume }: { volume: StorageVolumeCapability }) {
       </div>
       <div className="flex flex-wrap gap-2 text-xs opacity-80">
         <span>{volume.fstype}</span>
-        <span>{methodLabel(volume.snapshot_method)}</span>
+        <span>{snapshotMethodLabel(volume.snapshot_method)}</span>
       </div>
       <div className="font-mono text-[11px] break-all">{volume.path}</div>
       {volume.mount_point && (

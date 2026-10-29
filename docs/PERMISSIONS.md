@@ -28,10 +28,20 @@ blank ranks as `public`, i.e. it is denied even reads - fail closed.
 | Bulk tag / move / delete / metadata          |  yes  |  yes   |   no   |
 | Create / edit / delete projects, edit membership |  yes  |  yes   |   no   |
 | Start a library scan                         |  yes  |  yes   |   no   |
+| View and browse snapshots                    |  yes  |  yes   |  yes   |
+| Take or restore a snapshot                   |  yes  |  yes   |   no   |
+| Manage retention, delete a snapshot, read scheduler status |  yes  |   no   |   no   |
 | Change storage / mount-import settings       |  yes  |   no   |   no   |
 | Create users, set roles, disable accounts    |  yes  |   no   |   no   |
 | Read the audit log                           |  yes  |   no   |   no   |
 | Purge the trash                              |  yes  |   no   |   no   |
+
+The Settings snapshot card is **admin-only in the UI** -- the storage section that
+mounts it is shown to admins -- while `POST /snapshots` and
+`POST /snapshots/{name}/restore` are editor-level in the matrix above. So an
+editor holds capability the UI never offers: the matrix, not the UI, is the
+authorization contract. Deleting a snapshot, reading or changing the retention
+policy and reading the scheduler status are admin on both sides.
 
 ## How enforcement works
 

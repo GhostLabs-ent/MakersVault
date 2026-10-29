@@ -20,8 +20,11 @@ implementation here could only drift from those two.
 
 ``recovered/`` must stay scan-visible, which is why it is NOT in
 ``library_scan.RESERVED_DIRS``: a recovery is only useful once the scan registers
-it. The ``.part`` sibling is a dot-name, so ``library_scan._walk_storage`` skips
-it while ``include_hidden`` is False, and it is removed in a ``finally`` anyway.
+it. The ``.part`` sibling is a dot *file*: ``_walk_storage`` prunes hidden
+*directories*, and the dot-name filter that drops dot entries lives in the
+registering loop (``library_scan.py``, the ``entry.name.startswith(".")`` guard),
+so a run with ``include_hidden=True`` keeps it visible. It is removed in a
+``finally`` either way.
 
 A restore never 409s because a scan is running: the bytes are already copied by
 then, so it reports ``scan_started: false`` rather than refusing work it has

@@ -18,9 +18,11 @@ The production manifest forwards every operator-tunable setting listed below
 with the code default as its `${VAR:-default}` fallback, so overriding a
 variable in `.env` is enough to change it. The deliberate exceptions are
 disclosed in the rows below: `ASSET_FILE_MAX_MB` is forwarded empty so it keeps
-following `IMPORT_MAX_MB` (the cap in force is the smaller of the two), and the
-deprecated `AUTH_TOKEN_TTL` is not forwarded at all because it is a no-op. The
-guard that keeps these forwards and fallbacks honest is
+following `IMPORT_MAX_MB` (the cap in force is the smaller of the two), the
+deprecated `AUTH_TOKEN_TTL` is not forwarded at all because it is a no-op, and
+the `SNAPSHOT_BTRFS_SIDECAR_*` keys are forwarded nowhere because they belong to
+the opt-in sidecar and its override, not to the shipped manifests. The guard
+that keeps these forwards and fallbacks honest is
 `makervault/api/tests/test_deploy_manifest_env.py`.
 
 ## API and container settings
@@ -133,10 +135,10 @@ Each entry has `roles`, `path`, `fstype`, `mount_point`, `snapshot_method`,
 `usable` and `reason`. The library volume and the sqlite database directory are
 reported separately; when both sit on the same `st_dev` they are merged into one
 entry whose `roles` is `["library", "database"]`, because that is one
-filesystem. Subtree-scoped methods (`cephfs_snapdir`, `btrfs_subvol`) still
-snapshot per path, so a later snapshot operation re-derives the per-role paths
-from `db.DB_URL` instead of assuming the merged entry's `path` covers the
-database.
+filesystem. The merged entry is a report, not a promise: `database_directory()`
+is called only inside `detect()`, and every provider snapshots the library root
+alone. So a library snapshot does **not** cover the SQLite database, even when
+the two share a volume -- pair it with a database backup.
 
 `fstype` comes from the `statfs(2)` magic, cross-checked against
 `/proc/self/mounts` (longest-prefix match, then `st_dev`). The magics it names are
@@ -287,10 +289,14 @@ managed-storage template, and snapshot retention. These settings are shared by
 the instance. Mounted import run history is a table (`import_run`), not an
 `AppConfig` value, so it is bounded separately and never parsed as a setting.
 
-Snapshot retention is the policy of the snapshot provider layer, read on every
-`create()` and applied only to the snapshots that layer wrote. It does not decide
-whether a snapshot can be taken (that is the capability report above) and it adds
-no route, no environment variable and no schema change:
+Snapshot retention is the policy of the snapshot provider layer. The provider
+resolves it once, at construction, and applies it only to the snapshots that
+layer wrote, so an edit is picked up by the next provider built -- the scheduler
+builds one per tick, which is why an edit takes effect there without a restart.
+It does not decide whether a snapshot can be taken (that is the capability
+report above) and it adds no environment variable and no schema change; it does
+add two routes, `GET /snapshots/retention` and `POST /snapshots/retention`, and
+the update is audited as `settings.snapshot_retention.update`:
 
 | Key | Default | Effect |
 |---|---|---|
@@ -397,13 +403,18 @@ zfs allow -u <user> snapshot,destroy,mount tank/zfs-check
 ```
 
 Then, as the service principal, check the probe, take a snapshot, browse and
-restore it, and delete it:
+restore it, and delete it. The probe lives in the API tree, so run it from
+`makervault/api`; the snapshot name must follow the application's scheme
+(`<UTC stamp>-<reason>-<random suffix>`) or the app will not list the snapshot it
+creates:
 
 ```
+cd makervault/api
 python -c "import snapshot_zfs; print(snapshot_zfs.probe_zfs())"
+zfs snapshot tank/zfs-check@20260101T000000Z-manual-abc123
 ls /srv/zfs-check/.zfs/snapshot
-cp /srv/zfs-check/.zfs/snapshot/<name>/<file> /srv/zfs-check/<file>
-zfs destroy tank/zfs-check@<name>
+cp /srv/zfs-check/.zfs/snapshot/20260101T000000Z-manual-abc123/<file> /srv/zfs-check/<file>
+zfs destroy tank/zfs-check@20260101T000000Z-manual-abc123
 zfs unallow -u <user> snapshot,destroy,mount tank/zfs-check
 zfs destroy tank/zfs-check
 ```
@@ -542,8 +553,10 @@ all. The grant is contained on purpose:
 
 | Key | Default | Effect |
 |---|---|---|
-| `SNAPSHOT_BTRFS_SIDECAR_URL` | empty (disabled) | Base URL of the sidecar, for example `http://snapshot-sidecar:8765`. Empty means no sidecar is configured: `btrfs_subvol` stays detected but unusable and no socket is opened. |
-| `SNAPSHOT_BTRFS_SIDECAR_TOKEN` | empty | The bearer token the API sends and the sidecar requires; it must equal the sidecar's own `SNAPSHOT_BTRFS_SIDECAR_TOKEN`. The sidecar refuses to boot without one, and a mismatch makes the volume report `unreachable`. |
+| `SNAPSHOT_BTRFS_SIDECAR_URL` | empty (disabled) | Base URL of the sidecar, for example `http://snapshot-sidecar:8765`. Empty means no sidecar is configured: `btrfs_subvol` stays detected but unusable and no socket is opened. Not forwarded by a shipped manifest -- set it in the sidecar override. |
+| `SNAPSHOT_BTRFS_SIDECAR_TOKEN` | empty | The bearer token the API sends and the sidecar requires; it must equal the sidecar's own `SNAPSHOT_BTRFS_SIDECAR_TOKEN`. The sidecar refuses to boot without one, and a mismatch makes the volume report `unreachable`. Not forwarded -- set it in the sidecar override. |
+| `SNAPSHOT_BTRFS_SIDECAR_MOUNT` | `/library` | The sidecar's own library mount, read by `server.py`. It is not an API setting: the API never learns this path, which is why the probe compares the store the sidecar reports instead. Not forwarded -- set it in the sidecar override. |
+| `SNAPSHOT_BTRFS_SIDECAR_PORT` | `8765` | The port the sidecar listens on, read by `server.py`; empty keeps the default, and a value that is not a number between 1 and 65535 refuses to boot with a `BootError`. Change it only together with `SNAPSHOT_BTRFS_SIDECAR_URL` in the API, and with the compose network alias. Not forwarded -- set it in the sidecar override. |
 
 The health probe is bounded at a hardcoded 1 second
 (`SNAPSHOT_BTRFS_TIMEOUT_SECONDS`); it is not an environment key, because it
@@ -564,7 +577,10 @@ btrfs subvolume create /mnt/btrfs-check/library
 ```
 
 Start the sidecar against that mount -- same image, same capability, same token
-as the override above -- and check that it is up:
+as the override above -- and check that it is up. The documented service
+publishes no ports, so `localhost:8765` only answers for a scratch container
+started by hand with a one-off port mapping (`docker run --rm -p
+127.0.0.1:8765:8765` with `SYS_ADMIN`, the token and the bind mount):
 
 ```
 curl -H "Authorization: Bearer $SNAPSHOT_BTRFS_SIDECAR_TOKEN" http://localhost:8765/health

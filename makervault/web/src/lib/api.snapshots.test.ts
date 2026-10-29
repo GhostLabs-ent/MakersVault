@@ -217,17 +217,22 @@ describe("snapshot API client", () => {
     await expect(takeSnapshot()).rejects.toBeInstanceOf(UnauthorizedError);
   });
 
-  it("surfaces the server detail verbatim on a rejected retention update", async () => {
+  it("surfaces the server's detail verbatim when a retention update is refused", async () => {
+    // The string is `RetentionPolicy.__post_init__`'s own wording, i.e. a detail the
+    // server really produces. This test pins the client contract (a 400 detail is
+    // shown verbatim), not which status a given range violation gets: the request
+    // body is range-checked by the schema, so that one is a 422.
+    const detail = "the retention policy field keep_last_n must be at least 1: 0";
     installFetch(
       respond(null, {
         ok: false,
         status: 400,
-        body: JSON.stringify({ detail: "keep_last_n must not exceed hard_cap" }),
+        body: JSON.stringify({ detail }),
       }),
     );
 
     const error = await updateSnapshotRetention(retention).catch((err: unknown) => err);
     expect(error).toBeInstanceOf(Error);
-    expect((error as Error).message).toBe("keep_last_n must not exceed hard_cap");
+    expect((error as Error).message).toBe(detail);
   });
 });

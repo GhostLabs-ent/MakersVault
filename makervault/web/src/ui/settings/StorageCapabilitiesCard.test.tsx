@@ -94,7 +94,7 @@ describe("StorageCapabilitiesCard", () => {
 
     const notUsable = screen.getByText("Not usable");
     expect(notUsable.className).toContain("text-red-400");
-    expect(screen.getByText("No snapshot method")).toBeTruthy();
+    expect(screen.getByText("none")).toBeTruthy();
     expect(screen.getByText("No copy-on-write snapshot method is available here.")).toBeTruthy();
     expect(screen.queryByText(/Mounted at/)).toBeNull();
   });
@@ -104,13 +104,13 @@ describe("StorageCapabilitiesCard", () => {
     renderCard(makeState(makeCapabilities(volume)));
 
     expect(screen.getByText("Library + Database")).toBeTruthy();
-    expect(screen.getByText("ZFS dataset snapshot")).toBeTruthy();
+    expect(screen.getByText("ZFS dataset")).toBeTruthy();
   });
 
   it("falls back to the raw method name it does not know", () => {
     renderCard(makeState(makeCapabilities(makeVolume({ snapshot_method: "reflink_copy" }))));
 
     expect(screen.getByText("reflink_copy")).toBeTruthy();
-    expect(screen.queryByText("No snapshot method")).toBeNull();
+    expect(screen.queryByText("none")).toBeNull();
   });
 });

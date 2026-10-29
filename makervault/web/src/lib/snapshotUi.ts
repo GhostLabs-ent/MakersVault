@@ -8,11 +8,12 @@ import type {
 } from "./api";
 
 /**
- * Rendered unconditionally inside the retention block: snapshots only cover
- * filesystem paths, so a database on a non-snapshot volume is never included.
+ * Rendered unconditionally inside the retention block: a library snapshot never
+ * covers the SQLite database, whatever volume it lives on.
  */
 export const DB_CAVEAT =
-  "the database is not covered unless it lives on a snapshottable volume";
+  "a library snapshot covers the filesystem only, not the SQLite database; " +
+  "pair it with a database backup (see Mf-ljld)";
 
 export type CapabilityGate = {
   capabilities: StorageCapabilities | null;

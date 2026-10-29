@@ -17,11 +17,12 @@ type Props = {
   onUnauthorized?: () => void;
 };
 
-const EMPTY_DRAFT: SnapshotRetention = {
-  keep_last_n: 1,
-  keep_daily: 0,
-  max_age_days: 1,
-  hard_cap: 1,
+// The server's `RetentionPolicy` defaults; replaced by the loaded policy in the effect below.
+const SERVER_DEFAULT_DRAFT: SnapshotRetention = {
+  keep_last_n: 20,
+  keep_daily: 7,
+  max_age_days: 30,
+  hard_cap: 100,
 };
 
 /** Parent of a snapshot-relative path, or null at the snapshot root. */
@@ -44,7 +45,7 @@ export default function SnapshotCard({
 }: Props): ReactElement {
   const state = useSnapshots({ canManage, onUnauthorized });
   const [pendingDelete, setPendingDelete] = React.useState<string | null>(null);
-  const [draft, setDraft] = React.useState<SnapshotRetention>(EMPTY_DRAFT);
+  const [draft, setDraft] = React.useState<SnapshotRetention>(SERVER_DEFAULT_DRAFT);
 
   React.useEffect(() => {
     if (state.retention) setDraft(state.retention);

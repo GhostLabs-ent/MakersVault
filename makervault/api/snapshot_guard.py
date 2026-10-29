@@ -191,16 +191,22 @@ def _write_taken(
     target: str,
     name: str,
     method: str,
+    pruned: int,
     ctx: Optional[audit.AuditContext],
 ) -> None:
-    """One row for a snapshot that exists; the exact name is the detail."""
+    """One row for a snapshot that exists; the exact name is the detail.
+
+    ``pruned`` counts what this create's retention removed. A destructive route
+    hands the provider no audit context, so no ``snapshot.prune`` row is written
+    on that path: the count here is what records that a prune happened.
+    """
     if ctx is None:
         return
     audit.record(
         audit.Event(
             audit.DESTRUCTIVE_SNAPSHOT_TAKEN,
             target,
-            {"reason": reason.value, "policy": policy, "name": name, "method": method},
+            {"reason": reason.value, "policy": policy, "name": name, "method": method, "pruned": pruned},
         ),
         ctx=ctx,
     )
@@ -286,5 +292,5 @@ def guard(
         return _notice(reason, policy, capability, "proceed_without", detail=str(error))
 
     name = created.snapshot.name
-    _write_taken(reason, policy, target, name, provider.method, ctx)
+    _write_taken(reason, policy, target, name, provider.method, created.prune.pruned, ctx)
     return _notice(reason, policy, "available", "snapshot", name=name)

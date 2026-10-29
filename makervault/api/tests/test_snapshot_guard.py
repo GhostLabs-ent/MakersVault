@@ -12,6 +12,8 @@ row (fail-loud ordering, the routes themselves) live in `test_snapshot_destructi
 and `test_audit_log.py`, where a database already exists.
 """
 
+import datetime as dt
+
 import pytest
 import snapshot_fakes
 from fastapi import HTTPException
@@ -39,6 +41,9 @@ CTX = audit.AuditContext(
     method="POST",
     path="/trash/purge",
 )
+
+# An old enough stamp that a hard cap of 1 has to prune the snapshot it names.
+OLD_STAMP = dt.datetime(2020, 1, 1, tzinfo=dt.timezone.utc)
 
 
 def reason_id(reason: snapshots.SnapshotReason) -> str:
@@ -231,7 +236,40 @@ def test_guard_writes_one_taken_row_naming_the_snapshot(monkeypatch: pytest.Monk
     assert len(rows) == 1
     assert rows[0].action == audit.DESTRUCTIVE_SNAPSHOT_TAKEN
     assert rows[0].target == "assets"
-    assert rows[0].detail == {"reason": "prebulk", "policy": "strict", "name": notice.name, "method": provider.method}
+    assert rows[0].detail == {
+        "reason": "prebulk",
+        "policy": "strict",
+        "name": notice.name,
+        "method": provider.method,
+        "pruned": 0,
+    }
+
+
+def test_guard_records_the_prune_its_own_create_caused(
+    monkeypatch: pytest.MonkeyPatch, storage_root
+) -> None:
+    # A destructive route hands the provider no context, so no `snapshot.prune` row
+    # exists on that path: the count in the `destructive.snapshot_taken` detail is
+    # the only record that retention removed anything (one unprunable-per-day bug
+    # hid behind exactly this gap).
+    rows = capture_audit(monkeypatch)
+    store = storage_root / snapshots.SNAPSHOT_DIRNAME
+    store.mkdir(parents=True)
+    old = store / snapshots.snapshot_name(snapshots.SnapshotReason.MANUAL, OLD_STAMP)
+    old.mkdir()
+    provider = snapshot_fakes.ScriptedProvider(
+        storage_root,
+        policy=snapshots.RetentionPolicy(keep_last_n=1, keep_daily=0, max_age_days=3650, hard_cap=1),
+    )
+    monkeypatch.setattr(snapshots, "provider_for", lambda *args, **kwargs: provider)
+    snapshot_fakes.use_capability(monkeypatch)
+    monkeypatch.setattr(config, "SNAPSHOT_POLICY_PREBULK", "strict")
+
+    notice = snapshot_guard.guard(snapshots.SnapshotReason.PRE_BULK, "assets", ctx=CTX)
+
+    assert rows[0].detail["name"] == notice.name
+    assert rows[0].detail["pruned"] == 1
+    assert not old.exists(), "the pruned snapshot is gone from the store"
 
 
 def test_guard_without_a_context_writes_no_row(monkeypatch: pytest.MonkeyPatch) -> None:
