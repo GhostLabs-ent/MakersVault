@@ -24,6 +24,7 @@ from sqlmodel import Session, select
 
 import audit
 import db
+import snapshot_zfs
 import snapshots
 import storage_capabilities
 from db import engine
@@ -824,7 +825,7 @@ def test_cephfs_a_directory_it_did_not_write_is_invisible_and_immune(tmp_path: P
         (storage_capabilities.CEPHFS_SNAPDIR, snapshots.CephFsSnapdirProvider),
         (snapshots.LOCAL_COPY_METHOD, snapshots.LocalCopyProvider),
         (storage_capabilities.NO_METHOD, snapshots.NullProvider),
-        (storage_capabilities.ZFS_DATASET, snapshots.NullProvider),
+        (storage_capabilities.ZFS_DATASET, snapshot_zfs.ZfsProvider),
         (storage_capabilities.BTRFS_SUBVOL, snapshots.NullProvider),
         ("nonsense", snapshots.NullProvider),
         ("", snapshots.NullProvider),

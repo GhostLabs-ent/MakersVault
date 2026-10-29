@@ -3,11 +3,11 @@
 This is the provider layer that S1's capability report only promised. A provider
 turns "this volume reported method X" into three operations -- create, list,
 delete -- plus a read-only view path, and it is the only place that knows how a
-snapshot is actually made. Two real methods exist today: CephFS's ``.snap``
-directory and a local copy, which is a test double and never a production
-provider. Everything else resolves to the null provider, so the app boots on
-every volume S1 can report instead of failing on the ones nobody has written a
-provider for yet.
+snapshot is actually made. Three providers exist today: CephFS's ``.snap``
+directory, ZFS dataset snapshots, and a local copy, which is a test double and
+never a production provider. Any volume without a provider resolves to the null
+provider, so the app boots on every volume S1 can report instead of failing on
+the ones nobody has written a provider for yet.
 
 Semantics that callers must not lose sight of:
 
@@ -695,10 +695,11 @@ class LocalCopyProvider(SnapshotProvider):
 class NullProvider(SnapshotProvider):
     """The provider for every volume without a snapshot method: it refuses, calmly.
 
-    It exists so ``provider_for`` never raises for an unknown method: the app
-    boots on ext4, zfs and btrfs today, and asks this provider what it can do
-    (nothing) instead of crashing. ``list`` is empty rather than an error
-    because "this volume has no snapshots" is a true answer.
+    It exists so ``provider_for`` never raises for a method without a provider:
+    the app boots on ext4, on btrfs, and on any other unimplemented method, and
+    asks this provider what it can do (nothing) instead of crashing. ``list`` is
+    empty rather than an error because "this volume has no snapshots" is a true
+    answer.
     """
 
     method = storage_capabilities.NO_METHOD
@@ -737,14 +738,20 @@ def provider_for(
 ) -> SnapshotProvider:
     """Build the provider for a capability method; unknown methods get the null one.
 
-    ``NO_METHOD``, ``zfs_dataset``, ``btrfs_subvol`` and any string nobody has
-    implemented all resolve to ``NullProvider`` without raising, so the app boots
-    on every volume S1 can report and a later slice adds a method by adding a
-    branch here, not by making boot conditional.
+    ``NO_METHOD``, ``btrfs_subvol`` and any string nobody has implemented all
+    resolve to ``NullProvider`` without raising, so the app boots on every volume
+    S1 can report and a later slice adds a method by adding a branch here, not by
+    making boot conditional.
     """
     library = Path(root) if root is not None else library_root()
     if method == storage_capabilities.CEPHFS_SNAPDIR:
         return CephFsSnapdirProvider(library, policy=policy, snapshot_root=snapshot_root)
     if method == LOCAL_COPY_METHOD:
         return LocalCopyProvider(library, policy=policy, snapshot_root=snapshot_root)
+    if method == storage_capabilities.ZFS_DATASET:
+        # Function-local: ``snapshot_zfs`` imports this module, so a top-level
+        # import here would be circular. ``import db`` is the established idiom.
+        import snapshot_zfs
+
+        return snapshot_zfs.ZfsProvider(library, policy=policy, snapshot_root=snapshot_root)
     return NullProvider(library, policy=policy, snapshot_root=snapshot_root)

@@ -259,3 +259,107 @@ and cannot be switched off. The snapshot being created is never pruned, a name
 the layer did not write is never pruned, and the policy refuses what it cannot
 honour: `snapshot_keep_daily` is non-negative, the other three keys are positive,
 so a refused stored value is an error rather than a silently replaced default.
+
+## Snapshots (ZFS)
+
+`zfs_dataset` (see "Storage snapshot capabilities") is served by
+`makervault/api/snapshot_zfs.py`, which drives the `zfs` CLI. It needs no root
+privileges: the service principal is given exactly three rights on one dataset
+by delegation, and everything else -- naming, retention, containment, listing --
+comes from the shared provider layer, so a ZFS deployment behaves like the CephFS
+one. Snapshot names are `<UTC stamp>-<reason>-<random suffix>`, used verbatim as
+the ZFS snapshot name.
+
+The library root itself must be the dataset mountpoint, not a directory inside a
+dataset. A subdirectory has no `.zfs` snapshot view of its own, so the provider
+refuses the store and the probe reports `library_not_mountpoint`:
+
+```
+zfs create -o mountpoint=<library> <pool>/<name>
+```
+
+Delegating the rights, as root, once per dataset (the probe's remedy is this
+same command with the running user and the resolved dataset filled in):
+
+```
+zfs allow -u <user> snapshot,destroy,mount <dataset>
+```
+
+`mount` is delegated even though nothing here mounts anything: `zfs destroy`
+inspects the dataset's descendants before it removes a snapshot, and that check
+fails without it. All three are required; a deployment that grants only
+`snapshot` can take snapshots it cannot prune, which the probe reports rather
+than discovering at delete time.
+
+`GET /storage/capabilities` answers whether snapshotting is usable using S1's
+capability check; `probe_zfs` in `snapshot_zfs.py` is the standalone, read-only,
+four-state answer for a ZFS root, and the manual procedure below uses it. It
+takes no snapshot and creates nothing, and it reports one of four states:
+
+* `delegated` -- the dataset behind the library root delegates `snapshot`,
+  `destroy` and `mount` to this principal. Snapshots can be taken and pruned.
+* `available_but_not_delegated` -- the volume is ZFS and the dataset resolves,
+  but at least one required permission is missing. The reason names the missing
+  permissions and the remedy is the `zfs allow` line above.
+* `unavailable` -- the root is not on a mounted volume, is not ZFS, the dataset
+  could not be resolved, or `zfs` could not be run at all.
+* `library_not_mountpoint` -- the root is a subdirectory of the dataset mounted
+  above it; the remedy is the `zfs create -o mountpoint=...` line above.
+
+Two deployment caveats matter in containers:
+
+* `/dev/zfs` must be present in the API container. The `zfs` userspace tool talks
+  to the kernel module through that device node; without it every `zfs` call
+  fails and the probe reports `unavailable` even on a ZFS host.
+* the `snapdir` property controls whether the snapshot directory is listed in a
+  plain readdir of the dataset root (`hidden` is the default on most pools, and
+  `visible` is the other setting). Snapshot access is unaffected, because
+  reading `<root>/.zfs/snapshot/...` by name works either way; only an
+  operator's `ls` of the mount point shows the difference.
+
+Browsing is read-only: `<root>/.zfs/snapshot/<name>` is the kernel's view of one
+snapshot, and it is never written to. A restore copies out of that view into the
+live tree; this module never runs `zfs rollback`, because a rollback rewinds the
+whole dataset -- including everything this application did not write -- to the
+snapshot's state, which is not a restore of the files somebody asked for.
+
+Only snapshots this application wrote are listed and pruned. `list()` reads the
+snapshot view and keeps the names its own parser recognises, so snapshots taken
+by `zfs-auto-snapshot`, `sanoid`, a backup job or a cron line are invisible to
+the UI and immune to retention even though they live on the same dataset. This
+module never enumerates the dataset, so it cannot prune a snapshot it did not
+name.
+
+### Real-pool verification (MANUAL)
+
+Delegation, `/dev/zfs` and `snapdir` visibility cannot be exercised without a
+real pool, so verifying them is a manual procedure on a real deployment, not CI
+evidence. On a host with ZFS, as root, create a scratch dataset mounted on a
+temporary library root and delegate the three rights to the service principal:
+
+```
+zfs create -o mountpoint=/srv/zfs-check tank/zfs-check
+zfs allow -u <user> snapshot,destroy,mount tank/zfs-check
+```
+
+Then, as the service principal, check the probe, take a snapshot, browse and
+restore it, and delete it:
+
+```
+python -c "import snapshot_zfs; print(snapshot_zfs.probe_zfs())"
+ls /srv/zfs-check/.zfs/snapshot
+cp /srv/zfs-check/.zfs/snapshot/<name>/<file> /srv/zfs-check/<file>
+zfs destroy tank/zfs-check@<name>
+zfs unallow -u <user> snapshot,destroy,mount tank/zfs-check
+zfs destroy tank/zfs-check
+```
+
+Expected: the probe reports `delegated`; the snapshot appears both under
+`.zfs/snapshot` and in `zfs list -t snapshot`; browsing shows the file contents
+as of the snapshot; the copy restores them; the destroy removes the snapshot
+without `-r`. A snapshot taken by another tool left on the dataset at the same
+time must not appear in the application's snapshot list. Record the run in the
+deployment notes; it is operator evidence, not a substitute for the unit tests.
+
+Real-pool verification is manual, and the container's `/dev/zfs` is the first
+thing to check when the probe reports `unavailable` on a host that has ZFS.
