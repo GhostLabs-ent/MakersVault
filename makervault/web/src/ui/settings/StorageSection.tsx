@@ -1,5 +1,7 @@
 import TrashCard from "../TrashCard";
+import StorageCapabilitiesCard from "./StorageCapabilitiesCard";
 import type { LibraryScanState } from "./useLibraryScan";
+import { useStorageCapabilities } from "./useStorageCapabilities";
 import type { StorageSettingsState } from "./useStorageSettings";
 
 type Props = {
@@ -28,6 +30,8 @@ export default function StorageSection({ storage, libraryScanState, onUnauthoriz
     error: libraryScanError,
     run: runLibraryScan,
   } = libraryScanState;
+
+  const storageCapabilities = useStorageCapabilities();
 
   const isDirty = storageTemplate.trim() !== storageInitial;
   const previewValues: Record<string, string> = {
@@ -146,6 +150,8 @@ export default function StorageSection({ storage, libraryScanState, onUnauthoriz
           </div>
         )}
       </div>
+
+      <StorageCapabilitiesCard state={storageCapabilities} />
 
       <TrashCard onUnauthorized={onUnauthorized} />
     </div>

@@ -7,8 +7,10 @@ from pydantic import BaseModel
 __all__ = [
   "MountImportSettings",
   "MountImportSettingsOut",
+  "StorageCapabilitiesOut",
   "StorageSettings",
   "StorageSettingsOut",
+  "StorageVolumeCapability",
 ]
 
 
@@ -23,6 +25,20 @@ class MountImportSettingsOut(MountImportSettings):
 
 class StorageSettings(BaseModel):
   template: str
+
+
+class StorageVolumeCapability(BaseModel):
+  roles: List[str]
+  path: str
+  fstype: str
+  mount_point: str
+  snapshot_method: str
+  usable: bool
+  reason: str
+
+
+class StorageCapabilitiesOut(BaseModel):
+  volumes: List[StorageVolumeCapability]
 
 
 class StorageSettingsOut(BaseModel):

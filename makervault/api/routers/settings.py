@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlmodel import Session
 
 import audit
+import storage_capabilities
 from asset_service import (
     DEPRECATED_STORAGE_TEMPLATE_TOKENS,
     STORAGE_TEMPLATE_TOKENS,
@@ -15,8 +16,15 @@ from asset_service import (
 from auth import AuthContext
 from config import MOUNT_IMPORT_COPY, MOUNT_IMPORT_ENABLED, MOUNT_IMPORT_PATH
 from db import engine
-from permissions import require_admin
-from schemas import MountImportSettings, MountImportSettingsOut, StorageSettings, StorageSettingsOut
+from permissions import require_admin, require_read
+from schemas import (
+    MountImportSettings,
+    MountImportSettingsOut,
+    StorageCapabilitiesOut,
+    StorageSettings,
+    StorageSettingsOut,
+    StorageVolumeCapability,
+)
 from settings_service import (
     DEFAULT_STORAGE_TEMPLATE,
     STORAGE_TEMPLATE_KEY,
@@ -105,3 +113,25 @@ def update_storage_settings(
         )
         s.commit()
     return storage_settings_out(template)
+
+
+def storage_capabilities_out() -> StorageCapabilitiesOut:
+    return StorageCapabilitiesOut(
+        volumes=[
+            StorageVolumeCapability(
+                roles=list(volume.roles),
+                path=volume.path,
+                fstype=volume.fstype,
+                mount_point=volume.mount_point,
+                snapshot_method=volume.snapshot_method,
+                usable=volume.usable,
+                reason=volume.reason,
+            )
+            for volume in storage_capabilities.detect()
+        ]
+    )
+
+
+@router.get("/storage/capabilities", response_model=StorageCapabilitiesOut)
+def get_storage_capabilities(_: Optional[AuthContext] = Depends(require_read)):
+    return storage_capabilities_out()

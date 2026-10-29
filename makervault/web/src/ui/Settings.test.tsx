@@ -9,6 +9,7 @@ vi.mock("../lib/api", () => ({
   createFolder: vi.fn(),
   getMountImportSettings: vi.fn(),
   getLibraryScanStatus: vi.fn(),
+  getStorageCapabilities: vi.fn(async () => ({ volumes: [] })),
   getStorageSettings: vi.fn(),
   getTrash: vi.fn(async () => ({ entries: [], total_size: 0 })),
   purgeTrash: vi.fn(),

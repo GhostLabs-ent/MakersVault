@@ -1,7 +1,7 @@
 """Per-route permission sweeps driven by `permissions.ROUTE_PERMISSIONS`.
 
 Why this file exists: Mf-2nbc enforces a level with a *per-route dependency*, and
-the only thing that keeps 64 hand-written declarations honest is a test that
+the only thing that keeps 65 hand-written declarations honest is a test that
 visits every route at every role. The sweeps below are parametrised from
 `permissions.ROUTE_PERMISSIONS`, so that table is both the documentation and the
 test plan: add a route without classifying it and
@@ -55,6 +55,7 @@ import login_throttle as login_throttle_module
 import main
 import permissions
 import settings_service
+import storage_capabilities
 from config import MOUNT_IMPORT_COPY, MOUNT_IMPORT_ENABLED
 from db import engine
 from migrations import run_migrations
@@ -659,6 +660,13 @@ def call_get_storage_settings(client: TestClient, headers: dict[str, str], ids: 
     return client.get("/settings/storage", headers=headers)
 
 
+def call_get_storage_capabilities(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    # Detection probes the real filesystem and, on a zfs/btrfs host, a real binary;
+    # this sweep only cares about the permission gate.
+    monkeypatch.setattr(storage_capabilities, "detect", lambda: [])
+    return client.get("/storage/capabilities", headers=headers)
+
+
 def call_update_storage_settings(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
     # Post back the template the deployment already has: a 200 with nothing moved.
     return client.post("/settings/storage", json={"template": ids.storage_template}, headers=headers)
@@ -791,6 +799,7 @@ CALLS: dict[tuple[str, str], CallSpec] = {
     ("POST", "/settings/mount-import"): call_update_mount_import,
     ("GET", "/settings/storage"): call_get_storage_settings,
     ("POST", "/settings/storage"): call_update_storage_settings,
+    ("GET", "/storage/capabilities"): call_get_storage_capabilities,
     ("POST", "/library/scan"): call_start_scan,
     ("POST", "/users"): call_create_user,
     ("GET", "/users"): call_list_users,
@@ -856,6 +865,7 @@ EXPECTED_STATUS: dict[tuple[str, str], int] = {
     ("POST", "/settings/mount-import"): 200,
     ("GET", "/settings/storage"): 200,
     ("POST", "/settings/storage"): 200,
+    ("GET", "/storage/capabilities"): 200,
     ("POST", "/library/scan"): 202,
     ("POST", "/users"): 201,
     ("GET", "/users"): 200,
@@ -994,10 +1004,10 @@ def test_a_route_declared_on_the_app_instead_of_a_router_is_caught() -> None:
 
 
 def test_the_matrix_is_the_documented_size() -> None:
-    """The matrix is pinned at 64 routes; a new route means updating this and docs/PERMISSIONS.md."""
+    """The matrix is pinned at 65 routes; a new route means updating this and docs/PERMISSIONS.md."""
     counts = {level: len(keys_at(level)) for level in (permissions.PUBLIC, permissions.READ, permissions.WRITE, permissions.ADMIN)}
-    assert len(permissions.ROUTE_PERMISSIONS) == 64, counts
-    assert counts == {permissions.PUBLIC: 4, permissions.READ: 21, permissions.WRITE: 30, permissions.ADMIN: 9}, counts
+    assert len(permissions.ROUTE_PERMISSIONS) == 65, counts
+    assert counts == {permissions.PUBLIC: 4, permissions.READ: 22, permissions.WRITE: 30, permissions.ADMIN: 9}, counts
 
 
 def test_every_guarded_route_has_a_call_spec() -> None:

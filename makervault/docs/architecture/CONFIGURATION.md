@@ -121,6 +121,41 @@ Each attempt is recorded in the `import_run` table (status, mode, counters and
 bounded per-file errors) and readable at `GET /imports/runs`. The table keeps the
 newest 50 runs; skipped runs are recorded too, with their reason.
 
+## Storage snapshot capabilities
+
+`GET /storage/capabilities` reports, per storage volume, the filesystem type and
+whether a snapshot method is actually usable. It requires the read permission
+(the admin-only storage settings section in the UI mounts the badge, but a
+viewer may read the same report). The route is read-only and creates nothing: it
+takes no snapshot, writes no probe file and makes no directory.
+
+Each entry has `roles`, `path`, `fstype`, `mount_point`, `snapshot_method`,
+`usable` and `reason`. The library volume and the sqlite database directory are
+reported separately; when both sit on the same `st_dev` they are merged into one
+entry whose `roles` is `["library", "database"]`, because that is one
+filesystem. Subtree-scoped methods (`cephfs_snapdir`, `btrfs_subvol`) still
+snapshot per path, so a later snapshot operation re-derives the per-role paths
+from `db.DB_URL` instead of assuming the merged entry's `path` covers the
+database.
+
+`fstype` comes from the `statfs(2)` magic, cross-checked against
+`/proc/self/mounts` (longest-prefix match, then `st_dev`). The magics it names are
+CephFS `0x00C36400`, Btrfs `0x9123683E`, and ZFS `0x2FC12FC1`, plus ext, tmpfs,
+overlay, nfs, cifs, xfs and fuse; anything else reports `unknown`.
+
+`snapshot_method` is one of:
+
+| Method | What it needs |
+|---|---|
+| `cephfs_snapdir` | `<root>/.snap` must already exist and be writable by the process. The probe never creates it. |
+| `zfs_dataset` | the `zfs` binary and delegated `snapshot` rights on the dataset; both probes are bounded at 2 s. |
+| `btrfs_subvol` | detected, but snapshotting requires root privileges, so it is reported unusable. |
+| `none` | no snapshot method for this filesystem; the reason names the `fstype`. |
+
+`os.access` is always true for root, so the CephFS writability check is weakest
+for a root container: it reports what the process could do, not what the
+deployment's service principal was granted. No snapshot is taken in this slice.
+
 ## Web runtime settings
 
 | Variable | Current default | Effect |

@@ -163,6 +163,8 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("GET", "/folder/{folder_id}/delete-preview"): READ,
     ("GET", "/folder/{folder_id}/download"): READ,
     ("GET", "/trash"): READ,
+    # A read-only report of filesystem snapshot capability; creates nothing.
+    ("GET", "/storage/capabilities"): READ,
     # write: create, mutate or delete library content.
     ("POST", "/upload"): WRITE,
     ("POST", "/import"): WRITE,

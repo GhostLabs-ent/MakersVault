@@ -15,6 +15,6 @@ export { type TrashEntry, type TrashList, type TrashPurgeResult, getTrash, purge
 export { downloadZip, downloadFolderZip, downloadAsset } from "./downloads";
 export { fileUrl, assetFilePreviewUrl, stableFileUrl } from "./mediaUrls";
 export { mintFileGrants } from "./grants";
-export { type MountImportSettings, type StorageSettings, getMountImportSettings, updateMountImportSettings, getStorageSettings, updateStorageSettings, type LibraryScanStatus, getLibraryScanStatus, startLibraryScan, type ImportRunSummary, type ImportRunDetail, type ImportRunList, getImportRuns, getImportRun } from "./settings";
+export { type MountImportSettings, type StorageSettings, getMountImportSettings, updateMountImportSettings, getStorageSettings, updateStorageSettings, type StorageVolumeCapability, type StorageCapabilities, getStorageCapabilities, type LibraryScanStatus, getLibraryScanStatus, startLibraryScan, type ImportRunSummary, type ImportRunDetail, type ImportRunList, getImportRuns, getImportRun } from "./settings";
 export { type AuthTokens, login, refreshToken, type Me, getMe, logout } from "./auth";
 export { type AuditEvent, type AuditQuery, type AuditPage, listAuditEvents } from "./audit";

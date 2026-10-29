@@ -60,6 +60,31 @@ export async function updateStorageSettings(payload: {
   return res.json();
 }
 
+/**
+ * Snapshot capability of one storage volume, as detected from the mounted
+ * filesystem. Detection is advisory: nothing is written to disk and no
+ * snapshot is taken by reporting it.
+ */
+export type StorageVolumeCapability = {
+  roles: string[];
+  path: string;
+  fstype: string;
+  mount_point: string;
+  snapshot_method: string;
+  usable: boolean;
+  reason: string;
+};
+
+export type StorageCapabilities = {
+  volumes: StorageVolumeCapability[];
+};
+
+export async function getStorageCapabilities(): Promise<StorageCapabilities> {
+  const res = await fetch(`${apiBase()}/storage/capabilities`, { headers: authHeaders() });
+  assertOk(res, "Failed to load storage capabilities");
+  return res.json();
+}
+
 export type LibraryScanStatus = {
   running: boolean;
   started_at: number | null;

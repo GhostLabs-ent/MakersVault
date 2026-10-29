@@ -149,7 +149,7 @@ rollback are in
 
 ## The route matrix
 
-Paths are FastAPI templates exactly as declared. 64 routes: 4 public, 21 read,
+Paths are FastAPI templates exactly as declared. 65 routes: 4 public, 22 read,
 30 write, 9 admin.
 
 The collection/instance templates are deliberately asymmetric: the collection is
@@ -190,6 +190,7 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | GET    | `/projects`                             | list projects with their member counts |
 | GET    | `/project/{project_id}/assets`          | list one project's member assets |
 | GET    | `/trash`                                | list the trash |
+| GET    | `/storage/capabilities`                 | read-only filesystem capability report; creates nothing |
 
 ### write (editor or admin)
 

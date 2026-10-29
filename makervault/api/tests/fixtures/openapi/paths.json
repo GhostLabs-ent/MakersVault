@@ -2979,6 +2979,29 @@
       "summary": "Update Storage Settings"
     }
   },
+  "/storage/capabilities": {
+    "get": {
+      "operationId": "get_storage_capabilities_storage_capabilities_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorageCapabilitiesOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Get Storage Capabilities"
+    }
+  },
   "/tags": {
     "get": {
       "operationId": "list_tags_tags_get",

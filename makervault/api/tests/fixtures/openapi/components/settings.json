@@ -46,6 +46,22 @@
     "title": "MountImportSettingsOut",
     "type": "object"
   },
+  "StorageCapabilitiesOut": {
+    "properties": {
+      "volumes": {
+        "items": {
+          "$ref": "#/components/schemas/StorageVolumeCapability"
+        },
+        "title": "Volumes",
+        "type": "array"
+      }
+    },
+    "required": [
+      "volumes"
+    ],
+    "title": "StorageCapabilitiesOut",
+    "type": "object"
+  },
   "StorageSettings": {
     "properties": {
       "template": {
@@ -98,6 +114,52 @@
       "sample_path"
     ],
     "title": "StorageSettingsOut",
+    "type": "object"
+  },
+  "StorageVolumeCapability": {
+    "properties": {
+      "fstype": {
+        "title": "Fstype",
+        "type": "string"
+      },
+      "mount_point": {
+        "title": "Mount Point",
+        "type": "string"
+      },
+      "path": {
+        "title": "Path",
+        "type": "string"
+      },
+      "reason": {
+        "title": "Reason",
+        "type": "string"
+      },
+      "roles": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Roles",
+        "type": "array"
+      },
+      "snapshot_method": {
+        "title": "Snapshot Method",
+        "type": "string"
+      },
+      "usable": {
+        "title": "Usable",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "roles",
+      "path",
+      "fstype",
+      "mount_point",
+      "snapshot_method",
+      "usable",
+      "reason"
+    ],
+    "title": "StorageVolumeCapability",
     "type": "object"
   }
 }
