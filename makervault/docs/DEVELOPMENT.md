@@ -138,6 +138,27 @@ make verify-smoke
 CI invokes these same targets. A local workaround that CI does not execute is not
 release evidence.
 
+### Snapshots against a real filesystem
+
+`tests/test_snapshots_integration.py` is the only evidence that a snapshot is a
+real copy-on-write view, so it is manual: it is skipped unless
+`SNAPSHOT_INTEGRATION=1`, and it refuses a root that is not an explicit scratch
+directory. `SNAPSHOT_INTEGRATION_ROOT` must be an existing directory whose name
+starts with `makersvault-snapshot-scratch-`, at least three path components deep,
+and neither the library root nor an ancestor nor a descendant of it.
+
+```bash
+cd makervault/api
+scratch=/mnt/ceph/scratch/makersvault-snapshot-scratch-$(date +%s)
+mkdir -p "$scratch"
+SNAPSHOT_INTEGRATION=1 SNAPSHOT_INTEGRATION_ROOT="$scratch" \
+  python -m pytest -q tests/test_snapshots_integration.py
+```
+
+CI never sets either variable, and neither one belongs in `.env.example` or a
+compose manifest: a forwarded key that nothing reads fails
+`tests/test_deploy_manifest_env.py`.
+
 ## Schema migration rules
 
 - Add the next immutable `Migration` entry in `api/migrations.py`.

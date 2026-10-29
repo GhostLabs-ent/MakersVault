@@ -204,7 +204,29 @@ These are per-browser and are not server `AppConfig` values; the optional
 
 ## Server `AppConfig` settings
 
-The current database-backed settings are mounted-import enable/copy behavior and
-the managed-storage template. These settings are shared by the instance. Mounted
-import run history is a table (`import_run`), not an `AppConfig` value, so it is
-bounded separately and never parsed as a setting.
+The current database-backed settings are mounted-import enable/copy behavior, the
+managed-storage template, and snapshot retention. These settings are shared by
+the instance. Mounted import run history is a table (`import_run`), not an
+`AppConfig` value, so it is bounded separately and never parsed as a setting.
+
+Snapshot retention is the policy of the snapshot provider layer, read on every
+`create()` and applied only to the snapshots that layer wrote. It does not decide
+whether a snapshot can be taken (that is the capability report above) and it adds
+no route, no environment variable and no schema change:
+
+| Key | Default | Effect |
+|---|---|---|
+| `snapshot_keep_last_n` | `20` | Always keep the newest N snapshots. |
+| `snapshot_keep_daily` | `7` | Also keep the newest snapshot of each of the last N days that has one. |
+| `snapshot_max_age_days` | `30` | Prune anything older than N days. |
+| `snapshot_hard_cap` | `100` | Prune the oldest until at most N remain. |
+
+The cascade is age, then keep, then hard cap: a snapshot older than
+`snapshot_max_age_days` is pruned even when a keep rule would have protected it;
+the two keep keys are a union, so the newest `snapshot_keep_last_n` snapshots and
+one snapshot per day for `snapshot_keep_daily` days both survive; and the hard cap
+is the last resort that bounds the directory. Retention runs inside `create()`
+and cannot be switched off. The snapshot being created is never pruned, a name
+the layer did not write is never pruned, and the policy refuses what it cannot
+honour: `snapshot_keep_daily` is non-negative, the other three keys are positive,
+so a refused stored value is an error rather than a silently replaced default.

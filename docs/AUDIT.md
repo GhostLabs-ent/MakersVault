@@ -63,7 +63,7 @@ could honestly reconstruct.
 
 ## The action taxonomy
 
-`audit.ACTIONS` holds exactly these 21 strings. Action names are stable and
+`audit.ACTIONS` holds exactly these 24 strings. Action names are stable and
 `namespace.verb`; a reader of a row does not need the code to know what it means.
 
 | Action | Route(s) that emit it | `target` | `detail` | Failure |
@@ -89,6 +89,16 @@ could honestly reconstruct.
 | `user.enable` | `PATCH /users/{user_id}` (only when `disabled` goes true -> false) | username | `{"from", "to"}` booleans | fail-closed |
 | `library.scan.start` | `POST /library/scan` | `"library"` | none | fail-loud |
 | `login.succeeded` | `POST /login` | the real username | `{"kind", "client_ip"}` | fail-closed |
+| `snapshot.create` | no route; emitted by the provider layer in `snapshots.py` | snapshot name | `{"reason", "method", "pruned"}` | fail-loud |
+| `snapshot.prune` | no route; emitted by retention inside `create()` in `snapshots.py` (one row per pruned snapshot) | pruned snapshot name | `{"rule", "trigger"}` | fail-loud |
+| `snapshot.delete` | no route; emitted by the provider layer in `snapshots.py` | snapshot name | `{"method"}` | fail-loud |
+
+Three of those actions are not route actions. `snapshot.create`, `snapshot.prune`
+and `snapshot.delete` are written with `audit.record` by the snapshot provider
+layer, because a snapshot is a filesystem object with no row to roll back. They
+are deliberately absent from `ROUTE_ACTIONS`: no route emits them, so
+`assert_audit_coverage()` and the audited/exempt route counts below are
+unchanged. They are fail-loud for the same reason as `trash.purge`.
 
 Two routes can emit more than one row per request, because a request can change
 more than one fact:

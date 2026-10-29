@@ -66,6 +66,9 @@ USER_DISABLE = "user.disable"
 USER_ENABLE = "user.enable"
 LIBRARY_SCAN_START = "library.scan.start"
 LOGIN_SUCCEEDED = "login.succeeded"
+SNAPSHOT_CREATE = "snapshot.create"
+SNAPSHOT_PRUNE = "snapshot.prune"
+SNAPSHOT_DELETE = "snapshot.delete"
 
 ACTIONS: frozenset[str] = frozenset({
     ASSET_DELETE,
@@ -89,6 +92,9 @@ ACTIONS: frozenset[str] = frozenset({
     USER_ENABLE,
     LIBRARY_SCAN_START,
     LOGIN_SUCCEEDED,
+    SNAPSHOT_CREATE,
+    SNAPSHOT_PRUNE,
+    SNAPSHOT_DELETE,
 })
 
 
