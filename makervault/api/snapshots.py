@@ -43,7 +43,8 @@ Errors map to HTTP in one place later: ``SnapshotPathError`` is a 400,
 409s, and any other ``SnapshotError`` is a 500.
 
 Snapshot names carry the creation time so the directory listing needs no
-database: ``<UTC stamp>-<reason>-<random suffix>``. Lexicographic order equals
+database: ``<UTC stamp>-<reason>-<random suffix>``, where the reason is one of
+manual, scheduled, predelete, prepurge, prebulk. Lexicographic order equals
 creation order across a date boundary because the stamp is fixed width; order
 *within one second* is undefined because the suffix is random.
 """
@@ -74,8 +75,6 @@ SNAPSHOT_DIRNAME = ".snap"
 RESERVED_COMPONENTS = ("thumbs", "bundles", ".trash", ".incoming", ".snap")
 
 LOCAL_COPY_METHOD = "local_copy"
-
-NAME_RE = re.compile(r"^(?P<stamp>\d{8}T\d{6}Z)-(?P<reason>[a-z][a-z0-9_]*)-(?P<suffix>[0-9a-f]{6})$")
 
 RULE_MAX_AGE = "max_age"
 RULE_KEEP = "keep"
@@ -116,12 +115,24 @@ class SnapshotExists(SnapshotError):
 
 
 class SnapshotReason(str, Enum):
-    """Why a snapshot was taken; part of the name, so it survives a restart."""
+    """Why a snapshot was taken; part of the name, so it survives a restart.
+
+    The locked vocabulary is exactly manual, scheduled, predelete, prepurge,
+    prebulk.
+    """
 
     MANUAL = "manual"
     SCHEDULED = "scheduled"
-    PRE_DELETE = "pre_delete"
-    PRE_RESTORE = "pre_restore"
+    PRE_DELETE = "predelete"
+    PRE_PURGE = "prepurge"
+    PRE_BULK = "prebulk"
+
+
+_REASON_TOKENS = "|".join(re.escape(reason.value) for reason in SnapshotReason)
+
+NAME_RE = re.compile(
+    rf"^(?P<stamp>\d{{8}}T\d{{6}}Z)-(?P<reason>{_REASON_TOKENS})-(?P<suffix>[0-9a-f]{{6}})$"
+)
 
 
 @dataclass(frozen=True)

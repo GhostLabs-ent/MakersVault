@@ -130,6 +130,11 @@ def step_clock(monkeypatch: pytest.MonkeyPatch, start: datetime, seconds: int = 
 # --- AC-3: names carry their creation time --------------------------------
 
 
+def test_snapshot_reason_values_are_the_locked_vocabulary() -> None:
+    assert [reason.value for reason in snapshots.SnapshotReason] == ["manual", "scheduled", "predelete", "prepurge", "prebulk"]
+    assert {reason.name for reason in snapshots.SnapshotReason} == {"MANUAL", "SCHEDULED", "PRE_DELETE", "PRE_PURGE", "PRE_BULK"}
+
+
 @pytest.mark.parametrize("reason", list(snapshots.SnapshotReason))
 def test_ac3_a_generated_name_parses_back_to_the_snapshot_it_describes(reason: snapshots.SnapshotReason) -> None:
     now = FROZEN
@@ -153,6 +158,8 @@ def test_ac3_a_generated_name_parses_back_to_the_snapshot_it_describes(reason: s
         "20260101T000000Z-MANUAL-abcdef",
         "20260101T000000Z-manual-ABCDEF",
         "20260101T000000Z-manual-abcde",
+        "20260101T000000Z-pre_delete-abcdef",
+        "20260101T000000Z-pre_restore-abcdef",
         "2026010XT000000Z-manual-abcdef",
         "",
         ".",
