@@ -12,6 +12,7 @@ cleanly, the review is what costs.
     python3 makervault/scripts/wave_plan.py --plan /tmp/wave-1.json --max-lanes 3
     python3 makervault/scripts/wave_plan.py --plan /tmp/wave-1.json --json
     python3 makervault/scripts/wave_plan.py --check-delta .plans/batch-13/Mf-z5qa.json
+    python3 makervault/scripts/wave_plan.py --check-shape .plans/batch-13
     python3 makervault/scripts/wave_plan.py --report-timings .plans/batch-13
 
 A plan file is a statement of intent plus a touch-set, and a per-ticket plan
@@ -21,9 +22,16 @@ plan against base..HEAD is the cheap check before implementation starts, and it
 is not a re-plan. A wave file is {"lanes": [{"id": "Mf-6d52", "touches":
 ["path/one.py"], "serialises": false, "reason": "why this lane serialises"}]}.
 
-Exit 0 accepts the wave, reports a fresh plan, or prints a timing report; 1
-refuses the wave or fails a delta check closed with the reason on stderr; 2 is
-a usage error or a malformed plan file.
+A batch plan directory also has a shape: when more than half of its declared
+candidates share a surface path, the plan-ahead queue is withheld and every
+remaining candidate is gated just before its own dispatch, against that
+moment's HEAD. The verdict and its cost comparison are a replay over the plans
+on disk, not a re-run of their gates.
+
+Exit 0 accepts the wave, reports a fresh plan, prints a report, or lets the
+plan-ahead queue proceed; 1 refuses the wave, fails a delta check closed, or
+withholds the plan-ahead queue; 2 is a usage error or a malformed plan file or
+directory.
 """
 
 import argparse
@@ -506,6 +514,42 @@ def load_ticket_plan(path: Path) -> TicketPlan:
     )
 
 
+def load_plan_directory(directory: Path) -> tuple[list[tuple[Path, TicketPlan]], int]:
+    """Every readable plan under a directory, in path order, plus the skipped count.
+
+    The same loader serves the shape check and the timing report, so an
+    unreadable plan is skipped with a warning rather than crashing the report.
+    The delta check is deliberately not a caller: it reads one named plan and
+    exits 2 rather than skipping, because a lane must never be dispatched on a
+    plan that could not be read.
+    """
+    loaded: list[tuple[Path, TicketPlan]] = []
+    skipped = 0
+    for path in sorted(candidate for candidate in directory.rglob("*.json") if candidate.is_file()):
+        try:
+            loaded.append((path, load_ticket_plan(path)))
+        except (OSError, ValueError, TypeError) as error:
+            print(f"warning: skipping {path}: {error}", file=sys.stderr)
+            skipped += 1
+    return loaded, skipped
+
+
+def read_plan_directory(directory: Path) -> tuple[list[tuple[Path, TicketPlan]], int] | None:
+    """A plan directory's readable plans, or None after printing the exit-2 diagnostic."""
+    if not directory.is_dir():
+        print(f"error: {directory} is not a directory", file=sys.stderr)
+        return None
+    loaded, skipped = load_plan_directory(directory)
+    # Every *.json file either loads or is counted skipped, so both zero means none exist.
+    if not loaded and not skipped:
+        print(f"error: {directory} holds no *.json plan files", file=sys.stderr)
+        return None
+    if not loaded:
+        print(f"error: {directory} holds no readable plan files ({skipped} skipped)", file=sys.stderr)
+        return None
+    return loaded, skipped
+
+
 def run_git(*arguments: str) -> subprocess.CompletedProcess[str]:
     """One git call in the process's working directory: every check is cwd-relative."""
     return subprocess.run(["git", *arguments], capture_output=True, check=False, text=True)
@@ -691,8 +735,155 @@ def timing_row(plan: TicketPlan) -> tuple[TimingRow, tuple[str, ...]]:
     return row, tuple(notes)
 
 
-def print_timings(rows: Sequence[TimingRow], notes: Sequence[str], skipped: int) -> None:
-    """The table, then the warnings, then the totals, then the honest footer."""
+def shared_surface(plans: Sequence[TicketPlan]) -> dict[str, tuple[str, ...]]:
+    """Declared paths at least two distinct plans touch, with their declaring ids.
+
+    Ids keep plan order and paths keep first-declaration order, so the report is
+    stable. A plan may list a path once: `load_ticket_plan` normalises and
+    de-duplicates every touch-set through `clean_touches`.
+    """
+    declaring: dict[str, list[str]] = {}
+    for plan in plans:
+        for path in plan.touches:
+            ids = declaring.setdefault(path, [])
+            if plan.id not in ids:
+                ids.append(plan.id)
+    return {path: tuple(ids) for path, ids in declaring.items() if len(ids) >= 2}
+
+
+def shape_verdict(plans: Sequence[TicketPlan]) -> tuple[dict[str, tuple[str, ...]], int]:
+    """The shared surface and k, the number of plans declaring at least one of its paths."""
+    surface = shared_surface(plans)
+    declaring = {plan_id for ids in surface.values() for plan_id in ids}
+    return surface, len(declaring)
+
+
+def withheld_by_strict_majority(k: int, p: int) -> bool:
+    """Withhold only above half: exactly half proceeds, and p < 2 is undetermined."""
+    return p >= 2 and 2 * k > p
+
+
+def surface_sentence(k: int, p: int) -> str:
+    """`k of p declared candidates share a surface`: the sentence both reports build on."""
+    return f"{k} of {p} declared candidates share a surface"
+
+
+def verdict_line(p: int, k: int) -> str:
+    """The --check-shape verdict line: the strict-majority decision, in one sentence."""
+    if p < 2:
+        return "verdict: shape undetermined with fewer than 2 declared candidates - plan-ahead proceeds"
+    if withheld_by_strict_majority(k, p):
+        return f"verdict: {surface_sentence(k, p)} (> half) - plan-ahead WITHHELD"
+    return f"verdict: {surface_sentence(k, p)} - plan-ahead proceeds"
+
+
+def timing_shape_line(p: int, k: int) -> str:
+    """The --report-timings `shape:` line: the same verdict under its own prefix."""
+    if p < 2:
+        return "shape: undetermined with fewer than 2 declared candidates - plan-ahead proceeds"
+    outcome = "withheld" if withheld_by_strict_majority(k, p) else "proceeds"
+    return f"shape: {surface_sentence(k, p)} - plan-ahead {outcome}"
+
+
+def is_measurement(gate: GateRun) -> bool:
+    """A gate record counts only with a positive number: a self-reported zero is not one."""
+    return gate.seconds is not None and gate.seconds > 0
+
+
+def replay_lines(plans: Sequence[TicketPlan]) -> tuple[str, ...]:
+    """The recorded-versus-policy cost block, empty when no plan-gate second was measured.
+
+    Both sides are a replay over the plans on disk, never a re-run: the policy
+    half assumes a just-in-time gate costs its recorded first-gate seconds and
+    bounds the one possible re-plan by the largest recorded re-plan.
+    """
+    if not any(is_measurement(gate) for plan in plans for gate in plan.gates if gate.gate == "plan"):
+        return ()
+    notes: list[str] = []
+    recorded: list[float] = []
+    first_gates: list[float] = []
+    replans = 0
+    oracle_calls = 0
+    largest_replan = 0.0
+    for plan in plans:
+        gates = [gate for gate in plan.gates if gate.gate == "plan"]
+        replans += max(len(gates) - 1, 0)
+        oracle_calls += sum(gate.oracle_calls for gate in gates)
+        recorded.extend(gate.seconds for gate in gates if is_measurement(gate))
+        if gates and is_measurement(gates[0]):
+            first_gates.append(gates[0].seconds)
+        else:
+            notes.append(f"warning: {plan.id}: the first plan gate has no measured seconds, so the policy bound undercounts")
+        largest_replan = max([largest_replan, *(gate.seconds for gate in gates[1:] if is_measurement(gate))])
+    bound = sum(first_gates) + largest_replan
+    note = (
+        "note: the policy line is a replay over the recorded plans, not a re-run; it assumes a just-in-time gate "
+        f"costs its recorded first-gate seconds and bounds the one possible re-plan by the largest recorded re-plan ({largest_replan:g}s)."
+    )
+    return (
+        *notes,
+        f"recorded: {len(recorded)} plan gates, {sum(recorded):.1f}s, {replans} re-plan(s), {oracle_calls} oracle calls",
+        f"policy:   {len(plans) + 1} plan gates ({len(plans)} first + at most one re-plan), <= {bound:.1f}s, <=1 re-plan",
+        note,
+    )
+
+
+def print_shape(plans: Sequence[TicketPlan], surface: dict[str, tuple[str, ...]], k: int) -> None:
+    """The declared-candidate table, the verdict, and under WITHHELD the binding guidance and replay."""
+    p = len(plans)
+    print(f"batch shape: {p} declared candidate(s), shared surface {len(surface)} path(s)")
+    print()
+    path_width = max([len("path"), *(len(path) for path in surface)])
+    print(f"{'path':<{path_width}}  declared by")
+    for path, ids in surface.items():
+        print(f"{path:<{path_width}}  {', '.join(ids)}")
+    print()
+    print(verdict_line(p, k))
+    if not withheld_by_strict_majority(k, p):
+        return
+    print(
+        "gate each remaining candidate just before its own dispatch: its base is the HEAD of that moment, so the delta "
+        "check is empty by construction and the ticket cannot re-plan. At most one already-queued plan can go stale, so "
+        "the batch re-plans at most once."
+    )
+    replay = replay_lines(plans)
+    if replay:
+        print()
+        for line in replay:
+            print(line)
+
+
+def report_shape(directory: Path, json_mode: bool) -> int:
+    """Decide whether a batch's declared candidates share a surface; 2 when there is nothing to read."""
+    loaded = read_plan_directory(directory)
+    if loaded is None:
+        return 2
+    pairs, skipped = loaded
+    plans = [plan for _, plan in pairs]
+    surface, k = shape_verdict(plans)
+    p = len(plans)
+    withheld = withheld_by_strict_majority(k, p)
+    if withheld:
+        print(f"plan-ahead withheld: {k} of {p} declared candidates share a surface", file=sys.stderr)
+    if json_mode:
+        print(
+            json.dumps(
+                {
+                    "declared": p,
+                    "shared": k,
+                    "withheld": withheld,
+                    "surface": {path: list(ids) for path, ids in surface.items()},
+                    "skipped": skipped,
+                }
+            )
+        )
+    else:
+        print_shape(plans, surface, k)
+    return 1 if withheld else 0
+
+
+def print_timings(rows: Sequence[TimingRow], notes: Sequence[str], skipped: int, shape: str) -> None:
+    """The table, then the warnings, then the totals, then the shape, then the honest footer."""
     print(f"plan-gate timings: {len(rows)} plan(s)")
     print()
     id_width = max(len("ticket"), *(len(row.id) for row in rows))
@@ -714,37 +905,28 @@ def print_timings(rows: Sequence[TimingRow], notes: Sequence[str], skipped: int)
         f"{skipped} plan file(s) skipped as unreadable or malformed"
     )
     print()
+    print(shape)
+    print()
     print(TIMING_FOOTER)
 
 
 def report_timings(directory: Path) -> int:
     """Report per-ticket plan-gate cost from a plan directory; 2 when there is nothing to report."""
-    if not directory.is_dir():
-        print(f"error: {directory} is not a directory", file=sys.stderr)
+    loaded = read_plan_directory(directory)
+    if loaded is None:
         return 2
-    files = sorted(path for path in directory.rglob("*.json") if path.is_file())
-    if not files:
-        print(f"error: {directory} holds no *.json plan files", file=sys.stderr)
-        return 2
+    pairs, skipped = loaded
+    plans = [plan for _, plan in pairs]
     rows: list[TimingRow] = []
     notes: list[str] = []
-    skipped = 0
-    for path in files:
-        try:
-            plan = load_ticket_plan(path)
-        except (OSError, ValueError, TypeError) as error:
-            print(f"warning: skipping {path}: {error}", file=sys.stderr)
-            skipped += 1
-            continue
+    for path, plan in pairs:
         row, row_notes = timing_row(plan)
         rows.append(row)
         notes.extend(row_notes)
         if path.stem != plan.id:
             notes.append(f"warning: {path.name} holds plan {plan.id}, so the file name and the plan id disagree")
-    if not rows:
-        print(f"error: {directory} holds no readable plan files ({skipped} skipped)", file=sys.stderr)
-        return 2
-    print_timings(rows, notes, skipped)
+    _, shared = shape_verdict(plans)
+    print_timings(rows, notes, skipped, timing_shape_line(len(plans), shared))
     return 0
 
 
@@ -763,9 +945,9 @@ def build_parser() -> argparse.ArgumentParser:
         prog="wave_plan.py",
         description="Refuse a scheduler wave whose lanes are not disjoint.",
         epilog=(
-            "Exit 0 accepts the wave, reports a fresh plan or prints a timing report; "
-            "1 refuses the wave or fails a delta check closed with the reason on stderr; "
-            "2 is a usage error or a malformed plan file."
+            "Exit 0 accepts the wave, reports a fresh plan, prints a report, or lets the plan-ahead queue proceed; "
+            "1 refuses the wave, fails a delta check closed, or withholds the plan-ahead queue; "
+            "2 is a usage error or a malformed plan file or directory."
         ),
     )
     parser.add_argument("--list-serialisers", action="store_true", help="print the serialising set and exit")
@@ -786,6 +968,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--check-delta",
         metavar="FILE",
         help="one per-ticket plan: re-validate base..HEAD and exit 0 fresh, 1 stale",
+    )
+    source.add_argument(
+        "--check-shape",
+        metavar="DIR",
+        help="a directory of per-ticket plan files: withhold plan-ahead when more than half share a surface",
     )
     source.add_argument(
         "--report-timings",
@@ -815,6 +1002,8 @@ def main(argv: Sequence[str]) -> int:
         except (OSError, ValueError, TypeError) as error:
             parser.error(str(error))
         return check_delta(plan)
+    if args.check_shape is not None:
+        return report_shape(Path(args.check_shape), args.json)
     if args.report_timings is not None:
         return report_timings(Path(args.report_timings))
     if args.plan is not None:
@@ -828,7 +1017,7 @@ def main(argv: Sequence[str]) -> int:
         except ValueError as error:
             parser.error(str(error))
     else:
-        parser.error("one of --lane, --plan, --check-delta or --report-timings is required")
+        parser.error("one of --lane, --plan, --check-delta, --check-shape or --report-timings is required")
 
     reason = refusal(lanes, args.max_lanes)
     if reason is not None:

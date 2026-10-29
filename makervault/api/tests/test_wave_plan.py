@@ -93,6 +93,7 @@ def test_help_exits_zero() -> None:
     assert result.returncode == 0
     assert "usage" in result.stdout
     assert "--max-lanes" in result.stdout
+    assert "--check-shape" in result.stdout
 
 
 def test_list_serialisers_exits_zero() -> None:

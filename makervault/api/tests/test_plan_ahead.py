@@ -367,3 +367,214 @@ def test_the_new_modes_are_mutually_exclusive(tmp_path: Path) -> None:
     assert "not allowed with argument" in combined.stderr
     reported = run(tmp_path, "--report-timings", str(plan.parent), "--lane", "Mf-a:README.md")
     assert reported.returncode == 2
+    shaped = run(tmp_path, "--check-shape", str(plan.parent), "--lane", "Mf-a:README.md")
+    assert shaped.returncode == 2
+    both_reports = run(tmp_path, "--check-shape", str(plan.parent), "--report-timings", str(plan.parent))
+    assert both_reports.returncode == 2
+
+
+SHARED = "makervault/api/models.py"
+WITHHELD_GUIDANCE = (
+    "gate each remaining candidate just before its own dispatch: its base is the HEAD of that moment, so the delta "
+    "check is empty by construction and the ticket cannot re-plan. At most one already-queued plan can go stale, so "
+    "the batch re-plans at most once."
+)
+
+
+def write_batch(directory: Path, *plans: tuple[str, tuple[str, ...]]) -> list[Path]:
+    """One plan file per (id, touches) pair, so a shape test declares only its touch-sets."""
+    return [write_plan(directory / f"{plan_id}.json", id=plan_id, touches=list(touches)) for plan_id, touches in plans]
+
+
+def test_shape_withholds_when_more_than_half_the_declared_plans_share_a_surface(tmp_path: Path) -> None:
+    plans = tmp_path / "plans"
+    write_batch(
+        plans,
+        ("Mf-a", (SHARED, "makervault/api/routers/assets.py")),
+        ("Mf-b", (SHARED, "makervault/api/routers/library.py")),
+        ("Mf-c", (SHARED,)),
+    )
+    result = run(tmp_path, "--check-shape", str(plans))
+    assert result.returncode == 1
+    assert "batch shape: 3 declared candidate(s), shared surface 1 path(s)" in result.stdout
+    assert f"{SHARED}" in result.stdout
+    surface_row = next(line for line in result.stdout.splitlines() if line.startswith(SHARED))
+    assert "Mf-a, Mf-b, Mf-c" in surface_row
+    assert "verdict: 3 of 3 declared candidates share a surface (> half) - plan-ahead WITHHELD" in result.stdout
+    assert "plan-ahead withheld: 3 of 3 declared candidates share a surface" in result.stderr
+    assert WITHHELD_GUIDANCE in result.stdout
+
+
+def test_shape_proceeds_when_the_declared_touch_sets_are_disjoint(tmp_path: Path) -> None:
+    # The batch-14 shape: disjoint touch-sets, one plan recording the overlap with the other's implementation.
+    plans = tmp_path / "plans"
+    write_plan(
+        plans / "M3-7bb7.json",
+        id="M3-7bb7",
+        touches=["makervault/api/snapshots.py"],
+        gates=[{"gate": "plan", "seconds": 471, "oracle_calls": 1, "overlapped_with": None}],
+    )
+    write_plan(
+        plans / "Mf-sc7l.json",
+        id="Mf-sc7l",
+        touches=["makervault/api/routers/assets.py"],
+        gates=[{"gate": "plan", "seconds": 297, "oracle_calls": 1, "overlapped_with": "M3-7bb7"}],
+    )
+    result = run(tmp_path, "--check-shape", str(plans))
+    assert result.returncode == 0, result.stderr
+    assert "shared surface 0 path(s)" in result.stdout
+    assert "verdict: 0 of 2 declared candidates share a surface - plan-ahead proceeds" in result.stdout
+    assert result.stderr == ""
+    assert WITHHELD_GUIDANCE not in result.stdout
+
+
+def test_shape_is_undetermined_below_two_plans(tmp_path: Path) -> None:
+    plans = tmp_path / "plans"
+    write_batch(plans, ("Mf-alone", (SHARED,)))
+    result = run(tmp_path, "--check-shape", str(plans))
+    assert result.returncode == 0, result.stderr
+    assert "batch shape: 1 declared candidate(s), shared surface 0 path(s)" in result.stdout
+    assert "verdict: shape undetermined with fewer than 2 declared candidates - plan-ahead proceeds" in result.stdout
+
+
+def test_shape_exactly_half_does_not_withhold(tmp_path: Path) -> None:
+    plans = tmp_path / "plans"
+    write_batch(
+        plans,
+        ("Mf-a", (SHARED, "makervault/api/audit.py")),
+        ("Mf-b", (SHARED, "makervault/api/config.py")),
+        ("Mf-c", ("makervault/api/routers/assets.py",)),
+        ("Mf-d", ("makervault/api/routers/library.py",)),
+    )
+    result = run(tmp_path, "--check-shape", str(plans))
+    assert result.returncode == 0, result.stderr
+    assert "verdict: 2 of 4 declared candidates share a surface - plan-ahead proceeds" in result.stdout
+
+
+def test_shape_counts_a_shared_serialiser_as_a_shared_surface(tmp_path: Path) -> None:
+    plans = tmp_path / "plans"
+    write_batch(plans, ("Mf-a", ("Makefile",)), ("Mf-b", ("Makefile",)))
+    result = run(tmp_path, "--check-shape", str(plans))
+    assert result.returncode == 1
+    assert "Makefile" in result.stdout
+    assert "verdict: 2 of 2 declared candidates share a surface (> half) - plan-ahead WITHHELD" in result.stdout
+
+
+def test_shape_replay_compares_the_recorded_and_policy_costs(tmp_path: Path) -> None:
+    plans = tmp_path / "plans"
+    write_plan(
+        plans / "Mf-a.json",
+        id="Mf-a",
+        touches=[SHARED],
+        gates=[
+            {"gate": "plan", "seconds": 100, "oracle_calls": 1},
+            {"gate": "plan", "seconds": 40, "oracle_calls": 1},
+        ],
+    )
+    write_plan(
+        plans / "Mf-b.json",
+        id="Mf-b",
+        touches=[SHARED],
+        gates=[
+            {"gate": "plan", "seconds": 200, "oracle_calls": 1},
+            {"gate": "plan", "seconds": 90, "oracle_calls": 1},
+        ],
+    )
+    write_plan(
+        plans / "Mf-c.json",
+        id="Mf-c",
+        touches=[SHARED],
+        gates=[
+            {"gate": "plan", "seconds": 300, "oracle_calls": 1},
+            {"gate": "plan", "seconds": 70, "oracle_calls": 1},
+        ],
+    )
+    result = run(tmp_path, "--check-shape", str(plans))
+    assert result.returncode == 1
+    assert "recorded: 6 plan gates, 800.0s, 3 re-plan(s), 6 oracle calls" in result.stdout
+    # 100 + 200 + 300 first-gate seconds, plus the largest recorded re-plan (90).
+    assert "policy:   4 plan gates (3 first + at most one re-plan), <= 690.0s, <=1 re-plan" in result.stdout
+    assert "replay over the recorded plans, not a re-run" in result.stdout
+
+
+def test_shape_replay_is_silent_without_measured_gates(tmp_path: Path) -> None:
+    plans = tmp_path / "plans"
+    gates_less = plan_payload(id="Mf-inflight", touches=[SHARED])
+    del gates_less["gates"]
+    write_payload(plans / "Mf-inflight.json", gates_less)
+    write_plan(
+        plans / "Mf-nonnumeric.json",
+        id="Mf-nonnumeric",
+        touches=[SHARED],
+        gates=[{"gate": "plan", "seconds": "slow", "oracle_calls": 1}],
+    )
+    result = run(tmp_path, "--check-shape", str(plans))
+    assert result.returncode == 1
+    assert "verdict: 2 of 2 declared candidates share a surface (> half) - plan-ahead WITHHELD" in result.stdout
+    assert "recorded:" not in result.stdout
+    assert "policy:" not in result.stdout
+
+
+def test_shape_skips_a_malformed_plan_with_a_warning(tmp_path: Path) -> None:
+    plans = tmp_path / "plans"
+    write_batch(plans, ("Mf-a", (SHARED,)), ("Mf-b", (SHARED,)))
+    (plans / "broken.json").write_text("{not json", encoding="utf-8")
+    result = run(tmp_path, "--check-shape", str(plans), "--json")
+    assert result.returncode == 1
+    assert "warning: skipping" in result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["declared"] == 2
+    assert payload["skipped"] == 1
+    assert payload["withheld"] is True
+
+
+def test_shape_on_a_directory_without_plans_is_a_usage_error(tmp_path: Path) -> None:
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    missing = run(tmp_path, "--check-shape", str(empty))
+    assert missing.returncode == 2
+    assert "holds no *.json plan files" in missing.stderr
+    absent = run(tmp_path, "--check-shape", str(tmp_path / "nowhere"))
+    assert absent.returncode == 2
+    assert "is not a directory" in absent.stderr
+    broken = tmp_path / "broken"
+    broken.mkdir()
+    (broken / "broken.json").write_text("{not json", encoding="utf-8")
+    unreadable = run(tmp_path, "--check-shape", str(broken))
+    assert unreadable.returncode == 2
+    assert "holds no readable plan files (1 skipped)" in unreadable.stderr
+
+
+def test_shape_json_reports_the_verdict(tmp_path: Path) -> None:
+    shared = tmp_path / "shared"
+    write_batch(shared, ("Mf-a", (SHARED,)), ("Mf-b", (SHARED,)), ("Mf-c", ("Makefile",)))
+    withheld = run(tmp_path, "--check-shape", str(shared), "--json")
+    assert withheld.returncode == 1
+    payload = json.loads(withheld.stdout)
+    assert payload["declared"] == 3
+    assert payload["shared"] == 2
+    assert payload["withheld"] is True
+    assert payload["surface"] == {SHARED: ["Mf-a", "Mf-b"]}
+    assert "plan-ahead withheld: 2 of 3 declared candidates share a surface" in withheld.stderr
+    assert "replay" not in withheld.stdout
+    disjoint = tmp_path / "disjoint"
+    write_batch(disjoint, ("Mf-a", (SHARED,)), ("Mf-b", ("Makefile",)))
+    fresh = run(tmp_path, "--check-shape", str(disjoint), "--json")
+    assert fresh.returncode == 0, fresh.stderr
+    fresh_payload = json.loads(fresh.stdout)
+    assert fresh_payload["withheld"] is False
+    assert fresh_payload["surface"] == {}
+
+
+def test_report_timings_prints_the_shape_verdict(tmp_path: Path) -> None:
+    disjoint = tmp_path / "disjoint"
+    write_batch(disjoint, ("Mf-a", ("makervault/api/routers/assets.py",)), ("Mf-b", ("Makefile",)))
+    proceeded = run(tmp_path, "--report-timings", str(disjoint))
+    assert proceeded.returncode == 0, proceeded.stderr
+    assert "shape: 0 of 2 declared candidates share a surface - plan-ahead proceeds" in proceeded.stdout
+    shared = tmp_path / "shared"
+    write_batch(shared, ("Mf-a", (SHARED,)), ("Mf-b", (SHARED,)))
+    withheld = run(tmp_path, "--report-timings", str(shared))
+    assert withheld.returncode == 0, withheld.stderr
+    assert "shape: 2 of 2 declared candidates share a surface - plan-ahead withheld" in withheld.stdout
+    assert "totals: 2 plan(s) reported" in withheld.stdout

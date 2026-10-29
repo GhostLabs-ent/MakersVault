@@ -1,5 +1,5 @@
 ---
-description: "Wave planner with a plan-ahead queue: runs the next candidates' Oracle plan-gates in parallel while the current wave is in flight, writes each approved plan to .plans/batch-<n>/<ticket>.json, then packs 2 (max 3) tickets with disjoint touch-sets into lanes running in git worktrees, serial-merges and verifies. Hand it an ordered ticket list plus a work instruction and it runs the plan-gate → lane → serial-merge → verify-close loop, paying only a delta check before implementation, and returns a per-ticket completion report. Use when the user wants a batch of tickets driven to closure in priority order."
+description: "Wave planner with a depth-1 plan-ahead queue: runs the next candidate's Oracle plan-gate beside the wave in flight, withholds the queue when more than half the declared candidates share a surface, writes each approved plan to .plans/batch-<n>/<ticket>.json, then packs 2 (max 3) tickets with disjoint touch-sets into lanes running in git worktrees, serial-merges and verifies. Hand it an ordered ticket list plus a work instruction and it runs the plan-gate → lane → serial-merge → verify-close loop, paying only a delta check before implementation, and returns a per-ticket completion report. Use when the user wants a batch of tickets driven to closure in priority order."
 tools: "*"
 allowed_subagents: orchestrator
 thinking: high
@@ -23,12 +23,13 @@ Packing is decided by a script, not by judgement:
 python3 makervault/scripts/wave_plan.py --plan /tmp/wave-<n>.json            # exit 0 accept, 1 refuse with the reason
 python3 makervault/scripts/wave_plan.py --list-serialisers
 python3 makervault/scripts/wave_plan.py --check-delta <plan file>            # 0 fresh, 1 stale/fail-closed, 2 malformed
+python3 makervault/scripts/wave_plan.py --check-shape .plans/batch-<n>       # 0 proceed, 1 withhold the queue, 2 bad directory
 python3 makervault/scripts/wave_plan.py --report-timings .plans/batch-<n>
 ```
 
 v3 adds the **plan-ahead queue**. While ticket N is being implemented, the
-Oracle plan-gates for N+1 (and N+2) are already running - in parallel and off the
-critical path - and each plan is written to a per-ticket file at
+next candidate's Oracle plan-gate is already running - off the critical path and
+one plan deep - and each plan is written to a per-ticket file at
 `.plans/batch-<n>/<ticket>.json`. Implementation then starts the moment a lane
 frees up and pays only a cheap **delta check** instead of a fresh plan-gate.
 Phase 1 owns the queue; Phases 4 and 5 own the check.
@@ -43,7 +44,12 @@ Three things v3 states explicitly, because they are the traps:
   `models.py` are the highest-value pipeline case: both plans are legal, the
   delta check arbitrates at implementation time, and every re-plan increments
   `replans` and `oracle_calls`, so the spend is counted rather than assumed.
-  Never start two lanes on the same files - that rule is unchanged.
+  Never start two lanes on the same files - that rule is unchanged. Batch 16
+  corrected the economics: the delta check arbitrates one ticket deep, but a
+  batch-wide shared surface turns that into one re-plan per ticket - 7 of 7
+  tickets re-planned, 25,800 s measured. `--check-shape` is what withholds the
+  queue when the declared candidates share a surface, so that spend is not paid
+  again.
 - **`oracle_calls` is a self-reported ledger, not a trace.** There is no
   OpenTelemetry source for it: this repo has no opentelemetry/otlp dependency or
   code. The count is the scheduler's own tally of the gate invocations it
@@ -90,13 +96,35 @@ source of truth for scope.
 
 ## Phase 1 — the plan-ahead queue
 
-Run every candidate's oracle plan-gate **before** choosing a wave, and run them
-**in parallel** (the Agent tool, `subagent_type "orchestrator"`, all in one
-block). They are read-only and already read the code, so they are cheap and
-there is no ordering constraint between them. This is the plan-ahead queue:
-while ticket N runs in its lane, the gates for N+1 and N+2 are already in flight,
-off the critical path, and the plan they return is on disk before the lane that
-will use it frees up.
+Gate candidate 1 first: its gate is on the critical path, exactly as in v1.
+Thereafter keep the queue **one wave deep, never deeper**: the plans the wave
+being packed needs, plus at most ONE speculative plan for the next candidate.
+When a lane dispatches, start that candidate's plan-gate beside the in-flight
+implementation (the Agent tool, `subagent_type "orchestrator"`, in the same block
+as the lane dispatch where possible); it is read-only and already reads the
+code, so it is cheap and off the critical path.
+Each time a plan lands, before starting any further gate, run:
+
+```bash
+python3 makervault/scripts/wave_plan.py --check-shape .plans/batch-<n>
+```
+
+- **exit 0** - the queue may be topped up: gate the next candidate, one at a
+  time. Fewer than two declared candidates means the shape is undetermined, and
+  undetermined proceeds.
+- **exit 1** - BINDING, like a wave refusal. Close the queue: gate every
+  remaining candidate just before its own dispatch, when its base is the `HEAD`
+  of that moment. The delta check is then empty by construction and the ticket
+  cannot re-plan; at most one already-queued plan can go stale, so the batch
+  re-plans at most once.
+- **exit 2** - the plan directory is wrong (not a directory, no `*.json` plan
+  files, or none readable): fix it, never guess.
+
+The `--check-shape` denominator is the **declared candidates** - the readable
+plan files on disk - and the verdict is a strict majority: the queue is
+withheld only when more than half of them declare at least one shared surface
+path. A shared serialiser is a shared surface; the rule reads the declared
+paths, not the serialiser table.
 
 Require each plan-gate to return exactly this JSON block — it is the input to the
 wave planner, so a gate that returns prose is a failed gate, not a judgement
@@ -430,7 +458,12 @@ It prints per ticket `plan_gate_s`, `overlapped`, `replans` and `oracle_calls`
 plus totals. It tolerates a gates-less in-flight plan (`not recorded`) so a plan
 that is still being written never crashes the report, and it warns when a
 self-reported plan-gate timing is `<= 0`: a zero is never accepted as a
-measurement.
+measurement. The report also carries a `shape:` line - the same verdict
+`--check-shape` gives from the same declared candidates - so every batch with at
+least two plans quotes both the `--check-shape` verdict and that `shape:` line;
+when the queue was withheld, the `--check-shape` prose replays the recorded cost
+against the depth-1 policy and is labelled a replay over the recorded plans, not
+a re-run.
 
 `oracle_calls` is a **self-reported ledger**. There is no OpenTelemetry source:
 this repo has no opentelemetry/otlp dependency or code. The number is your own
@@ -588,7 +621,7 @@ tests.
 ## State of the repo at v3
 
 Schema version 9 (migrations 1-9 are immutable; the snapshots batch added none).
-1579 API tests collected on the host -- 1578 passed plus the opt-in skip
+1590 API tests collected on the host -- 1589 passed plus the opt-in skip
 (`test_snapshots_integration.py`, which needs `SNAPSHOT_INTEGRATION=1`) -- and
 1406 passed plus 23 skipped in-container. The in-container skips are an artifact
 of the image build context being `makervault/api`, so repo-root files are absent

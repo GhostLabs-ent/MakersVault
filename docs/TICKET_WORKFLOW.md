@@ -15,7 +15,7 @@ Adapted from `~/ggreq_agent/docs/project_notes/TICKET_WORKFLOW.md` and
   time with the fast gate after each merge, then trust-but-verifies each ticket
   is closed before moving on. The full gate is paid once per batch, not here.
   It plans ahead as well as packing waves: while a wave is in flight it runs the
-  next candidates' plan-gates and writes each approved plan to
+  next candidate's plan-gate and writes each approved plan to
   `.plans/batch-<n>/<ticket>.json`, so a lane starts from a delta check instead
   of a fresh gate (see [Plan-ahead](#plan-ahead)). It decides packing with
   `makervault/scripts/wave_plan.py`, never by judgement. Produces a per-ticket
@@ -67,9 +67,9 @@ section, including the full serialiser table.
 
 ### Plan-ahead
 
-While ticket N is in its lane, the Oracle plan-gates for N+1 (and N+2) are
-already running in parallel, off the critical path, and each approved plan is
-written to a per-ticket file in the main checkout:
+While ticket N is in its lane, the next candidate's Oracle plan-gate is already
+running, off the critical path - one plan deep, never a pool of them - and each
+approved plan is written to a per-ticket file in the main checkout:
 `.plans/batch-<n>/<ticket>.json`.
 
 ```json
@@ -118,6 +118,45 @@ commit-to-commit, so a dirty-tree check is dead code that only manufactures
 spurious re-plans, i.e. real Oracle spend. `gates` is optional for the delta
 check, so an in-flight plan validates instead of crashing.
 
+The queue runs **one wave deep, never deeper**: the plans the wave being packed
+needs, plus at most one speculative plan for the next candidate. Candidate 1's
+gate is on the critical path, as always; thereafter, when a lane dispatches, the
+next candidate's plan-gate runs beside the in-flight implementation. Each time a plan lands, before starting any further gate, the
+scheduler asks whether the queue may be topped up at all:
+
+```bash
+python3 makervault/scripts/wave_plan.py --check-shape .plans/batch-<n>
+```
+
+A batch's **shape** is its shared surface: every normalised declared path that
+two or more plans in the directory touch. A shared serialiser is a shared
+surface, exactly like any other path - the rule reads the declared paths, it
+does not consult the serialiser table. The denominator is the **declared
+candidates**: the readable plan files on disk, not the tickets in the queue and
+not the lanes the cap allows. The verdict is a strict majority - more than half
+the candidates declaring at least one surface path - so exactly half proceeds.
+
+- **exit 0** - the queue may proceed. Fewer than two declared candidates means
+  the shape is undetermined, and undetermined proceeds.
+- **exit 1** - WITHHELD, binding like a wave refusal. Close the queue and gate
+  each remaining candidate just before its own dispatch. Its base is the `HEAD`
+  of that moment, so the delta check is empty by construction and the ticket
+  cannot re-plan; at most one already-queued plan can go stale, so a batch that
+  shared its surface from the start re-plans at most once.
+- **exit 2** - the plan directory is wrong (not a directory, no `*.json` plan
+  files, or none readable): fix it, never guess.
+
+Under WITHHELD the prose report also replays the recorded gate cost against the
+depth-1 policy. That policy line is a **replay over the recorded plans, not a
+re-run**: it assumes a just-in-time gate costs its recorded first-gate seconds
+and bounds the one possible re-plan by the largest recorded re-plan. Batch 16
+is the measurement - 8 of 8 declared candidates shared a 23-path surface, and
+the recorded 15 plan gates cost 25,800.0 s with 7 re-plans, against the depth-1
+policy's 9 gates and at most 20,770.0 s with at most one re-plan. That
+`<=1 re-plan` bound is scoped to a batch which shares its surface from the
+start: at most the one already-queued plan can then go stale, so one re-plan
+covers it.
+
 `.plans/` is invisible from a lane: `.lanes/<ticket>/` is a separate working
 directory. The lane brief therefore passes the **absolute** path of the plan file
 in the main checkout and the check runs from the lane's own cwd - the worktree
@@ -145,7 +184,11 @@ python3 makervault/scripts/wave_plan.py --report-timings .plans/batch-<n>
 
 It prints `plan_gate_s`, `overlapped`, `replans` and `oracle_calls` per ticket
 plus totals, tolerates a gates-less in-flight plan (`not recorded`) and warns
-when a self-reported plan-gate timing is `<= 0`. `oracle_calls` is a
+when a self-reported plan-gate timing is `<= 0`. A `shape:` line after the
+totals is the same `--check-shape` verdict (`k of p declared candidates share a
+surface - plan-ahead withheld|proceeds`, or `undetermined` below two declared
+candidates), computed from the same declared candidates; it is additive and
+changes nothing else in the report. `oracle_calls` is a
 **self-reported ledger**, not a trace: this repo has no opentelemetry/otlp
 dependency or code, so the count is the scheduler's own tally of the gates it
 dispatched. Batch 13 is the **baseline**: its gates ran in parallel with each
