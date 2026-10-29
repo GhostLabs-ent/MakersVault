@@ -60,6 +60,7 @@ PROJECT_RENAME = "project.rename"
 TRASH_PURGE = "trash.purge"
 SETTINGS_STORAGE_UPDATE = "settings.storage.update"
 SETTINGS_MOUNT_IMPORT_UPDATE = "settings.mount_import.update"
+SETTINGS_SNAPSHOT_RETENTION_UPDATE = "settings.snapshot_retention.update"
 USER_CREATE = "user.create"
 USER_ROLE_CHANGE = "user.role_change"
 USER_DISABLE = "user.disable"
@@ -69,6 +70,7 @@ LOGIN_SUCCEEDED = "login.succeeded"
 SNAPSHOT_CREATE = "snapshot.create"
 SNAPSHOT_PRUNE = "snapshot.prune"
 SNAPSHOT_DELETE = "snapshot.delete"
+SNAPSHOT_RESTORE = "snapshot.restore"
 DESTRUCTIVE_SNAPSHOT_TAKEN = "destructive.snapshot_taken"
 DESTRUCTIVE_SNAPSHOT_MISSED = "destructive.snapshot_missed"
 
@@ -88,6 +90,7 @@ ACTIONS: frozenset[str] = frozenset({
     TRASH_PURGE,
     SETTINGS_STORAGE_UPDATE,
     SETTINGS_MOUNT_IMPORT_UPDATE,
+    SETTINGS_SNAPSHOT_RETENTION_UPDATE,
     USER_CREATE,
     USER_ROLE_CHANGE,
     USER_DISABLE,
@@ -97,6 +100,7 @@ ACTIONS: frozenset[str] = frozenset({
     SNAPSHOT_CREATE,
     SNAPSHOT_PRUNE,
     SNAPSHOT_DELETE,
+    SNAPSHOT_RESTORE,
     DESTRUCTIVE_SNAPSHOT_TAKEN,
     DESTRUCTIVE_SNAPSHOT_MISSED,
 })
@@ -278,6 +282,12 @@ ROUTE_ACTIONS: dict[tuple[str, str], tuple[str, ...]] = {
     ("POST", "/trash/purge"): (TRASH_PURGE, DESTRUCTIVE_SNAPSHOT_TAKEN, DESTRUCTIVE_SNAPSHOT_MISSED),
     ("POST", "/settings/storage"): (SETTINGS_STORAGE_UPDATE,),
     ("POST", "/settings/mount-import"): (SETTINGS_MOUNT_IMPORT_UPDATE,),
+    # With the HTTP surface in place these four make the provider's own snapshot
+    # actions route actions: POST /snapshots hands the provider a context.
+    ("POST", "/snapshots"): (SNAPSHOT_CREATE, SNAPSHOT_PRUNE),
+    ("DELETE", "/snapshots/{name}"): (SNAPSHOT_DELETE,),
+    ("POST", "/snapshots/{name}/restore"): (SNAPSHOT_RESTORE,),
+    ("POST", "/snapshots/retention"): (SETTINGS_SNAPSHOT_RETENTION_UPDATE,),
     ("POST", "/users"): (USER_CREATE,),
     ("PATCH", "/users/{user_id}"): (USER_ROLE_CHANGE, USER_DISABLE, USER_ENABLE),
     ("POST", "/library/scan"): (LIBRARY_SCAN_START,),

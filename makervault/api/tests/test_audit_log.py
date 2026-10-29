@@ -37,10 +37,11 @@ import main
 import permissions
 import settings_service
 import snapshot_guard
+import snapshots
 from config import MOUNT_IMPORT_COPY, MOUNT_IMPORT_ENABLED
 from db import engine
 from migrations import run_migrations
-from models import Asset, AssetFile, AuditEvent, Folder, Project, ProjectAsset, User, UserSession
+from models import AppConfig, Asset, AssetFile, AuditEvent, Folder, Project, ProjectAsset, User, UserSession
 
 ADMIN_USERNAME = "root"
 ADMIN_PASSWORD = "root-password-1"
@@ -52,6 +53,13 @@ BREAK_GLASS = {"username": "admin", "password": "super-secret"}
 
 STL_BYTES = b"solid cube\nendsolid cube\n"
 REQUEST_ID_HEADER = "X-Request-ID"
+
+RETENTION_KEYS = (
+    snapshots.RETENTION_KEEP_LAST_N_KEY,
+    snapshots.RETENTION_KEEP_DAILY_KEY,
+    snapshots.RETENTION_MAX_AGE_DAYS_KEY,
+    snapshots.RETENTION_HARD_CAP_KEY,
+)
 
 
 def truncate_accounts() -> None:
@@ -98,6 +106,14 @@ def isolated_storage(tmp_path, monkeypatch: pytest.MonkeyPatch):
     template_before = settings_service.get_storage_template()
     enabled_before = settings_service.get_mount_import_enabled(MOUNT_IMPORT_ENABLED)
     copy_before = settings_service.get_mount_import_copy(MOUNT_IMPORT_COPY)
+    # `POST /snapshots/retention` is one of the audited routes, so the four
+    # settings it writes are saved and restored raw like the two above: a
+    # configuration with no rows keeps none, which `test_snapshots.py` asserts.
+    with Session(engine) as session:
+        retention_before = {
+            key: (row.value if (row := session.get(AppConfig, key)) is not None else None)
+            for key in RETENTION_KEYS
+        }
     with Session(engine) as session:
         folders_before = {folder.id for folder in session.exec(select(Folder))}
         assets_before = {asset.id for asset in session.exec(select(Asset))}
@@ -108,6 +124,17 @@ def isolated_storage(tmp_path, monkeypatch: pytest.MonkeyPatch):
     settings_service.set_storage_template(template_before)
     settings_service.set_mount_import_enabled(enabled_before)
     settings_service.set_mount_import_copy(copy_before)
+    with Session(engine) as session:
+        for key, value in retention_before.items():
+            row = session.get(AppConfig, key)
+            if value is None:
+                if row is not None:
+                    session.delete(row)
+            elif row is None:
+                session.add(AppConfig(key=key, value=value))
+            else:
+                row.value = value
+        session.commit()
     with Session(engine) as session:
         # Projects first: the tables are new and the name index is case-
         # insensitive, so a leaked row would 409 the next test's seed.
@@ -389,6 +416,43 @@ def call_start_scan(client, headers, ids, monkeypatch) -> Response:
     return client.post("/library/scan", headers=headers)
 
 
+def call_create_snapshot(client, headers, ids, monkeypatch) -> Response:
+    # A real provider: this sweep asserts at least one row, and a null provider
+    # would answer 409 instead of creating anything. The tree copy writes into
+    # the test's temporary storage root, never a real library.
+    snapshot_fakes.use_tree_copy(monkeypatch, db.STORAGE)
+    return client.post("/snapshots", headers=headers)
+
+
+def call_delete_snapshot(client, headers, ids, monkeypatch) -> Response:
+    provider = snapshot_fakes.use_tree_copy(monkeypatch, db.STORAGE)
+    # No context: the fake writes no rows, so the delete route owns the row.
+    created = provider.create()
+    return client.delete(f"/snapshots/{created.snapshot.name}", headers=headers)
+
+
+def call_restore_snapshot(client, headers, ids, monkeypatch) -> Response:
+    provider = snapshot_fakes.use_tree_copy(monkeypatch, db.STORAGE)
+    (db.STORAGE / "cube.stl").write_bytes(STL_BYTES)
+    created = provider.create()
+    monkeypatch.setattr(main, "start_scan", lambda: True)
+    return client.post(
+        f"/snapshots/{created.snapshot.name}/restore",
+        json={"path": "cube.stl"},
+        headers=headers,
+    )
+
+
+def call_update_snapshot_retention(client, headers, ids, monkeypatch) -> Response:
+    body = {
+        "keep_last_n": snapshots.DEFAULT_KEEP_LAST_N,
+        "keep_daily": snapshots.DEFAULT_KEEP_DAILY,
+        "max_age_days": snapshots.DEFAULT_MAX_AGE_DAYS,
+        "hard_cap": snapshots.DEFAULT_HARD_CAP,
+    }
+    return client.post("/snapshots/retention", json=body, headers=headers)
+
+
 def call_rename_project(client, headers, ids, monkeypatch) -> Response:
     # A real rename: project.rename is only written when the name changes.
     return client.patch(f"/project/{ids.project_id}", json={"name": f"Project {uuid4().hex}"}, headers=headers)
@@ -422,6 +486,10 @@ CALLS: dict[tuple[str, str], CallSpec] = {
     ("POST", "/users"): call_create_user,
     ("PATCH", "/users/{user_id}"): call_update_user,
     ("POST", "/library/scan"): call_start_scan,
+    ("POST", "/snapshots"): call_create_snapshot,
+    ("DELETE", "/snapshots/{name}"): call_delete_snapshot,
+    ("POST", "/snapshots/{name}/restore"): call_restore_snapshot,
+    ("POST", "/snapshots/retention"): call_update_snapshot_retention,
 }
 
 

@@ -167,6 +167,10 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("GET", "/trash"): READ,
     # A read-only report of filesystem snapshot capability; creates nothing.
     ("GET", "/storage/capabilities"): READ,
+    # A snapshot list is a read of the provider's view; it creates nothing.
+    ("GET", "/snapshots"): READ,
+    # A browse is a read of one snapshot view, and creates nothing either.
+    ("GET", "/snapshots/{name}/browse"): READ,
     # write: create, mutate or delete library content.
     ("POST", "/upload"): WRITE,
     ("POST", "/import"): WRITE,
@@ -203,6 +207,10 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     # Registering files found on disk is library work, not administration, and
     # the missing-file banner offers Re-scan to editors; the audit event stays.
     ("POST", "/library/scan"): WRITE,
+    # Taking a snapshot and restoring one are library mutations, not administration.
+    ("POST", "/snapshots"): WRITE,
+    # A restore copies snapshot bytes back into the library: an editor's move.
+    ("POST", "/snapshots/{name}/restore"): WRITE,
     # admin: settings, user administration, destruction, and the audit trail
     # itself.
     ("GET", "/audit"): ADMIN,
@@ -210,6 +218,12 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("POST", "/settings/mount-import"): ADMIN,
     ("GET", "/settings/storage"): ADMIN,
     ("POST", "/settings/storage"): ADMIN,
+    # Reading the retention policy that bounds every snapshot is administration.
+    ("GET", "/snapshots/retention"): ADMIN,
+    # Changing it decides what history survives, so it is not an editor action.
+    ("POST", "/snapshots/retention"): ADMIN,
+    # Deleting a snapshot decides what history survives too.
+    ("DELETE", "/snapshots/{name}"): ADMIN,
     ("POST", "/users"): ADMIN,
     ("GET", "/users"): ADMIN,
     ("PATCH", "/users/{user_id}"): ADMIN,

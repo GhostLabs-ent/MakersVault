@@ -19,15 +19,18 @@ Two entry points, deliberately different in kind:
   gate the handler owns (404, confirmation, a running scan) and before the
   mutation, so a refused operation has changed nothing.
 
-The ``ctx`` handed to ``provider.create()`` is always ``None``, and that is
-load-bearing. A provider writes ``snapshot.create``/``snapshot.prune`` rows when
-it is given a context; on a route path the guard writes exactly one row instead
-(``destructive.snapshot_taken`` or ``destructive.snapshot_missed``), and the
-snapshot's exact name travels in that row's ``detail``. So each destructive
-request owns one honest audit fact, and the provider's own actions stay on no
-route -- which is why ``audit.ROUTE_ACTIONS`` can still name the destructive
-action and the snapshot action in the same tuple without a provider ever writing
-a route row.
+The ``ctx`` handed to ``provider.create()`` on the three destructive routes is
+always ``None``, and that is load-bearing. A provider writes
+``snapshot.create``/``snapshot.prune`` rows when it is given a context, and
+``POST /snapshots`` does give it one, so ``snapshot.create``,
+``snapshot.prune`` and ``snapshot.delete`` are route actions today. Here on a
+destructive route the guard hands the provider ``None`` and writes exactly one
+row itself (``destructive.snapshot_taken`` or ``destructive.snapshot_missed``),
+and the snapshot's exact name travels in that row's ``detail``. So each
+destructive request owns one honest audit fact, and no provider row is written
+on those three routes -- which is why ``audit.ROUTE_ACTIONS`` can name the
+destructive action and the snapshot action in the same tuple without a provider
+ever writing a row there.
 
 The policy table (``SNAPSHOT_POLICY_PREDELETE``, ``SNAPSHOT_POLICY_PREPURGE``,
 ``SNAPSHOT_POLICY_PREBULK``; ``warn`` for a folder delete, ``strict`` for the
@@ -115,8 +118,12 @@ def name_pattern(reason: snapshots.SnapshotReason) -> str:
     return NAME_PATTERN.format(reason=reason.value)
 
 
-def _status_for(error: snapshots.SnapshotError) -> int:
-    """Map one ``SnapshotError`` to its HTTP status; anything unlisted is a 500."""
+def status_for(error: snapshots.SnapshotError) -> int:
+    """Map one ``SnapshotError`` to its HTTP status; anything unlisted is a 500.
+
+    The one mapping: ``guard()`` and ``routers/snapshots.py`` both read it, so a
+    snapshot failure cannot mean 400 on one route and 500 on another.
+    """
     for error_type, status in _STATUS:
         if isinstance(error, error_type):
             return status
@@ -265,7 +272,7 @@ def guard(
         # A defect or a name collision, never a capability miss: refuse whatever
         # the policy says, because proceeding would hide a real bug.
         _write_missed(reason, policy, target, "failed", str(error), ctx)
-        raise HTTPException(status_code=_status_for(error), detail=str(error)) from error
+        raise HTTPException(status_code=status_for(error), detail=str(error)) from error
     except snapshots.SnapshotError as error:
         # The snapshot could not be taken although the volume advertised one.
         # The row comes first: it is the only record of an attempt that failed.
@@ -274,7 +281,7 @@ def guard(
         unavailable_now = isinstance(error, snapshots.SnapshotUnavailable)
         _write_missed(reason, policy, target, "unavailable" if unavailable_now else "failed", str(error), ctx)
         if policy == config.SNAPSHOT_POLICY_STRICT:
-            raise HTTPException(status_code=_status_for(error), detail=str(error)) from error
+            raise HTTPException(status_code=status_for(error), detail=str(error)) from error
         capability = "unavailable" if unavailable_now else "available"
         return _notice(reason, policy, capability, "proceed_without", detail=str(error))
 

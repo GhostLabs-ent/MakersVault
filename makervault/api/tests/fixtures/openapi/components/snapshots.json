@@ -1,0 +1,301 @@
+{
+  "SnapshotBrowseOut": {
+    "properties": {
+      "entries": {
+        "items": {
+          "$ref": "#/components/schemas/SnapshotEntryOut"
+        },
+        "title": "Entries",
+        "type": "array"
+      },
+      "path": {
+        "title": "Path",
+        "type": "string"
+      },
+      "snapshot": {
+        "title": "Snapshot",
+        "type": "string"
+      }
+    },
+    "required": [
+      "snapshot",
+      "path",
+      "entries"
+    ],
+    "title": "SnapshotBrowseOut",
+    "type": "object"
+  },
+  "SnapshotCreatedOut": {
+    "properties": {
+      "prune": {
+        "$ref": "#/components/schemas/SnapshotPruneOut"
+      },
+      "snapshot": {
+        "$ref": "#/components/schemas/SnapshotOut"
+      }
+    },
+    "required": [
+      "snapshot",
+      "prune"
+    ],
+    "title": "SnapshotCreatedOut",
+    "type": "object"
+  },
+  "SnapshotDeleteOut": {
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string"
+      },
+      "ok": {
+        "title": "Ok",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "ok",
+      "name"
+    ],
+    "title": "SnapshotDeleteOut",
+    "type": "object"
+  },
+  "SnapshotEntryOut": {
+    "properties": {
+      "is_dir": {
+        "title": "Is Dir",
+        "type": "boolean"
+      },
+      "modified_at": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Modified At"
+      },
+      "name": {
+        "title": "Name",
+        "type": "string"
+      },
+      "path": {
+        "title": "Path",
+        "type": "string"
+      },
+      "size": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Size"
+      }
+    },
+    "required": [
+      "name",
+      "path",
+      "is_dir"
+    ],
+    "title": "SnapshotEntryOut",
+    "type": "object"
+  },
+  "SnapshotListOut": {
+    "properties": {
+      "method": {
+        "title": "Method",
+        "type": "string"
+      },
+      "snapshots": {
+        "items": {
+          "$ref": "#/components/schemas/SnapshotOut"
+        },
+        "title": "Snapshots",
+        "type": "array"
+      },
+      "supports_browse": {
+        "title": "Supports Browse",
+        "type": "boolean"
+      },
+      "supports_restore": {
+        "title": "Supports Restore",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "snapshots",
+      "method",
+      "supports_browse",
+      "supports_restore"
+    ],
+    "title": "SnapshotListOut",
+    "type": "object"
+  },
+  "SnapshotOut": {
+    "properties": {
+      "age_seconds": {
+        "title": "Age Seconds",
+        "type": "integer"
+      },
+      "created_at": {
+        "title": "Created At",
+        "type": "string"
+      },
+      "name": {
+        "title": "Name",
+        "type": "string"
+      },
+      "reason": {
+        "title": "Reason",
+        "type": "string"
+      }
+    },
+    "required": [
+      "name",
+      "created_at",
+      "age_seconds",
+      "reason"
+    ],
+    "title": "SnapshotOut",
+    "type": "object"
+  },
+  "SnapshotPruneOut": {
+    "properties": {
+      "kept": {
+        "title": "Kept",
+        "type": "integer"
+      },
+      "names": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Names",
+        "type": "array"
+      },
+      "pruned": {
+        "title": "Pruned",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "pruned",
+      "kept",
+      "names"
+    ],
+    "title": "SnapshotPruneOut",
+    "type": "object"
+  },
+  "SnapshotRestoreOut": {
+    "properties": {
+      "bytes": {
+        "title": "Bytes",
+        "type": "integer"
+      },
+      "destination": {
+        "title": "Destination",
+        "type": "string"
+      },
+      "files": {
+        "title": "Files",
+        "type": "integer"
+      },
+      "path": {
+        "title": "Path",
+        "type": "string"
+      },
+      "scan_started": {
+        "title": "Scan Started",
+        "type": "boolean"
+      },
+      "snapshot": {
+        "title": "Snapshot",
+        "type": "string"
+      }
+    },
+    "required": [
+      "snapshot",
+      "path",
+      "destination",
+      "files",
+      "bytes",
+      "scan_started"
+    ],
+    "title": "SnapshotRestoreOut",
+    "type": "object"
+  },
+  "SnapshotRestoreRequest": {
+    "properties": {
+      "path": {
+        "default": "",
+        "title": "Path",
+        "type": "string"
+      }
+    },
+    "title": "SnapshotRestoreRequest",
+    "type": "object"
+  },
+  "SnapshotRetentionIn": {
+    "properties": {
+      "hard_cap": {
+        "minimum": 1.0,
+        "title": "Hard Cap",
+        "type": "integer"
+      },
+      "keep_daily": {
+        "minimum": 0.0,
+        "title": "Keep Daily",
+        "type": "integer"
+      },
+      "keep_last_n": {
+        "minimum": 1.0,
+        "title": "Keep Last N",
+        "type": "integer"
+      },
+      "max_age_days": {
+        "minimum": 1.0,
+        "title": "Max Age Days",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "keep_last_n",
+      "keep_daily",
+      "max_age_days",
+      "hard_cap"
+    ],
+    "title": "SnapshotRetentionIn",
+    "type": "object"
+  },
+  "SnapshotRetentionOut": {
+    "properties": {
+      "hard_cap": {
+        "title": "Hard Cap",
+        "type": "integer"
+      },
+      "keep_daily": {
+        "title": "Keep Daily",
+        "type": "integer"
+      },
+      "keep_last_n": {
+        "title": "Keep Last N",
+        "type": "integer"
+      },
+      "max_age_days": {
+        "title": "Max Age Days",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "keep_last_n",
+      "keep_daily",
+      "max_age_days",
+      "hard_cap"
+    ],
+    "title": "SnapshotRetentionOut",
+    "type": "object"
+  }
+}

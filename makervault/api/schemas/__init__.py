@@ -11,7 +11,21 @@ self-contained): assets <- batch <- projects <- imports.
 """
 
 # ruff: noqa: F403
-from . import asset_files, assets, audit_log, auth_users, batch, folders, import_runs, imports, library, projects, settings, trash
+from . import (
+  asset_files,
+  assets,
+  audit_log,
+  auth_users,
+  batch,
+  folders,
+  import_runs,
+  imports,
+  library,
+  projects,
+  settings,
+  snapshots,
+  trash,
+)
 from .asset_files import *
 from .assets import *
 from .audit_log import *
@@ -23,9 +37,10 @@ from .imports import *
 from .library import *
 from .projects import *
 from .settings import *
+from .snapshots import *
 from .trash import *
 
-MODULES = (asset_files, assets, audit_log, auth_users, batch, folders, import_runs, imports, library, projects, settings, trash)
+MODULES = (asset_files, assets, audit_log, auth_users, batch, folders, import_runs, imports, library, projects, settings, snapshots, trash)
 
 # Sorted, not raw module-alphabetical concatenation: module order is not class-name order
 # (auth_users' names sit inside assets' range), so the two readings of the pin cannot both
@@ -44,6 +59,7 @@ __all__ = sorted(
     *library.__all__,
     *projects.__all__,
     *settings.__all__,
+    *snapshots.__all__,
     *trash.__all__,
   ]
 )

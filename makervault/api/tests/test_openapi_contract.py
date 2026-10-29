@@ -21,7 +21,7 @@ Regenerating after an intentional contract change, from `makervault/api`:
 
     MAKERVAULT_WRITE_OPENAPI_FIXTURES=1 python -m pytest tests/test_openapi_contract.py
 
-That rewrites the 14 files and then SKIPS, so a rewrite run can never report green; re-run
+That rewrites the 15 files and then SKIPS, so a rewrite run can never report green; re-run
 without the variable to verify. MAKERVAULT_WRITE_OPENAPI_FIXTURES must stay unset in the
 Makefile and in CI, where a rewrite would pin whatever the code happened to emit.
 """
@@ -99,7 +99,7 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
 
 
 def _write(document: dict[str, Any]) -> None:
-    """Rewrite the 14 fixtures, bucketing each component by its owning domain module.
+    """Rewrite the 15 fixtures, bucketing each component by its owning domain module.
 
     Iterating the OpenAPI components rather than `schemas.__all__` is deliberate:
     AssetCreate is dead code - exported by the barrel but routed nowhere - so it has no

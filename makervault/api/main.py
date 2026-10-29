@@ -51,6 +51,7 @@ from routers import (
     library,
     projects,
     settings,
+    snapshots,
     system,
     trash,
     uploads,
@@ -67,6 +68,7 @@ from zip_service import arcname_for_asset
 API_ROUTERS = (
     system.router,
     settings.router,
+    snapshots.router,
     library.router,
     auth_users.router,
     audit_log.router,

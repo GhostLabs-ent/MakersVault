@@ -149,8 +149,8 @@ rollback are in
 
 ## The route matrix
 
-Paths are FastAPI templates exactly as declared. 66 routes: 4 public, 23 read,
-30 write, 9 admin.
+Paths are FastAPI templates exactly as declared. 73 routes: 4 public, 25 read,
+32 write, 12 admin.
 
 The collection/instance templates are deliberately asymmetric: the collection is
 `/projects` while one project is `/project/{project_id}`, exactly like `/folders`
@@ -192,6 +192,8 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | GET    | `/project/{project_id}/assets`          | list one project's member assets |
 | GET    | `/trash`                                | list the trash |
 | GET    | `/storage/capabilities`                 | read-only filesystem capability report; creates nothing |
+| GET    | `/snapshots`                           | lists the snapshots this volume has; reads the provider view, creates nothing |
+| GET    | `/snapshots/{name}/browse`             | browses one snapshot read-only; creates nothing |
 
 ### write (editor or admin)
 
@@ -227,6 +229,8 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | POST   | `/project/{project_id}/assets`              | add project memberships |
 | DELETE | `/project/{project_id}/assets`              | remove project memberships (the one DELETE with a JSON body) |
 | POST   | `/library/scan`                             | starts a scan: registers files found on disk and refreshes `missing_since`; audited as `library.scan.start` |
+| POST   | `/snapshots`                                | takes a snapshot of the library; an editor's library action |
+| POST   | `/snapshots/{name}/restore`                 | copies snapshot bytes into `recovered/`; never overwrites |
 
 ### admin (administrators only)
 
@@ -241,6 +245,9 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | GET    | `/users`                       | user administration |
 | PATCH  | `/users/{user_id}`             | user administration (including role changes) |
 | POST   | `/trash/purge`                 | destroying deleted data is irreversible |
+| GET    | `/snapshots/retention`         | retention decides what history survives; admin namespace |
+| POST   | `/snapshots/retention`         | mutates retention |
+| DELETE | `/snapshots/{name}`            | deleting a snapshot decides what history survives |
 
 ## Destructive confirmations
 

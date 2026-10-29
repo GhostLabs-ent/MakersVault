@@ -64,7 +64,7 @@ could honestly reconstruct.
 
 ## The action taxonomy
 
-`audit.ACTIONS` holds exactly these 26 strings. Action names are stable and
+`audit.ACTIONS` holds exactly these 28 strings. Action names are stable and
 `namespace.verb`; a reader of a row does not need the code to know what it means.
 
 | Action | Route(s) that emit it | `target` | `detail` | Failure |
@@ -84,24 +84,29 @@ could honestly reconstruct.
 | `trash.purge` | `POST /trash/purge` | `"trash"` | `{"purged", "bytes", "failed"}` from `trash_service.purge()` | fail-loud |
 | `settings.storage.update` | `POST /settings/storage` | `"storage_path_template"` | `{"from", "to"}` templates | fail-closed |
 | `settings.mount_import.update` | `POST /settings/mount-import` | `"mount_import"` | `{"enabled", "copy_files"}` | fail-closed |
+| `settings.snapshot_retention.update` | `POST /snapshots/retention` | `"snapshot_retention"` | `{"from", "to"}` retention policies, each an object of the four policy fields | fail-closed |
 | `user.create` | `POST /users` | new username | `{"role", "user_id"}` | fail-closed |
 | `user.role_change` | `PATCH /users/{user_id}` (only when the role changes) | username | `{"from", "to"}` roles | fail-closed |
 | `user.disable` | `PATCH /users/{user_id}` (only when `disabled` goes false -> true) | username | `{"from", "to"}` booleans | fail-closed |
 | `user.enable` | `PATCH /users/{user_id}` (only when `disabled` goes true -> false) | username | `{"from", "to"}` booleans | fail-closed |
 | `library.scan.start` | `POST /library/scan` | `"library"` | none | fail-loud |
 | `login.succeeded` | `POST /login` | the real username | `{"kind", "client_ip"}` | fail-closed |
-| `snapshot.create` | no route; emitted by the provider layer in `snapshots.py` | snapshot name | `{"reason", "method", "pruned"}` | fail-loud |
-| `snapshot.prune` | no route; emitted by retention inside `create()` in `snapshots.py` (one row per pruned snapshot) | pruned snapshot name | `{"rule", "trigger"}` | fail-loud |
-| `snapshot.delete` | no route; emitted by the provider layer in `snapshots.py` | snapshot name | `{"method"}` | fail-loud |
+| `snapshot.create` | `POST /snapshots` (the route hands the provider an audit context, so the provider writes the row) | snapshot name | `{"reason", "method", "pruned"}` | fail-loud |
+| `snapshot.prune` | `POST /snapshots` (emitted by retention inside `create()` in `snapshots.py`, one row per pruned snapshot) | pruned snapshot name | `{"rule", "trigger"}` | fail-loud |
+| `snapshot.delete` | `DELETE /snapshots/{name}` | snapshot name | `{"method"}` | fail-loud |
+| `snapshot.restore` | `POST /snapshots/{name}/restore` | snapshot name | `{"path", "destination", "files", "bytes", "scan_started"}` | fail-loud |
 | `destructive.snapshot_taken` | `DELETE /folder/{folder_id}`; `POST /trash/purge`; `POST /assets/batch/delete`; written by `snapshot_guard.guard` | the operation's subject: the folder id, `"trash"` or `"assets"` | `{"reason", "policy", "name", "method"}` - `name` is the snapshot's exact name | fail-loud |
 | `destructive.snapshot_missed` | the same three routes, when no snapshot was taken | the same subject | `{"reason", "policy", "cause", "error"}` - `cause` is `"unavailable"` or `"failed"`, `error` is the exception text or `null` | fail-loud |
 
-Three of those actions are not route actions. `snapshot.create`, `snapshot.prune`
-and `snapshot.delete` are written with `audit.record` by the snapshot provider
-layer, because a snapshot is a filesystem object with no row to roll back. They
-are deliberately absent from `ROUTE_ACTIONS`: no route emits them, so
-`assert_audit_coverage()` and the audited/exempt route counts below are
-unchanged. They are fail-loud for the same reason as `trash.purge`.
+The snapshot actions are route actions now that `POST /snapshots` and
+`DELETE /snapshots/{name}` exist. Those two routes hand the provider an audit
+context, which is why `snapshot.create`, `snapshot.prune` and `snapshot.delete`
+appear in `ROUTE_ACTIONS`; the provider still writes their rows with
+`audit.record`, because a snapshot is a filesystem object with no row to roll
+back. What remains true is that on the three *destructive* routes the guard
+hands the provider no context and writes exactly one `destructive.snapshot_*`
+row instead. The snapshot actions are fail-loud for the same reason as
+`trash.purge`.
 
 The two `destructive.*` actions are also written with `audit.record`, by
 `snapshot_guard.guard`, for exactly the same reason: a snapshot is a filesystem
@@ -137,8 +142,8 @@ snapshot: the trash keeps it restorable, so it stays `asset.delete` alone.
 The rule `assert_audit_coverage()` enforces: **every route in
 `permissions.ROUTE_PERMISSIONS` whose method is not `GET` must be in
 `ROUTE_ACTIONS` or in `EXEMPT_ROUTES` with a non-empty reason.** `GET` routes are
-out of scope by construction: they change nothing. The matrix has 66 routes, 26
-of them `GET`; the remaining 40 split into 21 audited keys and 19 exempt keys.
+out of scope by construction: they change nothing. The matrix has 73 routes, 29
+of them `GET`; the remaining 44 split into 25 audited keys and 19 exempt keys.
 
 The guard also refuses stale keys (an entry for a route that no longer exists), a
 key in both tables, an action that is not in `ACTIONS`, and an exemption without
@@ -391,7 +396,7 @@ administration).
 | Parameter | Type | Semantics |
 |---|---|---|
 | `actor` | string | exact match, case-insensitive (both sides lowered, value stripped) |
-| `action` | string | exact match, case-sensitive - one of the 21 names above |
+| `action` | string | exact match, case-sensitive - one of the 28 names above |
 | `target` | string | case-sensitive substring match; `%`, `_` and `\` are escaped, so it is a literal substring |
 | `since` | string | `created_at >= value` |
 | `until` | string | `created_at <= value` |

@@ -1,7 +1,7 @@
 """Per-route permission sweeps driven by `permissions.ROUTE_PERMISSIONS`.
 
 Why this file exists: Mf-2nbc enforces a level with a *per-route dependency*, and
-the only thing that keeps 66 hand-written declarations honest is a test that
+the only thing that keeps 73 hand-written declarations honest is a test that
 visits every route at every role. The sweeps below are parametrised from
 `permissions.ROUTE_PERMISSIONS`, so that table is both the documentation and the
 test plan: add a route without classifying it and
@@ -56,11 +56,12 @@ import login_throttle as login_throttle_module
 import main
 import permissions
 import settings_service
+import snapshots
 import storage_capabilities
 from config import MOUNT_IMPORT_COPY, MOUNT_IMPORT_ENABLED
 from db import engine
 from migrations import run_migrations
-from models import Asset, AssetFile, Folder, ImportRun, Project, ProjectAsset, User, UserSession
+from models import AppConfig, Asset, AssetFile, Folder, ImportRun, Project, ProjectAsset, User, UserSession
 
 ADMIN_USERNAME = "root"
 ADMIN_PASSWORD = "root-password-1"
@@ -69,6 +70,18 @@ EDITOR_PASSWORD = "editor-password-1"
 VIEWER_USERNAME = "viewer"
 VIEWER_PASSWORD = "viewer-password-1"
 BREAK_GLASS = {"username": "admin", "password": "super-secret"}
+
+# Well-formed snapshot names for the routes that take one. Nothing has to exist:
+# the sweeps only care about the permission gate, and a name this module would
+# write is the one that reaches the provider and answers 409 rather than 400.
+SNAPSHOT_NAME = "20250101T000000Z-manual-000000"
+
+RETENTION_KEYS = (
+    snapshots.RETENTION_KEEP_LAST_N_KEY,
+    snapshots.RETENTION_KEEP_DAILY_KEY,
+    snapshots.RETENTION_MAX_AGE_DAYS_KEY,
+    snapshots.RETENTION_HARD_CAP_KEY,
+)
 
 # Smallest valid STL body: the upload route only stores bytes, it never parses them.
 STL_BYTES = b"solid cube\nendsolid cube\n"
@@ -185,6 +198,14 @@ def isolated_storage(tmp_path, monkeypatch: pytest.MonkeyPatch):
     template_before = settings_service.get_storage_template()
     enabled_before = settings_service.get_mount_import_enabled(MOUNT_IMPORT_ENABLED)
     copy_before = settings_service.get_mount_import_copy(MOUNT_IMPORT_COPY)
+    # `POST /snapshots/retention` is in the sweep, so its four settings are saved
+    # and restored raw like the storage and mount-import ones above: a
+    # configuration with no rows keeps none, which `test_snapshots.py` asserts.
+    with Session(engine) as session:
+        retention_before = {
+            key: (row.value if (row := session.get(AppConfig, key)) is not None else None)
+            for key in RETENTION_KEYS
+        }
     with Session(engine) as session:
         folders_before = {folder.id for folder in session.exec(select(Folder))}
         assets_before = {asset.id for asset in session.exec(select(Asset))}
@@ -196,6 +217,17 @@ def isolated_storage(tmp_path, monkeypatch: pytest.MonkeyPatch):
     settings_service.set_storage_template(template_before)
     settings_service.set_mount_import_enabled(enabled_before)
     settings_service.set_mount_import_copy(copy_before)
+    with Session(engine) as session:
+        for key, value in retention_before.items():
+            row = session.get(AppConfig, key)
+            if value is None:
+                if row is not None:
+                    session.delete(row)
+            elif row is None:
+                session.add(AppConfig(key=key, value=value))
+            else:
+                row.value = value
+        session.commit()
     with Session(engine) as session:
         for run in list(session.exec(select(ImportRun))):
             if run.id not in runs_before:
@@ -717,6 +749,60 @@ def call_purge_trash(client: TestClient, headers: dict[str, str], ids: Ids, monk
     return client.post("/trash/purge", headers=headers)
 
 
+def call_list_snapshots(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    # Detection probes the host; pin the answer so the sweep is host-independent.
+    snapshot_fakes.use_unavailable(monkeypatch)
+    return client.get("/snapshots", headers=headers)
+
+
+def call_create_snapshot(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    # No snapshot method: the write is refused with 409, which is what the gate
+    # is being asked about here (the permit itself is proved by the 201 test
+    # elsewhere, not by a permission sweep that must not write snapshots).
+    snapshot_fakes.use_unavailable(monkeypatch)
+    return client.post("/snapshots", headers=headers)
+
+
+def call_get_snapshot_retention(
+    client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch
+) -> Response:
+    snapshot_fakes.use_unavailable(monkeypatch)
+    return client.get("/snapshots/retention", headers=headers)
+
+
+def call_update_snapshot_retention(
+    client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch
+) -> Response:
+    # Post back the defaults the deployment already has, so the sweep is
+    # idempotent and the autouse fixture's save/restore is a no-op change.
+    snapshot_fakes.use_unavailable(monkeypatch)
+    body = {
+        "keep_last_n": snapshots.DEFAULT_KEEP_LAST_N,
+        "keep_daily": snapshots.DEFAULT_KEEP_DAILY,
+        "max_age_days": snapshots.DEFAULT_MAX_AGE_DAYS,
+        "hard_cap": snapshots.DEFAULT_HARD_CAP,
+    }
+    return client.post("/snapshots/retention", json=body, headers=headers)
+
+
+def call_browse_snapshot(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    # A well-formed name so the null provider's 409 is the answer, not a 400.
+    snapshot_fakes.use_unavailable(monkeypatch)
+    return client.get(f"/snapshots/{SNAPSHOT_NAME}/browse", headers=headers)
+
+
+def call_restore_snapshot(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    # The restore ends by asking for a scan; no thread during a permission sweep.
+    snapshot_fakes.use_unavailable(monkeypatch)
+    monkeypatch.setattr(main, "start_scan", lambda: True)
+    return client.post(f"/snapshots/{SNAPSHOT_NAME}/restore", json={"path": ""}, headers=headers)
+
+
+def call_delete_snapshot(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    snapshot_fakes.use_unavailable(monkeypatch)
+    return client.delete(f"/snapshots/{SNAPSHOT_NAME}", headers=headers)
+
+
 def call_list_projects(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
     return client.get("/projects", headers=headers)
 
@@ -825,6 +911,13 @@ CALLS: dict[tuple[str, str], CallSpec] = {
     ("PATCH", "/users/{user_id}"): call_update_user,
     ("GET", "/audit"): call_list_audit,
     ("POST", "/trash/purge"): call_purge_trash,
+    ("GET", "/snapshots"): call_list_snapshots,
+    ("POST", "/snapshots"): call_create_snapshot,
+    ("GET", "/snapshots/retention"): call_get_snapshot_retention,
+    ("POST", "/snapshots/retention"): call_update_snapshot_retention,
+    ("GET", "/snapshots/{name}/browse"): call_browse_snapshot,
+    ("POST", "/snapshots/{name}/restore"): call_restore_snapshot,
+    ("DELETE", "/snapshots/{name}"): call_delete_snapshot,
     ("GET", "/projects"): call_list_projects,
     ("POST", "/projects"): call_create_project,
     ("PATCH", "/project/{project_id}"): call_update_project,
@@ -892,6 +985,13 @@ EXPECTED_STATUS: dict[tuple[str, str], int] = {
     ("PATCH", "/users/{user_id}"): 200,
     ("GET", "/audit"): 200,
     ("POST", "/trash/purge"): 200,
+    ("GET", "/snapshots"): 200,
+    ("POST", "/snapshots"): 409,
+    ("GET", "/snapshots/retention"): 200,
+    ("POST", "/snapshots/retention"): 200,
+    ("GET", "/snapshots/{name}/browse"): 409,
+    ("POST", "/snapshots/{name}/restore"): 409,
+    ("DELETE", "/snapshots/{name}"): 409,
     ("GET", "/projects"): 200,
     ("POST", "/projects"): 201,
     ("PATCH", "/project/{project_id}"): 200,
@@ -1024,10 +1124,10 @@ def test_a_route_declared_on_the_app_instead_of_a_router_is_caught() -> None:
 
 
 def test_the_matrix_is_the_documented_size() -> None:
-    """The matrix is pinned at 66 routes; a new route means updating this and docs/PERMISSIONS.md."""
+    """The matrix is pinned at 73 routes; a new route means updating this and docs/PERMISSIONS.md."""
     counts = {level: len(keys_at(level)) for level in (permissions.PUBLIC, permissions.READ, permissions.WRITE, permissions.ADMIN)}
-    assert len(permissions.ROUTE_PERMISSIONS) == 66, counts
-    assert counts == {permissions.PUBLIC: 4, permissions.READ: 23, permissions.WRITE: 30, permissions.ADMIN: 9}, counts
+    assert len(permissions.ROUTE_PERMISSIONS) == 73, counts
+    assert counts == {permissions.PUBLIC: 4, permissions.READ: 25, permissions.WRITE: 32, permissions.ADMIN: 12}, counts
 
 
 def test_every_guarded_route_has_a_call_spec() -> None:
