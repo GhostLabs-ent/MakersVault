@@ -22,7 +22,7 @@ suite to remain green before release.
 | MV-SEC-002 | `CONFIRMED` | `api/auth.py`, production Compose, `.env.example`, and README still contain known credential/signing fallbacks or examples. | Gate 1: secure first-run/explicit environment and compatibility migration. |
 | MV-SEC-003 | `CONFIRMED` | Initial and final URL strings are validated, but `urllib` resolves/connects and follows redirects before final validation. DNS/redirect TOCTOU remains unproven. | Gate 1: controlled redirect/connection implementation and adversarial tests. |
 | MV-SEC-004 | `CONFIRMED` | `python-multipart==0.0.9` remains pinned. Current `pip-audit` reports multiple records with fixes in newer releases. | Gate 1: compatible dependency upgrade plus upload regression tests. |
-| MV-SEC-005 | `CONFIRMED` | `Pillow==10.4.0` remains pinned and processes user-controlled images. Current `pip-audit` reports multiple fixed advisories. | Gate 1: upgrade and malicious/oversized-image tests. |
+| MV-SEC-005 | `CONFIRMED` | `Pillow==12.3.0` remains pinned and still processes user-controlled images; `pip-audit` still reports 39 advisory rows against it, every one fixed at exactly `13.0.0`; the `10.4.0 -> 12.3.0` bump (Mf-xzei) net-cleared 27 rows / 11 distinct advisory identifiers. | Gate 1: malicious/oversized-image tests (upgrade landed in Mf-xzei); reassess Pillow >= 13.0.0. |
 | MV-SEC-006 | `CONFIRMED` | Remote imports and generated thumbnails have some per-file bounds, but direct primary/supporting uploads and total ZIP expansion are not consistently bounded. | Gate 1 for server limits; Gate 2 for browser preview budgets. |
 | MV-SEC-007 | `RESOLVED IN CANDIDATE` | `?token=` is retired: `require_auth` in `api/auth.py` is header-only, so a session token in the query string is a 401 on every route, the four file routes included. Those four accept a `?sig=` file grant instead - one path, `scope="file:read"`, 60 s TTL with the verifier independently capping `exp - iat` at 300 s, bound to a live session so sign-out invalidates it, signed with the domain-separated subkey `file_grant_key()`, and mintable only by `POST /file-grants` (READ) from a four-template, existence-checked allow-list. The access-log surface is closed: `web/nginx.conf` binds `log_format makervault` (`$request_method $uri $server_protocol`, never `$request`), `api/Dockerfile` runs uvicorn with `--no-access-log`, and `scripts/container-smoke.sh` fails the smoke run if a `?token=`/`?sig=` canary reaches either container log. Pinned by `api/tests/test_file_grants.py`, `api/tests/test_operator_log_hygiene.py` and `api/tests/test_auth_users.py::test_query_token_no_longer_authorizes`; design in ADR 0005, ticket `M3-7bb7`. Residual: browser history, copied URLs, screenshots and `Referer` still see a 60-second read-only grant, and no CSP baseline exists yet (MV-SEC-015). | Gate 0 verification suite must stay green before release; ADR 0004 recorded the interim acceptance and ADR 0005 supersedes it for the implemented design, landed in `M3-7bb7`. |
 | MV-SEC-008 | `CONFIRMED` | The primary JWT is stored in browser `localStorage`. The HttpOnly-cookie remediation was explicitly declined for v5.1 with compensating controls (15-minute access-token TTL, single-use rotation, `UserSession` revocation store); see ADR 0004. | Gate 1 risk decision: accepted in ADR 0004 with compensating controls; final session architecture in Gate 11. |
@@ -82,6 +82,22 @@ Two residuals are owned explicitly rather than dropped silently:
   verification lock pins. This is test-only with no production exposure - the
   warning comes from the test client, not the runtime image - and moving the
   development lock to `httpx2` is a follow-up owned outside Mf-0bl6.
+
+Mf-xzei then moved the pin `10.4.0 -> 12.3.0` in all three files
+(`requirements.txt:9`, `requirements.lock:16`, `requirements-dev.lock:17`).
+Same command and tool, `pip-audit 2.10.1`, measured 2026-10-29 against
+`pillow==12.3.0`: 75 advisory rows (63 distinct advisory identifiers) across
+three pinned packages - `pillow==12.3.0` (39 rows), `PyJWT==2.9.0` (22) and
+`python-multipart==0.0.9` (14). The latter two are unchanged by this bump;
+before it, same tool and command, the same lock was 102 rows (74 identifiers)
+with `pillow==10.4.0` at 66 rows. The move decomposes gross as 33 rows / 17
+distinct identifiers cleared and 6 identifiers newly applicable to 12.3.0, all
+of them fixed at `13.0.0`; 33 cleared minus 6 added is the 27-row net and 17
+minus 6 the 11-identifier net. All 39 remaining pillow rows are fixed at
+exactly `13.0.0` - nothing in 12.3.0 is fixable below that, which is why
+MV-SEC-005 stays `CONFIRMED`. The byte identity of generated thumbnails between
+the two Pillow versions is a wheel artefact, not a guarantee this record relies
+on.
 
 ### Web runtime and development toolchain
 
