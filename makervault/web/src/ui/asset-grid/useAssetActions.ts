@@ -18,6 +18,7 @@ import {
   updateAssetMeta,
 } from "../../lib/api";
 import { saveResponseToDisk } from "../../lib/download";
+import { primeGrants } from "../../lib/fileGrants";
 import type {
   EngravingSettings,
   SlicerSettings,
@@ -195,9 +196,14 @@ export function useAssetActions({
     }
   });
 
-  const openInSlicer = useStableCallback((asset: Asset) => {
+  const openInSlicer = useStableCallback(async (asset: Asset) => {
     if (!slicerEnabled) return;
-    const url = fileUrl(asset.slicer_url || asset.url);
+    const rel = asset.slicer_url || asset.url;
+    // The OS handler fetches this URL without our headers, so it gets a signed,
+    // file-scoped, 60-second grant instead of the session JWT. A failed mint
+    // leaves the plain URL, exactly as a grant-less browser render would.
+    await primeGrants([rel]);
+    const url = fileUrl(rel);
     const params = new URLSearchParams({
       url,
       slicer: slicerSettings?.selected || "orca",
@@ -207,8 +213,9 @@ export function useAssetActions({
     window.location.href = target;
   });
 
-  const openInEngraving = useStableCallback((asset: Asset) => {
+  const openInEngraving = useStableCallback(async (asset: Asset) => {
     if (!engravingEnabled) return;
+    await primeGrants([asset.url]);
     const url = fileUrl(asset.url);
     const params = new URLSearchParams({
       url,

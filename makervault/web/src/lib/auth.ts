@@ -92,16 +92,3 @@ export function authHeaders(init?: HeadersInit): Headers {
   if (token) headers.set("Authorization", `Bearer ${token}`);
   return headers;
 }
-
-export function appendTokenToUrl(url: string): string {
-  const token = readToken();
-  if (!token) return url;
-  try {
-    const parsed = new URL(url, typeof window !== "undefined" ? window.location.origin : "http://localhost");
-    parsed.searchParams.set("token", token);
-    return parsed.toString();
-  } catch {
-    const separator = url.includes("?") ? "&" : "?";
-    return `${url}${separator}token=${encodeURIComponent(token)}`;
-  }
-}

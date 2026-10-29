@@ -1,8 +1,15 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render, waitFor } from "@testing-library/react";
 
-import { clearToken, storeToken } from "../lib/auth";
+import { clearToken } from "../lib/auth";
+import { getApiBase } from "../lib/api";
+import {
+  configureGrantMinter,
+  rememberGrants,
+  resetFileGrants,
+  type Grant,
+} from "../lib/fileGrants";
 import Markdown, { safeUrlTransform } from "./Markdown";
 
 /**
@@ -297,34 +304,60 @@ describe("safeUrlTransform", () => {
 });
 
 /**
- * A persisted project description stores token-less `/api/...` image URLs
+ * A persisted project description stores origin-relative `/api/...` image URLs
  * (`stableFileUrl`) and a browser `<img>` sends no bearer header, so the render
- * side has to attach the viewer's own token or every description image 401s.
+ * side has to resolve the viewer's short-lived, file-scoped grant (60 s) at
+ * render time — never a session token.
  */
-describe("project file images resolve the viewer's token at render time", () => {
+describe("project file images resolve the viewer's grant at render time", () => {
+  const GRANT_TTL_SECONDS = 60;
+
+  function installGrantMinter(): string[][] {
+    const calls: string[][] = [];
+    configureGrantMinter(async paths => {
+      calls.push([...paths]);
+      const grants: Grant[] = paths.map(rel => ({
+        path: rel,
+        url: `${rel}?sig=signed-grant`,
+        expires_at: Math.floor(Date.now() / 1000) + GRANT_TTL_SECONDS,
+      }));
+      rememberGrants(grants);
+    });
+    return calls;
+  }
+
   beforeEach(() => {
     installMemoryStorage();
     window.localStorage.clear();
+    resetFileGrants();
+    installGrantMinter();
   });
 
   afterEach(() => {
+    configureGrantMinter(null);
+    resetFileGrants();
     clearToken();
     cleanup();
   });
 
-  it("appends the stored token to a /api file src", () => {
-    storeToken("viewer-token");
-
+  it("renders the minted, signed URL for a /api file src", async () => {
     const container = renderMarkdown("![Logo](/api/file/abc123/logo.png)");
-    const src = container.querySelector("img")?.getAttribute("src") ?? "";
-    const parsed = new URL(src, "http://localhost");
+    const image = container.querySelector("img");
 
-    expect(parsed.pathname).toBe("/api/file/abc123/logo.png");
-    expect(parsed.searchParams.get("token")).toBe("viewer-token");
+    await waitFor(() => {
+      expect(image?.getAttribute("src")).toBe(
+        `${getApiBase()}/file/abc123/logo.png?sig=signed-grant`,
+      );
+    });
+
+    const src = image?.getAttribute("src") ?? "";
+    const parsed = new URL(src, "http://localhost");
+    expect(parsed.searchParams.has("token")).toBe(false);
+    expect(parsed.searchParams.get("sig")).toBe("signed-grant");
   });
 
-  it("leaves a foreign image src token-free and intact", () => {
-    storeToken("viewer-token");
+  it("leaves a foreign image src untouched", async () => {
+    const calls = installGrantMinter();
 
     const container = renderMarkdown("![x](https://example.com/x.png)");
     const src = container.querySelector("img")?.getAttribute("src") ?? "";
@@ -332,9 +365,13 @@ describe("project file images resolve the viewer's token at render time", () => 
 
     expect(parsed.origin + parsed.pathname).toBe("https://example.com/x.png");
     expect(parsed.searchParams.has("token")).toBe(false);
+    expect(parsed.searchParams.has("sig")).toBe(false);
+    expect(calls).toEqual([]);
   });
 
-  it("leaves a /api file src token-free when logged out", () => {
+  it("leaves a /api file src unchanged when no grant can be minted", () => {
+    configureGrantMinter(null);
+
     const container = renderMarkdown("![Logo](/api/file/abc123/logo.png)");
 
     expect(container.querySelector("img")?.getAttribute("src")).toBe(

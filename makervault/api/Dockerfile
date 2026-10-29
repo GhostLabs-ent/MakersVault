@@ -28,4 +28,6 @@ RUN mkdir -p /app/storage /app/data
 
 EXPOSE 8000
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# uvicorn's access log records the full request line, query string included, and
+# that now carries a short-lived signed file grant (M3-7bb7).
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]

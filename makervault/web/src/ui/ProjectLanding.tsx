@@ -43,6 +43,7 @@ import {
   type ProjectPatch,
 } from "../lib/api";
 import { saveResponseToDisk } from "../lib/download";
+import { primeGrants } from "../lib/fileGrants";
 import { formatBytes, formatDate } from "../lib/format";
 import { is3mfAsset, isImageAsset, isModelAsset, typeLabelFor } from "../lib/assetKinds";
 import { sourceHostLabel } from "../lib/provenance";
@@ -307,11 +308,16 @@ export default function ProjectLanding({
     [slicerEnabled],
   );
 
-  // Deep-link convention shared with AssetGrid's per-card action.
-  const openInSlicer = (asset: Asset) => {
+  // Deep-link convention shared with AssetGrid's per-card action. The OS
+  // handler fetches this URL without our headers, so it is primed with a
+  // signed, file-scoped, 60-second grant rather than the session JWT; a failed
+  // mint (primeGrants never rejects) just leaves the plain URL.
+  const openInSlicer = async (asset: Asset) => {
     if (!slicerEnabled) return;
+    const rel = asset.slicer_url || asset.url;
+    await primeGrants([rel]);
     const params = new URLSearchParams({
-      url: fileUrl(asset.slicer_url || asset.url),
+      url: fileUrl(rel),
       slicer: slicerSettings?.selected || "orca",
       filename: asset.slicer_filename || asset.filename || "model",
     });
@@ -875,7 +881,7 @@ export default function ProjectLanding({
               <button
                 type="button"
                 className={BUTTON_SECONDARY}
-                onClick={() => openInSlicer(primaryAsset)}
+                onClick={() => void openInSlicer(primaryAsset)}
               >
                 Open in {slicerLabel}
               </button>
@@ -1138,7 +1144,7 @@ export default function ProjectLanding({
                           aria-label={`Open ${asset.name} in ${slicerLabel}`}
                           title={`Open in ${slicerLabel}`}
                           className={BUTTON_ICON}
-                          onClick={() => openInSlicer(asset)}
+                          onClick={() => void openInSlicer(asset)}
                         >
                           <FileBox className="h-4 w-4" aria-hidden="true" />
                         </button>

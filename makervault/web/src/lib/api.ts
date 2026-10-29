@@ -1,4 +1,12 @@
-import { appendTokenToUrl, authHeaders } from "./auth";
+import { authHeaders } from "./auth";
+import {
+  configureGrantMinter,
+  grantedFileUrl,
+  isGrantable,
+  primeGrants,
+  rememberGrants,
+  type Grant,
+} from "./fileGrants";
 import { loadSettings } from "./settings";
 
 export class UnauthorizedError extends Error {
@@ -278,6 +286,46 @@ function apiBase(): string {
   return resolveApiBase();
 }
 
+/**
+ * The file-shaped fields a list response may carry. Everything else — a foreign
+ * absolute URL, an unknown path shape — is dropped by `isGrantable`, because the
+ * server 400s the whole batch for one path it will not sign.
+ */
+function collectFilePaths(rows: unknown): string[] {
+  if (!Array.isArray(rows)) return [];
+  const paths: string[] = [];
+  for (const row of rows) {
+    if (typeof row !== "object" || row === null) continue;
+    const record = row as Record<string, unknown>;
+    const prepared = typeof record.prepared_print === "object" && record.prepared_print !== null
+      ? (record.prepared_print as Record<string, unknown>)
+      : null;
+    for (const candidate of [
+      record.url,
+      record.thumb_url,
+      record.slicer_url,
+      record.cover_thumb_url,
+      prepared?.url,
+    ]) {
+      if (typeof candidate === "string" && isGrantable(candidate)) paths.push(candidate);
+    }
+  }
+  return paths;
+}
+
+/**
+ * Mints grants for a freshly fetched list before it is returned, so the first
+ * render of a thumbnail or file link already carries a signed URL. This is one
+ * extra round trip per fetch (grants live 60 s and are cached per path, so a
+ * refresh within a minute re-mints nothing), and an empty or grant-less list
+ * costs no request at all.
+ */
+async function primeListGrants(rows: unknown): Promise<void> {
+  const paths = collectFilePaths(rows);
+  if (!paths.length) return;
+  await primeGrants(paths);
+}
+
 export async function listAssets(params: {
   q?: string;
   tags?: string[];
@@ -306,6 +354,7 @@ export async function listAssets(params: {
   });
   assertOk(res, "Failed to list assets");
   const items = await res.json();
+  await primeListGrants(items);
   const hasMore = (res.headers.get("X-Has-More") || "").toLowerCase() === "true";
   const nextOffsetRaw = res.headers.get("X-Next-Offset");
   const nextOffset = nextOffsetRaw ? Number(nextOffsetRaw) : undefined;
@@ -702,7 +751,9 @@ export async function uploadGeneratedThumbnail(id: string, image: Blob): Promise
 export async function listAssetFiles(id: string): Promise<AssetFile[]> {
   const res = await fetch(`${apiBase()}/asset/${id}/files`, { headers: authHeaders() });
   assertOk(res, "Failed to load supporting files");
-  return res.json();
+  const files = await res.json();
+  await primeListGrants(files);
+  return files;
 }
 
 export async function listAssetFileLimits(assetId: string): Promise<AssetFileLimits> {
@@ -873,52 +924,65 @@ export async function batchMoveAssets(
   return res.json();
 }
 
+/**
+ * Mints short-lived, file-scoped, read-only grants for `paths` through
+ * `POST /file-grants` and stores them in `./fileGrants`.
+ *
+ * Injected rather than imported there (`configureGrantMinter`, below): that
+ * module cannot import this one without a cycle, and a test that mocks this
+ * module wholesale must leave minting disabled.
+ */
+export async function mintFileGrants(paths: string[]): Promise<void> {
+  const res = await fetch(`${apiBase()}/file-grants`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ paths }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(await readErrorMessage(res, "File grant request failed"));
+  const data = (await res.json()) as { grants?: Grant[] } | null;
+  rememberGrants(Array.isArray(data?.grants) ? data.grants : []);
+}
+
+configureGrantMinter(mintFileGrants);
+
+/**
+ * Joins an API-relative path with the API base. A path whose grant is cached
+ * (`primeGrants` minted it) uses the signed URL, because a browser `<img>` or
+ * `<a download>` cannot send an `Authorization` header. There is never a
+ * session token in the URL: an ungranted path falls back to the plain join and
+ * the server answers 401, which is the honest outcome.
+ */
 export function fileUrl(rel: string) {
-  // API returns relative URLs. Join with API base.
   if (!rel) return rel;
-  return appendTokenToUrl(`${apiBase()}${rel}`);
+  const granted = grantedFileUrl(rel);
+  return `${apiBase()}${granted ?? rel}`;
 }
 
 /**
  * Inline-display variant of `fileUrl`: the server answers with `Content-Disposition:
  * inline` (and 415 for types it refuses to preview), so iframes/images can load it.
+ * `inline=1` is part of what the grant is signed for, so the lookup is for the
+ * inline rel itself.
  */
 export function assetFilePreviewUrl(rel: string): string {
   return fileUrl(rel + (rel.includes("?") ? "&" : "?") + "inline=1");
 }
 
 /**
- * Same join as `fileUrl`, minus the session token and with the same-origin
- * `/api` prefix that nginx proxies to the API.
+ * Same join as `fileUrl`, with the same-origin `/api` prefix that nginx proxies
+ * to the API, and stable enough to be written into project content.
  *
- * `fileUrl` appends the caller's *current* access token, which rotates every
- * 15 minutes, so it can never be written into project content; and
- * `getApiBase()` is always absolute (the shipped compose defaults it to
- * `http://localhost:8000`), which would bake an origin that is dead for every
- * remote viewer into the description. Use this for URLs that get persisted —
- * a markdown image reference in a project description (Mf-dhtm).
+ * A grant lives 60 seconds and `getApiBase()` is always absolute (the shipped
+ * compose defaults it to `http://localhost:8000`), so neither can be persisted;
+ * and baking an origin into a description would be dead for every remote
+ * viewer. Use this for URLs that get persisted — a markdown image reference in
+ * a project description (Mf-dhtm); `useGrantedFileUrl` resolves it per viewer
+ * at render time.
  */
 export function stableFileUrl(rel: string): string {
   if (!rel) return rel;
   return `/api${rel}`;
-}
-
-/**
- * Counterpart of `stableFileUrl` for the render side: resolve a persisted
- * project-content URL for the *current* viewer.
- *
- * The stored markdown stays token-less and stable (`stableFileUrl`); a browser
- * `<img>` sends no `Authorization` header, so each viewer has to append their
- * own short-lived token here at render time or the request would 401. Only
- * same-origin `/api/...` srcs are touched, so foreign and absolute URLs pass
- * through untouched. `appendTokenToUrl` sets the param via `URLSearchParams`,
- * which makes this idempotent and replaces an author-injected `?token=` with
- * the viewer's own.
- */
-export function renderFileUrl(src: string | undefined): string | undefined {
-  if (!src) return src;
-  if (!src.startsWith("/api/")) return src;
-  return appendTokenToUrl(src);
 }
 
 // Folders -------------------------------------------------------
@@ -994,7 +1058,9 @@ export type ProjectRemovalResult = {
 export async function listProjects(): Promise<Project[]> {
   const res = await fetch(`${apiBase()}/projects`, { headers: authHeaders() });
   assertOk(res, "Failed to list projects");
-  return res.json();
+  const projects = await res.json();
+  await primeListGrants(projects);
+  return projects;
 }
 
 /** Creates a project. The route answers 201, which `res.ok` already covers. */
@@ -1036,6 +1102,7 @@ export async function listProjectAssets(params: {
   );
   assertOk(res, "Failed to list project assets");
   const items = await res.json();
+  await primeListGrants(items);
   const hasMore = (res.headers.get("X-Has-More") || "").toLowerCase() === "true";
   const nextOffsetRaw = res.headers.get("X-Next-Offset");
   const nextOffset = nextOffsetRaw ? Number(nextOffsetRaw) : undefined;
@@ -1184,7 +1251,9 @@ export async function getFolderDeletePreview(id: string): Promise<FolderDeletePr
 export async function getTrash(): Promise<TrashList> {
   const res = await fetch(`${apiBase()}/trash`, { headers: authHeaders() });
   assertOk(res, "Failed to load trash");
-  return res.json();
+  const trash = await res.json();
+  await primeListGrants(trash?.entries);
+  return trash;
 }
 
 export async function purgeTrash(olderThanDays?: number): Promise<TrashPurgeResult> {
@@ -1226,7 +1295,9 @@ export async function downloadFolderZip(folder_id: string) {
  * `saveResponseToDisk` from `./download` to write the file.
  */
 export async function downloadAsset(asset: Asset): Promise<Response> {
-  const res = await fetch(fileUrl(asset.url));
+  // The bearer header wins over any cached grant: this is a real fetch, not an
+  // `<img>`, so it need not spend a URL credential at all.
+  const res = await fetch(fileUrl(asset.url), { headers: authHeaders() });
   if (res.status === 401) throw new UnauthorizedError();
   if (!res.ok) throw new Error("Download failed");
   return res;

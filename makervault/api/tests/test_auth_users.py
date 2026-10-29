@@ -420,12 +420,15 @@ def test_legacy_tokens_without_a_session_or_type_are_rejected(client: TestClient
     assert client.get("/assets", headers=bearer(untyped)).status_code == 401
 
 
-def test_query_token_still_authorizes(client: TestClient) -> None:
+def test_query_token_no_longer_authorizes(client: TestClient) -> None:
+    """`?token=` was retired; a URL carries only a `?sig=` file grant now."""
     tokens = bootstrap_admin(client)
 
-    response = client.get("/assets", params={"token": tokens["token"]})
+    for path in ("/assets", "/me"):
+        response = client.get(path, params={"token": tokens["token"]})
 
-    assert response.status_code == 200
+        assert response.status_code == 401, f"{path} accepted a session token in the query: {response.text}"
+        assert response.json()["detail"] == "Unauthorized"
 
 
 def test_refresh_and_logout_accept_a_bearer_token(client: TestClient) -> None:

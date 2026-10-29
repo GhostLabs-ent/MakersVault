@@ -41,7 +41,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.routing import APIRoute
 
 import accounts
-from auth import AuthContext, require_auth
+from auth import AuthContext, require_auth, require_auth_or_file_grant
 
 PUBLIC = "public"
 READ = "read"
@@ -97,8 +97,12 @@ def authorize(request: Request, context: Optional[AuthContext], level: str) -> N
         raise HTTPException(status_code=403, detail=DENY_DETAIL[level])
 
 
-def require_permission(level: str) -> Callable:
+def require_permission(level: str, authenticate: Callable = require_auth) -> Callable:
     """Build the route dependency that enforces `level`, returning the context.
+
+    `authenticate` is the authenticator the dependency runs; it defaults to the
+    session-token verifier. The file routes pass `require_auth_or_file_grant` so
+    a `?sig=` grant can authenticate there, and only there.
 
     The dependency is what actually guards the route, and `permission_level` on
     it is how `assert_routes_classified()` (and the tests) read the declaration
@@ -108,7 +112,7 @@ def require_permission(level: str) -> Callable:
 
     def dependency(
         request: Request,
-        context: Optional[AuthContext] = Depends(require_auth),
+        context: Optional[AuthContext] = Depends(authenticate),
     ) -> Optional[AuthContext]:
         authorize(request, context, level)
         return context
@@ -120,6 +124,9 @@ def require_permission(level: str) -> Callable:
 require_read = require_permission(READ)
 require_write = require_permission(WRITE)
 require_admin = require_permission(ADMIN)
+# Same READ level, different authenticator: attached only to the four file
+# routes, so a grant can never reach a list, write or admin route.
+require_file_read = require_permission(READ, require_auth_or_file_grant)
 
 
 # The audited matrix. Path strings are the FastAPI templates exactly as declared
@@ -142,6 +149,8 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("GET", "/asset/{asset_id}/files/limits"): READ,
     ("GET", "/asset/{asset_id}/prepared-print"): READ,
     ("GET", "/thumb/{asset_id}.jpg"): READ,
+    # mints a short-lived read-only grant; nothing mutates.
+    ("POST", "/file-grants"): READ,
     ("GET", "/assets"): READ,
     ("GET", "/tags"): READ,
     ("GET", "/creators"): READ,

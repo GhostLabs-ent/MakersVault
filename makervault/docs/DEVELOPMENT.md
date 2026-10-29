@@ -33,7 +33,10 @@ This performs:
 4. Validation of the local, canonical production, historical alias, and smoke
    Compose configurations.
 5. A clean container smoke test with temporary named volumes, HTTP health checks,
-   non-root runtime assertions, and schema-version verification.
+   non-root runtime assertions, schema-version verification, and an access-log
+   canary: `/api/health?token=<canary>&sig=<canary>` is requested through the web
+   proxy and the run fails if the canary appears in either container's log, so a
+   signed file grant cannot survive in a request line the gate accepts.
 
 The smoke test picks a free host-port lane, so a single run still lands on the
 historical `18000` (API) and `15173` (web) whenever those are free. Lanes are

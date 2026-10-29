@@ -30,6 +30,19 @@ func TestRedactURLHidesBearerQueryValue(t *testing.T) {
 	}
 }
 
+func TestRedactURLHidesSignedFileGrant(t *testing.T) {
+	redacted := redactURL("https://vault.example/asset/1/files/2?sig=secret-grant&inline=1")
+	if strings.Contains(redacted, "secret-grant") {
+		t.Fatalf("redacted URL still contains the grant: %s", redacted)
+	}
+	if !strings.Contains(redacted, "sig=REDACTED") {
+		t.Fatalf("redacted URL does not contain the marker: %s", redacted)
+	}
+	if !strings.Contains(redacted, "inline=1") {
+		t.Fatalf("redacted URL dropped an unrelated query parameter: %s", redacted)
+	}
+}
+
 func TestHandleProtocolRejectsUntrustedShapesBeforeDownload(t *testing.T) {
 	tests := []string{
 		"https://vault.example/file",

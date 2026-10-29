@@ -107,8 +107,8 @@ more than one fact:
 The rule `assert_audit_coverage()` enforces: **every route in
 `permissions.ROUTE_PERMISSIONS` whose method is not `GET` must be in
 `ROUTE_ACTIONS` or in `EXEMPT_ROUTES` with a non-empty reason.** `GET` routes are
-out of scope by construction: they change nothing. The matrix has 63 routes, 24
-of them `GET`; the remaining 39 split into 21 audited keys and 18 exempt keys.
+out of scope by construction: they change nothing. The matrix has 64 routes, 24
+of them `GET`; the remaining 40 split into 21 audited keys and 19 exempt keys.
 
 The guard also refuses stale keys (an entry for a route that no longer exists), a
 key in both tables, an action that is not in `ACTIONS`, and an exemption without
@@ -137,15 +137,18 @@ Exempt routes and why:
 | `POST /refresh` | session-token bookkeeping; the abusable surface is `POST /login` |
 | `POST /logout` | session-token bookkeeping |
 | `POST /download/zip` | streams a temp zip; stores nothing |
+| `POST /file-grants` | mints a short-lived read-only file grant; mutates nothing |
 
 The classes behind those rows: **creation** (an upload, an import, a new folder -
 the object that gets created can be destroyed later, and that destruction is what
 is recorded), **derived artifacts** (a thumbnail is a cache; losing it costs a
 regeneration), **outbound fetch** (the two `/import` inspectors read a remote URL
 and write nothing), **metadata that is not rename or move** (tags are a label
-list, not identity or location), and **session-token bookkeeping** (`/refresh` and
+list, not identity or location), **session-token bookkeeping** (`/refresh` and
 `/logout` rotate or revoke a token; the surface worth watching is the credential
-check on `POST /login`).
+check on `POST /login`), and **credential minting** (`/file-grants` signs a
+60-second read-only URL for one existing file; it writes no row, changes no row
+and grants nothing a viewer could not already read).
 
 ## A request that changes nothing writes nothing
 

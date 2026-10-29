@@ -1,8 +1,17 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { renderFileUrl } from "./api";
+import * as api from "./api";
+import { assetFilePreviewUrl, fileUrl, getApiBase } from "./api";
 import { clearToken, storeToken } from "./auth";
+import {
+  configureGrantMinter,
+  evictGrant,
+  primeGrants,
+  rememberGrants,
+  resetFileGrants,
+  type Grant,
+} from "./fileGrants";
 
 /**
  * jsdom reports a `window.localStorage` getter but, under Node's experimental
@@ -38,77 +47,139 @@ function parseRendered(src: string): URL {
   return new URL(src, "http://localhost");
 }
 
-const STORED_FILE_URL = "/api/file/abc123/logo.png";
+const GRANT_TTL_SECONDS = 60;
 
-describe("renderFileUrl", () => {
-  beforeEach(() => {
-    installMemoryStorage();
-    window.localStorage.clear();
+/** The URL shape the server returns: the requested rel plus a `sig` parameter. */
+function signedUrlFor(rel: string): string {
+  return `${rel}${rel.includes("?") ? "&" : "?"}sig=signed-grant`;
+}
+
+function grantFor(rel: string): Grant {
+  return {
+    path: rel,
+    url: signedUrlFor(rel),
+    expires_at: Math.floor(Date.now() / 1000) + GRANT_TTL_SECONDS,
+  };
+}
+
+/** Records what the client asked to mint; answers every path with a grant. */
+function installGrantMinter(): string[][] {
+  const calls: string[][] = [];
+  configureGrantMinter(async paths => {
+    calls.push([...paths]);
+    rememberGrants(paths.map(grantFor));
+  });
+  return calls;
+}
+
+let minterCalls: string[][];
+
+beforeEach(() => {
+  installMemoryStorage();
+  window.localStorage.clear();
+  resetFileGrants();
+  minterCalls = installGrantMinter();
+});
+
+afterEach(() => {
+  configureGrantMinter(null);
+  resetFileGrants();
+  clearToken();
+});
+
+/**
+ * `fileUrl` resolves through the grant cache. There is no session token in a
+ * URL any more: ungranted paths are the plain API join, granted ones are the
+ * signed URL the server minted for exactly that path.
+ */
+describe("fileUrl grants", () => {
+  it("emits no token and no signature when nothing is cached", () => {
+    const url = fileUrl("/file/abc123/logo.png");
+
+    expect(url).toBe(`${getApiBase()}/file/abc123/logo.png`);
+    expect(url).not.toContain("token=");
+    expect(url).not.toContain("sig=");
+    expect(minterCalls).toEqual([]);
   });
 
-  afterEach(() => {
-    clearToken();
+  it("resolves a primed path to the minted, absolute URL", async () => {
+    await primeGrants(["/file/abc123/logo.png"]);
+
+    const url = fileUrl("/file/abc123/logo.png");
+
+    expect(url).toBe(`${getApiBase()}/file/abc123/logo.png?sig=signed-grant`);
+    expect(parseRendered(url).searchParams.get("sig")).toBe("signed-grant");
+    expect(parseRendered(url).searchParams.has("token")).toBe(false);
   });
 
-  it("appends the viewer's session token to a stored /api file URL", () => {
-    storeToken("viewer-token");
-
-    const rendered = renderFileUrl(STORED_FILE_URL);
-    expect(rendered).toBeTruthy();
-
-    const parsed = parseRendered(rendered!);
-    expect(parsed.pathname).toBe("/api/file/abc123/logo.png");
-    expect(parsed.searchParams.get("token")).toBe("viewer-token");
+  it("joins the API base even for an ungranted path (the server answers 401)", () => {
+    expect(fileUrl("/thumb/abc123.jpg")).toBe(`${getApiBase()}/thumb/abc123.jpg`);
   });
 
-  it("returns the stored URL unchanged when no token is stored", () => {
-    expect(renderFileUrl(STORED_FILE_URL)).toBe(STORED_FILE_URL);
+  it("passes a falsy rel through untouched", () => {
+    expect(fileUrl("")).toBe("");
   });
 
-  it("leaves an absolute external URL untouched", () => {
-    storeToken("viewer-token");
+  it("falls back to the plain URL once the grant has been evicted", async () => {
+    await primeGrants(["/file/abc123/logo.png"]);
+    expect(fileUrl("/file/abc123/logo.png")).toContain("sig=");
 
-    const rendered = renderFileUrl("https://example.com/x.png");
+    evictGrant("/file/abc123/logo.png");
 
-    expect(rendered).toBe("https://example.com/x.png");
-    expect(parseRendered(rendered!).searchParams.has("token")).toBe(false);
+    expect(fileUrl("/file/abc123/logo.png")).toBe(`${getApiBase()}/file/abc123/logo.png`);
   });
 
-  it("leaves a protocol-relative URL untouched", () => {
-    storeToken("viewer-token");
+  it("never forwards an author-injected credential into a grant", async () => {
+    const rel = "/file/abc123/logo.png?token=attacker";
 
-    expect(renderFileUrl("//cdn.example.com/x.png")).toBe("//cdn.example.com/x.png");
+    await primeGrants([rel]);
+    const url = fileUrl(rel);
+
+    // The server only signs its four path shapes with `v`/`inline`; the foreign
+    // credential is not grantable, so nothing is minted for it and no viewer
+    // credential is appended — the URL simply carries no grant and 401s.
+    expect(minterCalls).toEqual([]);
+    expect(parseRendered(url).searchParams.has("sig")).toBe(false);
+    expect(url).toBe(`${getApiBase()}${rel}`);
+  });
+});
+
+/** A signed-in session must still contribute no credential to a file URL. */
+describe("fileUrl without grants", () => {
+  it("never appends the session token, even when signed in", () => {
+    storeToken("session-token");
+
+    const url = fileUrl("/file/abc123/logo.png");
+
+    expect(url).toBe(`${getApiBase()}/file/abc123/logo.png`);
+    expect(url).not.toContain("session-token");
+    expect(parseRendered(url).searchParams.has("token")).toBe(false);
+  });
+});
+
+describe("assetFilePreviewUrl grants", () => {
+  it("resolves the inline grant for a supporting file", async () => {
+    await primeGrants(["/asset/a1/files/sf1"]);
+
+    const url = assetFilePreviewUrl("/asset/a1/files/sf1");
+
+    expect(url).toBe(`${getApiBase()}/asset/a1/files/sf1?inline=1&sig=signed-grant`);
+    expect(parseRendered(url).searchParams.get("inline")).toBe("1");
+    expect(parseRendered(url).searchParams.has("token")).toBe(false);
   });
 
-  it("leaves a non-API relative path untouched", () => {
-    storeToken("viewer-token");
+  it("keeps an existing cache-buster and signs the inline variant", async () => {
+    await primeGrants(["/asset/a1/files/sf1?v=2&inline=1"]);
 
-    expect(renderFileUrl("/asset/1/preview.png")).toBe("/asset/1/preview.png");
+    const url = assetFilePreviewUrl("/asset/a1/files/sf1?v=2");
+
+    expect(url).toBe(`${getApiBase()}/asset/a1/files/sf1?v=2&inline=1&sig=signed-grant`);
+    expect(parseRendered(url).searchParams.get("v")).toBe("2");
   });
+});
 
-  it("leaves empty and undefined sources untouched", () => {
-    storeToken("viewer-token");
-
-    // A bare origin plus `?token=` would be a valid-looking but useless URL.
-    expect(renderFileUrl("")).toBe("");
-    expect(renderFileUrl(undefined)).toBeUndefined();
-  });
-
-  it("is idempotent", () => {
-    storeToken("viewer-token");
-
-    const once = renderFileUrl(STORED_FILE_URL);
-
-    expect(renderFileUrl(once)).toBe(once);
-  });
-
-  it("overwrites an author-injected token with the viewer's own", () => {
-    storeToken("viewer-token");
-
-    const rendered = renderFileUrl(`${STORED_FILE_URL}?token=attacker`);
-    const parsed = parseRendered(rendered!);
-
-    expect(parsed.searchParams.get("token")).toBe("viewer-token");
-    expect(rendered).not.toContain("attacker");
+describe("token-in-URL helpers", () => {
+  it("no longer exports renderFileUrl", () => {
+    expect("renderFileUrl" in api).toBe(false);
   });
 });

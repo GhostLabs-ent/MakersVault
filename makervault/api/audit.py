@@ -295,6 +295,7 @@ EXEMPT_ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/refresh"): "session-token bookkeeping; the abusable surface is POST /login",
     ("POST", "/logout"): "session-token bookkeeping",
     ("POST", "/download/zip"): "streams a temp zip; stores nothing",
+    ("POST", "/file-grants"): "mints a short-lived read-only file grant; mutates nothing",
 }
 
 

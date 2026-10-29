@@ -43,11 +43,27 @@ its level in the signature:
 def list_assets(..., _: Optional[AuthContext] = Depends(require_read)):
 ```
 
-`require_read` / `require_write` / `require_admin` wrap `auth.require_auth`
-(unchanged: same `?token=` fallback, same 401s) and then call
-`permissions.authorize(request, context, level)`, which raises 403 when the
-principal's role does not reach the level. The declaration *is* the enforcement:
-there is no second place to look for a permission check.
+`require_read` / `require_write` / `require_admin` wrap `auth.require_auth` and
+then call `permissions.authorize(request, context, level)`, which raises 403
+when the principal's role does not reach the level. `require_auth` reads the
+`Authorization: Bearer` header and nothing else: `?token=` was retired with the
+file grants, so a session token in the query string is a 401 on every route,
+the four file routes included. Two tests pin that in `makervault/api`:
+`tests/test_auth_users.py::test_query_token_no_longer_authorizes` and
+`tests/test_file_grants.py::test_a_session_token_in_the_query_is_retired_on_every_file_route`.
+The declaration *is* the enforcement: there is no second place to look for a
+permission check.
+
+`require_file_read` is the one route-level exception
+(`api/permissions.py`, `require_permission(READ, require_auth_or_file_grant)`).
+It declares the same READ level and adopts a second authenticator,
+`auth.require_auth_or_file_grant`, and it is attached only to the four
+file-serving routes - `GET /file/{asset_id}/{name}`,
+`GET /asset/{asset_id}/files/{file_id}`, `GET /thumb/{asset_id}.jpg` and
+`GET /asset/{asset_id}/prepared-print`. The level is unchanged, so a grant is
+read-only through the ordinary rank ladder; the scope is what keeps it away
+from every list, write and admin route, because those carry plain
+`require_read` / `require_write` / `require_admin` and never consult `?sig=`.
 
 Because a per-route dependency is easy to forget, `ROUTE_PERMISSIONS` in the same
 module records the audited matrix, and `assert_routes_classified(routes)` proves
@@ -86,9 +102,54 @@ same transaction as the mutation, and `audit.assert_audit_coverage()` in
 mutating route is neither audited nor exempt with a reason. See
 [`AUDIT.md`](AUDIT.md).
 
+### File grants (`?sig=`)
+
+A URL credential still exists because a browser surface cannot carry a header:
+an `<img>` preview, an `<a download>` and the `makersvault-slicer://` OS
+handoff are navigations, not fetches, and none of them can set `Authorization`.
+What travels in the query now is not a session token but a **grant**:
+
+* signed with a domain-separated subkey (`auth.file_grant_key()`): HMAC-SHA256
+  over `AUTH_SECRET` with the info string `makervault/file-grant/v1`, so a grant
+  never verifies as a session token and a session token never verifies as a
+  grant;
+* one path (`p`), read-only (`scope="file:read"`, `typ="file-grant"`,
+  `aud="makervault:file-grant"`), 60 seconds (`FILE_GRANT_TTL_SECONDS`), with
+  the verifier independently refusing any grant whose `exp - iat` exceeds 300
+  (`FILE_GRANT_MAX_TTL_SECONDS`);
+* bound to a live session (`sid`), so signing out invalidates every outstanding
+  grant;
+* minted by `POST /file-grants`, which is itself READ - a viewer may mint one,
+  and the grants it produces reach nothing but the four file routes.
+
+**The session JWT is no longer accepted in a URL at all.** `require_auth` is
+header-only, and the grant verifier matches `request.url.path` against the `p`
+claim and allows only `sig`, `v` and `inline` alongside it, so a grant cannot be
+replayed on another path or with another route's parameters.
+
+The mint is an allow-list, not a signing oracle. Exactly four templates are
+grantable (`api/routers/asset_files.py`, `_FILE_GRANT_TEMPLATES`), each is
+existence-checked against the database before it is signed, and anything else -
+a path outside the four, an empty batch, more than 50 paths, an unknown query
+key, `inline` on a route that does not take it - is a 400; an unknown asset or
+file is a 404. `POST /file-grants` is in `ROUTE_PERMISSIONS` as READ and in
+`audit.EXEMPT_ROUTES` with the reason "mints a short-lived read-only file grant;
+mutates nothing". It also answers 200 when `AUTH_ENABLED` is false, minting with
+`sid=None`, unlike the token endpoints that 503.
+
+Log posture: `web/nginx.conf` declares `log_format makervault` and binds it with
+`access_log`; the format rebuilds the request line from `$request_method`,
+`$uri` and `$server_protocol` (never `$request`), so the query never reaches the
+log. `api/Dockerfile` runs uvicorn with `--no-access-log`, and
+`scripts/container-smoke.sh` sends
+`/api/health?token=<canary>&sig=<canary>` through the web proxy and fails if the
+canary appears in either container's log. The design, its residual risks and its
+rollback are in
+[ADR 0005](../makervault/docs/adr/0005-file-grant-urls.md).
+
 ## The route matrix
 
-Paths are FastAPI templates exactly as declared. 63 routes: 4 public, 20 read,
+Paths are FastAPI templates exactly as declared. 64 routes: 4 public, 21 read,
 30 write, 9 admin.
 
 The collection/instance templates are deliberately asymmetric: the collection is
@@ -118,6 +179,7 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | GET    | `/asset/{asset_id}/files/limits`        | supporting-file count/total against the caps; no secrets |
 | GET    | `/asset/{asset_id}/prepared-print`      | download a prepared print |
 | GET    | `/thumb/{asset_id}.jpg`                 | thumbnail |
+| POST   | `/file-grants`                          | mints a short-lived read-only signed file grant; nothing mutates |
 | GET    | `/assets`                               | list assets |
 | GET    | `/tags`                                 | list tags |
 | GET    | `/creators`                             | list the distinct creator facet |
@@ -199,9 +261,11 @@ still proves the client is deleting exactly the rows it showed the user.
 ## Authentication modes
 
 * **Auth enabled** (`AUTH_USERNAME` and `AUTH_PASSWORD` set): every guarded route
-  needs a bearer token; `require_auth` re-reads the session row and the account
+  needs a bearer token in the `Authorization` header - there is no `?token=`
+  fallback on any route; `require_auth` re-reads the session row and the account
   on every request, so a revoked session or a disabled account stops working
-  immediately.
+  immediately. The four file routes additionally accept a `?sig=` grant (see
+  "File grants" above).
 * **Break-glass admin**: the env credentials authenticate as the `admin` role -
   but only while the users table is **empty**. The first `POST /users` revokes
   the break-glass sessions in the same transaction as the insert, and after that

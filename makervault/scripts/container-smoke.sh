@@ -224,4 +224,29 @@ case "$schema_output" in
     ;;
 esac
 
+# A signed file grant is a bearer credential in the query string, so no server
+# log may record it: nginx logs the query-free $uri, uvicorn's access log is off.
+# Send a single-use canary through both paths and prove neither container wrote
+# it out. The canary is alphanumeric plus dashes, so a fixed-string grep is safe.
+canary="M3-7bb7-canary-$$-$(date +%s)"
+canary_url="http://localhost:$web_port/api/health?token=$canary&sig=$canary"
+if ! curl --fail --silent --show-error --output /dev/null "$canary_url"; then
+  echo "Smoke test failed: could not request $canary_url while checking the access logs" >&2
+  exit 1
+fi
+
+# Logs are written asynchronously, so give the writers a moment to flush before
+# reading them back.
+sleep 1
+
+for service in api web; do
+  service_logs=$(compose logs --no-color "$service")
+  if printf '%s' "$service_logs" | grep -qF "$canary"; then
+    echo "Smoke test failed: the $service container log recorded the canary grant in a request line" >&2
+    exit 1
+  fi
+done
+
+echo "Access-log canary check passed: neither the api nor the web log recorded the query string (canary $canary)."
+
 echo "Container smoke test passed (direct and same-origin API, API UID $api_uid, web UID $web_uid, schema $expected_schema)."

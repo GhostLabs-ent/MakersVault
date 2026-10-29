@@ -1,8 +1,14 @@
 # ADR 0004: Bearer tokens in file URLs and proxied import cookies
 
-**Status:** Accepted
+**Status:** Superseded by [ADR 0005](0005-file-grant-urls.md).
 
 **Accepted:** 2026-10-29
+
+Superseded for the file-URL half only: decision 1's `?token=` file-URL interim
+risk acceptance and decision 2's signed-grant migration target are implemented
+by ADR 0005 and ticket `M3-7bb7`. Decision 3 (the import-cookie threat model,
+MV-SEC-017) and the `localStorage` risk acceptance for MV-SEC-008 still stand,
+and the record below is what was decided on 2026-10-29.
 
 ## Context
 

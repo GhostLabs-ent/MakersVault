@@ -96,6 +96,33 @@ class AssetFileLimitsOut(BaseModel):
   max_total_bytes: int
 
 
+class FileGrantRequest(BaseModel):
+  """The file URLs to mint grants for; bounds are checked in the handler.
+
+  The route validates emptiness and the maximum count so both are a readable
+  400, not a 422 produced by the model layer.
+  """
+
+  paths: List[str] = []
+
+
+class FileGrantOut(BaseModel):
+  """One granted URL, relative to the API root (the client owns the public base).
+
+  `path` echoes the requested string verbatim - query included - so a client can
+  key its cache by the exact path it holds, and `url` is that same path plus
+  `sig`.
+  """
+
+  path: str
+  url: str
+  expires_at: int
+
+
+class FileGrantListOut(BaseModel):
+  grants: List[FileGrantOut]
+
+
 class AssetOut(BaseModel):
   id: str
   name: str

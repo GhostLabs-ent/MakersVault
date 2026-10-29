@@ -1,7 +1,7 @@
 """Per-route permission sweeps driven by `permissions.ROUTE_PERMISSIONS`.
 
 Why this file exists: Mf-2nbc enforces a level with a *per-route dependency*, and
-the only thing that keeps 63 hand-written declarations honest is a test that
+the only thing that keeps 64 hand-written declarations honest is a test that
 visits every route at every role. The sweeps below are parametrised from
 `permissions.ROUTE_PERMISSIONS`, so that table is both the documentation and the
 test plan: add a route without classifying it and
@@ -465,6 +465,12 @@ def call_thumb(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatc
     return client.get(f"/thumb/{ids.asset_id}.jpg", headers=headers)
 
 
+def call_file_grants(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    # The grant itself is used by test_file_grants.py; these sweeps only check
+    # who may mint one and that a disabled deployment still answers 200.
+    return client.post("/file-grants", json={"paths": [f"/thumb/{ids.asset_id}.jpg"]}, headers=headers)
+
+
 def call_assets(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
     return client.get("/assets", headers=headers)
 
@@ -746,6 +752,7 @@ CALLS: dict[tuple[str, str], CallSpec] = {
     ("GET", "/asset/{asset_id}/files/limits"): call_supporting_file_limits,
     ("GET", "/asset/{asset_id}/prepared-print"): call_prepared_print,
     ("GET", "/thumb/{asset_id}.jpg"): call_thumb,
+    ("POST", "/file-grants"): call_file_grants,
     ("GET", "/assets"): call_assets,
     ("GET", "/tags"): call_tags,
     ("GET", "/creators"): call_creators,
@@ -817,6 +824,7 @@ EXPECTED_STATUS: dict[tuple[str, str], int] = {
     ("GET", "/asset/{asset_id}/files/limits"): 200,
     ("GET", "/asset/{asset_id}/prepared-print"): 200,
     ("GET", "/thumb/{asset_id}.jpg"): 200,
+    ("POST", "/file-grants"): 200,
     ("GET", "/assets"): 200,
     ("GET", "/tags"): 200,
     ("GET", "/creators"): 200,
@@ -986,10 +994,10 @@ def test_a_route_declared_on_the_app_instead_of_a_router_is_caught() -> None:
 
 
 def test_the_matrix_is_the_documented_size() -> None:
-    """The matrix is pinned at 63 routes; a new route means updating this and docs/PERMISSIONS.md."""
+    """The matrix is pinned at 64 routes; a new route means updating this and docs/PERMISSIONS.md."""
     counts = {level: len(keys_at(level)) for level in (permissions.PUBLIC, permissions.READ, permissions.WRITE, permissions.ADMIN)}
-    assert len(permissions.ROUTE_PERMISSIONS) == 63, counts
-    assert counts == {permissions.PUBLIC: 4, permissions.READ: 20, permissions.WRITE: 30, permissions.ADMIN: 9}, counts
+    assert len(permissions.ROUTE_PERMISSIONS) == 64, counts
+    assert counts == {permissions.PUBLIC: 4, permissions.READ: 21, permissions.WRITE: 30, permissions.ADMIN: 9}, counts
 
 
 def test_every_guarded_route_has_a_call_spec() -> None:

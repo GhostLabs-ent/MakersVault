@@ -1,10 +1,19 @@
-"""Guard ADR 0004 (token and cookie threat model) against documentation drift.
+"""Guard ADR 0004 (token and cookie threat model) and ADR 0005 (file grants).
 
-This is a docs-drift guard, not a behavior test: it binds the ADR to the runbook
+This is a docs-drift guard, not a behavior test: it binds the ADRs to the runbook
 queue item, the truth-ledger rows and the Gate 0 dispositions that record the
-same decision, so a later edit cannot quietly drop one half of it. The
-cross-file ticket check is the point of the module — the ADR, the runbook and
+same decisions, so a later edit cannot quietly drop one half of them. The
+cross-file ticket check is the point of the module - the ADR, the runbook and
 the Gate 0 table must name the same follow-up implementation ticket.
+
+ADR 0004 is now history: `M3-7bb7` landed the signed grants, so 0004 is
+`Superseded` and the tests below guard (a) its record of what was decided in
+2026-10-29, including the access-log surface it admitted, and (b) its
+supersession link to ADR 0005, which is the ADR for the shipped design. The
+import-cookie decision (MV-SEC-017) and the `localStorage` acceptance
+(MV-SEC-008) are still 0004's and are still pinned here. Deleting 0004 would
+remove the only written record of the interim risk that was accepted, so the
+supersession is asserted rather than assumed.
 
 Pure pathlib with no imports from the API, consistent with the other doc guards.
 The guarded docs live above the API directory, so the module skips itself in the
@@ -59,6 +68,16 @@ STALE_TOKEN_ROW_STRINGS = ("12-hour", "no identifier or revocation store")
 STALE_THROTTLE_PHRASE = "Login has no throttle"
 TICKET_ROW_IDS = ("MV-SEC-007", "MV-SEC-017")
 TICKET_ID_RE = re.compile(r"Mf-[A-Za-z0-9]+|M3-[A-Za-z0-9]+")
+# ADR 0005 is the shipped grant design; these are the strings that make it
+# describe the code rather than a wish: the mint route, its verifier, the log
+# fixes and the implementation ticket.
+ADR_0005_REQUIRED_STRINGS = (
+    "POST /file-grants",
+    "require_auth_or_file_grant",
+    "log_format",
+    "--no-access-log",
+    "M3-7bb7",
+)
 
 
 def _read_text(path: Path) -> str:
@@ -80,6 +99,19 @@ def _adr_0004_path() -> Path:
 
 def _adr_text() -> str:
     return _read_text(_adr_0004_path())
+
+
+def _adr_0005_path() -> Path:
+    matches = sorted(ADR_DIR.glob("0005-*.md"))
+    assert len(matches) == 1, (
+        f"makervault/docs/adr must hold exactly one 0005-*.md file, found: "
+        f"{[match.name for match in matches]}"
+    )
+    return matches[0]
+
+
+def _adr_0005_text() -> str:
+    return _read_text(_adr_0005_path())
 
 
 def _section(text: str, heading: str) -> str:
@@ -172,10 +204,17 @@ def test_adr_0004_opens_with_its_title() -> None:
     )
 
 
-def test_adr_0004_is_accepted_with_the_required_sections() -> None:
+def test_adr_0004_is_superseded_with_the_required_sections() -> None:
     path = _adr_0004_path()
     text = _adr_text()
-    assert "**Status:** Accepted" in text, f"{path.name} is not marked Status: Accepted"
+    assert "**Status:** Superseded" in text, (
+        f"{path.name} is not marked Status: Superseded; the file-URL half of it was "
+        "implemented in M3-7bb7 and is now ADR 0005"
+    )
+    assert "0005" in text, (
+        f"{path.name} does not name its successor; a superseded ADR that does not link "
+        "the replacement hides which design is live"
+    )
     for heading in REQUIRED_ADR_HEADINGS:
         assert heading in text, f"{path.name} is missing the {heading!r} section"
 
@@ -261,6 +300,27 @@ def test_adr_anchors_its_mitigations_to_real_code() -> None:
 def test_adr_admits_the_access_log_surface() -> None:
     text = _adr_text().lower()
     assert "access log" in text, (
-        "ADR 0004 must state that server access logs still record token-bearing request "
-        "lines; it must not claim the log surface is closed"
+        "ADR 0004 must keep the record that server access logs once recorded token-bearing "
+        "request lines; the superseded ADR is the history, and the history is not edited"
     )
+
+
+def test_adr_0005_is_the_single_accepted_decision_for_grants() -> None:
+    path = _adr_0005_path()
+    first_line = _lines(path)[0]
+    assert re.match(r"^# ADR 0005: ", first_line), (
+        f"{path.name} must open with '# ADR 0005: ', found {first_line!r}"
+    )
+    text = _adr_0005_text()
+    assert "**Status:** Accepted" in text, f"{path.name} is not marked Status: Accepted"
+    for heading in REQUIRED_ADR_HEADINGS:
+        assert heading in text, f"{path.name} is missing the {heading!r} section"
+
+
+def test_adr_0005_names_the_grants_the_log_fix_and_the_ticket() -> None:
+    text = _adr_0005_text()
+    for needle in ADR_0005_REQUIRED_STRINGS:
+        assert needle in text, (
+            f"ADR 0005 does not name {needle!r}; the decision must stay anchored to the "
+            "shipped mint, verifier, log fixes and implementation ticket"
+        )

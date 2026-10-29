@@ -421,14 +421,24 @@ func openWithDefault(filePath string) error {
 	}
 }
 
+// redactURL rewrites the URL-borne credentials a request may carry so a logged
+// URL cannot be replayed. `sig` is the short-lived file grant (M3-7bb7); `token`
+// is the retired session-token query parameter, kept redacted so an old link
+// pasted into the bridge's error output still cannot leak a credential.
 func redactURL(raw string) string {
 	parsed, err := url.Parse(raw)
 	if err != nil {
 		return raw
 	}
 	q := parsed.Query()
-	if q.Has("token") {
-		q.Set("token", "REDACTED")
+	changed := false
+	for _, key := range []string{"sig", "token"} {
+		if q.Has(key) {
+			q.Set(key, "REDACTED")
+			changed = true
+		}
+	}
+	if changed {
 		parsed.RawQuery = q.Encode()
 	}
 	return parsed.String()
