@@ -1,7 +1,7 @@
 """Per-route permission sweeps driven by `permissions.ROUTE_PERMISSIONS`.
 
 Why this file exists: Mf-2nbc enforces a level with a *per-route dependency*, and
-the only thing that keeps 60 hand-written declarations honest is a test that
+the only thing that keeps 63 hand-written declarations honest is a test that
 visits every route at every role. The sweeps below are parametrised from
 `permissions.ROUTE_PERMISSIONS`, so that table is both the documentation and the
 test plan: add a route without classifying it and

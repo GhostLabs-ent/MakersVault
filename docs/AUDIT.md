@@ -348,7 +348,7 @@ administration).
 | Parameter | Type | Semantics |
 |---|---|---|
 | `actor` | string | exact match, case-insensitive (both sides lowered, value stripped) |
-| `action` | string | exact match, case-sensitive - one of the 19 names above |
+| `action` | string | exact match, case-sensitive - one of the 21 names above |
 | `target` | string | case-sensitive substring match; `%`, `_` and `\` are escaped, so it is a literal substring |
 | `since` | string | `created_at >= value` |
 | `until` | string | `created_at <= value` |

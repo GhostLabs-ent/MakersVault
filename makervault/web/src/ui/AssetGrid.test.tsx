@@ -914,7 +914,7 @@ describe("virtualized flat grid", () => {
 
     expect(scroller.scrollTop).toBe(offset);
     expect(screen.queryByText("Filtered 60")).toBeNull();
-    expect(screen.queryByText("Asset 57")).toBeNull();
+    expect(screen.queryByText("Asset 10")).toBeNull();
     expect(checkboxCount()).toBeLessThan(100);
   });
 
