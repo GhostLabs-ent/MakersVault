@@ -1,4 +1,5 @@
 import TrashCard from "../TrashCard";
+import SnapshotCard from "./SnapshotCard";
 import StorageCapabilitiesCard from "./StorageCapabilitiesCard";
 import type { LibraryScanState } from "./useLibraryScan";
 import { useStorageCapabilities } from "./useStorageCapabilities";
@@ -152,6 +153,12 @@ export default function StorageSection({ storage, libraryScanState, onUnauthoriz
       </div>
 
       <StorageCapabilitiesCard state={storageCapabilities} />
+
+      <SnapshotCard
+        capabilities={storageCapabilities}
+        canManage={storage.canManage}
+        onUnauthorized={onUnauthorized}
+      />
 
       <TrashCard onUnauthorized={onUnauthorized} />
     </div>

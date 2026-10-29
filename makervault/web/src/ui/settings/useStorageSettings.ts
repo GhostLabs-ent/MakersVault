@@ -18,6 +18,9 @@ export type StorageSettingsState = {
   status: string | null;
   loading: boolean;
   saving: boolean;
+  /** The admin threshold `Settings.tsx` already computed, surfaced so the
+   * snapshot card can hide admin-only controls without a second role read. */
+  canManage: boolean;
   setTemplate: React.Dispatch<React.SetStateAction<string>>;
   setStatus: React.Dispatch<React.SetStateAction<string | null>>;
   save: () => Promise<void>;
@@ -71,6 +74,7 @@ export function useStorageSettings({ section, onUnauthorized, enabled }: Props):
     status: storageStatus,
     loading,
     saving,
+    canManage: enabled,
     setTemplate: setStorageTemplate,
     setStatus: setStorageStatus,
     save,
