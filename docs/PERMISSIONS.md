@@ -150,11 +150,15 @@ mutates nothing". It also answers 200 when `AUTH_ENABLED` is false, minting with
 Log posture: `web/nginx.conf` declares `log_format makervault` and binds it with
 `access_log`; the format rebuilds the request line from `$request_method`,
 `$uri` and `$server_protocol` (never `$request`), so the query never reaches the
-log. `api/Dockerfile` runs uvicorn with `--no-access-log`, and
-`scripts/container-smoke.sh` sends
-`/api/health?token=<canary>&sig=<canary>` through the web proxy and fails if the
-canary appears in either container's log. The design, its residual risks and its
-rollback are in
+access log, and adds the query-free `$upstream_addr`/`$upstream_status`. The same
+file sets `error_log /dev/null` because nginx has no error-log format and embeds
+the whole request line - query included - in upstream-failure and
+malformed-request messages; request-time error text is deliberately traded for
+that guarantee. `api/Dockerfile` runs uvicorn with `--no-access-log`, and
+`scripts/container-smoke.sh` sends `/api/health?token=<canary>&sig=<canary>`
+through the live proxy, then stops the API and sends the same query shape again,
+failing if the canary, `?token=` or `?sig=` appears in any container log. The
+design, its residual risks and its rollback are in
 [ADR 0005](../makervault/docs/adr/0005-file-grant-urls.md).
 
 ## The route matrix

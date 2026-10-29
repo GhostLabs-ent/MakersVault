@@ -249,4 +249,55 @@ done
 
 echo "Access-log canary check passed: neither the api nor the web log recorded the query string (canary $canary)."
 
+# The access-log canary above only proves the happy path. nginx's error log has
+# no configurable format and embeds the raw request line - query string
+# included - whenever the upstream cannot be reached, which is exactly when an
+# operator greps logs. web/nginx.conf therefore disables request-time error
+# logging; this canary proves it against the real error path: stop the API, send
+# the same query shape through the proxy, and require that no container log
+# recorded it. It runs last because the API stays down until the exit trap tears
+# the project down.
+dead_canary="Mf-c80i-dead-$$-$(date +%s)"
+dead_url="http://localhost:$web_port/api/health?token=$dead_canary&sig=$dead_canary"
+compose stop api >/dev/null
+# No --fail: a 5xx is the expected answer and must not abort the script under
+# set -e. Anything other than a proxy-generated 5xx means the error path was not
+# exercised.
+dead_status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 20 "$dead_url" || true)
+case "$dead_status" in
+  502|503|504) ;;
+  *)
+    echo "Smoke test failed: expected a 5xx from the proxy with the API stopped, got '$dead_status'" >&2
+    compose logs --no-color --tail=100
+    exit 1
+    ;;
+esac
+
+# Logs are written asynchronously, so give the writers a moment to flush.
+sleep 1
+
+# The whole project, not just api and web: the assertion is "ANY container log".
+all_logs=$(compose logs --no-color)
+if printf '%s' "$all_logs" | grep -qF "$dead_canary"; then
+  echo "Smoke test failed: a container log recorded the dead-upstream canary grant" >&2
+  exit 1
+fi
+for marker in '?token=' '?sig='; do
+  if printf '%s' "$all_logs" | grep -qF "$marker"; then
+    echo "Smoke test failed: a container log recorded the query-string marker $marker while the API was down" >&2
+    exit 1
+  fi
+done
+
+# The proxy must have handled the request and written its query-free access
+# line; the earlier live canary wrote a 200 line for the same rewritten path, so
+# require the 5xx specifically.
+dead_access_line=$(printf '%s' "$all_logs" | grep -E '"GET /health HTTP/1.1" (502|503|504)' | tail -n 1 || true)
+if [ -z "$dead_access_line" ]; then
+  echo "Smoke test failed: the web access log has no query-free 5xx line for the dead-upstream request, so the proxy error path was not exercised" >&2
+  exit 1
+fi
+
+echo "Dead-upstream canary check passed: no container log recorded the query string with the API down (canary $dead_canary). Captured access line: $dead_access_line"
+
 echo "Container smoke test passed (direct and same-origin API, API UID $api_uid, web UID $web_uid, schema $expected_schema)."

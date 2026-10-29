@@ -9,7 +9,7 @@ MV-SEC-007 file-URL design and its interim risk acceptance. ADR 0004's
 import-cookie decision (MV-SEC-017) and its `localStorage` risk acceptance
 (MV-SEC-008) still stand.
 
-**Implementation:** ticket `M3-7bb7`.
+**Implementation:** ticket `M3-7bb7`; error-log closure in `Mf-c80i`.
 
 ## Context
 
@@ -135,17 +135,32 @@ Verified facts at the time of this decision:
    `await primeGrants([...])` before navigating, so `makersvault-slicer://open?url=...`
    carries a 60-second grant instead of a session JWT.
 
-8. **The logs stop recording the query, and the smoke test proves it.**
+8. **Both nginx logs stop recording the query, and the smoke test proves it.**
    `web/nginx.conf` declares `log_format makervault` in `http` context and binds
    it with `access_log /var/log/nginx/access.log makervault;`. The format
    rebuilds the request line from `$request_method $uri $server_protocol` and
    never uses `$request`, `$request_uri`, `$args` or `$http_referer`; `$uri` is
-   the normalised path with the query removed. `api/Dockerfile`'s runtime `CMD`
-   gains `--no-access-log`, so uvicorn writes no request line either.
-   `scripts/container-smoke.sh` requests
-   `/api/health?token=<canary>&sig=<canary>` through the web proxy and fails the
-   run if the canary appears in either container's `compose logs`, so a future
-   edit to either file is caught by the gate rather than by a leak.
+   the normalised path with the query removed. It also carries the query-free
+   `$upstream_addr` and `$upstream_status`, so an unreachable API is still
+   visible after the error log is silenced. The access log alone was not
+   enough: nginx has no error-log format directive, and its error log embeds the
+   whole request line - and the `upstream:` URL - in every upstream failure and
+   malformed request, at every level down to `emerg`. A static upstream does not
+   avoid it, because a dead address fails in `connect()` and logs the same
+   request line; it would also break the build-time `nginx -t`, where no `api`
+   host exists. `web/nginx.conf` therefore sets `error_log /dev/null;` at `http`
+   scope, so request-time errors are not written anywhere; the access log's
+   status and upstream fields are the diagnostic record. `api/Dockerfile`'s
+   runtime `CMD` gains `--no-access-log`, so uvicorn writes no request line
+   either. `scripts/container-smoke.sh` first requests
+   `/api/health?token=<canary>&sig=<canary>` against the live proxy, then stops
+   the `api` service, sends a second canary through the same query shape, and
+   fails the run if either canary, `?token=` or `?sig=` appears in any
+   container's `compose logs`; it also requires the query-free
+   `"GET /health HTTP/1.1" 5xx` access line that proves the error path ran. A
+   future edit to the config or the script is caught by the gate rather than by
+   a leak. (`Mf-c80i` closed the error-log half; `M3-7bb7` closed the access
+   log.)
 
 9. **The bridge redacts the new parameter too.**
    `slicer-bridge/cmd/slicer-bridge/main.go` `redactURL` rewrites `sig=` as well
@@ -187,6 +202,12 @@ Residual risks, stated plainly:
   bridge handoff already in flight fails the same way. That was accepted: the
   alternative is keeping a query-string session token alive to serve one stale
   tab.
+- **nginx request-time error logs are off.** The error log has no format
+  directive and embeds the request line with its query, so `error_log /dev/null;`
+  is the only stock-nginx guarantee. The access log still records the method,
+  path, status, duration and upstream address/status, but the error text (for
+  example "connection refused" versus "timed out") is lost. That is the price of
+  keeping the credential out of every log at every level.
 - **A 60-second grant against a long-lived DOM.** The signed URL sits in the
   `src`, the `href` and the clipboard for as long as the element lives, so a
   screenshot or a copied link still carries a credential — just an expired one.
@@ -278,7 +299,9 @@ API:
   header-only contract at the authenticator.
 - `api/tests/test_operator_log_hygiene.py` — pins `web/nginx.conf`'s
   `log_format`/`access_log`, `api/Dockerfile`'s `--no-access-log`, the smoke
-  canary, and the retirement of the `token=` query credential.
+  canary, and the retirement of the `token=` query credential. It also pins
+  `error_log /dev/null` (request-time error logging disabled) and the query-free
+  `$upstream_addr`/`$upstream_status` access fields.
 - `api/tests/test_permissions_matrix.py` — pins the 64-route matrix as the
   documented size, adds `POST /file-grants` to the READ sweep (a viewer is
   allowed, an anonymous caller is refused, a viewer is still denied every write
@@ -297,8 +320,11 @@ Web:
 
 Ops:
 
-- `scripts/container-smoke.sh` — the canary request through the web proxy and
-  the two `compose logs` assertions.
+- `scripts/container-smoke.sh` — the live canary request through the web proxy,
+  the two `compose logs` assertions, and the dead-upstream canary: stop the
+  `api` service, send the query-shaped canary again, require a 5xx plus the
+  query-free access line, and fail if any container log contains the canary,
+  `?token=` or `?sig=`.
 - `slicer-bridge/cmd/slicer-bridge/main_test.go` — `redactURL` rewrites both
   `token=` and `sig=`.
 

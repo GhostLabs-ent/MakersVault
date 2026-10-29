@@ -5,6 +5,10 @@ so it pins the static files that make the runtime behaviour true. A signed file
 grant is a bearer credential carried in the query string, so the nginx access
 log format must log the request line without the query, uvicorn's own access log
 must be off, and the container smoke test must keep proving both with a canary.
+The nginx error log has no format directive and embeds the whole request line
+(query included) on an upstream failure, so the config disables request-time
+error logging with `error_log /dev/null`; the smoke test proves that dead-upstream
+path with a second canary.
 It also pins the retirement of the old `?token=` credential, so a later edit
 cannot quietly bring the query-string bearer token back.
 
@@ -57,6 +61,14 @@ FORBIDDEN_VARIABLES = (
 # `$request` is only forbidden as a whole variable: $request_method,
 # $request_time and $request_id are all legitimate and must not trip this.
 BARE_REQUEST_VARIABLE_RE = re.compile(r"\$request(?![A-Za-z0-9_])")
+# nginx has no error-log format directive, so the only way to keep the request
+# line (query included) out of the error log is not to write it at all. The
+# directive must sit at the http scope of the included file, not inside one
+# server or location.
+ERROR_LOG_DIRECTIVE_RE = re.compile(r"^error_log\s+/dev/null\s*;", re.MULTILINE)
+# With request-time error logging disabled, the access log is the only place an
+# unreachable upstream is visible. Both variables are query-free.
+UPSTREAM_LOG_VARIABLES = ("$upstream_addr", "$upstream_status")
 
 # Built from two halves so this guard never matches its own source text, which
 # would make the "the retired alias is gone" test unable to pass.
@@ -159,6 +171,34 @@ def test_nginx_never_references_a_query_bearing_variable() -> None:
     )
 
 
+def test_nginx_disables_request_time_error_logging() -> None:
+    text = _nginx_conf()
+    statements = _directives(text, "error_log")
+    assert len(statements) == 1, (
+        "nginx.conf must declare exactly one error_log directive, found "
+        f"{statements}; nginx has no error-log format and would write the request "
+        "line (query included) on an upstream failure"
+    )
+    assert statements[0] == "/dev/null", (
+        "nginx.conf must send the request-time error log to /dev/null; any other "
+        f"destination records the request line (found {statements[0]!r})"
+    )
+    assert ERROR_LOG_DIRECTIVE_RE.search(text), (
+        "error_log /dev/null must be at the http scope of this included file "
+        "(unindented), so it covers every server and location rather than one block"
+    )
+
+
+def test_nginx_access_log_records_the_upstream_outcome() -> None:
+    body = _log_format_body(LOG_FORMAT_NAME)
+    for variable in UPSTREAM_LOG_VARIABLES:
+        assert variable in body, (
+            f"the {LOG_FORMAT_NAME} log_format does not use {variable}; with "
+            "request-time error logging disabled, the access log is the only place "
+            "an unreachable upstream is visible"
+        )
+
+
 def test_dockerfile_runtime_command_disables_the_uvicorn_access_log() -> None:
     line = _uvicorn_cmd_line()
     assert '"--no-access-log"' in line, (
@@ -189,6 +229,36 @@ def test_smoke_script_asserts_the_canary_is_absent_from_both_logs() -> None:
     )
     assert "the $service container log recorded the canary" in script, (
         "container-smoke.sh must fail loudly and name the offending service"
+    )
+
+
+def test_smoke_script_proves_the_dead_upstream_error_path_is_silent() -> None:
+    script = _smoke_script()
+    assert "compose stop api" in script, (
+        "container-smoke.sh does not stop the API to reach the proxy's dead-upstream "
+        "error path"
+    )
+    assert "?token=$dead_canary&sig=$dead_canary" in script, (
+        "container-smoke.sh does not send the dead-upstream canary through both query "
+        "parameters"
+    )
+    assert "for marker in '?token=' '?sig='" in script, (
+        "container-smoke.sh does not check both literal query-string markers"
+    )
+    assert 'grep -qF "$marker"' in script, (
+        "container-smoke.sh does not fixed-string grep the container logs for the "
+        "query-string markers"
+    )
+    assert "compose logs --no-color)" in script, (
+        "container-smoke.sh does not read the whole compose log; the dead-upstream "
+        "check must cover EVERY container, not just api and web"
+    )
+    assert '"GET /health HTTP/1.1" (502|503|504)' in script, (
+        "container-smoke.sh does not require a query-free 5xx access line, so it "
+        "cannot prove the proxy error path was exercised"
+    )
+    assert "Dead-upstream canary check passed" in script, (
+        "container-smoke.sh does not report the dead-upstream canary result"
     )
 
 
