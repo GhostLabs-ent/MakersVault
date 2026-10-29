@@ -221,7 +221,17 @@ it. They are listed so nobody assumes more atomicity than there is.
   `session.commit()` on every rename/move route. A commit failure (audit
   included) is undone by `restore_moved_file`, `os.rename` or `_undo_moves`, and
   those undos are themselves best-effort and logged rather than raised: a crash
-  in that window leaves disk and rows out of sync.
+  in that window leaves disk and rows out of sync. The asset-move undo is itself
+  no-clobber (it uses the same link-first primitive as the move). If the vacated
+  old path has been claimed in that window, the undo leaves the bytes at the new
+  path and logs rather than overwriting, so the row may point at the old name
+  while the bytes sit at the new one. The folder-move forward rename maps a
+  destination that appears after its pre-check to the standard 409 (POSIX
+  `ENOTEMPTY`/`ENOTDIR`, Windows `EEXIST`); POSIX may still replace an existing
+  *empty* destination directory without an error, which cannot lose bytes and is
+  caught at the record level by the unique `storage_path` index.
+  `folder_service.move_folder`'s commit-failure undo `os.rename(target, source)`
+  has the same theoretical clobber window and is deliberately not changed here.
 * **Post-commit cleanup is best-effort.** In `trash_service.trash_asset` and
   `trash_service.trash_folder` the thumbnail unlink and the emptied-directory
   `rmdir` run after the commit, each `except OSError: pass`. Bytes and
