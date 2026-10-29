@@ -50,13 +50,20 @@ principal's role does not reach the level. The declaration *is* the enforcement:
 there is no second place to look for a permission check.
 
 Because a per-route dependency is easy to forget, `ROUTE_PERMISSIONS` in the same
-module records the audited matrix, and `assert_routes_classified(app)` proves the
-two agree. It runs in `main.lifespan` **before** migrations and before the
-server accepts connections, so a route that ships without a level - or with a
-level the matrix does not expect - fails the boot instead of failing open. The
-same function is called from the tests, and the permission sweeps
-(`tests/test_permissions_matrix.py`) are parametrised from `ROUTE_PERMISSIONS`,
-so the table that documents the rules is the table the tests enforce.
+module records the audited matrix, and `assert_routes_classified(routes)` proves
+the two agree. `routes` is the route list enumerated from the routers we own,
+`permissions.router_routes(*main.API_ROUTERS)` - not `app.routes`, which under
+current fastapi is a lazy tree that hides the included routes and would check
+nothing. `main.API_ROUTERS` drives both that enumeration and the `include_router`
+loop, so a served router cannot go unchecked. The check runs in `main.lifespan`
+**before** migrations and before the server accepts connections, so a route that
+ships without a level - or with a level the matrix does not expect - fails the
+boot instead of failing open. The matrix tests cross-check the enumeration
+against fastapi's own walk of `app.routes` and assert the route count equals the
+matrix key count, so a partial or empty enumeration fails there instead of
+passing vacuously; the permission sweeps (`tests/test_permissions_matrix.py`)
+are parametrised from `ROUTE_PERMISSIONS`, so the table that documents the rules
+is the table the tests enforce.
 
 The startup check reports all drift at once:
 
