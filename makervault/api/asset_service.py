@@ -331,18 +331,29 @@ def _hardlink_move(old_path: Path, new_path: Path) -> None:
         raise
 
 
-def _locked_rename_move(old_path: Path, new_path: Path, relative: str) -> None:
-    """Check-then-rename fallback for filesystems that cannot hardlink.
+def _move_without_clobber(old_path: Path, new_path: Path) -> bool:
+    """Move bytes so new_path is either created by us or left untouched.
 
-    The lock serialises this process's own moving threads, which is the only
-    interleaving one worker can produce; it is NOT safe against a second worker
-    process, which is why hardlinking is the default and this is the fallback.
-    new_path is either created by us or the move fails.
+    ``os.link`` is the primary arbiter: it is atomic and refuses an existing
+    destination, so concurrent moves onto one target cannot overwrite committed
+    bytes. The fallback for filesystems that cannot hardlink re-checks under a
+    lock and renames; the lock serialises this process's moving threads only,
+    which is why hardlinking is the default and this is the fallback. Either way
+    an occupied destination is never overwritten: False is returned.
     """
+    try:
+        _hardlink_move(old_path, new_path)
+        return True
+    except FileExistsError:
+        return False
+    except OSError as error:
+        if error.errno not in _HARDLINK_UNSUPPORTED_ERRNOS:
+            raise
     with _FALLBACK_MOVE_LOCK:
         if new_path.exists():
-            raise HTTPException(status_code=409, detail=f"Storage path already exists: {relative}")
+            return False
         os.rename(old_path, new_path)
+        return True
 
 
 def move_managed_file(old_path: Path, new_path: Path) -> bool:
@@ -357,7 +368,8 @@ def move_managed_file(old_path: Path, new_path: Path) -> bool:
         return False
     relative = _relative_storage_path(new_path)
     # Friendly fast path with today's 409 precedence; exists() is a read, so it
-    # decides nothing once two moves race - the link below is the arbiter.
+    # decides nothing once two moves race - the link in _move_without_clobber is
+    # the arbiter.
     if new_path.exists():
         raise HTTPException(status_code=409, detail=f"Storage path already exists: {relative}")
     if not old_path.exists():
@@ -365,26 +377,34 @@ def move_managed_file(old_path: Path, new_path: Path) -> bool:
         return False
     new_path.parent.mkdir(parents=True, exist_ok=True)
     old_parent = old_path.parent
-    try:
-        _hardlink_move(old_path, new_path)
-    except FileExistsError:
-        raise HTTPException(status_code=409, detail=f"Storage path already exists: {relative}") from None
-    except OSError as error:
-        if error.errno not in _HARDLINK_UNSUPPORTED_ERRNOS:
-            raise
-        _locked_rename_move(old_path, new_path, relative)
+    if not _move_without_clobber(old_path, new_path):
+        raise HTTPException(status_code=409, detail=f"Storage path already exists: {relative}")
     prune_empty_storage_dirs(old_parent)
     return True
 
 
 def restore_moved_file(moved: bool, old_path: Path, new_path: Path) -> None:
-    """Best-effort undo of a file move whose row update did not commit."""
+    """Best-effort undo of a file move whose row update did not commit.
+
+    The undo is no-clobber for the same reason the forward move is: the move
+    only proves new_path was free at that moment, not that old_path stays free
+    afterwards - another request can claim the vacated name in the rollback
+    window. A plain rename back would then destroy that file's bytes, so an
+    occupied old_path makes the undo give up and log instead; the moved bytes
+    remain at new_path for an operator to reconcile.
+    """
     if not moved:
         return
     try:
         old_path.parent.mkdir(parents=True, exist_ok=True)
-        # Undoing our own no-clobber move: nobody else can have created old_path.
-        new_path.rename(old_path)
+        if not _move_without_clobber(new_path, old_path):
+            log.warning(
+                "Could not undo asset move %s -> %s: destination occupied; bytes remain at %s",
+                old_path,
+                new_path,
+                new_path,
+            )
+            return
         prune_empty_storage_dirs(new_path.parent)
     except OSError:
         log.exception("Failed to undo asset move %s -> %s", old_path, new_path)

@@ -5,7 +5,9 @@ concurrent moves of different assets onto the same basename in the same folder
 could both pass the check, and the second ``rename`` silently destroyed the
 first asset's already-committed bytes. The move is now arbitered by
 ``os.link``, which refuses an existing destination atomically; these tests pin
-that invariant on the disk, on the fallback path and through the API.
+that invariant on the disk, on the fallback path and through the API. The undo
+of a move is no-clobber too, so a name claimed in the rollback window is never
+overwritten.
 
 Every test works in a temporary storage root and removes its own rows: the
 database is shared for the whole session.
@@ -244,6 +246,58 @@ def test_link_unsupported_falls_back_to_locked_rename(isolated_storage: Path, mo
     assert not winner.exists()
     assert target.read_bytes() == payloads[winner]
     assert loser.read_bytes() == payloads[loser]
+
+
+# --- the undo is no-clobber too --------------------------------------------
+
+
+def test_restore_refuses_to_clobber_an_occupied_old_path(isolated_storage: Path) -> None:
+    """The rollback window vacates old_path; another request can claim it."""
+    storage = isolated_storage
+    old_path = storage / "Boxes" / "one.stl"
+    new_path = storage / "Boxes" / "moved.stl"
+    write_file(old_path, b"impostor bytes")
+    write_file(new_path, b"moved bytes")
+
+    asset_service.restore_moved_file(True, old_path, new_path)
+
+    assert old_path.read_bytes() == b"impostor bytes"
+    assert new_path.read_bytes() == b"moved bytes"
+
+
+def test_restore_moves_bytes_back_when_old_path_is_free(isolated_storage: Path) -> None:
+    """The normal undo still reclaims the old name and prunes what it emptied."""
+    storage = isolated_storage
+    old_path = storage / "Boxes" / "one.stl"
+    new_path = storage / "Elsewhere" / "one.stl"
+    write_file(new_path, b"moved bytes")
+
+    asset_service.restore_moved_file(True, old_path, new_path)
+
+    assert not new_path.exists()
+    assert old_path.read_bytes() == b"moved bytes"
+    assert not (storage / "Elsewhere").exists()
+
+
+def test_restore_fallback_also_refuses_an_occupied_old_path(
+    isolated_storage: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The no-hardlink fallback re-checks under its lock instead of overwriting."""
+
+    def unsupported_link(src, dst, *args, **kwargs):
+        raise OSError(errno.EOPNOTSUPP, "hardlinks unsupported")
+
+    monkeypatch.setattr(os, "link", unsupported_link)
+    storage = isolated_storage
+    old_path = storage / "Boxes" / "one.stl"
+    new_path = storage / "Boxes" / "moved.stl"
+    write_file(old_path, b"impostor bytes")
+    write_file(new_path, b"moved bytes")
+
+    asset_service.restore_moved_file(True, old_path, new_path)
+
+    assert old_path.read_bytes() == b"impostor bytes"
+    assert new_path.read_bytes() == b"moved bytes"
 
 
 # --- the API keeps every row pointing at its own bytes ----------------------

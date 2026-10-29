@@ -7,6 +7,8 @@ is shared for the whole session, so rows created by a test are deleted again at
 teardown.
 """
 
+import errno
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -360,6 +362,49 @@ def test_rename_onto_existing_directory_conflicts_without_changes(isolated_stora
     assert storage_paths_in_db() == paths_before
     assert read_folder(folder["id"]).name == "Foo"
     assert filesystem_snapshot(storage) == snapshot_before
+
+
+@pytest.mark.parametrize("racer", ["file", "nonempty_directory", "windows_eexist"])
+def test_rename_destination_race_is_409_not_500(
+    isolated_storage: Path, monkeypatch: pytest.MonkeyPatch, racer: str
+) -> None:
+    """A destination that appears after the exists() pre-check is still a 409."""
+    storage = isolated_storage
+    with TestClient(app, raise_server_exceptions=False) as client:
+        headers = auth_header(client)
+        folder = created_folder(client, headers, "Foo")
+        write_placeholder_file(storage / "Foo" / "model.stl")
+        paths_before = storage_paths_in_db()
+        target = storage / "Bar"
+        real_rename = os.rename
+
+        def rename_with_racer(src, dst, *args, **kwargs):
+            # The racer is created inside the rename itself, i.e. after the real
+            # exists() pre-check: that gap is exactly the window under test.
+            if Path(dst).resolve() == target.resolve():
+                if racer == "file":
+                    Path(dst).write_bytes(b"racer bytes")
+                elif racer == "nonempty_directory":
+                    Path(dst).mkdir()
+                    (Path(dst) / "racer.stl").write_bytes(b"racer bytes")
+                else:
+                    raise OSError(errno.EEXIST, "destination exists")
+            return real_rename(src, dst, *args, **kwargs)
+
+        monkeypatch.setattr(folder_service.os, "rename", rename_with_racer)
+        response = patch_folder(client, headers, folder["id"], "Bar")
+
+    assert response.status_code == 409
+    assert response.status_code != 500
+    assert response.json()["detail"] == "Storage path already exists: Bar"
+    assert read_folder(folder["id"]).name == "Foo"
+    assert storage_paths_in_db() == paths_before
+    assert (storage / "Foo" / "model.stl").is_file()
+    # Whatever the racer wrote is not ours to destroy.
+    if racer == "file":
+        assert (storage / "Bar").read_bytes() == b"racer bytes"
+    elif racer == "nonempty_directory":
+        assert (storage / "Bar" / "racer.stl").read_bytes() == b"racer bytes"
 
 
 def test_reparent_rederives_descendant_paths(isolated_storage: Path) -> None:

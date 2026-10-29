@@ -6,6 +6,7 @@ operation that touches existing bytes, and it always runs inside one transaction
 with the row updates that describe the move.
 """
 
+import errno
 import logging
 import os
 import stat
@@ -21,6 +22,13 @@ import folder_paths
 from models import Asset, Folder
 
 log = logging.getLogger(__name__)
+
+# Errnos a directory rename returns when the destination exists: POSIX reports
+# ENOTEMPTY for a non-empty directory and ENOTDIR for a file, and Windows reports
+# EEXIST for either. Some POSIX filesystems also use EEXIST for the directory
+# case. All three mean "occupied", which is the 409 the pre-check would have
+# raised.
+_DESTINATION_OCCUPIED_ERRNOS = frozenset({errno.EEXIST, errno.ENOTEMPTY, errno.ENOTDIR})
 
 
 def validate_parent_folder(session: Session, parent_id: Optional[str], folder_id: Optional[str] = None) -> Optional[str]:
@@ -274,6 +282,16 @@ def move_folder(
     except FileNotFoundError:
         # TOCTOU: the source vanished between the stat() and the rename
         raise HTTPException(status_code=409, detail=f"Storage path already exists: {new_relative}") from None
+    except OSError as error:
+        if error.errno in _DESTINATION_OCCUPIED_ERRNOS:
+            # TOCTOU: the destination appeared between the exists() check and
+            # the rename. POSIX rename would silently replace an empty
+            # directory; that cannot lose bytes, and the unique storage_path
+            # index is the record-level guard, so only the error cases are
+            # translated. Anything else is a real filesystem failure and keeps
+            # its 500.
+            raise HTTPException(status_code=409, detail=f"Storage path already exists: {new_relative}") from None
+        raise
 
     try:
         apply_folder_paths(
