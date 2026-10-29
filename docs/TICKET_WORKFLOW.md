@@ -12,13 +12,14 @@ Adapted from `~/ggreq_agent/docs/project_notes/TICKET_WORKFLOW.md` and
 - **scheduler** (`.pi/agents/scheduler.md`) — the **wave planner**: packs 2
   tickets (max 3) whose plan-gate touch-sets are disjoint into lanes, dispatches
   those lanes in parallel into git worktrees, merges them into `main` one at a
-  time with the full gate after each merge, then trust-but-verifies each ticket
-  is closed before moving on. It plans ahead as well as packing waves: while a
-  wave is in flight it runs the next candidates' plan-gates and writes each
-  approved plan to `.plans/batch-<n>/<ticket>.json`, so a lane starts from a
-  delta check instead of a fresh gate (see [Plan-ahead](#plan-ahead)). It decides
-  packing with `makervault/scripts/wave_plan.py`, never by judgement. Produces a
-  per-ticket report.
+  time with the fast gate after each merge, then trust-but-verifies each ticket
+  is closed before moving on. The full gate is paid once per batch, not here.
+  It plans ahead as well as packing waves: while a wave is in flight it runs the
+  next candidates' plan-gates and writes each approved plan to
+  `.plans/batch-<n>/<ticket>.json`, so a lane starts from a delta check instead
+  of a fresh gate (see [Plan-ahead](#plan-ahead)). It decides packing with
+  `makervault/scripts/wave_plan.py`, never by judgement. Produces a per-ticket
+  report.
 - **orchestrator** (built-in Pantheon orchestrator) — plans, delegates to
   specialists (oracle / fixer / explorer / designer), plumbs, commits, verifies.
 - **oracle** — the review authority: approves the plan (plan-gate) before code,
@@ -167,7 +168,7 @@ helper matches.
 
 | Group | Files | Why |
 |---|---|---|
-| schema | `makervault/api/migrations.py`, `**/migration_*.py`, `makervault/api/migrations` (directory) | a new migration is a schema change: full gate plus a boot-guard recheck, and migrations are append-only |
+| schema | `makervault/api/migrations.py`, `**/migration_*.py`, `makervault/api/migrations` (directory) | a new migration is a schema change: covered by the single end-of-batch full gate plus a boot-guard recheck, and migrations are append-only |
 | locks | `makervault/api/requirements*.txt`, `makervault/api/requirements*.lock`, `**/package.json`, `**/package-lock.json` | dependency locks: never covered by the fast gate, and two lanes bumping one lock cannot be reconciled by git |
 | the gate | `Makefile`, `.github/workflows/*`, `makervault/scripts/container-smoke.sh`, `makervault/scripts/wave_plan.py` | the gate, the one CI workflow, the smoke recipe `verify-smoke` runs and the wave validator itself: an edit changes the commands every lane runs or how every future wave is judged |
 | config | `**/nginx.conf`, `makervault/web/security-headers.conf`, `makervault/api/Dockerfile`, `makervault/web/Dockerfile`, `makervault/docker-compose.yml`, `makervault/docker-compose.deploy.yml`, `makervault/docker-compose.smoke.yml`, `makervault/docker-deploy.yml` | proxy and security-header config plus the container manifests: no unit test covers it, verified by the single end-of-batch full gate |
@@ -209,7 +210,7 @@ cd makervault/web && npm ci --no-audit --no-fund && cd ../..
 ```
 
 Measured on this host with warm caches: each `uv` step under 1 s, `npm ci` about
-4 s (235 MB of `node_modules`), so about 6 s of setup and then ~83 s for the
+4 s (235 MB of `node_modules`), so about 6 s of setup and then 90-105 s for the
 lane's first `make verify-fast`. Borrowing the main checkout's interpreter
 (`make verify-fast VENV=/abs/main/.venv`) is allowed for the python, ruff and
 bridge half only — it saves under 2 s. **Never symlink the lane's `node_modules`
@@ -226,7 +227,8 @@ the smoke Compose project name and the smoke host ports. Lanes set it explicitly
 (`MV_RUN_ID=<ticket> make verify-fast`) and **never pin a port** — the smoke
 script claims lanes 0-2 by scanning and atomically locking
 `/tmp/makersvault-smoke-lanes/`. Two lanes may therefore run `make verify-fast`
-at once, with `make verify` on `main` at the same time.
+at once, and the per-merge `make verify-fast` on `main` at the same time; the
+batch's one full gate runs only after every lane has merged.
 
 ### Merging
 
@@ -234,7 +236,7 @@ One lane at a time, in dispatch (priority) order, from the repo root:
 
 ```bash
 git merge --no-ff ticket/<ticket>
-make verify        # full gate ONCE, at the end of the batch
+MV_RUN_ID=<ticket> make verify-fast   # fast gate per merge; the full gate is once, at batch end
 ```
 
 `--no-ff` keeps one commit per ticket. A conflict is resolved **on `main`, by a
@@ -245,11 +247,12 @@ oracle commit-gated. A merge that conflicts twice ends the wave.
 
 A lane fails (red gate, refused commit-gate, or a diff outside its declared
 touch-set), a merge conflicts twice, or a lane finds it needs a serialiser:
-dispatch nothing new, drain the lanes already running, `make verify` on `main`,
-record the reason on every ticket in the wave, report. Never start a lane while
-an unmerged lane ahead of it touches the same files. The planner notes its
-decision per lane (`tk add-note <ticket>` with the helper's accept/refuse output
-and the merge order), so a wave can be audited afterwards.
+dispatch nothing new, drain the lanes already running, `make verify` on `main` as
+the batch's one full gate — a stop condition ends the batch, so this is that gate
+and not an extra one — record the reason on every ticket in the wave, report.
+Never start a lane while an unmerged lane ahead of it touches the same files. The
+planner notes its decision per lane (`tk add-note <ticket>` with the helper's
+accept/refuse output and the merge order), so a wave can be audited afterwards.
 
 A scheduler that is already running is unaffected by an edit to
 `.pi/agents/scheduler.md`: its instructions are in its context, and the change
@@ -283,7 +286,7 @@ The venv is the repo-local one `make verify-fast` uses. Never borrow another
 checkout's `.venv`: a lane is its own worktree with its own `.venv`, and a
 foreign interpreter hides a missing dependency until the merge.
 
-**Per ticket: the fast gate (~71-83 s).** Run before every commit:
+**Per ticket: the fast gate (90-105 s).** Run before every commit:
 
 ```bash
 make verify-fast        # ruff+pytest (api), lint+tsc+vitest (web), go test (bridge)
@@ -303,18 +306,25 @@ MV_RUN_ID=<ticket> make verify-fast
 so its test database, storage root, image tags and smoke ports collide with
 neither another lane nor `main`.
 
-**Per merge: the full gate (~90-96 s).** Run on `main` after every lane merge
-(`--no-ff`, one at a time), and per ticket whenever it touches migrations,
-Dockerfiles, `nginx.conf`, the compose manifests or a dependency lockfile —
-exactly the things the fast gate does not cover:
+**Per batch: the full gate (~170 s), exactly once.** It runs on integrated
+`main` once every lane has merged — including the serial merges — and
+immediately before the single CI dispatch. It is the gate that certifies the
+batch:
 
 ```bash
 make verify             # lint in images, API tests, web build, bridge, compose, container smoke
 ```
 
-A wave is not done until the full gate is green; fix forward with a corrective
-commit (oracle commit-gated, ticket ID in the subject) rather than reporting a
-red wave.
+That is the only full gate a batch pays for: never per ticket, never per merge,
+never per fix-forward, and not for migrations, `nginx.conf`, the Dockerfiles, the
+compose manifests or a dependency lock either — those serialisers ride in no
+lane, and this one run is what verifies them, provided the batch ends green. What
+keeps the tree honest in between is the fast gate: per ticket inside its lane,
+and again on `main` after every merge, because it catches a botched merge
+cheaply. If the single full gate is red, fix forward with a corrective commit
+(oracle commit-gated, ticket ID in the subject) and re-run just that gate rather
+than reporting a red batch: the batch is not done until it is green. Report how
+many full gates the batch actually ran.
 
 CI duplicates the same jobs, so it stays a safety net rather than the only check:
 

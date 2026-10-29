@@ -16,7 +16,8 @@ per-ticket completion report once every ticket has been processed.
 v1 processed one ticket at a time. v2 packs a **wave**: 2 tickets (hard max 3)
 whose touch-sets are provably disjoint, each in its own **git worktree** (a
 **lane**), dispatched in parallel, then merged into `main` one at a time with the
-full gate after each merge. Packing is decided by a script, not by judgement:
+fast gate after each merge. The full gate is paid once per batch, at the end.
+Packing is decided by a script, not by judgement:
 
 ```bash
 python3 makervault/scripts/wave_plan.py --plan /tmp/wave-<n>.json            # exit 0 accept, 1 refuse with the reason
@@ -230,7 +231,7 @@ cd makervault/web && npm ci --no-audit --no-fund && cd ../..
 Measured on this host: `uv venv` under 1 s; the lock install under 1 s with a
 warm `~/.cache/uv`; `npm ci` about 4 s with a warm npm cache and 235 MB of
 `node_modules`. Then a lane's first `MV_RUN_ID=<ticket> make verify-fast` takes
-about 83 s. **Candidate A — bootstrap each lane — is the default.**
+90-105 s. **Candidate A — bootstrap each lane — is the default.**
 
 **Candidate B, the alternative:** borrow the main checkout's interpreter for the
 python/ruff/bridge half only:
@@ -255,8 +256,9 @@ database and storage root (`/tmp/makersvault-tests/<id>/`), the four image tags,
 the smoke Compose project name, and the smoke host ports. The smoke script claims
 lanes 0-2 by scanning and atomically locking `/tmp/makersvault-smoke-lanes/`, so
 **lanes never pin ports by hand**. Because of that, two lanes may run
-`make verify-fast` at the same moment, and the main checkout may run
-`make verify` while they do. The Makefile defaults `MV_RUN_ID` to pid plus
+`make verify-fast` at the same moment, and the main checkout may run its
+per-merge `make verify-fast` while they do; the batch's one full `make verify`
+runs only after every lane has merged. The Makefile defaults `MV_RUN_ID` to pid plus
 worktree name; lanes still set it explicitly so the id is the ticket id.
 
 ## Phase 4 — dispatch lanes
@@ -321,7 +323,7 @@ Pass each orchestrator this brief, filled in:
 > say so in the report instead of running the full gate.
 >
 > **Record:** `tk add-note <ticket> "<what landed, sha, gate result>"`. Do **not**
-> `tk close` — the scheduler closes after the serial merge and the full gate on
+> `tk close` — the scheduler closes after the serial merge and the fast gate on
 > `main`, because closure is only true once the work is in `main` and green there.
 >
 > **Report back:** commit sha, `make verify-fast` summary (test counts and
@@ -342,7 +344,7 @@ Wait for **every** lane to return before merging anything. Then verify per lane:
 - the ticket state: the lane was told not to `tk close`, so it should still be
   open. If it closed anyway — `.tickets/` is gitignored and shared across
   worktrees — that is noted in the report, not treated as a failure or as
-  closure: closure is only **confirmed** after the merge and the full gate on
+  closure: closure is only **confirmed** after the merge and the fast gate on
   `main`, and you close it then.
 - the diff matches the declared touch-set:
   `git diff --name-only main...ticket/<ticket>`;
@@ -381,7 +383,8 @@ the lane's own commit inside it, subject carrying the ticket ID.
   **oracle commit-gated**, and it carries the ticket ID in its subject.
 - **A merge that conflicts twice ends the wave** (see Stop conditions).
 - After the resolution, re-run `make verify-fast` on `main` before the next merge.
-  The single end-of-batch `make verify` (Phase 8) is what certifies the batch.
+  The single end-of-batch `make verify` (see Verification (v3)) is what certifies
+  the batch.
 
 ## Phase 7 — optional integration gate
 
@@ -458,8 +461,9 @@ measured across batches 10-11. No archived per-ticket table exists for batches
 is not per-ticket figures and this doc will not pretend otherwise.
 
 The final report carries: per-ticket status (✅ closed / ❌ failed + reason), the
-merge shas in merge order, the gate results (per-ticket fast, per-merge full,
-the CI run id with all four jobs), **the wave wall-clock — start and end
+merge shas in merge order, the gate results (per-ticket fast, per-merge fast,
+the batch's one full gate, the CI run id with all four jobs, and how many full
+gates the batch actually ran), **the wave wall-clock — start and end
 timestamps** — so "faster than sequential" has evidence rather than a claim, the
 helper's accept/refuse output per wave, and any stop condition that fired.
 
@@ -472,10 +476,11 @@ helper's accept/refuse output per wave, and any stop condition that fired.
   helper's accept output no longer matches the lane's diff).
 
 Then, in this order: dispatch nothing new; drain the lanes already running
-(collect their reports, do not merge a broken one); verify `main`
-(`make verify`); record the stop reason on every ticket in the wave; report. A
-partial wave is a normal outcome, not a failure of the batch — the next wave
-picks up the unstarted tickets.
+(collect their reports, do not merge a broken one); verify `main` (`make verify`)
+as the batch's one full gate — a stop condition ends the batch, so this is that
+gate and not an extra one; record the stop reason on every ticket in the wave;
+report. A partial wave is a normal outcome: the unstarted tickets form the next
+batch, which pays its own single full gate at its end.
 
 **Never start a lane while an unmerged lane ahead of it touches the same files.**
 That is the rule serialisation protects; priority order plus a disjoint touch-set
@@ -518,25 +523,25 @@ is here so you can explain a refusal, and
 | Serialiser | Why |
 |---|---|
 | `makervault/api/migrations.py` | the schema ledger: every migration is an append to this one file |
-| `**/migration_*.py` | a new migration is a schema change: full gate plus a boot-guard recheck, and migrations are append-only |
-| `makervault/api/migrations` (directory) | a new migration is a schema change: full gate plus a boot-guard recheck, and migrations are append-only |
+| `**/migration_*.py` | a new migration is a schema change: covered by the single end-of-batch full gate plus a boot-guard recheck, and migrations are append-only |
+| `makervault/api/migrations` (directory) | a new migration is a schema change: covered by the single end-of-batch full gate plus a boot-guard recheck, and migrations are append-only |
 | `makervault/api/requirements*.txt` | dependency locks: never covered by the fast gate, and two lanes bumping one lock cannot be reconciled by git |
 | `makervault/api/requirements*.lock` | dependency locks: never covered by the fast gate, and two lanes bumping one lock cannot be reconciled by git |
 | `**/package.json` | the node lock pair: same class as the python locks |
 | `**/package-lock.json` | the node lock pair: same class as the python locks |
 | `Makefile` | it is the gate: an edit changes the commands every other lane runs |
 | `.github/workflows/*` | one CI workflow for the whole repository |
-| `**/nginx.conf` | proxy and security-header config: no unit test covers it, full gate only |
-| `makervault/web/security-headers.conf` | proxy and security-header config: no unit test covers it, full gate only |
+| `**/nginx.conf` | proxy and security-header config: no unit test covers it, the single end-of-batch full gate only |
+| `makervault/web/security-headers.conf` | proxy and security-header config: no unit test covers it, the single end-of-batch full gate only |
 | `**/conftest.py` | fixtures for every API test module: a change re-baselines the whole suite |
 | `makervault/scripts/container-smoke.sh` | the recipe `verify-smoke` executes: an edit changes what the smoke gate checks |
 | `makervault/scripts/wave_plan.py` | the wave validator itself: an edit changes how every future wave is judged |
-| `makervault/api/Dockerfile` | the owner decision makes the full `make verify` mandatory per ticket for these, so they can never ride in a lane |
-| `makervault/web/Dockerfile` | the owner decision makes the full `make verify` mandatory per ticket for these, so they can never ride in a lane |
-| `makervault/docker-compose.yml` | the owner decision makes the full `make verify` mandatory per ticket for these, so they can never ride in a lane |
-| `makervault/docker-compose.deploy.yml` | the owner decision makes the full `make verify` mandatory per ticket for these, so they can never ride in a lane |
-| `makervault/docker-compose.smoke.yml` | the owner decision makes the full `make verify` mandatory per ticket for these, so they can never ride in a lane |
-| `makervault/docker-deploy.yml` | the owner decision makes the full `make verify` mandatory per ticket for these, so they can never ride in a lane |
+| `makervault/api/Dockerfile` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
+| `makervault/web/Dockerfile` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
+| `makervault/docker-compose.yml` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
+| `makervault/docker-compose.deploy.yml` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
+| `makervault/docker-compose.smoke.yml` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
+| `makervault/docker-deploy.yml` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
 | `makervault/api/main.py` | app wiring and the lifespan boot guards: the router split landed, so it is no longer the chokepoint it was, but every new router and guard edits the include list |
 | `makervault/api/models.py` | shared contract modules: two lanes adding models or schemas merge cleanly and then fail semantically |
 | `makervault/api/schemas/__init__.py` | the barrel every schema module is re-exported through: the per-domain modules beside it are lane-able, which is what the split is for; the barrel's import list, `MODULES` tuple and `__all__` are the shared surface, and an exact path entry cannot be left on the deleted `schemas.py` because `stem_files()` keys on (directory, stem) and never matches a file under `schemas/` |
@@ -582,16 +587,18 @@ tests.
 
 ## State of the repo at v3
 
-Schema version 9 (migrations 1-9 are immutable). 1095 API tests on the host, 983
-in-container plus 11 skips (five modules now self-skip inside the image, the
-plan-ahead module among them); 770 web tests in 72 files; the permission matrix
-is pinned at 63 routes, and `assert_routes_classified()` plus
-`assert_audit_coverage()` are green. Product version 5.2.0-rc.1, with the drift
-guard in `make verify` (`makervault/scripts/check_version.py`). `make verify-fast`
-ran in roughly 71-83 s and the full `make verify` in roughly 90-96 s when
-measured at v2; v3 changes neither gate, so those figures are the baseline, not
-current measurements. `makervault/api/main.py` is 176 lines with 13 routers under
-`makervault/api/routers/`; the web component split landed
+Schema version 9 (migrations 1-9 are immutable). 1105 API tests on the host,
+1014 passed plus 12 skipped in-container — the skips are an artifact of the image
+build context being `makervault/api`, so six whole modules (the four docs
+guards and both scheduler-tooling modules) and six tests in
+`test_deploy_manifest_env.py` skip there and only there; 863 web tests in 79
+files; the permission matrix is pinned at 64 routes, and
+`assert_routes_classified()` plus `assert_audit_coverage()` are green. Product
+version 5.2.0-rc.1, with the drift guard in `make verify`
+(`makervault/scripts/check_version.py`). `make verify-fast` takes 90-105 s and
+the full `make verify` about 170 s, both measured on this host in batch 15
+rather than carried over from v2. `makervault/api/main.py` is 186 lines with 13
+routers under `makervault/api/routers/`; the web component split landed
 (`makervault/web/src/ui/asset-grid/`, `makervault/web/src/ui/settings/`). Both
 split refactors were the enablers for lanes, not just hygiene.
 
