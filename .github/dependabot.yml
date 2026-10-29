@@ -4,6 +4,16 @@ updates:
     directory: /makervault/api
     schedule:
       interval: weekly
+    ignore:
+      # Mf-0bl6: fastapi >=0.141 wraps include_router in a lazy route tree, so
+      # permissions.assert_routes_classified sees no routes and the app refuses
+      # to boot. starlette cannot move either: fastapi 0.115.0 requires
+      # starlette<0.39, and fastapi 0.141 requires starlette>=0.46.0. Both are
+      # deliberately re-done on Mf-0bl6; remove these two rules on merge.
+      - dependency-name: fastapi
+        versions: [">=0.141"]
+      - dependency-name: starlette
+        versions: [">=0.39"]
   - package-ecosystem: npm
     directory: /makervault/web
     schedule:
@@ -20,6 +30,12 @@ updates:
     directory: /makervault/web
     schedule:
       interval: weekly
+    ignore:
+      # Node base-image majors are non-LTS more often than not (25 was
+      # rejected outright on Mf-9azr), so they arrive as a deliberate ticket
+      # rather than an automatic PR. Minor/patch bumps still come through.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
