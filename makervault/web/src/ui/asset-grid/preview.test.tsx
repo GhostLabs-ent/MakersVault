@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 vi.mock("../ModelViewer", () => ({
@@ -7,14 +7,23 @@ vi.mock("../ModelViewer", () => ({
   ModelSnapshot: () => null,
 }));
 
+const lightBurnProps = vi.hoisted(() => [] as Array<Record<string, unknown>>);
+
 vi.mock("../LightBurnPreview", () => ({
-  default: () => null,
+  default: (props: Record<string, unknown>) => {
+    lightBurnProps.push(props);
+    return null;
+  },
 }));
 
-import type { PreparedPrint } from "../../lib/api";
-import { PreparedPrintSummary } from "./preview";
+import type { Asset, PreparedPrint } from "../../lib/api";
+import { PreparedPrintSummary, renderPreviewContent } from "./preview";
 
 afterEach(cleanup);
+
+beforeEach(() => {
+  lightBurnProps.length = 0;
+});
 
 /** The summary line sits on the outer div; the Clear button is a sibling. */
 function summaryLine(prepared: PreparedPrint) {
@@ -94,5 +103,33 @@ describe("PreparedPrintSummary", () => {
     cleanup();
     render(<PreparedPrintSummary prepared={prepared} />);
     expect(screen.queryByRole("button")).toBeNull();
+  });
+});
+
+describe("renderPreviewContent LightBurn dispatcher", () => {
+  const asset = {
+    filename: "x.lbrn2",
+    url: "/file",
+    size: 1234,
+    tags: [],
+  } as unknown as Asset;
+
+  it("passes size, card variant and the preview mode to the card preview", () => {
+    render(renderPreviewContent(asset, "card", "dark", "disabled"));
+
+    expect(lightBurnProps).toHaveLength(1);
+    expect(lightBurnProps[0]).toMatchObject({
+      size: 1234,
+      variant: "card",
+      mode: "disabled",
+    });
+  });
+
+  it("omits the mode so the modal preview stays automatic", () => {
+    render(renderPreviewContent(asset, "modal", "dark"));
+
+    expect(lightBurnProps).toHaveLength(1);
+    expect(lightBurnProps[0]).toMatchObject({ size: 1234, variant: "modal" });
+    expect(lightBurnProps[0].mode).toBeUndefined();
   });
 });

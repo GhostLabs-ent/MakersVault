@@ -125,6 +125,9 @@ export function renderPreviewContent(
           assetId={asset.id}
           filename={asset.filename}
           imgClass={imgClass}
+          size={asset.size}
+          variant="card"
+          mode={previewMode}
         />
       );
     }
@@ -149,6 +152,8 @@ export function renderPreviewContent(
         assetId={asset.id}
         filename={asset.filename}
         imgClass={imgClass}
+        size={asset.size}
+        variant="modal"
       />
     );
   }
