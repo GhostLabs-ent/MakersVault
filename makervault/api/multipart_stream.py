@@ -12,6 +12,7 @@ silently truncates instead of raising, so the byte counter here is the
 enforcement point and it rejects an over-cap stream while it is still arriving.
 """
 
+from collections.abc import Collection
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import BinaryIO, Dict, List, Optional
@@ -63,6 +64,16 @@ class MissingFilePart(UploadRequestError):
 
     def __init__(self, field_name: str):
         super().__init__(f"{field_name}: field required", status_code=422)
+
+
+class UnsupportedContentType(UploadRequestError):
+    """The named file part's Content-Type is not one the endpoint accepts."""
+
+    status_code = 415
+
+    def __init__(self, content_type: str):
+        self.content_type = content_type
+        super().__init__(f"unsupported content type: {content_type or 'missing'}")
 
 
 @dataclass
@@ -147,6 +158,7 @@ class _StreamCallbacks:
         max_fields: int,
         max_field_bytes: int,
         charset: str,
+        allowed_content_types: Optional[Collection[str]] = None,
     ):
         self.staging_path = staging_path
         self.max_bytes = max_bytes
@@ -154,6 +166,9 @@ class _StreamCallbacks:
         self.max_fields = max_fields
         self.max_field_bytes = max_field_bytes
         self.charset = charset
+        self.allowed_content_types = (
+            frozenset(name.strip().lower() for name in allowed_content_types) if allowed_content_types is not None else None
+        )
         self.pending: List[bytes] = []
         self.fields: Dict[str, str] = {}
         self.sink: Optional[FileSink] = None
@@ -219,11 +234,24 @@ class _StreamCallbacks:
             return
         part.is_file = True
         part.filename = _user_safe_decode(filename, self.charset)
-        if self.sink is None and part.field_name == self.field_name:
-            self.sink = FileSink(self.staging_path)
-            part.sink = self.sink
-            self.file_filename = part.filename
-            self.file_content_type = part.content_type
+        if self.sink is not None or part.field_name != self.field_name:
+            # Only the named field is consumed; later file parts are ignored.
+            return
+        # No file has been opened yet, so the staging path is still absent and
+        # the ``except BaseException`` cleanup below finds nothing to discard.
+        self._check_content_type(part.content_type)
+        self.sink = FileSink(self.staging_path)
+        part.sink = self.sink
+        self.file_filename = part.filename
+        self.file_content_type = part.content_type
+
+    def _check_content_type(self, content_type: str) -> None:
+        if self.allowed_content_types is None:
+            return
+        # The raw header value, parameters included: a part that carried a
+        # ``; charset=`` suffix keeps the verdict the pre-streaming check gave it.
+        if content_type.strip().lower() not in self.allowed_content_types:
+            raise UnsupportedContentType(content_type)
 
     def on_part_data(self, data: bytes, start: int, end: int) -> None:
         payload = data[start:end]
@@ -269,12 +297,18 @@ async def stream_file_part(
     field: str = "file",
     max_fields: int = 64,
     max_field_bytes: int = 1024 * 1024,
+    allowed_content_types: Optional[Collection[str]] = None,
 ) -> StreamedUpload:
     """Stream the named file part of a multipart request into ``staging_path``.
 
     The caller owns the finished file on success. On any failure - malformed
     body, oversize stream, client disconnect, OS error - the staging file is
     removed before the exception propagates.
+
+    When ``allowed_content_types`` is given, the selected file part's
+    Content-Type is checked as soon as its headers are parsed, before any of its
+    bytes are read or staged, and a value outside the set raises
+    ``UnsupportedContentType``.
     """
     options = _multipart_options(request)
     charset = options.get(b"charset", b"utf-8").decode("latin-1")
@@ -285,6 +319,7 @@ async def stream_file_part(
         max_fields=max_fields,
         max_field_bytes=max_field_bytes,
         charset=charset,
+        allowed_content_types=allowed_content_types,
     )
     parser = MultipartParser(options[b"boundary"], callbacks.handlers())
     try:

@@ -101,7 +101,10 @@ Upload bodies are streamed straight into storage: a body lands in
 once the form fields that shape that path have arrived. Nothing is spooled into
 container temp, so a 2 GB upload needs one 2 GB file rather than 2 GB of
 scratch. `MAX_UPLOAD_MB` is enforced while the body streams, so an oversize
-upload is cut off as soon as the cap is crossed.
+upload is cut off as soon as the cap is crossed. The generated-thumbnail route
+(`POST /asset/{id}/thumbnail-generated`) streams the same way - a staging file
+consumed in place - with a fixed 8 MiB cap enforced mid-stream and no
+environment knob.
 
 ## Mounted import settings
 

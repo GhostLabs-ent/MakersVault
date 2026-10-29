@@ -6,7 +6,9 @@ temp directory and once to storage. The upload routes now drive python-multipart
 themselves and stream each chunk into ``<storage>/.incoming/<uuid>``, which is
 then renamed into the rendered destination. These tests pin that behaviour:
 the event loop never does file I/O, the byte cap is enforced mid-stream, and no
-failure path leaves an orphan row or a partial file behind.
+failure path leaves an orphan row or a partial file behind. The
+generated-thumbnail route streams the same way, with a fixed 8 MiB cap and a
+content-type gate that runs before any of its bytes are staged.
 
 Every test works in a temporary storage root (the database is shared for the
 whole session, so rows and the template are restored at teardown).
@@ -24,12 +26,14 @@ import json
 import logging
 import threading
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import pytest
 import starlette.formparsers
 from fastapi.testclient import TestClient
+from PIL import Image
 from sqlmodel import Session, select
 
 import asset_file_service
@@ -42,6 +46,7 @@ import settings_service
 from db import engine
 from migrations import run_migrations
 from models import Asset, AssetFile, Folder
+from routers import asset_files
 
 BOUNDARY = "mv-stream-boundary"
 
@@ -163,6 +168,33 @@ def bootstrap_headers() -> Dict[str, str]:
         return auth_header(client)
 
 
+def png_bytes() -> bytes:
+    """A real PNG that Pillow can decode, small enough to inline."""
+    buffer = BytesIO()
+    Image.new("RGB", (2, 2), (30, 120, 200)).save(buffer, "PNG")
+    return buffer.getvalue()
+
+
+def post_raw(path: str, body: bytes, headers: Dict[str, str], chunk_size: int = 65536) -> Tuple[List[dict], int]:
+    """Replay ``body`` through the app in fixed chunks; return the response and bytes pulled."""
+    chunks = [body[index : index + chunk_size] for index in range(0, len(body), chunk_size)]
+    state = {"index": 0, "consumed": 0}
+
+    async def receive() -> dict:
+        if state["index"] >= len(chunks):
+            return {"type": "http.request", "body": b"", "more_body": False}
+        chunk = chunks[state["index"]]
+        state["index"] += 1
+        state["consumed"] += len(chunk)
+        return {"type": "http.request", "body": chunk, "more_body": state["index"] < len(chunks)}
+
+    scope = asgi_scope(bearer_headers(headers, f"multipart/form-data; boundary={BOUNDARY}"))
+    scope["path"] = path
+    scope["raw_path"] = path.encode()
+    messages = asyncio.run(call_app(scope, receive))
+    return messages, state["consumed"]
+
+
 @pytest.fixture(autouse=True)
 def isolated_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Point every storage binding at a temp root and undo every row made here."""
@@ -173,7 +205,10 @@ def isolated_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr(library_scan, "STORAGE", storage)
     # These modules bind STORAGE at import time, so their globals are patched too.
     monkeypatch.setattr(asset_service, "STORAGE", storage)
+    monkeypatch.setattr(asset_service, "THUMBS", storage / "thumbs")
     monkeypatch.setattr(asset_file_service, "STORAGE", storage)
+    # ``main`` re-exports both roots, and a fixture elsewhere patches them there.
+    monkeypatch.setattr(main, "THUMBS", storage / "thumbs")
     run_migrations(engine)
     template_before = settings_service.get_storage_template()
     with Session(engine) as session:
@@ -618,13 +653,13 @@ def test_startup_sweep_removes_stale_staging_files(isolated_storage: Path) -> No
 
     assert not stale.exists()
 
-def test_both_upload_endpoints_document_a_binary_file_part() -> None:
+def test_every_streaming_upload_endpoint_documents_a_binary_file_part() -> None:
     """Raw request parsing means FastAPI cannot derive the schema; it is declared instead."""
     paths = main.app.openapi()["paths"]
-    for route in ("/upload", "/asset/{asset_id}/files"):
+    for route in ("/upload", "/asset/{asset_id}/files", "/asset/{asset_id}/thumbnail-generated"):
         schema = paths[route]["post"]["requestBody"]["content"]["multipart/form-data"]["schema"]
-        assert schema["required"] == ["file"]
-        assert schema["properties"]["file"] == {"type": "string", "format": "binary"}
+        assert schema["required"] == ["file"], route
+        assert schema["properties"]["file"] == {"type": "string", "format": "binary"}, route
 
 
 def created_asset_id(client: TestClient, headers: dict) -> str:
@@ -834,3 +869,133 @@ def test_inspection_failure_on_a_plain_3mf_still_stores_it(
         assert asset is not None
         assert asset.supporting_file_count == 1
     assert incoming_files(isolated_storage) == []
+
+
+def test_generated_thumbnail_streams_into_storage_without_spooling(
+    isolated_storage: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A real PNG is decoded from the staging file, so the body never reaches a temp file."""
+    storage = isolated_storage
+
+    def no_spool(*_args, **_kwargs):
+        raise AssertionError("generated thumbnail must not spool to a temporary file")
+
+    monkeypatch.setattr(starlette.formparsers, "SpooledTemporaryFile", no_spool)
+    with TestClient(main.app, raise_server_exceptions=False) as client:
+        headers = auth_header(client)
+        asset_id = created_asset_id(client, headers)
+        response = client.post(
+            f"/asset/{asset_id}/thumbnail-generated",
+            files={"file": ("thumb.png", png_bytes(), "image/png")},
+            headers=headers,
+        )
+
+    assert response.status_code == 200, response.text
+    assert (storage / "thumbs" / f"{asset_id}.jpg").exists()
+    assert incoming_files(storage) == []
+
+
+def test_generated_thumbnail_cap_is_enforced_mid_stream(
+    isolated_storage: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The cap trips while the body arrives, not after it has been buffered."""
+    storage = isolated_storage
+    monkeypatch.setattr(asset_files, "GENERATED_THUMBNAIL_MAX_BYTES", 256 * 1024)
+    headers = bootstrap_headers()
+    with TestClient(main.app, raise_server_exceptions=False) as client:
+        asset_id = created_asset_id(client, auth_header(client))
+    body = multipart_body([("file", "thumb.png", "image/png", b"x" * (4 * 1024 * 1024))])
+
+    messages, consumed = post_raw(f"/asset/{asset_id}/thumbnail-generated", body, headers)
+
+    assert response_status(messages) == 413
+    assert response_json(messages)["detail"] == "Generated thumbnail exceeds 8 MB"
+    # Stopped pulling the body once the cap was crossed, rather than buffering 4 MiB.
+    assert consumed < len(body) // 4, consumed
+    assert incoming_files(storage) == []
+    assert list((storage / "thumbs").iterdir()) == []
+
+
+def test_generated_thumbnail_rejects_other_content_types_mid_stream(
+    isolated_storage: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The Content-Type gate runs at the part headers, so the bytes are never staged."""
+    storage = isolated_storage
+    headers = bootstrap_headers()
+    with TestClient(main.app, raise_server_exceptions=False) as client:
+        asset_id = created_asset_id(client, auth_header(client))
+    body = multipart_body([("file", "thumb.zip", "application/zip", b"PK\x03\x04" + b"x" * (4 * 1024 * 1024))])
+
+    messages, consumed = post_raw(f"/asset/{asset_id}/thumbnail-generated", body, headers)
+
+    assert response_status(messages) == 415
+    assert response_json(messages)["detail"] == "Generated thumbnail must be PNG, JPEG, or WebP"
+    # The verdict came from the part headers alone: only the first chunk was pulled.
+    assert consumed <= 64 * 1024, consumed
+    assert incoming_files(storage) == []
+    assert list((storage / "thumbs").iterdir()) == []
+
+
+def test_generated_thumbnail_rejects_undecodable_bytes(isolated_storage: Path) -> None:
+    """Bytes that pass the content-type gate still have to decode as an image."""
+    storage = isolated_storage
+    with TestClient(main.app, raise_server_exceptions=False) as client:
+        headers = auth_header(client)
+        asset_id = created_asset_id(client, headers)
+        response = client.post(
+            f"/asset/{asset_id}/thumbnail-generated",
+            files={"file": ("thumb.png", b"not an image at all", "image/png")},
+            headers=headers,
+        )
+
+    assert response.status_code == 400, response.text
+    assert response.json()["detail"] == "Invalid thumbnail image"
+    assert incoming_files(storage) == []
+    assert list((storage / "thumbs").iterdir()) == []
+
+
+def test_generated_thumbnail_checks_the_body_before_the_asset(
+    isolated_storage: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The stream and its cap decide first; a missing row is only looked up afterwards."""
+    storage = isolated_storage
+    monkeypatch.setattr(asset_files, "GENERATED_THUMBNAIL_MAX_BYTES", 256 * 1024)
+    headers = bootstrap_headers()
+    oversized = multipart_body([("file", "thumb.png", "image/png", b"x" * (4 * 1024 * 1024))])
+
+    messages, _consumed = post_raw("/asset/does-not-exist/thumbnail-generated", oversized, headers)
+    assert response_status(messages) == 413
+    assert response_json(messages)["detail"] == "Generated thumbnail exceeds 8 MB"
+
+    with TestClient(main.app, raise_server_exceptions=False) as client:
+        response = client.post(
+            "/asset/does-not-exist/thumbnail-generated",
+            files={"file": ("thumb.png", png_bytes(), "image/png")},
+            headers=auth_header(client),
+        )
+    assert response.status_code == 404, response.text
+    assert incoming_files(storage) == []
+    assert list((storage / "thumbs").iterdir()) == []
+
+
+def test_generated_thumbnail_default_cap_boundary(isolated_storage: Path) -> None:
+    """Eight MiB is accepted and then rejected as an image; one byte more is refused by the cap."""
+    storage = isolated_storage
+    headers = bootstrap_headers()
+    with TestClient(main.app, raise_server_exceptions=False) as client:
+        asset_id = created_asset_id(client, auth_header(client))
+    limit = 8 * 1024 * 1024
+    path = f"/asset/{asset_id}/thumbnail-generated"
+
+    at_cap = multipart_body([("file", "thumb.png", "image/png", b"x" * limit)])
+    messages, _consumed = post_raw(path, at_cap, headers)
+    assert response_status(messages) == 400
+    assert response_json(messages)["detail"] == "Invalid thumbnail image"
+
+    over_cap = multipart_body([("file", "thumb.png", "image/png", b"x" * (limit + 1))])
+    messages, _consumed = post_raw(path, over_cap, headers)
+    assert response_status(messages) == 413
+    assert response_json(messages)["detail"] == "Generated thumbnail exceeds 8 MB"
+
+    assert incoming_files(storage) == []
+    assert list((storage / "thumbs").iterdir()) == []
