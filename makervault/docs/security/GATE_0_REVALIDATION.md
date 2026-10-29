@@ -85,6 +85,14 @@ Two residuals are owned explicitly rather than dropped silently:
 
 ### Web runtime and development toolchain
 
+- The web build image moved node 20 -> node 24 LTS (`node:20-alpine` ->
+  `node:24-alpine`) and npm 10 -> npm 11; npm 11.11+ persists `libc` metadata
+  in lock entries where npm 10.9.x never did, which a future re-resolution
+  will surface as `libc`-only additions. On this lock it was a no-op: the
+  committed lock already satisfied every declared range, npm rewrote it
+  byte-identically, diff empty (0 of ~500 entries, `lockfileVersion` 3, both
+  `version` fields `5.2.0-rc.1`). No dependency version moves, so the recorded
+  `npm audit` / advisory set below is unchanged, its counts still applying.
 - `npm audit --omit=dev`: zero known vulnerabilities (re-measured for Mf-9azr
   after `fflate` moved to `0.8.3` and `lucide-react` moved to the `1.x` line).
 - Full `npm audit`: ten development-toolchain vulnerabilities as of this

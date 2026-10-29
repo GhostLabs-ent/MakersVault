@@ -28,7 +28,8 @@ This performs:
 0. Ruff (API) and ESLint (web) gates; `make verify-lint` runs them alone.
 1. API migration tests under Python 3.12.
 2. Web TypeScript checking, Vitest tests, and the production Vite build under
-   Node 20.
+   Node 24 LTS (`node:24-alpine`, npm 11, image digest
+   `node@sha256:8a32c8cf649a49915a66e81e7a609223c708d0adabf288ee3f4077d765542f85`).
 3. Bridge tests and compilation under Go 1.21.13.
 4. Validation of the local, canonical production, historical alias, and smoke
    Compose configurations.
