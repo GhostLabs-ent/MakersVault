@@ -21,11 +21,11 @@ python-dotenv==1.2.2
 python-multipart==0.0.9
 PyYAML==6.0.3
 SQLAlchemy==2.0.52
-sqlmodel==0.0.21
+sqlmodel==0.0.39
 starlette==0.38.5
 typing-inspection==0.4.4
 typing_extensions==4.16.0
-uvicorn==0.30.6
+uvicorn==0.52.1
 uvloop==0.22.1
 watchfiles==1.2.0
 websockets==17.0.1
