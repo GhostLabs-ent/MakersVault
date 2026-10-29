@@ -1,7 +1,9 @@
 """Split from main.py in Mf-x9dx; behaviour-preserving move.
 
 Both streaming uploads live here on purpose: the direct upload and the
-supporting-file upload share the staging-directory and exception contract.
+supporting-file upload share the staging-directory and exception contract. The
+generated-thumbnail route in ``routers.asset_files`` streams through the same
+module and shares that contract as well.
 """
 
 from typing import Optional

@@ -2,12 +2,14 @@
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import FileResponse, Response
 from sqlmodel import Session
+from starlette.requests import ClientDisconnect
 
 import audit
 import db
+import multipart_stream
 from asset_file_service import (
     PREVIEW_TEXT_MEDIA_TYPE,
     UNPREVIEWABLE_DETAIL,
@@ -20,12 +22,13 @@ from asset_file_service import (
     reorder_supporting_files,
     supporting_file_limits,
 )
-from asset_service import resolve_asset_file, save_thumb_bytes
+from asset_service import new_staging_path, resolve_asset_file, save_thumb
 from auth import AuthContext
 from db import engine
 from models import Asset, AssetFile
 from permissions import require_read, require_write
 from routers.presenters import asset_file_to_out, to_out
+from routers.uploads import CLIENT_CLOSED_REQUEST, multipart_form_openapi
 from schemas import AssetFileLimitsOut, AssetFileOrderUpdate, AssetFileOut, AssetFileRename, AssetOut
 
 router = APIRouter()
@@ -182,22 +185,49 @@ def get_thumb(asset_id: str, _: Optional[AuthContext] = Depends(require_read)):
     )
 
 
-@router.post("/asset/{asset_id}/thumbnail-generated", response_model=AssetOut)
+GENERATED_THUMBNAIL_MAX_BYTES = 8 * 1024 * 1024
+GENERATED_THUMBNAIL_TYPES = frozenset({"image/png", "image/jpeg", "image/webp"})
+
+
+# Parsed off the raw body rather than through ``UploadFile`` so the bytes land in
+# a staging file and the 8 MB cap trips while they arrive, not after the body has
+# been spooled to a temp file and read.
+@router.post(
+    "/asset/{asset_id}/thumbnail-generated",
+    response_model=AssetOut,
+    openapi_extra=multipart_form_openapi(),
+)
 async def save_generated_thumbnail(
     asset_id: str,
-    file: UploadFile = File(...),
+    request: Request,
     _: Optional[AuthContext] = Depends(require_write),
 ):
-    if (file.content_type or "").lower() not in {"image/png", "image/jpeg", "image/webp"}:
-        raise HTTPException(status_code=415, detail="Generated thumbnail must be PNG, JPEG, or WebP")
-    data = await file.read(8 * 1024 * 1024 + 1)
-    if len(data) > 8 * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="Generated thumbnail exceeds 8 MB")
-    with Session(engine) as s:
-        asset = s.get(Asset, asset_id)
-        if not asset:
-            raise HTTPException(404)
-        if not save_thumb_bytes(asset_id, data):
-            raise HTTPException(status_code=400, detail="Invalid thumbnail image")
-        s.refresh(asset)
-        return to_out(asset)
+    staging = new_staging_path()
+    # Read the cap as a module global at call time: tests shrink it to prove the
+    # rejection happens mid-stream rather than after a buffered read.
+    limit = GENERATED_THUMBNAIL_MAX_BYTES
+    try:
+        staged = await multipart_stream.stream_file_part(
+            request,
+            staging,
+            max_bytes=limit,
+            allowed_content_types=GENERATED_THUMBNAIL_TYPES,
+        )
+        with Session(engine) as s:
+            asset = s.get(Asset, asset_id)
+            if not asset:
+                raise HTTPException(404)
+            if not save_thumb(asset_id, staged.path):
+                raise HTTPException(status_code=400, detail="Invalid thumbnail image")
+            s.refresh(asset)
+            return to_out(asset)
+    except multipart_stream.UnsupportedContentType:
+        raise HTTPException(status_code=415, detail="Generated thumbnail must be PNG, JPEG, or WebP") from None
+    except multipart_stream.UploadTooLarge:
+        raise HTTPException(status_code=413, detail="Generated thumbnail exceeds 8 MB") from None
+    except multipart_stream.UploadRequestError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from None
+    except ClientDisconnect:
+        return Response(status_code=CLIENT_CLOSED_REQUEST)
+    finally:
+        staging.unlink(missing_ok=True)
