@@ -16,16 +16,15 @@ updates:
     directory: /makervault/api
     schedule:
       interval: weekly
+  # Floats `N-alpine` on a supported Node LTS major. Dependabot only proposes
+  # same-precision tags, so it proposes newer-major float tags, never 24.x
+  # patch PRs (those arrive by tag re-resolution at build time). Node 25 was
+  # the last non-LTS line and is EOL; from 27 every annual major is LTS, so a
+  # major PR is an LTS: the reviewed accept-or-reject decision.
   - package-ecosystem: docker
     directory: /makervault/web
     schedule:
       interval: weekly
-    ignore:
-      # Node base-image majors are non-LTS more often than not (25 was
-      # rejected outright on Mf-9azr), so they arrive as a deliberate ticket
-      # rather than an automatic PR. Minor/patch bumps still come through.
-      - dependency-name: node
-        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
