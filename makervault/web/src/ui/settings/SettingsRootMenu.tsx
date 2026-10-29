@@ -63,6 +63,9 @@ export default function SettingsRootMenu({ onOpen }: Props) {
         <div className="text-lg font-semibold">Imports & Folder Scan</div>
         <div className="text-sm opacity-70">Manage import rate-limit workarounds and scan local folders.</div>
       </button>
+      <p className="col-span-full text-xs text-muted" data-testid="app-version">
+        Makers Vault {__APP_VERSION__}
+      </p>
     </div>
   );
 }

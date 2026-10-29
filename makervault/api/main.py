@@ -58,6 +58,7 @@ from routers import (
 from routers.import_runs import router as import_runs_router
 from routers.uploads import delete_asset_row_only
 from url_utils import normalize_import_url
+from version import __version__
 from zip_service import arcname_for_asset
 
 
@@ -86,7 +87,7 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="MakerVault API", lifespan=lifespan)
+app = FastAPI(title="MakerVault API", version=__version__, lifespan=lifespan)
 
 
 def normalize_origin(raw: str) -> Optional[str]:

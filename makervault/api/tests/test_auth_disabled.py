@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 import auth
 import main
+from version import __version__
 
 NOT_CONFIGURED = "Authentication is not configured on the server"
 
@@ -22,7 +23,7 @@ def disabled_client(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_health_reports_auth_is_off(disabled_client: TestClient) -> None:
-    assert disabled_client.get("/health").json() == {"ok": True, "auth_required": False}
+    assert disabled_client.get("/health").json() == {"ok": True, "auth_required": False, "version": __version__}
 
 
 @pytest.mark.parametrize("path", ["/login", "/refresh", "/logout"])

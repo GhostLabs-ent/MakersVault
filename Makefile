@@ -1,4 +1,4 @@
-.PHONY: verify verify-fast verify-lint lint-api lint-web verify-api verify-web verify-bridge verify-compose verify-smoke
+.PHONY: verify verify-fast verify-lint lint-api lint-web verify-version verify-api verify-web verify-bridge verify-compose verify-smoke
 
 # Host toolchains. A repo-local .venv wins if present; otherwise PATH.
 VENV ?= $(CURDIR)/.venv
@@ -35,7 +35,7 @@ verify: verify-lint verify-api verify-web verify-bridge verify-compose verify-sm
 
 # Fast gate (~20s, no image builds, no container smoke). Run per ticket while
 # iterating; the wave still ends on `make verify`.
-verify-fast: verify-fast-api verify-fast-web verify-fast-bridge
+verify-fast: verify-version verify-fast-api verify-fast-web verify-fast-bridge
 
 verify-fast-api:
 	cd makervault/api && $(RUFF) check . && $(PYTHON) -m pytest -q
@@ -56,12 +56,16 @@ lint-web:
 	docker build --target lint -t $(WEB_LINT_IMAGE) makervault/web
 	docker image rm $(WEB_LINT_IMAGE) >/dev/null 2>&1 || true
 
-verify-api:
+# Version drift guard (Mf-cvoo). `python3` on CI runners, repo .venv locally.
+verify-version:
+	$(PYTHON) makervault/scripts/check_version.py
+
+verify-api: verify-version
 	docker build --target test -t $(API_TEST_IMAGE) makervault/api
 	status=0; docker run --rm $(API_TEST_IMAGE) || status=$$?; \
 		docker image rm $(API_TEST_IMAGE) >/dev/null 2>&1 || true; exit $$status
 
-verify-web:
+verify-web: verify-version
 	status=0; docker build --target test -t $(WEB_TEST_IMAGE) makervault/web || status=$$?; \
 		docker image rm $(WEB_TEST_IMAGE) >/dev/null 2>&1 || true; exit $$status
 

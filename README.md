@@ -2,7 +2,7 @@
 <img width="612" height="408" alt="makersvaultlogoneon-removebg-preview" src="https://github.com/user-attachments/assets/32e7faae-23e3-41bb-a188-376ad2fa68df" />
 
 ![Status](https://img.shields.io/badge/status-Beta%20release-brightgreen)
-![Version](https://img.shields.io/badge/version-5.1.2-blue)
+![Version](https://img.shields.io/badge/version-5.2.0--rc.1-blue)
 ![Docker Pulls](https://img.shields.io/docker/pulls/shotgunwilly555/makersvault-web)
 ![License](https://img.shields.io/github/license/VincentCinque/MakersVault)
 
@@ -22,7 +22,7 @@
 </ul>
 
 <h2>Road Map</h2>
-<h4>Version 5.2</h4>
+<h4>Version 5.2 (in progress — current prerelease 5.2.0-rc.1)</h4>
 <ul>
   <li>Bounded, cached previews that cannot freeze the library.</li>
   <li>Visible bulk organization workflows and clearer folder navigation.</li>
@@ -31,6 +31,14 @@
   <li>Polish for metadata, supporting files, prepared-print summaries, LightBurn, and the local bridge.</li>
 </ul>
 <p>Multi-user accounts, MFA, SSO, and the full Project/Artifact/Revision architecture are deliberately deferred. See <a href="makervault/docs/V5.1_SCOPE.md">the v5.1 release contract</a> and <a href="makervault/docs/ARCHITECTURE_RUNBOOK.md">architecture runbook</a>.</p>
+
+<h2>Versioning</h2>
+<p><code>makervault/api/version.py</code> holds the product version and is the single source of truth. <code>makervault/web/package.json</code> and <code>makervault/web/package-lock.json</code> mirror that literal because npm needs it in the manifest; all three are compared by <code>makervault/scripts/check_version.py</code>, which <code>make verify-version</code> runs as part of the verify gates and which fails on any drift.</p>
+<ul>
+  <li>The version is reported by <code>GET /health</code>, published as the OpenAPI <code>info.version</code>, and shown in Settings.</li>
+  <li>Releases are tagged <code>vX.Y.Z</code>; prereleases are tagged <code>vX.Y.Z-rc.N</code>.</li>
+  <li>This fork's release line starts from upstream's v5.1.2 beta, so the v5.1 docs under <code>makervault/docs/</code> describe that earlier contract.</li>
+</ul>
 
 <h2>Getting Started</h2>
 <p>Makers Vault is deployable using Docker pull or Docker Compose:</p>

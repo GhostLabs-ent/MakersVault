@@ -1,5 +1,7 @@
 import { defineConfig } from "vite";
 
+import pkg from "./package.json";
+
 function normalizeHostEntry(entry) {
   // Accept full URLs or bare hostnames and strip protocol/port when present.
   try {
@@ -57,6 +59,7 @@ const resolvedAllowedHosts = parseAllowedHosts(
 );
 
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   server: {
     host: true,
     allowedHosts: resolvedAllowedHosts,
