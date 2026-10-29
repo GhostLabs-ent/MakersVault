@@ -11,7 +11,7 @@ verification targets use versioned container toolchains. Release image digests
 are recorded later at the release-candidate gate.
 
 Python direct dependencies are declared in `requirements.txt` and
-`requirements-dev.txt`. The successful Python 3.11/Linux environments are frozen
+`requirements-dev.txt`. The successful Python 3.12/Linux environments are frozen
 in `requirements.lock` and `requirements-dev.lock`; Docker and CI install the lock
 files.
 
@@ -26,7 +26,7 @@ make verify
 This performs:
 
 0. Ruff (API) and ESLint (web) gates; `make verify-lint` runs them alone.
-1. API migration tests under Python 3.11.
+1. API migration tests under Python 3.12.
 2. Web TypeScript checking, Vitest tests, and the production Vite build under
    Node 20.
 3. Bridge tests and compilation under Go 1.21.13.

@@ -1,6 +1,6 @@
 [tool.ruff]
 line-length = 140
-target-version = "py311"
+target-version = "py312"
 # modules are top-level siblings, so the api directory is the import root
 src = ["."]
 

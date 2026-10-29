@@ -40,7 +40,7 @@ suite to remain green before release.
 
 ### Python runtime
 
-Command basis: `pip-audit` against the resolved Python 3.11 API environment, now
+Command basis: `pip-audit` against the resolved Python 3.12 API environment, now
 captured in `api/requirements.lock`.
 
 Result: 52 advisory records across four pinned packages:

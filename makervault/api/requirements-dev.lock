@@ -1,4 +1,4 @@
-# Gate 0 Python 3.11/Linux verification lock.
+# Gate 0 Python 3.12/Linux verification lock.
 # Direct test dependencies remain documented in requirements-dev.txt.
 annotated-types==0.8.0
 anyio==4.14.2

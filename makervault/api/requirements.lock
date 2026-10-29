@@ -1,4 +1,4 @@
-# Gate 0 Python 3.11/Linux runtime lock.
+# Gate 0 Python 3.12/Linux runtime lock.
 # Direct dependencies remain documented in requirements.txt.
 annotated-types==0.8.0
 anyio==4.14.2

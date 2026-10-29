@@ -185,7 +185,7 @@ be made explicit before deployment boundaries are multiplied.
 
 | ID | State | Current truth | Primary evidence | Consequence |
 |---|---|---|---|---|
-| T-001 | `VERIFIED` | The API is Python 3.11, FastAPI, SQLModel, and SQLite by default. | `api/requirements.txt`, `api/db.py` | SQLite-safe migrations and recovery are release requirements. |
+| T-001 | `VERIFIED` | The API is Python 3.12, FastAPI, SQLModel, and SQLite by default. | `api/requirements.txt`, `api/db.py` | SQLite-safe migrations and recovery are release requirements. |
 | T-002 | `VERIFIED` | The web client is React/Vite and performs substantial preview work in the browser. | `web/package.json`, `web/src/ui/ModelViewer.tsx`, `AssetGrid.tsx` | Preview work needs hard budgets and persisted outcomes. |
 | T-003 | `VERIFIED` | Production web packaging is a static build served by unprivileged Nginx with runtime API configuration. | `web/Dockerfile`, `web/nginx.conf`, `web/40-runtime-config.sh` | The former production Vite-server finding is resolved in the Gate 0 baseline. |
 | T-004 | `VERIFIED` | Production deployment separates `/app/data` and `/app/storage`; development layout differs. | Docker Compose files | Backup instructions must distinguish production and development. |
