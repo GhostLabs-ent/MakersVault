@@ -16,7 +16,11 @@ express a level. `ROUTE_PERMISSIONS` is the audited matrix; it changes no
 behaviour on its own, it is cross-checked against the real routes by
 `assert_routes_classified()` at startup (see `main.lifespan`) and by the test
 sweeps, so a route cannot ship with a level the matrix does not know about and
-the matrix cannot keep an entry for a route that no longer exists.
+the matrix cannot keep an entry for a route that no longer exists. The caller
+hands the checker the routes enumerated from the routers we own
+(`permissions.router_routes(*main.API_ROUTERS)`), because `app.routes` is no
+longer a complete view: fastapi 0.137+ wraps `include_router` in a lazy tree, so
+the included routes never appear there.
 
 Mf-s3z0 (the audit log) deliberately does NOT emit from `authorize()`. Those are
 two different jobs: this module makes the *authorization* decision (who may call
@@ -31,9 +35,9 @@ Deliberate simplification: the level is per route, not per record. Mf-arm6 owns
 per-asset ownership; until then an editor acts on every asset.
 """
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Sequence
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.routing import APIRoute
 
 import accounts
@@ -220,8 +224,39 @@ def declared_levels(route: APIRoute) -> list[str]:
     return levels
 
 
-def assert_routes_classified(app) -> dict[tuple[str, str], str]:
+def router_routes(*routers: APIRouter) -> list[APIRoute]:
+    """Every route the given routers declare, in declaration order.
+
+    Enumerate from the routers we own rather than from `app.routes`: fastapi
+    wraps `include_router` in a lazy tree (0.137+), so `app.routes` no longer
+    yields the included `APIRoute`s and the boot guard would see nothing. Each
+    `APIRouter.routes` is public API and already carries the final path and the
+    route's dependency tree, which is what `assert_routes_classified` reads.
+
+    A router that includes another router would put a non-`APIRoute` in
+    `.routes`, so this refuses instead of silently skipping it: a route the
+    guard cannot see is a route that fails open.
+    """
+    routes: list[APIRoute] = []
+    for router in routers:
+        for route in router.routes:
+            if not isinstance(route, APIRoute):
+                raise RuntimeError(
+                    f"{type(route).__name__} in a router's .routes; permission enumeration only "
+                    "handles routes declared on the router itself - list a nested router "
+                    "separately in main.API_ROUTERS"
+                )
+            routes.append(route)
+    return routes
+
+
+def assert_routes_classified(routes: Sequence[APIRoute]) -> dict[tuple[str, str], str]:
     """Prove the routes and ROUTE_PERMISSIONS agree; returns the matrix.
+
+    `routes` is the enumeration from the routers we own
+    (`permissions.router_routes(*main.API_ROUTERS)`), not `app.routes`: the
+    app-level list is a lazy tree in current fastapi, so it would miss every
+    included route and pass vacuously.
 
     Runs at startup (`main.lifespan`) so a route that forgets its level fails to
     boot instead of failing open, and in the tests so the sweeps and the
@@ -239,10 +274,11 @@ def assert_routes_classified(app) -> dict[tuple[str, str], str]:
     """
     declared_keys: set[tuple[str, str]] = set()
     problems: list[str] = []
-    for route in app.routes:
-        if not isinstance(route, APIRoute):
-            # Starlette's docs/openapi routes are not part of the API contract.
-            continue
+    if not routes:
+        # Fail closed: with no routes both loops below pass vacuously, which is
+        # exactly how a lazy route tree slipped past the guard before.
+        problems.append("no routes enumerated: nothing was checked against ROUTE_PERMISSIONS")
+    for route in routes:
         levels = declared_levels(route)
         if len(levels) > 1:
             problems.append(f"{route.path} declares {len(levels)} permission levels ({', '.join(levels)}); declare exactly one")

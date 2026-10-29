@@ -61,14 +61,35 @@ from url_utils import normalize_import_url
 from version import __version__
 from zip_service import arcname_for_asset
 
+# The routers this app serves, in include order. One list drives both the
+# startup guard and the `include_router` calls below, so a router cannot be
+# served without being checked (or checked without being served).
+API_ROUTERS = (
+    system.router,
+    settings.router,
+    library.router,
+    auth_users.router,
+    audit_log.router,
+    uploads.router,
+    imports.router,
+    import_runs_router,
+    asset_files.router,
+    assets.router,
+    folders.router,
+    projects.router,
+    trash.router,
+)
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     validate_auth_configuration()
     # Fail at boot, not at the first request: a route that forgot its permission
     # level (or drifted from ROUTE_PERMISSIONS) is a security bug, so this check
-    # refuses to start serving until it is fixed.
-    permissions.assert_routes_classified(app)
+    # refuses to start serving until it is fixed. The routes come from the
+    # routers we own, not from `app.routes`: fastapi's lazy route tree hides the
+    # included routes, and a guard that sees nothing checks nothing.
+    permissions.assert_routes_classified(permissions.router_routes(*API_ROUTERS))
     # Same contract one level down: a mutating route that emits no audit event
     # (and is not exempt with a reason) is a bug that must not reach production.
     audit.assert_audit_coverage()
@@ -130,19 +151,8 @@ app.add_middleware(
 )
 app.add_middleware(RequestIDMiddleware)
 
-app.include_router(system.router)
-app.include_router(settings.router)
-app.include_router(library.router)
-app.include_router(auth_users.router)
-app.include_router(audit_log.router)
-app.include_router(uploads.router)
-app.include_router(imports.router)
-app.include_router(import_runs_router)
-app.include_router(asset_files.router)
-app.include_router(assets.router)
-app.include_router(folders.router)
-app.include_router(projects.router)
-app.include_router(trash.router)
+for router in API_ROUTERS:
+    app.include_router(router)
 
 
 # Compatibility re-exports: the test patch surface ------------------------------

@@ -33,7 +33,6 @@ from uuid import uuid4
 import pytest
 from argon2 import PasswordHasher
 from fastapi import HTTPException
-from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from httpx import Response
 from PIL import Image
@@ -884,12 +883,17 @@ def test_every_api_route_has_a_level() -> None:
     `assert_routes_classified` is the production guard (it also runs at startup),
     so a test that only called it would be testing itself. The walk below states
     the same facts directly off `declared_levels()`, which is what a reviewer
-    needs to see.
+    needs to see. Both the walk and the cardinality assertion are mandatory: an
+    empty or partial enumeration must fail here, not pass vacuously.
     """
-    matrix = permissions.assert_routes_classified(main.app)
+    api_routes = permissions.router_routes(*main.API_ROUTERS)
+    assert len(api_routes) == len(permissions.ROUTE_PERMISSIONS), (
+        f"{len(api_routes)} routes enumerated from main.API_ROUTERS but "
+        f"{len(permissions.ROUTE_PERMISSIONS)} keys in ROUTE_PERMISSIONS"
+    )
+    matrix = permissions.assert_routes_classified(api_routes)
     assert matrix == permissions.ROUTE_PERMISSIONS, "the checker must return the audited matrix"
 
-    api_routes = [route for route in main.app.routes if isinstance(route, APIRoute)]
     seen: set[tuple[str, str]] = set()
     for route in api_routes:
         levels = permissions.declared_levels(route)

@@ -25,6 +25,7 @@ restoring it.
 import pytest
 from argon2 import PasswordHasher
 from fastapi import Depends, FastAPI
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from sqlmodel import Session, delete, select
 
@@ -417,15 +418,17 @@ def test_an_unknown_role_in_the_database_fails_closed(client: TestClient) -> Non
 # --- the startup check itself ----------------------------------------------
 
 
-def tiny_app(path: str, *dependencies) -> FastAPI:
-    """A throwaway app with one route, so a matrix can be checked in isolation."""
+def tiny_app(path: str, *dependencies) -> list[APIRoute]:
+    """The routes of a throwaway app with one route, so a matrix can be checked in isolation."""
     app = FastAPI()
 
     def handler():
         return {"ok": True}
 
     app.get(path, dependencies=list(dependencies))(handler)
-    return app
+    # A route declared directly on the app stays a plain APIRoute (only
+    # include_router is lazy), so filtering here is exact, not a walk of a tree.
+    return [route for route in app.routes if isinstance(route, APIRoute)]
 
 
 def test_assert_routes_classified_accepts_a_matching_matrix(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -490,3 +493,13 @@ def test_assert_routes_classified_rejects_a_stale_matrix_entry(monkeypatch: pyte
 
     message = str(excinfo.value)
     assert "GET /gone is in ROUTE_PERMISSIONS but no such route exists" in message
+
+
+def test_assert_routes_classified_rejects_an_empty_route_list(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An empty enumeration must fail, not pass vacuously."""
+    monkeypatch.setattr(permissions, "ROUTE_PERMISSIONS", {})
+
+    with pytest.raises(RuntimeError) as excinfo:
+        permissions.assert_routes_classified([])
+
+    assert "no routes enumerated" in str(excinfo.value)
