@@ -223,11 +223,33 @@ def assess_snapshot(fstype: str, path: Path) -> tuple[str, bool, str]:
         return ZFS_DATASET, False, "the zfs dataset does not grant snapshot to this principal"
 
     if fstype == "btrfs":
-        if binary("btrfs") is None:
-            return BTRFS_SUBVOL, False, "btrfs snapshots need the btrfs binary, which is not installed"
-        return BTRFS_SUBVOL, False, "btrfs snapshots require root privileges"
+        return _btrfs_verdict(path)
 
     return NO_METHOD, False, f"no snapshot method for {fstype}"
+
+
+def _btrfs_verdict(path: Path) -> tuple[str, bool, str]:
+    """The btrfs arm of ``assess_snapshot``: ask the sidecar, never the local binary.
+
+    BTRFS needs ``CAP_SYS_ADMIN``, so the API container carries no btrfs binary
+    and cannot snapshot anything itself; the answer comes from the opt-in
+    sidecar the operator configured (``snapshot_btrfs.probe_sidecar``). This is
+    its own seam so a test can drive the probe without a real sidecar, and so a
+    probe that raises is still a btrfs answer rather than the blanket
+    ``no_method`` report ``capability()`` writes for an unexpected failure.
+    """
+    try:
+        import snapshot_btrfs
+
+        probe = snapshot_btrfs.probe_sidecar(path)
+    except Exception:
+        return (
+            BTRFS_SUBVOL,
+            False,
+            "btrfs snapshot capability could not be detected; "
+            "see CONFIGURATION.md (Snapshots (BTRFS sidecar))",
+        )
+    return BTRFS_SUBVOL, probe.state is snapshot_btrfs.BtrfsState.READY, probe.reason
 
 
 def database_directory(database_url: Optional[str]) -> Optional[Path]:

@@ -124,3 +124,11 @@ SNAPSHOT_POLICY_PREDELETE = env_policy("SNAPSHOT_POLICY_PREDELETE", os.getenv("S
 SNAPSHOT_POLICY_PREPURGE = env_policy("SNAPSHOT_POLICY_PREPURGE", os.getenv("SNAPSHOT_POLICY_PREPURGE", "strict"), "strict")
 SNAPSHOT_POLICY_PREBULK = env_policy("SNAPSHOT_POLICY_PREBULK", os.getenv("SNAPSHOT_POLICY_PREBULK", "strict"), "strict")
 SNAPSHOT_REQUIRE_CAPABILITY = env_bool("SNAPSHOT_REQUIRE_CAPABILITY", False)
+
+# BTRFS snapshots are opt-in through a privileged sidecar: an empty URL means
+# disabled (the default), never broken. The health probe runs inside every
+# capability detection, so its timeout is a hardcoded budget rather than an
+# operator-tunable environment key.
+SNAPSHOT_BTRFS_SIDECAR_URL = os.getenv("SNAPSHOT_BTRFS_SIDECAR_URL", "")
+SNAPSHOT_BTRFS_SIDECAR_TOKEN = os.getenv("SNAPSHOT_BTRFS_SIDECAR_TOKEN", "")
+SNAPSHOT_BTRFS_TIMEOUT_SECONDS = 1

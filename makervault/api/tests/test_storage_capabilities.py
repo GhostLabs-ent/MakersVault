@@ -14,14 +14,18 @@ still finds the break-glass login available.
 """
 
 import ctypes
+import socket
+import urllib.error
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, delete
 
+import config
 import db
 import login_throttle as login_throttle_module
+import snapshot_btrfs
 import storage_capabilities
 from db import engine
 from main import app
@@ -433,32 +437,58 @@ def test_cephfs_ext_and_tmpfs_detection_never_enters_a_subprocess(tmp_path, monk
         assert len(volumes) == 1
 
 
-def test_btrfs_with_the_binary_is_detected_but_needs_root(tmp_path, monkeypatch) -> None:
+def test_btrfs_without_a_sidecar_url_is_not_usable_and_opens_no_socket(tmp_path, monkeypatch) -> None:
     library = make_library(tmp_path)
     fake_magic(monkeypatch, storage_capabilities.BTRFS_MAGIC)
     write_mounts(tmp_path, monkeypatch, [(str(library), "btrfs"), ("/", "ext4")])
-    monkeypatch.setattr(storage_capabilities, "binary", lambda name: "/usr/bin/btrfs")
+    monkeypatch.setattr(config, "SNAPSHOT_BTRFS_SIDECAR_URL", "")
+
+    def forbidden_socket(*args, **kwargs):
+        raise AssertionError("a socket was opened for a disabled btrfs sidecar")
+
+    monkeypatch.setattr(socket, "socket", forbidden_socket)
+
+    volumes = storage_capabilities.detect(library_root=library, database_url=None)
+
+    volume = volumes[0]
+    # The method surviving proves no socket was attempted: a raised exception
+    # would have been swallowed into "capability detection failed" / "none".
+    assert volume.snapshot_method == "btrfs_subvol"
+    assert volume.usable is False
+    assert "CONFIGURATION.md" in volume.reason
+
+
+def test_btrfs_with_an_unreachable_sidecar_names_the_state(tmp_path, monkeypatch) -> None:
+    library = make_library(tmp_path)
+    fake_magic(monkeypatch, storage_capabilities.BTRFS_MAGIC)
+    write_mounts(tmp_path, monkeypatch, [(str(library), "btrfs"), ("/", "ext4")])
+    monkeypatch.setattr(config, "SNAPSHOT_BTRFS_SIDECAR_URL", "http://sidecar.test:8765")
+
+    def refuse(method, path, payload=None):
+        raise urllib.error.URLError("connection refused")
+
+    monkeypatch.setattr(snapshot_btrfs, "http_call", refuse)
 
     volumes = storage_capabilities.detect(library_root=library, database_url=None)
 
     volume = volumes[0]
     assert volume.snapshot_method == "btrfs_subvol"
     assert volume.usable is False
-    assert "root privileges" in volume.reason
+    assert "unreachable" in volume.reason
 
 
-def test_btrfs_without_the_binary_names_the_missing_binary(tmp_path, monkeypatch) -> None:
+def test_btrfs_with_a_ready_sidecar_is_usable(tmp_path, monkeypatch) -> None:
     library = make_library(tmp_path)
     fake_magic(monkeypatch, storage_capabilities.BTRFS_MAGIC)
     write_mounts(tmp_path, monkeypatch, [(str(library), "btrfs"), ("/", "ext4")])
-    monkeypatch.setattr(storage_capabilities, "binary", lambda name: None)
+    monkeypatch.setattr(config, "SNAPSHOT_BTRFS_SIDECAR_URL", "http://sidecar.test:8765")
+    monkeypatch.setattr(snapshot_btrfs, "http_call", lambda method, path, payload=None: (200, '{"state": "ready"}'))
 
     volumes = storage_capabilities.detect(library_root=library, database_url=None)
 
     volume = volumes[0]
     assert volume.snapshot_method == "btrfs_subvol"
-    assert volume.usable is False
-    assert "binary" in volume.reason
+    assert volume.usable is True
 
 
 # --- side-effect freedom ----------------------------------------------------

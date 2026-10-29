@@ -149,7 +149,7 @@ overlay, nfs, cifs, xfs and fuse; anything else reports `unknown`.
 |---|---|
 | `cephfs_snapdir` | `<root>/.snap` must already exist and be writable by the process. The probe never creates it. |
 | `zfs_dataset` | the `zfs` binary and delegated `snapshot` rights on the dataset; both probes are bounded at 2 s. |
-| `btrfs_subvol` | detected, but snapshotting requires root privileges, so it is reported unusable. |
+| `btrfs_subvol` | detected, but taking a snapshot needs `CAP_SYS_ADMIN`, which the API container does not have, so it is reported unusable unless the operator opts into the privileged sidecar described in "Snapshots (BTRFS sidecar)" below. Without that sidecar the method is still detected, the reason names this document, and no socket is opened. |
 | `none` | no snapshot method for this filesystem; the reason names the `fstype`. |
 
 `os.access` is always true for root, so the CephFS writability check is weakest
@@ -363,3 +363,161 @@ deployment notes; it is operator evidence, not a substitute for the unit tests.
 
 Real-pool verification is manual, and the container's `/dev/zfs` is the first
 thing to check when the probe reports `unavailable` on a host that has ZFS.
+
+## Snapshots (BTRFS sidecar)
+
+BTRFS gives an unprivileged process no way to take a snapshot: `btrfs subvolume
+snapshot` needs `CAP_SYS_ADMIN`, and the API container deliberately runs without
+it. So `btrfs_subvol` (see "Storage snapshot capabilities") is served by a small
+opt-in helper container that holds the capability and the library mount, and the
+API talks to it over the compose network on port 8765. An empty
+`SNAPSHOT_BTRFS_SIDECAR_URL` is the normal, supported state: no sidecar is
+configured, and nothing else in the product changes.
+
+With no sidecar configured the app degrades cleanly. `btrfs_subvol` is still
+detected as the method for the volume, it is simply not usable, the capability
+report's `reason` says so and names this document, and no socket is opened, so a
+deployment that never opted in pays nothing for capability detection. The helper
+reports one of three states, and the capability report's `reason` uses the same
+words:
+
+* `ready` -- the sidecar answered `GET /health` with `"state": "ready"`, so the
+  volume reports `btrfs_subvol` usable and create, list and delete all go
+  through the sidecar.
+* `disabled` -- `SNAPSHOT_BTRFS_SIDECAR_URL` is empty. Nothing is broken: the
+  volume reports `btrfs_subvol` unusable and the reason says the sidecar is not
+  configured.
+* `unreachable` -- the URL is set but the sidecar did not answer, answered with
+  a non-2xx status, or answered a body that does not say `"state": "ready"`. The
+  reason carries the URL and what actually happened, and the fix is on the
+  sidecar (its token, its mount, its capability), not in the API.
+
+The sidecar and the API share the same `snapshots` name scheme, and the store is
+the dot-directory `.snap` inside the mount, so the library scan keeps ignoring it
+exactly as it ignores CephFS's `.snap` store.
+
+The helper is a separate build (`makervault/snapshot-sidecar`) carrying only
+`btrfs-progs` and the two stdlib modules `guard.py` and `server.py`. A clearly
+marked example override, opt-in and not part of any shipped manifest:
+
+```yaml
+# docker-compose.override.yml -- opt-in BTRFS snapshot sidecar (example)
+services:
+  api:
+    environment:
+      SNAPSHOT_BTRFS_SIDECAR_URL: http://snapshot-sidecar:8765
+      SNAPSHOT_BTRFS_SIDECAR_TOKEN: ${SNAPSHOT_BTRFS_SIDECAR_TOKEN:?the sidecar token is required}
+  snapshot-sidecar:
+    build: ./snapshot-sidecar
+    cap_add:
+      - SYS_ADMIN
+    cap_drop:
+      - ALL
+    read_only: true
+    environment:
+      SNAPSHOT_BTRFS_SIDECAR_TOKEN: ${SNAPSHOT_BTRFS_SIDECAR_TOKEN:?the sidecar token is required}
+      SNAPSHOT_BTRFS_SIDECAR_MOUNT: /library
+    volumes:
+      # The one host path the sidecar may touch: the library subvolume, read-write.
+      - /srv/makersvault/library:/library
+```
+
+There are deliberately no published ports: the sidecar is reachable only on the
+compose network, so nothing outside the deployment can send it a token or a
+name. The token is required to boot (the helper exits non-zero when
+`SNAPSHOT_BTRFS_SIDECAR_TOKEN` is empty, and compares it in constant time), and
+it must be the same value in the API and in the sidecar. `read_only: true` is
+the third layer: the container's own filesystem is immutable, so the bind mount
+is the only writable path in it, and it is the one library subvolume.
+
+### What the sidecar is allowed to do
+
+`CAP_SYS_ADMIN` is the largest privilege grant in this product. In a container it
+is close to root on the host kernel's surface: an abused helper could mount,
+snapshot or delete filesystems rather than the one library subvolume, which is
+exactly the danger the CephFS and ZFS providers avoid by never needing root at
+all. The grant is contained on purpose:
+
+* the sidecar sees one host path -- the library subvolume, bind-mounted
+  read-write at `/library`. There is no other mount, no docker socket, no host
+  root, and the container's own root filesystem is read-only.
+* the API never sends a path, and the name is the only client-supplied field in
+  the whole API. A name must match the `snapshots` name scheme, and the helper
+  re-validates it and resolves the destination before proving it is still
+  strictly inside the mount, so `..`, a slash, a backslash, a NUL byte, a
+  leading `-`, an absolute path and a planted symlink are all refused before any
+  command runs. A request body carrying any key other than `name` is refused
+  with 400 and no action.
+* the only commands it can build are `btrfs subvolume snapshot -r`, whose `-r`
+  makes every snapshot read-only, and `btrfs subvolume delete` for one name
+  inside `.snap`. They are argv lists handed to `subprocess.run` with
+  `shell=False`, never shell strings, so no name is ever interpreted by a shell.
+* it publishes no ports, so it is reachable only from the compose network, and
+  it refuses to boot without `SNAPSHOT_BTRFS_SIDECAR_TOKEN`. The token is never
+  logged and never echoed in a response.
+* every other capability is dropped (`cap_drop: [ALL]`), so `SYS_ADMIN` is the
+  only one it has, and the API container itself never gains the capability: the
+  API process cannot snapshot anything, not even by mistake.
+
+| Key | Default | Effect |
+|---|---|---|
+| `SNAPSHOT_BTRFS_SIDECAR_URL` | empty (disabled) | Base URL of the sidecar, for example `http://snapshot-sidecar:8765`. Empty means no sidecar is configured: `btrfs_subvol` stays detected but unusable and no socket is opened. |
+| `SNAPSHOT_BTRFS_SIDECAR_TOKEN` | empty | The bearer token the API sends and the sidecar requires; it must equal the sidecar's own `SNAPSHOT_BTRFS_SIDECAR_TOKEN`. The sidecar refuses to boot without one, and a mismatch makes the volume report `unreachable`. |
+
+The health probe is bounded at a hardcoded 1 second
+(`SNAPSHOT_BTRFS_TIMEOUT_SECONDS`); it is not an environment key, because it
+runs inside every capability detection and a slow sidecar must not stall the
+report.
+
+### Real-btrfs verification (MANUAL)
+
+None of this can be exercised in CI: the sidecar needs `CAP_SYS_ADMIN` and a real
+btrfs filesystem, so a real deployment is the only place to prove it. On a host
+with btrfs, as root, create a scratch filesystem with a library subvolume and
+mount it:
+
+```
+mkfs.btrfs /dev/sdX
+mount /dev/sdX /mnt/btrfs-check
+btrfs subvolume create /mnt/btrfs-check/library
+```
+
+Start the sidecar against that mount -- same image, same capability, same token
+as the override above -- and check that it is up:
+
+```
+curl -H "Authorization: Bearer $SNAPSHOT_BTRFS_SIDECAR_TOKEN" http://localhost:8765/health
+```
+
+Expected: `"state": "ready"` plus the mount and whether `.snap` exists. Point
+`SNAPSHOT_BTRFS_SIDECAR_URL` at it, take a snapshot through the API (or post the
+name straight to the sidecar), and confirm what the filesystem thinks happened:
+
+```
+curl -X POST -H "Authorization: Bearer $SNAPSHOT_BTRFS_SIDECAR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "20260101T000000Z-manual-abc123"}' http://localhost:8765/snapshots
+btrfs subvolume list -o /mnt/btrfs-check/library/.snap
+btrfs property get -ts /mnt/btrfs-check/library/.snap/20260101T000000Z-manual-abc123 ro
+```
+
+Expected: the name is created, `btrfs subvolume list -o <mount>/.snap` shows it
+under the store, and `btrfs property get` prints `ro=true`, so the snapshot is
+read-only and cannot be modified through the store. Delete it again, then confirm
+that a hostile name and a `path` key are both refused with 400 and no action:
+
+```
+curl -X DELETE -H "Authorization: Bearer $SNAPSHOT_BTRFS_SIDECAR_TOKEN" \
+  http://localhost:8765/snapshots/20260101T000000Z-manual-abc123
+curl -X POST -H "Authorization: Bearer $SNAPSHOT_BTRFS_SIDECAR_TOKEN" \
+  -d '{"name": "../etc/passwd"}' http://localhost:8765/snapshots
+curl -X POST -H "Authorization: Bearer $SNAPSHOT_BTRFS_SIDECAR_TOKEN" \
+  -d '{"name": "20260101T000000Z-manual-abc123", "path": "/etc"}' \
+  http://localhost:8765/snapshots
+```
+
+Expected: 204 for the delete, and 400 for both hostile bodies -- the traversal
+name fails the name check and the extra `path` key is refused before the name is
+looked at. Record the run in the deployment notes; it is operator evidence, not
+CI evidence, and it is not a substitute for
+`makervault/api/tests/test_snapshot_sidecar_guard.py`.

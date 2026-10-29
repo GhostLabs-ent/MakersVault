@@ -58,7 +58,15 @@ PINNED_TO_CONTAINER_PATHS: set[str] = {"FILE_STORAGE", "DB_URL"}
 LEGACY_ALIASES: set[str] = {"MOUNT_IMPORT_PATH"}
 # Deprecated no-op, deliberately not forwarded.
 DEPRECATED_NO_OPS: set[str] = {"AUTH_TOKEN_TTL"}
-EXCEPTIONS: set[str] = PINNED_TO_CONTAINER_PATHS | LEGACY_ALIASES | DEPRECATED_NO_OPS
+
+# Opt-in BTRFS sidecar keys, deliberately not forwarded. An unconfigured
+# deployment must not point at a sidecar that is not running, so the manifest
+# leaves both unset and the code default (empty) means "disabled". They are
+# documented in `.env.example` and CONFIGURATION.md, and the "not forwarded"
+# half is pinned in test_snapshot_btrfs.py.
+SIDECAR_KEYS: set[str] = {"SNAPSHOT_BTRFS_SIDECAR_URL", "SNAPSHOT_BTRFS_SIDECAR_TOKEN"}
+
+EXCEPTIONS: set[str] = PINNED_TO_CONTAINER_PATHS | LEGACY_ALIASES | DEPRECATED_NO_OPS | SIDECAR_KEYS
 
 # If the regex silently stops matching, the derived set shrinks and every
 # forwarding test keeps passing over less and less. These sentinels and per-file

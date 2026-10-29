@@ -3,11 +3,12 @@
 This is the provider layer that S1's capability report only promised. A provider
 turns "this volume reported method X" into three operations -- create, list,
 delete -- plus a read-only view path, and it is the only place that knows how a
-snapshot is actually made. Three providers exist today: CephFS's ``.snap``
-directory, ZFS dataset snapshots, and a local copy, which is a test double and
-never a production provider. Any volume without a provider resolves to the null
-provider, so the app boots on every volume S1 can report instead of failing on
-the ones nobody has written a provider for yet.
+snapshot is actually made. Four providers exist today: CephFS's ``.snap``
+directory, ZFS dataset snapshots, BTRFS snapshots through an opt-in privileged
+sidecar, and a local copy, which is a test double and never a production
+provider. Any volume without a provider resolves to the null provider, so the
+app boots on every volume S1 can report instead of failing on the ones nobody
+has written a provider for yet.
 
 Semantics that callers must not lose sight of:
 
@@ -738,10 +739,10 @@ def provider_for(
 ) -> SnapshotProvider:
     """Build the provider for a capability method; unknown methods get the null one.
 
-    ``NO_METHOD``, ``btrfs_subvol`` and any string nobody has implemented all
-    resolve to ``NullProvider`` without raising, so the app boots on every volume
-    S1 can report and a later slice adds a method by adding a branch here, not by
-    making boot conditional.
+    ``NO_METHOD`` and any string nobody has implemented resolve to
+    ``NullProvider`` without raising, so the app boots on every volume S1 can
+    report and a later slice adds a method by adding a branch here, not by making
+    boot conditional.
     """
     library = Path(root) if root is not None else library_root()
     if method == storage_capabilities.CEPHFS_SNAPDIR:
@@ -754,4 +755,12 @@ def provider_for(
         import snapshot_zfs
 
         return snapshot_zfs.ZfsProvider(library, policy=policy, snapshot_root=snapshot_root)
+    if method == storage_capabilities.BTRFS_SUBVOL:
+        # Function-local: ``snapshot_btrfs`` imports this module, so a top-level
+        # import here would be circular. ``import db`` is the established idiom.
+        # No ``snapshot_root``: the store is the base default ``root/.snap``, the
+        # path the sidecar writes into the mounted library.
+        import snapshot_btrfs
+
+        return snapshot_btrfs.BtrfsProvider(library, policy=policy)
     return NullProvider(library, policy=policy, snapshot_root=snapshot_root)
