@@ -263,23 +263,38 @@ sessions stay valid.
   That is the same disclosure class as the storage filenames in
   `GET /library/scan` errors, which viewers already receive; it is read-only and
   grants no new action.
-* **Settings reads are admin**, so an editor opening the Settings panel sees
-  "Failed to load storage settings." rather than a populated form. That is
-  honest: they cannot change it either.
+* **Settings reads are admin**, and the client no longer makes a non-admin pay
+  for it: the Storage Structure card is hidden from the settings menu and the
+  mount-import card from the Imports section below `admin`, and the reads behind
+  them are never issued (`settings/Settings.tsx` passes `enabled: isAdmin` to
+  `useStorageSettings`/`useMountImportSettings`). The storage section still
+  renders a not-permitted state if reached directly, but the menu does not offer
+  it. That is honest: they cannot change it either.
 * **Editors act on every asset.** There is no per-asset ownership in this
   ticket; Mf-arm6 owns that, and it will need a per-record check inside the
   handlers (the level stays `write`).
 * **The web client** maps a 403 to "Your role does not allow this action."
-  (`lib/api.ts`, `assertOk`). Nothing else in the UI is role-aware yet.
+  (`lib/api.ts`, `assertOk`) and gates the admin-only surfaces on the role
+  `GET /me` reports: the sidebar "Audit log" entry, the Storage Structure
+  settings entry and the mount-import card in the Imports section are hidden
+  below `admin`, and a direct visit to the audit view renders a not-permitted
+  state instead of the raw 403 (`lib/auth.ts` `roleAtLeast`,
+  `ui/SidebarFooter.tsx`, `ui/useSessionRole.ts`, `ui/NotPermitted.tsx`,
+  `ui/settings/Settings.tsx`). Nothing WRITE-level is gated yet, so an editor
+  and a viewer still see the same upload, folder, scan, asset and import
+  actions - the ones a viewer's API calls refuse; Mf-3r90 owns that. The client
+  is honesty, not enforcement: every hidden or ungated control is still refused
+  by the API.
 * **Audit.** Every audited action now writes one row (one per affected asset on
   the batch routes) in the same transaction as the mutation, so an audit write
   failure is a failed mutation - fail-closed, except for the two filesystem-only
   actions (`trash.purge`, `library.scan.start`), which are fail-loud. That costs
   one insert per audited action and grants nothing new: the actor is the
   principal the request already carried, or `local` when auth is disabled.
-  `GET /audit` is an admin read, and the sidebar "Audit log" button is visible to
-  every signed-in user while the API answers 403 - the client is not the
-  security boundary. Details in [`AUDIT.md`](AUDIT.md).
+  `GET /audit` is an admin read; the sidebar "Audit log" entry is shown only
+  when `/me` reports `admin`, and a non-admin who reaches the audit view anyway
+  gets a not-permitted state while the API still answers 403 - the client is not
+  the security boundary. Details in [`AUDIT.md`](AUDIT.md).
 
 ## Non-goals (owned by other tickets)
 

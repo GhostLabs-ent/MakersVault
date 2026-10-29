@@ -386,11 +386,16 @@ covers the filters, paging and ordering;
 `::test_the_view_rejects_editor_viewer_and_anonymous` covers 403 for editor and
 viewer and 401 for anonymous.
 
-**The web client is not the security boundary.** `makervault/web/src/ui/AuditLog.tsx`
-is reachable from the sidebar "Audit log" button by any signed-in user, because
-the client holds no role state and hiding a button proves nothing. The API answers
-403 "Administrator access required" and the page renders that in place. Hiding the
-entry would be cosmetic; the 403 is the control.
+**The web client is not the security boundary.** As of Mf-5tyz the client holds
+the role `/me` last reported (`makervault/web/src/lib/auth.ts`,
+`ui/useSessionRole.ts`), so the sidebar "Audit log" entry and the admin-only
+settings entries are hidden below `admin` and a direct visit to the audit view
+renders a not-permitted state (`ui/NotPermitted.tsx`) instead of the raw 403.
+That is honesty, not enforcement: the API answers 403 "Administrator access
+required" and remains the control, `AuditLog.tsx` keeps its inline 403 handling
+as the race handler, and the role cache is only a cache - a stale or tampered
+value can hide or reveal a button but cannot change what the API allows.
+WRITE-level surfaces are still ungated (Mf-3r90).
 
 ## Scope and follow-ups
 
