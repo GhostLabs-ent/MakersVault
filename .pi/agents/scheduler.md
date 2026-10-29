@@ -67,8 +67,8 @@ rewrite its plan mid-wave.
   whose `deps` are not closed is not a candidate.
 - **Per-ticket fast gate**, `MV_RUN_ID=<ticket> make verify-fast`, inside the
   ticket's context.
-- **Full `make verify` after each merge into `main`** — one per merged lane, not
-  one per wave.
+- **One full `make verify` per BATCH**, on integrated `main`, immediately before
+  the CI dispatch. Not per merged lane, not per fix-forward, not per ticket.
 - **The end-of-batch single CI dispatch.** One `gh workflow run Verify` for the
   whole batch, never one per ticket.
 
@@ -316,9 +316,9 @@ Pass each orchestrator this brief, filled in:
 > `Mf-<id>: <summary>` as the subject, one commit, ticket ID in it.
 >
 > **Gate:** `MV_RUN_ID=<ticket> make verify-fast` in the lane, until green, and
-> never outside the lane. Never `make verify` — the full gate belongs to the
-> merge, on `main`. If the work needs a Docker build or the smoke script, say so
-> in the report instead of running the full gate.
+> never outside the lane. Never `make verify` — the full gate runs once at the end
+> of the batch, on `main`. If the work needs a Docker build or the smoke script,
+> say so in the report instead of running the full gate.
 >
 > **Record:** `tk add-note <ticket> "<what landed, sha, gate result>"`. Do **not**
 > `tk close` — the scheduler closes after the serial merge and the full gate on
@@ -369,7 +369,7 @@ the repo root:
 
 ```bash
 git merge --no-ff ticket/<ticket>
-make verify        # FULL gate after every merge
+MV_RUN_ID=<ticket> make verify-fast   # fast gate per merge; the FULL gate is once per batch
 ```
 
 `--no-ff` keeps the one-commit-per-ticket shape: one merge commit per lane and
@@ -380,7 +380,8 @@ the lane's own commit inside it, subject carrying the ticket ID.
   writer on the same branch with a stale gate. The resolution is itself
   **oracle commit-gated**, and it carries the ticket ID in its subject.
 - **A merge that conflicts twice ends the wave** (see Stop conditions).
-- After the resolution, re-run `make verify` on `main` before the next merge.
+- After the resolution, re-run `make verify-fast` on `main` before the next merge.
+  The single end-of-batch `make verify` (Phase 8) is what certifies the batch.
 
 ## Phase 7 — optional integration gate
 
@@ -486,12 +487,15 @@ is how it is enforced.
   (ruff + pytest for the API, eslint/tsc/vitest for the web without the vite
   build, `go test ./...` for the bridge — on the host toolchains, honouring
   `VENV=`/`PYTHON=`/`RUFF=`/`NPM=`/`GO=` overrides).
-- **Per merge and per wave:** `make verify` on `main` (lint in images, API tests,
-  web build, bridge, compose, container smoke — the things the fast gate
-  cannot see).
-- **The full gate is still mandatory per ticket** — no lane, no exceptions — for
-  anything touching migrations, Dockerfiles, `nginx.conf`, the compose manifests
-  or a dependency lock. That is one reason those files are serialisers.
+- **Per merge:** `make verify-fast` on `main` (catches a botched merge cheaply).
+- **Once per batch, and only once:** `make verify` on `main` — lint in images, API
+  tests, web build, bridge, compose, container smoke. Batches may be as large as
+  the queue allows; this is the gate that certifies the whole batch.
+- **No per-ticket, per-fix-forward or per-merge full gates**, including for
+  migrations, Dockerfiles, `nginx.conf`, compose manifests or dependency locks.
+  Those are covered by the end-of-batch gate *provided the batch ends green*; if
+  it is red, fix forward and re-run just that one gate. Report how many full
+  gates the batch actually ran.
 - **Once per batch:** dispatch CI and check all four jobs.
 
 ```bash
@@ -520,7 +524,7 @@ list; the table is here so you can explain a refusal.
 | `makervault/web/nginx.conf`, `makervault/web/security-headers.conf` | proxy and security-header config: no unit test covers it, full gate only |
 | `makervault/api/tests/conftest.py` | fixtures for every API test module: a change re-baselines the whole suite |
 | `makervault/scripts/` | the verification scripts themselves (container-smoke.sh, wave_plan.py): every gate runs them |
-| the Dockerfiles, `makervault/docker-compose.yml`, `docker-compose.deploy.yml`, `docker-compose.smoke.yml`, `docker-deploy.yml` | the owner decision makes a full `make verify` mandatory per ticket for these, so they can never ride in a lane |
+| the Dockerfiles, `makervault/docker-compose.yml`, `docker-compose.deploy.yml`, `docker-compose.smoke.yml`, `docker-deploy.yml` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
 | `makervault/api/main.py` (176 lines, 13 routers) | app wiring and the lifespan boot guards: the router split landed, so it is no longer the 16-commit chokepoint, but every new router and guard edits the include list |
 | `makervault/api/models.py` (129), `schemas.py` (398) | shared contract modules: two lanes adding models or schemas merge cleanly and then fail semantically |
 | `makervault/web/src/lib/api.ts` (1179) | one HTTP client for the whole UI: every frontend ticket appends to the same object |

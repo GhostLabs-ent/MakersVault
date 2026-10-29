@@ -165,7 +165,7 @@ it is an assumption rather than a measurement.
 | schema | `makervault/api/migrations.py`, any new migration (`makervault/api/migrations/`, `migration_*.py`) | append-only ledger (1-9 immutable); needs the full gate and a boot-guard recheck |
 | locks | `makervault/api/requirements*.txt` / `requirements*.lock`, `makervault/web/package.json`, `package-lock.json` | unseen by the fast gate; two lanes bumping one lock cannot be reconciled by git |
 | the gate | `Makefile`, `.github/workflows/*`, `makervault/scripts/` | an edit changes the commands every lane runs |
-| config | `makervault/web/nginx.conf`, `makervault/web/security-headers.conf`, the Dockerfiles, `makervault/docker-compose.yml`, `docker-compose.deploy.yml`, `docker-compose.smoke.yml`, `docker-deploy.yml` | no unit test covers it: the full gate is mandatory per ticket |
+| config | `makervault/web/nginx.conf`, `makervault/web/security-headers.conf`, the Dockerfiles, `makervault/docker-compose.yml`, `docker-compose.deploy.yml`, `docker-compose.smoke.yml`, `docker-deploy.yml` | no unit test covers it: verified by the single end-of-batch full gate |
 | fixtures | `makervault/api/tests/conftest.py` | re-baselines the whole API suite |
 | training wheels: API contracts | `makervault/api/main.py` (176 lines, 13 routers), `models.py` (129), `schemas.py` (398) | shared wiring and contracts: two lanes merge cleanly, then fail semantically |
 | training wheels: UI shell | `makervault/web/src/lib/api.ts` (1179), `src/ui/App.tsx` (427), `src/ui/Sidebar.tsx` (730), the `src/ui/asset-grid/` and `src/ui/settings/` directories | one HTTP client and the components every view mounts through |
@@ -222,7 +222,7 @@ One lane at a time, in dispatch (priority) order, from the repo root:
 
 ```bash
 git merge --no-ff ticket/<ticket>
-make verify        # full gate after every merge
+make verify        # full gate ONCE, at the end of the batch
 ```
 
 `--no-ff` keeps one commit per ticket. A conflict is resolved **on `main`, by a

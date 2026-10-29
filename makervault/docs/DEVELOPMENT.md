@@ -119,8 +119,10 @@ Runs ruff + pytest (API), eslint + tsc + vitest (web, no production build) and
 repo-local `.venv` (created with `uv venv --python 3.12 .venv`, then
 `uv pip install -r requirements.lock -r requirements-dev.lock ruff` from
 `makervault/api/`) and `npm ci` once in `makervault/web/`. Use it per ticket,
-then `make verify` once per wave; the full gate is still required per ticket for
-anything touching migrations, Dockerfiles, nginx, compose manifests or locks.
+then `make verify` exactly once per batch, on integrated main before the CI
+dispatch. There are no per-ticket, per-merge or per-fix-forward full gates: a
+ticket touching migrations, Dockerfiles, nginx, compose manifests or locks is
+covered by that single end-of-batch gate, provided the batch ends green.
 
 ## Focused verification
 
