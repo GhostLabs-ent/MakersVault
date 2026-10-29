@@ -131,11 +131,12 @@ def http_call(method: str, path: str, payload: Optional[dict[str, str]] = None) 
 def probe_sidecar(root: Optional[Path] = None) -> BtrfsProbe:
     """Ask the configured sidecar ``GET /health``; read-only and never raises.
 
-    ``root`` is accepted for symmetry with ``snapshot_zfs.probe_zfs`` but is not
-    used: the sidecar snapshots whatever ``SNAPSHOT_BTRFS_SIDECAR_MOUNT`` names,
-    and only the operator can know that path. An empty URL answers DISABLED
-    without opening a socket, so a deployment that never opted in pays nothing
-    for capability detection.
+    ``root`` is the library root this API reads (``snapshot_zfs.probe_zfs`` takes
+    the same argument); it is used to prove the sidecar writes the store this API
+    lists. The sidecar snapshots whatever ``SNAPSHOT_BTRFS_SIDECAR_MOUNT`` names,
+    so the two services must see one directory at two paths -- see
+    CONFIGURATION.md. An empty URL answers DISABLED without opening a socket, so a
+    deployment that never opted in pays nothing for capability detection.
     """
     url, _token = sidecar_settings()
     if not url:
@@ -147,7 +148,8 @@ def probe_sidecar(root: Optional[Path] = None) -> BtrfsProbe:
     if not 200 <= status < 300:
         return BtrfsProbe(state=BtrfsState.UNREACHABLE, url=url, reason=_unreachable_reason(url, f"HTTP {status}"))
     try:
-        state = json.loads(body).get("state")
+        report = json.loads(body)
+        state = report.get("state")
     except (AttributeError, TypeError, ValueError):
         return BtrfsProbe(
             state=BtrfsState.UNREACHABLE, url=url, reason=_unreachable_reason(url, "the /health body is not a JSON object")
@@ -156,7 +158,33 @@ def probe_sidecar(root: Optional[Path] = None) -> BtrfsProbe:
         return BtrfsProbe(
             state=BtrfsState.UNREACHABLE, url=url, reason=_unreachable_reason(url, f"the sidecar reported state {state!r}")
         )
+    mismatch = _store_mismatch(root, report)
+    if mismatch is not None:
+        return BtrfsProbe(state=BtrfsState.UNREACHABLE, url=url, reason=_unreachable_reason(url, mismatch))
     return BtrfsProbe(state=BtrfsState.READY, url=url, reason=_ready_reason(url))
+
+
+def _store_mismatch(root: Optional[Path], report: dict) -> Optional[str]:
+    """Why the sidecar's store is not the store this API lists, or None when it is.
+
+    One directory, two paths: a deployment that binds the same host directory
+    into both services resolves this exactly when the paths agree and otherwise
+    by the store the sidecar reports as existing being visible here, under
+    ``<library>/.snap``. When neither holds, a create would succeed into a store
+    ``list()`` never reads -- empty browse, dead retention -- so the volume is
+    unreachable rather than usable.
+    """
+    library = Path(root) if root is not None else snapshots.library_root()
+    expected = library / snapshots.SNAPSHOT_DIRNAME
+    store = report.get("store")
+    if not isinstance(store, str) or not store:
+        return f"the /health body did not report the store it writes (this API reads {expected})"
+    if Path(store) in (expected, expected.resolve()) or (report.get("store_exists") is True and expected.is_dir()):
+        return None
+    return (
+        f"the sidecar writes {store} but this API reads {expected}: the two services are not sharing one "
+        "directory, so a snapshot would land where the API can never list it"
+    )
 
 
 class BtrfsProvider(snapshots.SnapshotProvider):

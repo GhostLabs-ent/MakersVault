@@ -14,6 +14,7 @@ still finds the break-glass login available.
 """
 
 import ctypes
+import json
 import socket
 import urllib.error
 from pathlib import Path
@@ -482,7 +483,9 @@ def test_btrfs_with_a_ready_sidecar_is_usable(tmp_path, monkeypatch) -> None:
     fake_magic(monkeypatch, storage_capabilities.BTRFS_MAGIC)
     write_mounts(tmp_path, monkeypatch, [(str(library), "btrfs"), ("/", "ext4")])
     monkeypatch.setattr(config, "SNAPSHOT_BTRFS_SIDECAR_URL", "http://sidecar.test:8765")
-    monkeypatch.setattr(snapshot_btrfs, "http_call", lambda method, path, payload=None: (200, '{"state": "ready"}'))
+    # A ready sidecar must also be writing the store this API lists: same path here.
+    health = json.dumps({"state": "ready", "store": str(library / ".snap"), "store_exists": False})
+    monkeypatch.setattr(snapshot_btrfs, "http_call", lambda method, path, payload=None: (200, health))
 
     volumes = storage_capabilities.detect(library_root=library, database_url=None)
 

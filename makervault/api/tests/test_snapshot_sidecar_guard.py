@@ -470,16 +470,22 @@ def test_the_compose_example_keeps_the_privilege_envelope() -> None:
     )
 
 
-def test_the_compose_example_binds_exactly_one_library_path() -> None:
+def test_the_compose_example_binds_one_host_directory_into_both_services() -> None:
     block = fenced_yaml_block(configuration_doc())
     lines = block.splitlines()
 
     volume_keys = [index for index, line in enumerate(lines) if line.strip() == "volumes:"]
-    assert len(volume_keys) == 1, f"expected one volumes: key in the compose example, found {len(volume_keys)}"
+    assert len(volume_keys) == 2, f"expected one volumes: key per service, found {len(volume_keys)}"
 
-    entries = [line.strip() for line in lines[volume_keys[0] + 1 :] if line.strip().startswith("- ")]
-    assert len(entries) == 1, f"expected one bind mount, found {entries}"
-    assert entries[0].endswith(":/library"), f"the one bind mount should land on /library, got {entries[0]!r}"
+    binds = [line.strip()[2:] for line in lines if line.strip().startswith("- /srv/")]
+    assert len(binds) == 2, f"expected one bind mount per service, found {binds}"
+    host_paths = {bind.split(":")[0] for bind in binds}
+    assert len(host_paths) == 1, f"the two services must bind the same host directory, got {host_paths}"
+    targets = {bind.split(":")[1] for bind in binds}
+    # The sidecar's mount and the API's FILE_STORAGE are one directory at two paths;
+    # a bind on only one of them is the mismatch B1 found.
+    assert targets == {"/library", "/app/storage"}, f"unexpected bind targets {targets}"
+    assert "FILE_STORAGE: /app/storage" in [line.strip() for line in lines]
 
 
 def test_the_security_note_names_the_capability() -> None:

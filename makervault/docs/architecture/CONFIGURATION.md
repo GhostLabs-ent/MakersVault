@@ -423,16 +423,18 @@ deployment that never opted in pays nothing for capability detection. The helper
 reports one of three states, and the capability report's `reason` uses the same
 words:
 
-* `ready` -- the sidecar answered `GET /health` with `"state": "ready"`, so the
-  volume reports `btrfs_subvol` usable and create, list and delete all go
-  through the sidecar.
+* `ready` -- the sidecar answered `GET /health` with `"state": "ready"` and
+  reports a store this API can read, so the volume reports `btrfs_subvol` usable
+  and create, list and delete all go through the sidecar.
 * `disabled` -- `SNAPSHOT_BTRFS_SIDECAR_URL` is empty. Nothing is broken: the
   volume reports `btrfs_subvol` unusable and the reason says the sidecar is not
   configured.
 * `unreachable` -- the URL is set but the sidecar did not answer, answered with
-  a non-2xx status, or answered a body that does not say `"state": "ready"`. The
-  reason carries the URL and what actually happened, and the fix is on the
-  sidecar (its token, its mount, its capability), not in the API.
+  a non-2xx status, answered a body that does not say `"state": "ready"`, or
+  reported ready while writing a store this API does not read (the two services
+  are not sharing the library directory). The reason carries the URL and what
+  actually happened, and the fix is on the sidecar or on the two bind mounts,
+  not in the API.
 
 The sidecar and the API share the same `snapshots` name scheme, and the store is
 the dot-directory `.snap` inside the mount, so the library scan keeps ignoring it
@@ -447,8 +449,12 @@ marked example override, opt-in and not part of any shipped manifest:
 services:
   api:
     environment:
+      FILE_STORAGE: /app/storage
       SNAPSHOT_BTRFS_SIDECAR_URL: http://snapshot-sidecar:8765
       SNAPSHOT_BTRFS_SIDECAR_TOKEN: ${SNAPSHOT_BTRFS_SIDECAR_TOKEN:?the sidecar token is required}
+    volumes:
+      # The same host directory the sidecar mounts below, at the path the API reads.
+      - /srv/makersvault/library:/app/storage
   snapshot-sidecar:
     build: ./snapshot-sidecar
     cap_add:
@@ -463,6 +469,27 @@ services:
       # The one host path the sidecar may touch: the library subvolume, read-write.
       - /srv/makersvault/library:/library
 ```
+
+**The invariant that makes this work:** the sidecar's mount and the API's
+`FILE_STORAGE` must be the same directory, seen at two paths. The sidecar writes
+`<mount>/.snap/<name>` and the provider's `list()` reads `<FILE_STORAGE>/.snap`.
+If those are two different directories every symptom is silent: the capability
+report says `usable`, every create succeeds, `list()` stays empty, browse,
+restore and delete are unreachable, retention can never prune, and a scheduled
+snapshot leaves one unprunable subvolume behind per day. `probe_sidecar`
+compares the store the sidecar reports on `GET /health` with the store this API
+reads, and answers `unreachable` with both paths in the reason when they
+disagree. That is why the `api` service appears in the override at all: its
+`/app/storage` has to be the host library directory, not the named volume the
+shipped manifests give it.
+
+A Docker **named volume** cannot be the store on either side. A named volume is
+a plain directory on the host filesystem, not a btrfs subvolume, so
+`btrfs subvolume show` fails inside it and the sidecar refuses to boot -- that
+command is the only proof that the mount really is the subvolume it is supposed
+to be -- and subvolumes created under it would live in the wrong place anyway.
+The library has to be a bind mount of a real btrfs subvolume, and it has to be
+the same bind mount in both services.
 
 There are deliberately no published ports: the sidecar is reachable only on the
 compose network, so nothing outside the deployment can send it a token or a

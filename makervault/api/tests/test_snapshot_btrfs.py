@@ -352,7 +352,12 @@ def test_disabled_opens_no_socket(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
         ("", None, snapshot_btrfs.BtrfsState.DISABLED, "disabled"),
         (BASE_URL, urllib.error.URLError("no route"), snapshot_btrfs.BtrfsState.UNREACHABLE, "unreachable"),
         (BASE_URL, (200, '{"state": "starting"}'), snapshot_btrfs.BtrfsState.UNREACHABLE, "unreachable"),
-        (BASE_URL, (200, '{"state": "ready"}'), snapshot_btrfs.BtrfsState.READY, "ready"),
+        (
+            BASE_URL,
+            (200, '{"state": "ready", "store": "/library/.snap", "store_exists": false}'),
+            snapshot_btrfs.BtrfsState.READY,
+            "ready",
+        ),
     ],
     ids=["disabled", "unreachable-error", "unreachable-not-ready", "ready"],
 )
@@ -361,6 +366,9 @@ def test_the_probe_has_exactly_three_states(
 ) -> None:
     assert {state.value for state in snapshot_btrfs.BtrfsState} == {"disabled", "unreachable", "ready"}
     monkeypatch.setattr(config, "SNAPSHOT_BTRFS_SIDECAR_URL", url)
+    # The same path on both sides: the one shape where the store check can compare
+    # the two literals, so the ready row pins the store contract without a tree.
+    monkeypatch.setattr(snapshots, "library_root", lambda: Path("/library"))
 
     def answer_call(method: str, path: str, payload: Optional[dict[str, str]] = None) -> tuple[int, str]:
         if isinstance(answer, Exception):
@@ -383,6 +391,53 @@ def test_the_probe_never_raises_on_a_garbage_body(monkeypatch: pytest.MonkeyPatc
 
     assert probe.state is snapshot_btrfs.BtrfsState.UNREACHABLE
     assert "unreachable" in probe.reason
+
+
+def test_a_sidecar_writing_a_store_the_api_cannot_read_is_unreachable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The deployment B1 found: the sidecar serves /library from a host directory
+    # the API never mounts, so it writes /library/.snap while this API's library
+    # root has no store at all. Without the store check this reports ready, every
+    # create then succeeds, and list() stays empty forever.
+    root = tree_root(tmp_path)
+    sidecar_configured(monkeypatch)
+    monkeypatch.setattr(
+        snapshot_btrfs,
+        "http_call",
+        lambda method, path, payload=None: (
+            200,
+            json.dumps({"state": "ready", "mount": "/library", "store": "/library/.snap", "store_exists": True}),
+        ),
+    )
+
+    probe = snapshot_btrfs.probe_sidecar(root)
+
+    assert probe.state is snapshot_btrfs.BtrfsState.UNREACHABLE
+    assert "/library/.snap" in probe.reason
+    assert str(root / snapshots.SNAPSHOT_DIRNAME) in probe.reason
+    assert "CONFIGURATION.md" in probe.reason
+
+
+def test_one_host_directory_mounted_at_two_paths_is_ready(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # The documented override: the sidecar's /library and the API's FILE_STORAGE
+    # are one host directory, so the store the sidecar created is visible here
+    # even though the two containers spell the path differently.
+    root = tree_root(tmp_path)
+    with_store(root)
+    sidecar_configured(monkeypatch)
+    monkeypatch.setattr(
+        snapshot_btrfs,
+        "http_call",
+        lambda method, path, payload=None: (
+            200,
+            json.dumps({"state": "ready", "mount": "/library", "store": "/library/.snap", "store_exists": True}),
+        ),
+    )
+
+    probe = snapshot_btrfs.probe_sidecar(root)
+
+    assert probe.state is snapshot_btrfs.BtrfsState.READY
 
 
 # --- http_call --------------------------------------------------------------
