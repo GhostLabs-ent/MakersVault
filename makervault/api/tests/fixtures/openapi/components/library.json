@@ -1,0 +1,70 @@
+{
+  "LibraryScanStatusOut": {
+    "properties": {
+      "errors": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Errors",
+        "type": "array"
+      },
+      "failed": {
+        "default": 0,
+        "title": "Failed",
+        "type": "integer"
+      },
+      "finished_at": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Finished At"
+      },
+      "ignored": {
+        "default": 0,
+        "title": "Ignored",
+        "type": "integer"
+      },
+      "known": {
+        "default": 0,
+        "title": "Known",
+        "type": "integer"
+      },
+      "missing": {
+        "default": 0,
+        "title": "Missing",
+        "type": "integer"
+      },
+      "registered": {
+        "default": 0,
+        "title": "Registered",
+        "type": "integer"
+      },
+      "running": {
+        "title": "Running",
+        "type": "boolean"
+      },
+      "started_at": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Started At"
+      }
+    },
+    "required": [
+      "running"
+    ],
+    "title": "LibraryScanStatusOut",
+    "type": "object"
+  }
+}

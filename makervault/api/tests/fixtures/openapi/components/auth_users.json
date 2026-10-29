@@ -1,0 +1,231 @@
+{
+  "LoginRequest": {
+    "properties": {
+      "password": {
+        "title": "Password",
+        "type": "string"
+      },
+      "username": {
+        "title": "Username",
+        "type": "string"
+      }
+    },
+    "required": [
+      "username",
+      "password"
+    ],
+    "title": "LoginRequest",
+    "type": "object"
+  },
+  "LoginResponse": {
+    "properties": {
+      "expires_in": {
+        "title": "Expires In",
+        "type": "integer"
+      },
+      "refresh_token": {
+        "title": "Refresh Token",
+        "type": "string"
+      },
+      "token": {
+        "title": "Token",
+        "type": "string"
+      },
+      "token_type": {
+        "default": "bearer",
+        "title": "Token Type",
+        "type": "string"
+      }
+    },
+    "required": [
+      "token",
+      "expires_in",
+      "refresh_token"
+    ],
+    "title": "LoginResponse",
+    "type": "object"
+  },
+  "MeOut": {
+    "properties": {
+      "disabled": {
+        "title": "Disabled",
+        "type": "boolean"
+      },
+      "email": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Email"
+      },
+      "id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Id"
+      },
+      "kind": {
+        "title": "Kind",
+        "type": "string"
+      },
+      "role": {
+        "title": "Role",
+        "type": "string"
+      },
+      "username": {
+        "title": "Username",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "username",
+      "email",
+      "role",
+      "disabled",
+      "kind"
+    ],
+    "title": "MeOut",
+    "type": "object"
+  },
+  "RefreshRequest": {
+    "properties": {
+      "refresh_token": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Refresh Token"
+      }
+    },
+    "title": "RefreshRequest",
+    "type": "object"
+  },
+  "UserCreate": {
+    "properties": {
+      "email": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Email"
+      },
+      "password": {
+        "title": "Password",
+        "type": "string"
+      },
+      "role": {
+        "default": "viewer",
+        "title": "Role",
+        "type": "string"
+      },
+      "username": {
+        "title": "Username",
+        "type": "string"
+      }
+    },
+    "required": [
+      "username",
+      "password"
+    ],
+    "title": "UserCreate",
+    "type": "object"
+  },
+  "UserOut": {
+    "properties": {
+      "created_at": {
+        "title": "Created At",
+        "type": "string"
+      },
+      "disabled": {
+        "title": "Disabled",
+        "type": "boolean"
+      },
+      "email": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Email"
+      },
+      "id": {
+        "title": "Id",
+        "type": "string"
+      },
+      "role": {
+        "title": "Role",
+        "type": "string"
+      },
+      "updated_at": {
+        "title": "Updated At",
+        "type": "string"
+      },
+      "username": {
+        "title": "Username",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "username",
+      "email",
+      "role",
+      "disabled",
+      "created_at",
+      "updated_at"
+    ],
+    "title": "UserOut",
+    "type": "object"
+  },
+  "UserUpdate": {
+    "additionalProperties": false,
+    "description": "Fields an administrator may change on an account (Mf-2nbc).\n\nBoth are optional so `{\"disabled\": true}` keeps working, and an empty patch\nis rejected instead of silently changing nothing.",
+    "properties": {
+      "disabled": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Disabled"
+      },
+      "role": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Role"
+      }
+    },
+    "title": "UserUpdate",
+    "type": "object"
+  }
+}

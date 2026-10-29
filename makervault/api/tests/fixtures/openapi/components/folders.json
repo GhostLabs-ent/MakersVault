@@ -1,0 +1,116 @@
+{
+  "FolderDeletePreviewOut": {
+    "properties": {
+      "assets": {
+        "title": "Assets",
+        "type": "integer"
+      },
+      "bytes": {
+        "title": "Bytes",
+        "type": "integer"
+      },
+      "files": {
+        "title": "Files",
+        "type": "integer"
+      },
+      "folders": {
+        "title": "Folders",
+        "type": "integer"
+      },
+      "in_trash": {
+        "title": "In Trash",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "folders",
+      "assets",
+      "files",
+      "bytes",
+      "in_trash"
+    ],
+    "title": "FolderDeletePreviewOut",
+    "type": "object"
+  },
+  "FolderIn": {
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string"
+      },
+      "parent_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Parent Id"
+      },
+      "tags": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Tags",
+        "type": "array"
+      }
+    },
+    "required": [
+      "name"
+    ],
+    "title": "FolderIn",
+    "type": "object"
+  },
+  "FolderOut": {
+    "properties": {
+      "id": {
+        "title": "Id",
+        "type": "string"
+      },
+      "name": {
+        "title": "Name",
+        "type": "string"
+      },
+      "parent_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Parent Id"
+      },
+      "storage_path": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Storage Path"
+      },
+      "tags": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Tags",
+        "type": "array"
+      }
+    },
+    "required": [
+      "id",
+      "name",
+      "tags",
+      "parent_id"
+    ],
+    "title": "FolderOut",
+    "type": "object"
+  }
+}

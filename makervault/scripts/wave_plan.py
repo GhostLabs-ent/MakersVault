@@ -99,10 +99,20 @@ SERIALISERS: list[Serialiser] = [
             "was, but every new router and guard edits the include list"
         ),
     ),
-    *entry_group(
-        ("path", "makervault/api/models.py"),
-        ("path", "makervault/api/schemas.py"),
-        reason="shared contract modules: two lanes adding models or schemas merge cleanly and then fail semantically",
+    (
+        "path",
+        "makervault/api/models.py",
+        "shared contract modules: two lanes adding models or schemas merge cleanly and then fail semantically",
+    ),
+    (
+        "path",
+        "makervault/api/schemas/__init__.py",
+        (
+            "the barrel every schema module is re-exported through: the per-domain modules beside it are lane-able, "
+            "which is what the split is for, but the barrel's import list, MODULES tuple and __all__ are the shared "
+            "surface, and an exact path entry cannot be left on the deleted schemas.py because stem_files() keys on "
+            "(directory, stem) and never matches a file under schemas/"
+        ),
     ),
     (
         "path",

@@ -1,0 +1,77 @@
+{
+  "TrashEntryOut": {
+    "properties": {
+      "mtime": {
+        "title": "Mtime",
+        "type": "string"
+      },
+      "name": {
+        "title": "Name",
+        "type": "string"
+      },
+      "path": {
+        "title": "Path",
+        "type": "string"
+      },
+      "size": {
+        "title": "Size",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "path",
+      "name",
+      "size",
+      "mtime"
+    ],
+    "title": "TrashEntryOut",
+    "type": "object"
+  },
+  "TrashListOut": {
+    "properties": {
+      "entries": {
+        "items": {
+          "$ref": "#/components/schemas/TrashEntryOut"
+        },
+        "title": "Entries",
+        "type": "array"
+      },
+      "total_size": {
+        "title": "Total Size",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "entries",
+      "total_size"
+    ],
+    "title": "TrashListOut",
+    "type": "object"
+  },
+  "TrashPurgeOut": {
+    "properties": {
+      "bytes": {
+        "title": "Bytes",
+        "type": "integer"
+      },
+      "failed": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Failed",
+        "type": "array"
+      },
+      "purged": {
+        "title": "Purged",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "purged",
+      "bytes"
+    ],
+    "title": "TrashPurgeOut",
+    "type": "object"
+  }
+}

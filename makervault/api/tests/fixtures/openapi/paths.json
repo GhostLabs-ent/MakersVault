@@ -1,0 +1,3409 @@
+{
+  "/asset/{asset_id}": {
+    "delete": {
+      "description": "Delete one asset through the trash.\n\n``confirm_name`` is compared by hand and declared optional: a required query\nparameter would make FastAPI answer 422 for a missing name, while the API\ncontract is a 400 \"you did not confirm this asset\".\n\nThe gate compares ``filename``, not ``asset.name``: ``Asset.name`` defaults\nto ``\"\"``, so a name gate would degenerate into a no-op for any row that was\nnever renamed, and the filename is what the card actually shows.",
+      "operationId": "delete_asset_asset__asset_id__delete",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "asset_id",
+          "required": true,
+          "schema": {
+            "title": "Asset Id",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "confirm_name",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirm Name"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Delete Asset"
+    }
+  },
+  "/asset/{asset_id}/files": {
+    "get": {
+      "operationId": "get_supporting_files_asset__asset_id__files_get",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "asset_id",
+          "required": true,
+          "schema": {
+            "title": "Asset Id",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/AssetFileOut"
+                },
+                "title": "Response Get Supporting Files Asset  Asset Id  Files Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Get Supporting Files"
+    },
+    "post": {
+      "operationId": "upload_related_file_asset__asset_id__files_post",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "asset_id",
+          "required": true,
+          "schema": {
+            "title": "Asset Id",
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "properties": {
+                "file": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "file"
+              ],
+              "type": "object"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Upload Related File"
+    }
+  },
+  "/asset/{asset_id}/files/limits": {
+    "get": {
+      "operationId": "get_supporting_file_limits_asset__asset_id__files_limits_get",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "asset_id",
+          "required": true,
+          "schema": {
+            "title": "Asset Id",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetFileLimitsOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Get Supporting File Limits"
+    }
+  },
+  "/asset/{asset_id}/files/order": {
+    "put": {
+      "operationId": "reorder_supporting_files_route_asset__asset_id__files_order_put",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "asset_id",
+          "required": true,
+          "schema": {
+            "title": "Asset Id",
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AssetFileOrderUpdate"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/AssetFileOut"
+                },
+                "title": "Response Reorder Supporting Files Route Asset  Asset Id  Files Order Put",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Reorder Supporting Files Route"
+    }
+  },
+  "/asset/{asset_id}/files/{file_id}": {
+    "delete": {
+      "operationId": "remove_supporting_file_asset__asset_id__files__file_id__delete",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "asset_id",
+          "required": true,
+          "schema": {
+            "title": "Asset Id",
+            "type": "string"
+          }
+        },
+        {
+          "in": "path",
+          "name": "file_id",
+          "required": true,
+          "schema": {
+            "title": "File Id",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Remove Supporting File"
+    },
+    "get": {
+      "operationId": "download_supporting_file_asset__asset_id__files__file_id__get",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "asset_id",
+          "required": true,
+          "schema": {
+            "title": "Asset Id",
+            "type": "string"
+          }
+        },
+        {
+          "in": "path",
+          "name": "file_id",
+          "required": true,
+          "schema": {
+            "title": "File Id",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "inline",
+          "required": false,
+          "schema": {
+            "default": false,
+            "title": "Inline",
+            "type": "boolean"
+          }
+        },
+        {
+          "in": "query",
+          "name": "sig",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sig"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Download Supporting File"
+    },
+    "patch": {
+      "operationId": "rename_supporting_file_route_asset__asset_id__files__file_id__patch",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "asset_id",
+          "required": true,
+          "schema": {
+            "title": "Asset Id",
+            "type": "string"
+          }
+        },
+        {
+          "in": "path",
+          "name": "file_id",
+          "required": true,
+          "schema": {
+            "title": "File Id",
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AssetFileRename"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetFileOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Rename Supporting File Route"
+    }
+  },
+  "/asset/{asset_id}/folder": {
+    "post": {
+      "operationId": "update_asset_folder_asset__asset_id__folder_post",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "asset_id",
+          "required": true,
+          "schema": {
+            "title": "Asset Id",
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AssetFolderUpdate"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Update Asset Folder"
+    }
+  },
+  "/asset/{asset_id}/meta": {
+    "post": {
+      "operationId": "update_asset_meta_asset__asset_id__meta_post",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "asset_id",
+          "required": true,
+          "schema": {
+            "title": "Asset Id",
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AssetMetaUpdate"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Update Asset Meta"
+    }
+  },
+  "/asset/{asset_id}/prepared-print": {
+    "delete": {
+      "operationId": "remove_prepared_print_asset__asset_id__prepared_print_delete",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "asset_id",
+          "required": true,
+          "schema": {
+            "title": "Asset Id",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Remove Prepared Print"
+    },
+    "get": {
+      "operationId": "get_prepared_print_asset__asset_id__prepared_print_get",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "asset_id",
+          "required": true,
+          "schema": {
+            "title": "Asset Id",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "sig",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sig"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Get Prepared Print"
+    }
+  },
+  "/asset/{asset_id}/rename": {
+    "post": {
+      "operationId": "rename_asset_asset__asset_id__rename_post",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "asset_id",
+          "required": true,
+          "schema": {
+            "title": "Asset Id",
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AssetRename"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Rename Asset"
+    }
+  },
+  "/asset/{asset_id}/tags": {
+    "post": {
+      "operationId": "set_tags_asset__asset_id__tags_post",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "asset_id",
+          "required": true,
+          "schema": {
+            "title": "Asset Id",
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/TagUpdate"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Set Tags"
+    }
+  },
+  "/asset/{asset_id}/thumbnail-generated": {
+    "post": {
+      "operationId": "save_generated_thumbnail_asset__asset_id__thumbnail_generated_post",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "asset_id",
+          "required": true,
+          "schema": {
+            "title": "Asset Id",
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "properties": {
+                "file": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "file"
+              ],
+              "type": "object"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Save Generated Thumbnail"
+    }
+  },
+  "/assets": {
+    "get": {
+      "operationId": "list_assets_assets_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "q",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q"
+          }
+        },
+        {
+          "description": "Comma-separated tags",
+          "in": "query",
+          "name": "tags",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Comma-separated tags",
+            "title": "Tags"
+          }
+        },
+        {
+          "in": "query",
+          "name": "folder_id",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Folder Id"
+          }
+        },
+        {
+          "description": "Exact creator, case-insensitive",
+          "in": "query",
+          "name": "creator",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Exact creator, case-insensitive",
+            "title": "Creator"
+          }
+        },
+        {
+          "description": "Optional sort key; omitted keeps the default order",
+          "in": "query",
+          "name": "sort",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "enum": [
+                  "name",
+                  "size",
+                  "creator"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional sort key; omitted keeps the default order",
+            "title": "Sort"
+          }
+        },
+        {
+          "description": "Sort direction",
+          "in": "query",
+          "name": "order",
+          "required": false,
+          "schema": {
+            "default": "asc",
+            "description": "Sort direction",
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "title": "Order",
+            "type": "string"
+          }
+        },
+        {
+          "description": "Only assets that belong to no project",
+          "in": "query",
+          "name": "not_in_project",
+          "required": false,
+          "schema": {
+            "default": false,
+            "description": "Only assets that belong to no project",
+            "title": "Not In Project",
+            "type": "boolean"
+          }
+        },
+        {
+          "in": "query",
+          "name": "limit",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "maximum": 1000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit"
+          }
+        },
+        {
+          "in": "query",
+          "name": "offset",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offset"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/AssetOut"
+                },
+                "title": "Response List Assets Assets Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "List Assets"
+    }
+  },
+  "/assets/batch/delete": {
+    "post": {
+      "description": "Delete each asset through the trash, reporting one result per id.\n\n``confirm_count`` is compared by hand and declared optional, like the\nsingle-item name gate: a required field would answer 422 for a missing\nvalue, while the contract is a 400 \"you did not confirm this selection\".\nThe confirmation is a count rather than one name per id because typing N\nfilenames is absurd for a batch, while a count still proves the client is\ndeleting exactly the rows it displayed.",
+      "operationId": "batch_delete_assets_assets_batch_delete_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/BatchDeleteRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchDeleteOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Batch Delete Assets"
+    }
+  },
+  "/assets/batch/folder": {
+    "post": {
+      "operationId": "batch_move_to_folder_assets_batch_folder_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/BatchFolderRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchFolderOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Batch Move To Folder"
+    }
+  },
+  "/assets/batch/meta": {
+    "post": {
+      "description": "Set creator/notes on every id, with the batch partial-success contract.\n\nDeliberate divergence from `POST /asset/{asset_id}/meta`: there an explicit\n``null`` means \"unchanged\", while here it clears, because a batch has no\nper-asset typed value that `null` could disambiguate. Blank strings clear in\nboth places. There is no title/name field: title is a rename alias and a\nbatch rename would move files on disk.\n\nCreator and notes are the audit-exempt metadata class, so no event is\nstaged; rename and move are the audited asset edits (see\n`bulk_service.update_meta`).",
+      "operationId": "batch_update_meta_assets_batch_meta_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/BatchMetaRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchMetaOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Batch Update Meta"
+    }
+  },
+  "/assets/batch/tags": {
+    "post": {
+      "operationId": "batch_set_tags_assets_batch_tags_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/BatchTagsRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchTagsOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Batch Set Tags"
+    }
+  },
+  "/audit": {
+    "get": {
+      "operationId": "list_audit_events_audit_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "actor",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor"
+          }
+        },
+        {
+          "in": "query",
+          "name": "action",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          }
+        },
+        {
+          "in": "query",
+          "name": "target",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          }
+        },
+        {
+          "in": "query",
+          "name": "since",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Since"
+          }
+        },
+        {
+          "in": "query",
+          "name": "until",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Until"
+          }
+        },
+        {
+          "in": "query",
+          "name": "limit",
+          "required": false,
+          "schema": {
+            "default": 50,
+            "maximum": 200,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        {
+          "in": "query",
+          "name": "offset",
+          "required": false,
+          "schema": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditListOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "List Audit Events"
+    }
+  },
+  "/creators": {
+    "get": {
+      "description": "Distinct non-empty creators, deduped and sorted case-insensitively.\n\nTakes the same scoping filters as `GET /assets` and `GET /tags`, so the\nfacet works in library mode, folder mode and project mode. An unknown\nproject is a 404 like every other project route.",
+      "operationId": "list_creators_creators_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "q",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q"
+          }
+        },
+        {
+          "description": "Comma-separated tags",
+          "in": "query",
+          "name": "tags",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Comma-separated tags",
+            "title": "Tags"
+          }
+        },
+        {
+          "in": "query",
+          "name": "folder_id",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Folder Id"
+          }
+        },
+        {
+          "description": "Only creators on this project's assets",
+          "in": "query",
+          "name": "project_id",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only creators on this project's assets",
+            "title": "Project Id"
+          }
+        },
+        {
+          "description": "Only creators on assets that belong to no project",
+          "in": "query",
+          "name": "not_in_project",
+          "required": false,
+          "schema": {
+            "default": false,
+            "description": "Only creators on assets that belong to no project",
+            "title": "Not In Project",
+            "type": "boolean"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "type": "string"
+                },
+                "title": "Response List Creators Creators Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "List Creators"
+    }
+  },
+  "/download/zip": {
+    "post": {
+      "operationId": "download_zip_download_zip_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/DownloadRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Download Zip"
+    }
+  },
+  "/file-grants": {
+    "post": {
+      "description": "Mint a short-lived, single-path, read-only grant for each requested URL.\n\nRead-only by construction: the mint itself needs only READ, and the grants\nit mints are accepted only by `require_file_read` on the four file routes.\nThe client owns the public base, so every URL returned is API-relative.",
+      "operationId": "mint_file_grants_file_grants_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/FileGrantRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileGrantListOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Mint File Grants"
+    }
+  },
+  "/file/{asset_id}/{name}": {
+    "get": {
+      "operationId": "get_file_file__asset_id___name__get",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "asset_id",
+          "required": true,
+          "schema": {
+            "title": "Asset Id",
+            "type": "string"
+          }
+        },
+        {
+          "in": "path",
+          "name": "name",
+          "required": true,
+          "schema": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "sig",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sig"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Get File"
+    }
+  },
+  "/folder/{folder_id}": {
+    "delete": {
+      "description": "Delete a folder's whole directory subtree through the trash.\n\n``confirm_name`` is compared by hand and declared optional: a required query\nparameter would make FastAPI answer 422 for a missing name, while the API\ncontract is a 400 \"you did not confirm this folder\".",
+      "operationId": "delete_folder_folder__folder_id__delete",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "folder_id",
+          "required": true,
+          "schema": {
+            "title": "Folder Id",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "confirm_name",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirm Name"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Delete Folder"
+    },
+    "patch": {
+      "operationId": "update_folder_folder__folder_id__patch",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "folder_id",
+          "required": true,
+          "schema": {
+            "title": "Folder Id",
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/FolderIn"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FolderOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Update Folder"
+    }
+  },
+  "/folder/{folder_id}/delete-preview": {
+    "get": {
+      "operationId": "folder_delete_preview_folder__folder_id__delete_preview_get",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "folder_id",
+          "required": true,
+          "schema": {
+            "title": "Folder Id",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FolderDeletePreviewOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Folder Delete Preview"
+    }
+  },
+  "/folder/{folder_id}/download": {
+    "get": {
+      "operationId": "download_folder_folder__folder_id__download_get",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "folder_id",
+          "required": true,
+          "schema": {
+            "title": "Folder Id",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Download Folder"
+    }
+  },
+  "/folders": {
+    "get": {
+      "operationId": "list_folders_folders_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/FolderOut"
+                },
+                "title": "Response List Folders Folders Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "List Folders"
+    },
+    "post": {
+      "operationId": "create_folder_folders_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/FolderIn"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FolderOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Create Folder"
+    }
+  },
+  "/health": {
+    "get": {
+      "operationId": "health_health_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Health"
+    }
+  },
+  "/import": {
+    "post": {
+      "operationId": "import_from_link_import_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ImportRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Import From Link"
+    }
+  },
+  "/import/inspect": {
+    "post": {
+      "operationId": "inspect_import_link_import_inspect_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ImportRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportInspectOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Inspect Import Link"
+    }
+  },
+  "/import/project": {
+    "post": {
+      "operationId": "import_link_into_project_import_project_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ImportProjectRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportProjectOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Import Link Into Project"
+    }
+  },
+  "/import/zip": {
+    "post": {
+      "operationId": "import_zip_entries_import_zip_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ImportZipExtractRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportZipResult"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Import Zip Entries"
+    }
+  },
+  "/import/zip/entries": {
+    "post": {
+      "operationId": "list_import_zip_entries_import_zip_entries_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ImportZipEntriesRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportZipEntriesOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "List Import Zip Entries"
+    }
+  },
+  "/imports/runs": {
+    "get": {
+      "operationId": "list_import_runs_imports_runs_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "limit",
+          "required": false,
+          "schema": {
+            "default": 20,
+            "maximum": 200,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        {
+          "in": "query",
+          "name": "offset",
+          "required": false,
+          "schema": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportRunListOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "List Import Runs"
+    }
+  },
+  "/imports/runs/{run_id}": {
+    "get": {
+      "operationId": "get_import_run_imports_runs__run_id__get",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "run_id",
+          "required": true,
+          "schema": {
+            "title": "Run Id",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportRunDetailOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Get Import Run"
+    }
+  },
+  "/library/scan": {
+    "get": {
+      "operationId": "library_scan_status_library_scan_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LibraryScanStatusOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Library Scan Status"
+    },
+    "post": {
+      "operationId": "library_scan_start_library_scan_post",
+      "responses": {
+        "202": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LibraryScanStatusOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Library Scan Start"
+    }
+  },
+  "/login": {
+    "post": {
+      "operationId": "login_login_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/LoginRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginResponse"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Login"
+    }
+  },
+  "/logout": {
+    "post": {
+      "operationId": "logout_logout_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RefreshRequest"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Body"
+            }
+          }
+        }
+      },
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Logout"
+    }
+  },
+  "/me": {
+    "get": {
+      "operationId": "me_me_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Me"
+    }
+  },
+  "/project/{project_id}": {
+    "delete": {
+      "operationId": "delete_project_project__project_id__delete",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "project_id",
+          "required": true,
+          "schema": {
+            "title": "Project Id",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Delete Project"
+    },
+    "patch": {
+      "operationId": "update_project_project__project_id__patch",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "project_id",
+          "required": true,
+          "schema": {
+            "title": "Project Id",
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProjectUpdate"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Update Project"
+    }
+  },
+  "/project/{project_id}/assets": {
+    "delete": {
+      "description": "Remove memberships; assets and files are never touched.\n\nThis is the one DELETE route in the API that carries a JSON body, so a client\nmust send it explicitly - `client.request(\"DELETE\", path, json=...)` - because\nsome convenience helpers drop a body on DELETE.",
+      "operationId": "remove_project_assets_project__project_id__assets_delete",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "project_id",
+          "required": true,
+          "schema": {
+            "title": "Project Id",
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProjectAssetsRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectRemovalOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Remove Project Assets"
+    },
+    "get": {
+      "description": "The project's members, filtered, ordered and paged like `GET /assets`.\n\n`folder_id` is not a parameter here on purpose: membership, not location,\ndecides what is listed.",
+      "operationId": "list_project_assets_project__project_id__assets_get",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "project_id",
+          "required": true,
+          "schema": {
+            "title": "Project Id",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "q",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q"
+          }
+        },
+        {
+          "description": "Comma-separated tags",
+          "in": "query",
+          "name": "tags",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Comma-separated tags",
+            "title": "Tags"
+          }
+        },
+        {
+          "description": "Exact creator, case-insensitive",
+          "in": "query",
+          "name": "creator",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Exact creator, case-insensitive",
+            "title": "Creator"
+          }
+        },
+        {
+          "description": "Optional sort key; omitted keeps the default order",
+          "in": "query",
+          "name": "sort",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "enum": [
+                  "name",
+                  "size",
+                  "creator"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional sort key; omitted keeps the default order",
+            "title": "Sort"
+          }
+        },
+        {
+          "description": "Sort direction",
+          "in": "query",
+          "name": "order",
+          "required": false,
+          "schema": {
+            "default": "asc",
+            "description": "Sort direction",
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "title": "Order",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "limit",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "maximum": 1000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit"
+          }
+        },
+        {
+          "in": "query",
+          "name": "offset",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offset"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/AssetOut"
+                },
+                "title": "Response List Project Assets Project  Project Id  Assets Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "List Project Assets"
+    },
+    "post": {
+      "description": "Add memberships; unknown asset ids are reported per id (200 partial).",
+      "operationId": "add_project_assets_project__project_id__assets_post",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "project_id",
+          "required": true,
+          "schema": {
+            "title": "Project Id",
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProjectAssetsRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectMembersOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Add Project Assets"
+    }
+  },
+  "/projects": {
+    "get": {
+      "operationId": "list_projects_projects_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/ProjectOut"
+                },
+                "title": "Response List Projects Projects Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "List Projects"
+    },
+    "post": {
+      "operationId": "create_project_projects_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIn"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "201": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Create Project"
+    }
+  },
+  "/refresh": {
+    "post": {
+      "operationId": "refresh_token_refresh_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RefreshRequest"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Body"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginResponse"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Refresh Token"
+    }
+  },
+  "/settings/mount-import": {
+    "get": {
+      "operationId": "get_mount_import_settings_settings_mount_import_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MountImportSettingsOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Get Mount Import Settings"
+    },
+    "post": {
+      "operationId": "update_mount_import_settings_settings_mount_import_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MountImportSettings"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MountImportSettingsOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Update Mount Import Settings"
+    }
+  },
+  "/settings/storage": {
+    "get": {
+      "operationId": "get_storage_settings_settings_storage_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorageSettingsOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Get Storage Settings"
+    },
+    "post": {
+      "operationId": "update_storage_settings_settings_storage_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/StorageSettings"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorageSettingsOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Update Storage Settings"
+    }
+  },
+  "/tags": {
+    "get": {
+      "operationId": "list_tags_tags_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "q",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q"
+          }
+        },
+        {
+          "description": "Comma-separated tags",
+          "in": "query",
+          "name": "tags",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Comma-separated tags",
+            "title": "Tags"
+          }
+        },
+        {
+          "in": "query",
+          "name": "folder_id",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Folder Id"
+          }
+        },
+        {
+          "description": "Only tags on this project's assets",
+          "in": "query",
+          "name": "project_id",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only tags on this project's assets",
+            "title": "Project Id"
+          }
+        },
+        {
+          "description": "Only tags on assets that belong to no project",
+          "in": "query",
+          "name": "not_in_project",
+          "required": false,
+          "schema": {
+            "default": false,
+            "description": "Only tags on assets that belong to no project",
+            "title": "Not In Project",
+            "type": "boolean"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "type": "string"
+                },
+                "title": "Response List Tags Tags Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "List Tags"
+    }
+  },
+  "/thumb/{asset_id}.jpg": {
+    "get": {
+      "operationId": "get_thumb_thumb__asset_id__jpg_get",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "asset_id",
+          "required": true,
+          "schema": {
+            "title": "Asset Id",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "sig",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sig"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Get Thumb"
+    }
+  },
+  "/trash": {
+    "get": {
+      "operationId": "list_trash_trash_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrashListOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "List Trash"
+    }
+  },
+  "/trash/purge": {
+    "post": {
+      "operationId": "purge_trash_trash_purge_post",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "older_than_days",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Older Than Days"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrashPurgeOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Purge Trash"
+    }
+  },
+  "/upload": {
+    "post": {
+      "operationId": "upload_upload_post",
+      "requestBody": {
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "properties": {
+                "file": {
+                  "format": "binary",
+                  "type": "string"
+                },
+                "folder_id": {
+                  "type": "string"
+                },
+                "notes": {
+                  "type": "string"
+                },
+                "tags": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "file"
+              ],
+              "type": "object"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Upload"
+    }
+  },
+  "/users": {
+    "get": {
+      "operationId": "list_users_users_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/UserOut"
+                },
+                "title": "Response List Users Users Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "List Users"
+    },
+    "post": {
+      "operationId": "create_user_users_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UserCreate"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "201": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Create User"
+    }
+  },
+  "/users/{user_id}": {
+    "patch": {
+      "operationId": "update_user_users__user_id__patch",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "user_id",
+          "required": true,
+          "schema": {
+            "title": "User Id",
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UserUpdate"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Update User"
+    }
+  }
+}

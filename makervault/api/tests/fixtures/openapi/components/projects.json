@@ -1,0 +1,383 @@
+{
+  "ProjectAssetsRequest": {
+    "properties": {
+      "asset_ids": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Asset Ids",
+        "type": "array"
+      }
+    },
+    "title": "ProjectAssetsRequest",
+    "type": "object"
+  },
+  "ProjectIn": {
+    "additionalProperties": false,
+    "description": "Every field a project can be created with; the rest stays read-only.\n\nAn unknown field is a 422, matching `ProjectUpdate`: a silently ignored\nspelling mistake is a client bug the API should not hide.",
+    "properties": {
+      "cover_asset_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Cover Asset Id"
+      },
+      "creator": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Creator"
+      },
+      "description": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Description"
+      },
+      "licence": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Licence"
+      },
+      "licence_url": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Licence Url"
+      },
+      "name": {
+        "title": "Name",
+        "type": "string"
+      },
+      "origin": {
+        "default": "own",
+        "enum": [
+          "own",
+          "imported"
+        ],
+        "title": "Origin",
+        "type": "string"
+      },
+      "source_url": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Source Url"
+      }
+    },
+    "required": [
+      "name"
+    ],
+    "title": "ProjectIn",
+    "type": "object"
+  },
+  "ProjectMembersOut": {
+    "properties": {
+      "added": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Added",
+        "type": "array"
+      },
+      "failed": {
+        "default": [],
+        "items": {
+          "$ref": "#/components/schemas/BatchFailure"
+        },
+        "title": "Failed",
+        "type": "array"
+      },
+      "skipped": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Skipped",
+        "type": "array"
+      }
+    },
+    "title": "ProjectMembersOut",
+    "type": "object"
+  },
+  "ProjectOut": {
+    "description": "One project as read back; `owner_id` and the raw `metadata_json` TEXT stay out.\n\n`metadata_json` is the parsed print-settings object (`{}` when the column is\nempty or malformed), and `total_size` is the summed size of the members, so a\nlanding page renders both without a second request.",
+    "properties": {
+      "asset_count": {
+        "default": 0,
+        "title": "Asset Count",
+        "type": "integer"
+      },
+      "cover_asset_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Cover Asset Id"
+      },
+      "cover_thumb_url": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Cover Thumb Url"
+      },
+      "created_at": {
+        "title": "Created At",
+        "type": "string"
+      },
+      "creator": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Creator"
+      },
+      "description": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Description"
+      },
+      "id": {
+        "title": "Id",
+        "type": "string"
+      },
+      "licence": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Licence"
+      },
+      "licence_url": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Licence Url"
+      },
+      "metadata_json": {
+        "additionalProperties": true,
+        "default": {},
+        "title": "Metadata Json",
+        "type": "object"
+      },
+      "name": {
+        "title": "Name",
+        "type": "string"
+      },
+      "origin": {
+        "title": "Origin",
+        "type": "string"
+      },
+      "source_url": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Source Url"
+      },
+      "total_size": {
+        "default": 0,
+        "title": "Total Size",
+        "type": "integer"
+      },
+      "updated_at": {
+        "title": "Updated At",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "name",
+      "description",
+      "creator",
+      "source_url",
+      "licence",
+      "licence_url",
+      "origin",
+      "created_at",
+      "updated_at"
+    ],
+    "title": "ProjectOut",
+    "type": "object"
+  },
+  "ProjectRemovalOut": {
+    "properties": {
+      "failed": {
+        "default": [],
+        "items": {
+          "$ref": "#/components/schemas/BatchFailure"
+        },
+        "title": "Failed",
+        "type": "array"
+      },
+      "removed": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Removed",
+        "type": "array"
+      },
+      "skipped": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Skipped",
+        "type": "array"
+      }
+    },
+    "title": "ProjectRemovalOut",
+    "type": "object"
+  },
+  "ProjectUpdate": {
+    "additionalProperties": false,
+    "description": "A partial project patch (Mf-bl86).\n\nMembership of `model_fields_set` decides what changed, not the values: an\nexplicit `null` clears `description`, `cover_asset_id` or any provenance field,\nso `{\"creator\": null}` is a real edit while `{}` is rejected instead of\nsilently doing nothing.",
+    "properties": {
+      "cover_asset_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Cover Asset Id"
+      },
+      "creator": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Creator"
+      },
+      "description": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Description"
+      },
+      "licence": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Licence"
+      },
+      "licence_url": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Licence Url"
+      },
+      "name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Name"
+      },
+      "source_url": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Source Url"
+      }
+    },
+    "title": "ProjectUpdate",
+    "type": "object"
+  }
+}

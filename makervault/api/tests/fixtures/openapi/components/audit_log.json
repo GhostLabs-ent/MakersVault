@@ -1,0 +1,117 @@
+{
+  "AuditEventOut": {
+    "description": "One audit row; `detail` is parsed from the stored JSON, never a secret.",
+    "properties": {
+      "action": {
+        "title": "Action",
+        "type": "string"
+      },
+      "actor": {
+        "title": "Actor",
+        "type": "string"
+      },
+      "actor_kind": {
+        "title": "Actor Kind",
+        "type": "string"
+      },
+      "actor_role": {
+        "title": "Actor Role",
+        "type": "string"
+      },
+      "actor_user_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Actor User Id"
+      },
+      "created_at": {
+        "title": "Created At",
+        "type": "string"
+      },
+      "detail": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Detail"
+      },
+      "id": {
+        "title": "Id",
+        "type": "string"
+      },
+      "method": {
+        "title": "Method",
+        "type": "string"
+      },
+      "path": {
+        "title": "Path",
+        "type": "string"
+      },
+      "request_id": {
+        "title": "Request Id",
+        "type": "string"
+      },
+      "target": {
+        "title": "Target",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "created_at",
+      "actor",
+      "actor_user_id",
+      "actor_role",
+      "actor_kind",
+      "action",
+      "target",
+      "detail",
+      "request_id",
+      "method",
+      "path"
+    ],
+    "title": "AuditEventOut",
+    "type": "object"
+  },
+  "AuditListOut": {
+    "properties": {
+      "events": {
+        "items": {
+          "$ref": "#/components/schemas/AuditEventOut"
+        },
+        "title": "Events",
+        "type": "array"
+      },
+      "limit": {
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "events",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "AuditListOut",
+    "type": "object"
+  }
+}

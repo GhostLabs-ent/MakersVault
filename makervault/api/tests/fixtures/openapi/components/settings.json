@@ -1,0 +1,103 @@
+{
+  "MountImportSettings": {
+    "properties": {
+      "copy_files": {
+        "title": "Copy Files",
+        "type": "boolean"
+      },
+      "enabled": {
+        "title": "Enabled",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "enabled",
+      "copy_files"
+    ],
+    "title": "MountImportSettings",
+    "type": "object"
+  },
+  "MountImportSettingsOut": {
+    "properties": {
+      "copy_files": {
+        "title": "Copy Files",
+        "type": "boolean"
+      },
+      "enabled": {
+        "title": "Enabled",
+        "type": "boolean"
+      },
+      "path": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Path"
+      }
+    },
+    "required": [
+      "enabled",
+      "copy_files"
+    ],
+    "title": "MountImportSettingsOut",
+    "type": "object"
+  },
+  "StorageSettings": {
+    "properties": {
+      "template": {
+        "title": "Template",
+        "type": "string"
+      }
+    },
+    "required": [
+      "template"
+    ],
+    "title": "StorageSettings",
+    "type": "object"
+  },
+  "StorageSettingsOut": {
+    "properties": {
+      "allowed_tokens": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Allowed Tokens",
+        "type": "array"
+      },
+      "default_template": {
+        "title": "Default Template",
+        "type": "string"
+      },
+      "moved": {
+        "default": 0,
+        "title": "Moved",
+        "type": "integer"
+      },
+      "sample_path": {
+        "title": "Sample Path",
+        "type": "string"
+      },
+      "skipped": {
+        "default": 0,
+        "title": "Skipped",
+        "type": "integer"
+      },
+      "template": {
+        "title": "Template",
+        "type": "string"
+      }
+    },
+    "required": [
+      "template",
+      "default_template",
+      "allowed_tokens",
+      "sample_path"
+    ],
+    "title": "StorageSettingsOut",
+    "type": "object"
+  }
+}

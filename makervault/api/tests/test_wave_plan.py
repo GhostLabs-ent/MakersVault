@@ -134,7 +134,7 @@ DOCUMENTED_SERIALISERS: list[tuple[str, str]] = [
     ("path", "makervault/docker-deploy.yml"),
     ("path", "makervault/api/main.py"),
     ("path", "makervault/api/models.py"),
-    ("path", "makervault/api/schemas.py"),
+    ("path", "makervault/api/schemas/__init__.py"),
     ("path", "makervault/web/src/lib/api/index.ts"),
     ("path", "makervault/web/src/lib/api/baseUrl.ts"),
     ("path", "makervault/web/src/lib/api/http.ts"),
@@ -185,6 +185,8 @@ def test_a_new_file_beside_an_entry_point_does_not_serialise() -> None:
         "makervault/scripts/new_helper.py",
         "makervault/web/src/ui/asset-grid/useSomething.ts",
         "makervault/web/src/ui/settings/useSomething.ts",
+        "makervault/api/schemas/assets.py",
+        "makervault/api/schemas/projects.py",
     ):
         result = run("--lane", f"Mf-6d52:{path}")
         assert result.returncode == 0, result.stderr
@@ -195,6 +197,7 @@ def test_entry_files_still_serialise() -> None:
     for path in (
         "makervault/scripts/container-smoke.sh",
         "makervault/scripts/wave_plan.py",
+        "makervault/api/schemas/__init__.py",
         "makervault/web/src/ui/asset-grid/AssetGrid.tsx",
         "makervault/web/src/ui/settings/Settings.tsx",
     ):

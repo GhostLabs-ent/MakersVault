@@ -1,0 +1,236 @@
+{
+  "BatchDeleteOut": {
+    "properties": {
+      "deleted": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Deleted",
+        "type": "array"
+      },
+      "failed": {
+        "default": [],
+        "items": {
+          "$ref": "#/components/schemas/BatchFailure"
+        },
+        "title": "Failed",
+        "type": "array"
+      }
+    },
+    "title": "BatchDeleteOut",
+    "type": "object"
+  },
+  "BatchDeleteRequest": {
+    "properties": {
+      "asset_ids": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Asset Ids",
+        "type": "array"
+      },
+      "confirm_count": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Confirm Count"
+      }
+    },
+    "title": "BatchDeleteRequest",
+    "type": "object"
+  },
+  "BatchFailure": {
+    "properties": {
+      "code": {
+        "title": "Code",
+        "type": "string"
+      },
+      "error": {
+        "title": "Error",
+        "type": "string"
+      },
+      "id": {
+        "title": "Id",
+        "type": "string"
+      },
+      "status": {
+        "title": "Status",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "id",
+      "code",
+      "status",
+      "error"
+    ],
+    "title": "BatchFailure",
+    "type": "object"
+  },
+  "BatchFolderOut": {
+    "properties": {
+      "failed": {
+        "default": [],
+        "items": {
+          "$ref": "#/components/schemas/BatchFailure"
+        },
+        "title": "Failed",
+        "type": "array"
+      },
+      "updated": {
+        "default": [],
+        "items": {
+          "$ref": "#/components/schemas/AssetOut"
+        },
+        "title": "Updated",
+        "type": "array"
+      }
+    },
+    "title": "BatchFolderOut",
+    "type": "object"
+  },
+  "BatchFolderRequest": {
+    "properties": {
+      "asset_ids": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Asset Ids",
+        "type": "array"
+      },
+      "folder_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Folder Id"
+      }
+    },
+    "title": "BatchFolderRequest",
+    "type": "object"
+  },
+  "BatchMetaOut": {
+    "properties": {
+      "failed": {
+        "default": [],
+        "items": {
+          "$ref": "#/components/schemas/BatchFailure"
+        },
+        "title": "Failed",
+        "type": "array"
+      },
+      "updated": {
+        "default": [],
+        "items": {
+          "$ref": "#/components/schemas/AssetOut"
+        },
+        "title": "Updated",
+        "type": "array"
+      }
+    },
+    "title": "BatchMetaOut",
+    "type": "object"
+  },
+  "BatchMetaRequest": {
+    "additionalProperties": false,
+    "description": "A batch creator/notes edit (Mf-pnc2).\n\nOnly the two audit-exempt metadata fields are here. `title`/`name` are\ndeliberately absent: title is a rename alias, so a batch payload carrying it\nwould mass-rename files on disk. An absent field is unchanged, an explicit\n``null`` or a blank string clears, which diverges from the single endpoint's\n\"null is unchanged\" only because a batch has no meaningful \"typed nothing\".\nValues are validated once for the whole request, like `BatchFolderRequest`'s\n`folder_id`; a bad value fails the request, not one item per asset.",
+    "properties": {
+      "asset_ids": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Asset Ids",
+        "type": "array"
+      },
+      "creator": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Creator"
+      },
+      "notes": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Notes"
+      }
+    },
+    "title": "BatchMetaRequest",
+    "type": "object"
+  },
+  "BatchTagsOut": {
+    "properties": {
+      "failed": {
+        "default": [],
+        "items": {
+          "$ref": "#/components/schemas/BatchFailure"
+        },
+        "title": "Failed",
+        "type": "array"
+      },
+      "updated": {
+        "default": [],
+        "items": {
+          "$ref": "#/components/schemas/AssetOut"
+        },
+        "title": "Updated",
+        "type": "array"
+      }
+    },
+    "title": "BatchTagsOut",
+    "type": "object"
+  },
+  "BatchTagsRequest": {
+    "properties": {
+      "add_tags": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Add Tags",
+        "type": "array"
+      },
+      "asset_ids": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Asset Ids",
+        "type": "array"
+      },
+      "remove_tags": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Remove Tags",
+        "type": "array"
+      }
+    },
+    "title": "BatchTagsRequest",
+    "type": "object"
+  }
+}

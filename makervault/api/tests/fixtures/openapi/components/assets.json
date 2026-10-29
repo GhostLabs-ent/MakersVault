@@ -1,0 +1,443 @@
+{
+  "AssetFolderUpdate": {
+    "properties": {
+      "folder_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Folder Id"
+      }
+    },
+    "title": "AssetFolderUpdate",
+    "type": "object"
+  },
+  "AssetMetaUpdate": {
+    "description": "The single-asset metadata edit; validation happens before any rename.\n\nAn absent field is unchanged, a blank string clears (the legacy\n``strip() or None`` contract) and an explicit ``null`` is also unchanged:\nthe before-validator drops null keys so only a provided value can edit a\ncolumn. `collection` keeps that legacy behaviour and is not validated because\nADR 0003 retires it.",
+    "properties": {
+      "collection": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "deprecated": true,
+        "description": "Legacy v5.1 metadata; inert since Mf-aoyv. Use Projects. Still accepted so old clients keep working.",
+        "title": "Collection"
+      },
+      "creator": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Creator"
+      },
+      "name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Name"
+      },
+      "notes": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Notes"
+      },
+      "title": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Title"
+      }
+    },
+    "title": "AssetMetaUpdate",
+    "type": "object"
+  },
+  "AssetOut": {
+    "properties": {
+      "collection": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "deprecated": true,
+        "description": "Legacy v5.1 metadata; inert since Mf-aoyv. Use Projects. Kept in responses for old clients.",
+        "title": "Collection"
+      },
+      "creator": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Creator"
+      },
+      "filename": {
+        "title": "Filename",
+        "type": "string"
+      },
+      "folder_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Folder Id"
+      },
+      "id": {
+        "title": "Id",
+        "type": "string"
+      },
+      "is_reference": {
+        "default": false,
+        "title": "Is Reference",
+        "type": "boolean"
+      },
+      "mime": {
+        "title": "Mime",
+        "type": "string"
+      },
+      "missing_since": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Missing Since"
+      },
+      "name": {
+        "title": "Name",
+        "type": "string"
+      },
+      "notes": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Notes"
+      },
+      "prepared_print": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PreparedPrintOut"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "size": {
+        "title": "Size",
+        "type": "integer"
+      },
+      "slicer_filename": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Slicer Filename"
+      },
+      "slicer_url": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Slicer Url"
+      },
+      "storage_path": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Storage Path"
+      },
+      "supporting_file_count": {
+        "default": 0,
+        "title": "Supporting File Count",
+        "type": "integer"
+      },
+      "tags": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Tags",
+        "type": "array"
+      },
+      "thumb_url": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Thumb Url"
+      },
+      "title": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Title"
+      },
+      "url": {
+        "title": "Url",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "name",
+      "filename",
+      "mime",
+      "size",
+      "title",
+      "notes",
+      "creator",
+      "collection",
+      "tags",
+      "url",
+      "thumb_url",
+      "folder_id",
+      "storage_path"
+    ],
+    "title": "AssetOut",
+    "type": "object"
+  },
+  "AssetRename": {
+    "properties": {
+      "filename": {
+        "title": "Filename",
+        "type": "string"
+      }
+    },
+    "required": [
+      "filename"
+    ],
+    "title": "AssetRename",
+    "type": "object"
+  },
+  "DownloadRequest": {
+    "properties": {
+      "asset_ids": {
+        "anyOf": [
+          {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Asset Ids"
+      },
+      "filename": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Filename"
+      },
+      "folder_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Folder Id"
+      },
+      "project_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Project Id"
+      },
+      "tag": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Tag"
+      }
+    },
+    "title": "DownloadRequest",
+    "type": "object"
+  },
+  "PreparedPrintOut": {
+    "properties": {
+      "estimated_seconds": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Estimated Seconds"
+      },
+      "format": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Format"
+      },
+      "layer_height_mm": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Layer Height Mm"
+      },
+      "material": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Material"
+      },
+      "nozzle_mm": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Nozzle Mm"
+      },
+      "printer": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Printer"
+      },
+      "removable": {
+        "default": false,
+        "title": "Removable",
+        "type": "boolean"
+      },
+      "slicer": {
+        "default": "unknown",
+        "title": "Slicer",
+        "type": "string"
+      }
+    },
+    "title": "PreparedPrintOut",
+    "type": "object"
+  },
+  "TagUpdate": {
+    "properties": {
+      "tags": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Tags",
+        "type": "array"
+      }
+    },
+    "required": [
+      "tags"
+    ],
+    "title": "TagUpdate",
+    "type": "object"
+  }
+}

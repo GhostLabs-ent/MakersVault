@@ -1,0 +1,254 @@
+{
+  "ImportRunDetailOut": {
+    "properties": {
+      "discovered": {
+        "title": "Discovered",
+        "type": "integer"
+      },
+      "errors": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Errors",
+        "type": "array"
+      },
+      "failed": {
+        "title": "Failed",
+        "type": "integer"
+      },
+      "finished_at": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Finished At"
+      },
+      "id": {
+        "title": "Id",
+        "type": "string"
+      },
+      "ignored": {
+        "title": "Ignored",
+        "type": "integer"
+      },
+      "known": {
+        "title": "Known",
+        "type": "integer"
+      },
+      "mode": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Mode"
+      },
+      "reason": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Reason"
+      },
+      "registered": {
+        "title": "Registered",
+        "type": "integer"
+      },
+      "rejected": {
+        "title": "Rejected",
+        "type": "integer"
+      },
+      "root": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Root"
+      },
+      "skipped": {
+        "title": "Skipped",
+        "type": "integer"
+      },
+      "started_at": {
+        "title": "Started At",
+        "type": "number"
+      },
+      "status": {
+        "title": "Status",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "status",
+      "mode",
+      "root",
+      "reason",
+      "started_at",
+      "finished_at",
+      "registered",
+      "known",
+      "ignored",
+      "failed",
+      "rejected",
+      "discovered",
+      "skipped"
+    ],
+    "title": "ImportRunDetailOut",
+    "type": "object"
+  },
+  "ImportRunListOut": {
+    "properties": {
+      "limit": {
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "title": "Offset",
+        "type": "integer"
+      },
+      "runs": {
+        "items": {
+          "$ref": "#/components/schemas/ImportRunSummaryOut"
+        },
+        "title": "Runs",
+        "type": "array"
+      },
+      "total": {
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "runs",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ImportRunListOut",
+    "type": "object"
+  },
+  "ImportRunSummaryOut": {
+    "description": "One mounted-import run; counters are the raw persisted scan counters.\n\n`discovered` is their sum and `skipped` is `known + ignored`; `rejected` is\nthe oversize subset of `ignored`, surfaced separately. The summary omits\nper-file errors, which only the detail response carries.",
+    "properties": {
+      "discovered": {
+        "title": "Discovered",
+        "type": "integer"
+      },
+      "failed": {
+        "title": "Failed",
+        "type": "integer"
+      },
+      "finished_at": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Finished At"
+      },
+      "id": {
+        "title": "Id",
+        "type": "string"
+      },
+      "ignored": {
+        "title": "Ignored",
+        "type": "integer"
+      },
+      "known": {
+        "title": "Known",
+        "type": "integer"
+      },
+      "mode": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Mode"
+      },
+      "reason": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Reason"
+      },
+      "registered": {
+        "title": "Registered",
+        "type": "integer"
+      },
+      "rejected": {
+        "title": "Rejected",
+        "type": "integer"
+      },
+      "root": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Root"
+      },
+      "skipped": {
+        "title": "Skipped",
+        "type": "integer"
+      },
+      "started_at": {
+        "title": "Started At",
+        "type": "number"
+      },
+      "status": {
+        "title": "Status",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "status",
+      "mode",
+      "root",
+      "reason",
+      "started_at",
+      "finished_at",
+      "registered",
+      "known",
+      "ignored",
+      "failed",
+      "rejected",
+      "discovered",
+      "skipped"
+    ],
+    "title": "ImportRunSummaryOut",
+    "type": "object"
+  }
+}

@@ -1,0 +1,541 @@
+{
+  "ImportInspectOut": {
+    "properties": {
+      "filename": {
+        "title": "Filename",
+        "type": "string"
+      },
+      "is_zip": {
+        "title": "Is Zip",
+        "type": "boolean"
+      },
+      "mime": {
+        "title": "Mime",
+        "type": "string"
+      }
+    },
+    "required": [
+      "filename",
+      "mime",
+      "is_zip"
+    ],
+    "title": "ImportInspectOut",
+    "type": "object"
+  },
+  "ImportProjectOut": {
+    "description": "An import into a project: the project, what changed and why it may be empty.\n\n`assets` are the assets the import itself produced (already serialized), and\n`added`/`skipped` are their member ids. `failed` lists zip entry paths that\ncould not be extracted, never member-id failures. `gated` is true when the\nsite refused the files and only the page details were stored; `message` then\nexplains how to attach them.",
+    "properties": {
+      "added": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Added",
+        "type": "array"
+      },
+      "assets": {
+        "default": [],
+        "items": {
+          "$ref": "#/components/schemas/AssetOut"
+        },
+        "title": "Assets",
+        "type": "array"
+      },
+      "created": {
+        "title": "Created",
+        "type": "boolean"
+      },
+      "failed": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Failed",
+        "type": "array"
+      },
+      "gated": {
+        "default": false,
+        "title": "Gated",
+        "type": "boolean"
+      },
+      "message": {
+        "default": "",
+        "title": "Message",
+        "type": "string"
+      },
+      "project": {
+        "$ref": "#/components/schemas/ProjectOut"
+      },
+      "skipped": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Skipped",
+        "type": "array"
+      }
+    },
+    "required": [
+      "project",
+      "created"
+    ],
+    "title": "ImportProjectOut",
+    "type": "object"
+  },
+  "ImportProjectRequest": {
+    "description": "A website import that lands in a project (Mf-56z9).\n\n`entries=None` means \"do not unzip\": the whole file (or a whole zip) becomes\none asset. A list - even an empty one - means \"extract these entries\", exactly\nlike `/import/zip`. `project_id` targets an existing project; without it the\nimport finds the project for this model page or creates one.",
+    "properties": {
+      "entries": {
+        "anyOf": [
+          {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Entries"
+      },
+      "filename": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Filename"
+      },
+      "folder_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Folder Id"
+      },
+      "makerworld_cookie": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Makerworld Cookie"
+      },
+      "notes": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Notes"
+      },
+      "project_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Project Id"
+      },
+      "project_name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Project Name"
+      },
+      "tags": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Tags",
+        "type": "array"
+      },
+      "thingiverse_cookie": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Thingiverse Cookie"
+      },
+      "title": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Title"
+      },
+      "url": {
+        "title": "Url",
+        "type": "string"
+      }
+    },
+    "required": [
+      "url"
+    ],
+    "title": "ImportProjectRequest",
+    "type": "object"
+  },
+  "ImportRequest": {
+    "properties": {
+      "filename": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Filename"
+      },
+      "folder_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Folder Id"
+      },
+      "makerworld_cookie": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Makerworld Cookie"
+      },
+      "notes": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Notes"
+      },
+      "tags": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Tags",
+        "type": "array"
+      },
+      "thingiverse_cookie": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Thingiverse Cookie"
+      },
+      "title": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Title"
+      },
+      "url": {
+        "title": "Url",
+        "type": "string"
+      }
+    },
+    "required": [
+      "url"
+    ],
+    "title": "ImportRequest",
+    "type": "object"
+  },
+  "ImportZipEntriesOut": {
+    "properties": {
+      "entries": {
+        "items": {
+          "$ref": "#/components/schemas/ZipEntryOut"
+        },
+        "title": "Entries",
+        "type": "array"
+      },
+      "filename": {
+        "title": "Filename",
+        "type": "string"
+      }
+    },
+    "required": [
+      "filename",
+      "entries"
+    ],
+    "title": "ImportZipEntriesOut",
+    "type": "object"
+  },
+  "ImportZipEntriesRequest": {
+    "properties": {
+      "filename": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Filename"
+      },
+      "folder_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Folder Id"
+      },
+      "makerworld_cookie": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Makerworld Cookie"
+      },
+      "notes": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Notes"
+      },
+      "tags": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Tags",
+        "type": "array"
+      },
+      "thingiverse_cookie": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Thingiverse Cookie"
+      },
+      "title": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Title"
+      },
+      "url": {
+        "title": "Url",
+        "type": "string"
+      }
+    },
+    "required": [
+      "url"
+    ],
+    "title": "ImportZipEntriesRequest",
+    "type": "object"
+  },
+  "ImportZipExtractRequest": {
+    "properties": {
+      "entries": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Entries",
+        "type": "array"
+      },
+      "filename": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Filename"
+      },
+      "folder_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Folder Id"
+      },
+      "makerworld_cookie": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Makerworld Cookie"
+      },
+      "notes": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Notes"
+      },
+      "tags": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Tags",
+        "type": "array"
+      },
+      "thingiverse_cookie": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Thingiverse Cookie"
+      },
+      "title": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Title"
+      },
+      "url": {
+        "title": "Url",
+        "type": "string"
+      }
+    },
+    "required": [
+      "url",
+      "entries"
+    ],
+    "title": "ImportZipExtractRequest",
+    "type": "object"
+  },
+  "ImportZipResult": {
+    "properties": {
+      "assets": {
+        "items": {
+          "$ref": "#/components/schemas/AssetOut"
+        },
+        "title": "Assets",
+        "type": "array"
+      },
+      "failed": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Failed",
+        "type": "array"
+      }
+    },
+    "required": [
+      "assets"
+    ],
+    "title": "ImportZipResult",
+    "type": "object"
+  },
+  "ZipEntryOut": {
+    "properties": {
+      "path": {
+        "title": "Path",
+        "type": "string"
+      },
+      "size": {
+        "title": "Size",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "path",
+      "size"
+    ],
+    "title": "ZipEntryOut",
+    "type": "object"
+  }
+}

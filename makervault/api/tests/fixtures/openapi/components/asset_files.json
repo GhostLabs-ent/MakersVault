@@ -1,0 +1,157 @@
+{
+  "AssetFileLimitsOut": {
+    "properties": {
+      "count": {
+        "title": "Count",
+        "type": "integer"
+      },
+      "max_count": {
+        "title": "Max Count",
+        "type": "integer"
+      },
+      "max_file_bytes": {
+        "title": "Max File Bytes",
+        "type": "integer"
+      },
+      "max_total_bytes": {
+        "title": "Max Total Bytes",
+        "type": "integer"
+      },
+      "total_bytes": {
+        "title": "Total Bytes",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "count",
+      "total_bytes",
+      "max_count",
+      "max_file_bytes",
+      "max_total_bytes"
+    ],
+    "title": "AssetFileLimitsOut",
+    "type": "object"
+  },
+  "AssetFileOrderUpdate": {
+    "properties": {
+      "file_ids": {
+        "items": {
+          "type": "string"
+        },
+        "title": "File Ids",
+        "type": "array"
+      }
+    },
+    "required": [
+      "file_ids"
+    ],
+    "title": "AssetFileOrderUpdate",
+    "type": "object"
+  },
+  "AssetFileOut": {
+    "properties": {
+      "filename": {
+        "title": "Filename",
+        "type": "string"
+      },
+      "id": {
+        "title": "Id",
+        "type": "string"
+      },
+      "mime": {
+        "title": "Mime",
+        "type": "string"
+      },
+      "position": {
+        "default": 0,
+        "title": "Position",
+        "type": "integer"
+      },
+      "size": {
+        "title": "Size",
+        "type": "integer"
+      },
+      "url": {
+        "title": "Url",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "filename",
+      "mime",
+      "size",
+      "url"
+    ],
+    "title": "AssetFileOut",
+    "type": "object"
+  },
+  "AssetFileRename": {
+    "properties": {
+      "filename": {
+        "title": "Filename",
+        "type": "string"
+      }
+    },
+    "required": [
+      "filename"
+    ],
+    "title": "AssetFileRename",
+    "type": "object"
+  },
+  "FileGrantListOut": {
+    "properties": {
+      "grants": {
+        "items": {
+          "$ref": "#/components/schemas/FileGrantOut"
+        },
+        "title": "Grants",
+        "type": "array"
+      }
+    },
+    "required": [
+      "grants"
+    ],
+    "title": "FileGrantListOut",
+    "type": "object"
+  },
+  "FileGrantOut": {
+    "description": "One granted URL, relative to the API root (the client owns the public base).\n\n`path` echoes the requested string verbatim - query included - so a client can\nkey its cache by the exact path it holds, and `url` is that same path plus\n`sig`.",
+    "properties": {
+      "expires_at": {
+        "title": "Expires At",
+        "type": "integer"
+      },
+      "path": {
+        "title": "Path",
+        "type": "string"
+      },
+      "url": {
+        "title": "Url",
+        "type": "string"
+      }
+    },
+    "required": [
+      "path",
+      "url",
+      "expires_at"
+    ],
+    "title": "FileGrantOut",
+    "type": "object"
+  },
+  "FileGrantRequest": {
+    "description": "The file URLs to mint grants for; bounds are checked in the handler.\n\nThe route validates emptiness and the maximum count so both are a readable\n400, not a 422 produced by the model layer.",
+    "properties": {
+      "paths": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Paths",
+        "type": "array"
+      }
+    },
+    "title": "FileGrantRequest",
+    "type": "object"
+  }
+}

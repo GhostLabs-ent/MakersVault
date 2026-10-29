@@ -34,7 +34,7 @@ Files involved:
 | `makervault/api/audit.py` | taxonomy, `ROUTE_ACTIONS`, `EXEMPT_ROUTES`, `stage`, `record`, `list_events`, the drift guard |
 | `makervault/api/request_id.py` | one request id per request (`X-Request-ID` middleware) |
 | `makervault/api/models.py` | `AuditEvent`, describing the migration-created table (no `create_all` in this codebase) |
-| `makervault/api/schemas.py` | `AuditEventOut`, `AuditListOut` |
+| `makervault/api/schemas/audit_log.py` | `AuditEventOut`, `AuditListOut` |
 | `makervault/api/main.py` | `GET /audit`, the lifespan guard, and the emission call sites |
 | `makervault/web/src/ui/AuditLog.tsx` | the admin view behind the sidebar "Audit log" button |
 
