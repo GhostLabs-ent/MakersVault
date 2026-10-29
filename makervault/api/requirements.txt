@@ -2,10 +2,10 @@
 # api/requirements.txt
 # ------------------------------------------------
 argon2-cffi==25.1.0
-fastapi==0.115.0
+fastapi==0.141.1
 uvicorn[standard]==0.52.1
 sqlmodel==0.0.39
 python-multipart==0.0.9
 pillow==10.4.0
-starlette==0.38.5
+starlette==1.10.0
 PyJWT==2.9.0

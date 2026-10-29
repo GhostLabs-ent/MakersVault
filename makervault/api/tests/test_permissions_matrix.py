@@ -9,6 +9,11 @@ test plan: add a route without classifying it and
 without a call spec and `test_every_guarded_route_has_a_call_spec` fails. No
 route list is hand-written here.
 
+The sweep enumerates from `main.API_ROUTERS`, and a second test cross-checks that
+enumeration against fastapi's own walk of `main.app.routes`: a partial
+enumeration would shrink the sweep without any route losing its level, so
+served and enumerated routes must be equal.
+
 `CALLS` is the one place a request body is spelled out: one callable per matrix
 key, each building exactly one request. Nothing leaves the process - the import
 routes have their outbound fetch stubbed - and every row a request needs comes
@@ -32,7 +37,8 @@ from uuid import uuid4
 
 import pytest
 from argon2 import PasswordHasher
-from fastapi import HTTPException
+from fastapi import FastAPI, HTTPException
+from fastapi.routing import APIRoute, iter_route_contexts
 from fastapi.testclient import TestClient
 from httpx import Response
 from PIL import Image
@@ -912,6 +918,71 @@ def test_every_api_route_has_a_level() -> None:
                 )
 
     assert set(matrix) == seen, "every matrix key must be a real route, and every route a matrix key"
+
+
+def served_route_keys(routes) -> set[tuple[str, str]]:
+    """Every (method, path) the app actually serves, from fastapi's public walk.
+
+    `iter_route_contexts` expands the lazy route tree (fastapi 0.137+), so this
+    is the one view that does not come from `main.API_ROUTERS`: it is what the
+    guard would miss if the router list were incomplete.
+    """
+    keys: set[tuple[str, str]] = set()
+    for context in iter_route_contexts(list(routes)):
+        if not isinstance(context.route, APIRoute):
+            # Starlette's docs/openapi routes are not part of the API contract.
+            continue
+        for method in context.methods or ():
+            keys.add((method, context.path))
+    return keys
+
+
+def enumerated_route_keys(routes: list[APIRoute]) -> set[tuple[str, str]]:
+    """The (method, path) keys the routers declare."""
+    return {(method, route.path) for route in routes for method in route.methods}
+
+
+def assert_app_serves_exactly(enumerated: set[tuple[str, str]], app_routes) -> None:
+    """What the app serves must be exactly what the guard enumerated.
+
+    Mandatory cross-check: a subset enumeration would shrink the sweep without
+    any route losing its level, so the equality is asserted against fastapi's
+    own walk of `app.routes`, not against the matrix the enumeration also feeds.
+    """
+    served = served_route_keys(app_routes)
+    assert served == enumerated, (
+        "the app does not serve exactly the enumerated routes: "
+        f"served but not enumerated {sorted(served - enumerated)}, "
+        f"enumerated but not served {sorted(enumerated - served)}; "
+        "declare every route on a router listed in main.API_ROUTERS"
+    )
+
+
+def test_the_app_serves_exactly_the_enumerated_routes() -> None:
+    """The router enumeration is complete, checked against the app itself."""
+    enumerated = enumerated_route_keys(permissions.router_routes(*main.API_ROUTERS))
+    assert_app_serves_exactly(enumerated, main.app.routes)
+
+
+def test_a_route_declared_on_the_app_instead_of_a_router_is_caught() -> None:
+    """A stray app route is the failure the cross-check exists for.
+
+    A route declared straight on the app is invisible to the router
+    enumeration, so without this check it would be served with no level at all.
+    """
+    stray = FastAPI()
+
+    def handler():
+        return {"ok": True}
+
+    stray.get("/stray")(handler)
+
+    with pytest.raises(AssertionError) as excinfo:
+        assert_app_serves_exactly(set(), stray.routes)
+
+    message = str(excinfo.value)
+    assert "('GET', '/stray')" in message
+    assert "declare every route on a router listed in main.API_ROUTERS" in message
 
 
 def test_the_matrix_is_the_documented_size() -> None:

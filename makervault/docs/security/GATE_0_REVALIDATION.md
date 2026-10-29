@@ -40,30 +40,48 @@ suite to remain green before release.
 
 ### Python runtime
 
-Command basis: `pip-audit -r api/requirements.lock` against the resolved Python
-3.12 API environment, re-measured for Mf-9azr after `sqlmodel` moved to `0.0.39`
-and `uvicorn` moved to `0.52.1`.
+Command basis: `pip-audit -r api/requirements.lock --no-deps` against Python
+3.12, re-measured for Mf-0bl6 after `fastapi` moved `0.115.0 -> 0.141.1` and
+`starlette` moved `0.38.5 -> 1.10.0`. The pair is coupled, not independent:
+fastapi 0.115.0 requires `starlette<0.39`, fastapi 0.141.1 requires
+`starlette>=0.46.0` (resolved: 1.10.0), and the bump adds one transitive
+dependency, `annotated-doc==0.0.5`.
 
-Result: 118 advisory rows (83 distinct advisory identifiers) across four pinned
-packages:
+Before the bump, same tool and command, 2026-10-29: 116 advisory rows (81
+distinct advisory identifiers) across four pinned packages -
+`starlette==0.38.5` (14 rows), `python-multipart==0.0.9` (14), `pillow==10.4.0`
+(66), `PyJWT==2.9.0` (22).
 
-- `starlette==0.38.5` (14 rows)
-- `python-multipart==0.0.9` (14 rows)
+After the bump, same tool and command, 2026-10-29: 102 advisory rows (74
+distinct advisory identifiers) across three pinned packages:
+
 - `pillow==10.4.0` (66 rows)
 - `PyJWT==2.9.0` (22 rows)
+- `python-multipart==0.0.9` (14 rows)
 
-The count includes duplicate/overlapping advisory records returned by the audit
-service, so the earlier 52-record figure is not comparable row for row with this
-one; it is a re-measurement, not growth attributable to Mf-9azr. The `sqlmodel`
-and `uvicorn` bumps added no advisories, and no advisory names `fastapi`,
-`pydantic` or `SQLAlchemy` at the versions now pinned.
+All 14 starlette rows are cleared by the pair this ticket landed: every advisory
+recorded against 0.38.5 is fixed no earlier than `0.40.0` and the newest only at
+`1.3.1`, so 1.10.0 clears them and adds none. No advisory names
+`fastapi==0.141.1`, `annotated-doc==0.0.5`, `pydantic` or `SQLAlchemy` at the
+versions now pinned.
 
-Every recorded starlette advisory is fixed only in `>=0.40`, while
-`fastapi==0.115.0` requires `starlette<0.39`. The starlette rows therefore cannot
-be cleared by a starlette bump alone; they clear with the FastAPI/Starlette pair
-on `Mf-0bl6`. Gate 1 must select that compatible FastAPI/Starlette/Pydantic set
-and test the upgrade; the record is not a recommendation to install isolated
-transitive versions blindly.
+The counts include duplicate/overlapping advisory records returned by the audit
+service, and the advisory database itself moves, so these figures are not
+comparable row for row with an earlier measurement (the Mf-9azr record was 118
+rows / 83 identifiers for the same lock). They are re-measurements, not changes
+attributable to a bump.
+
+Two residuals are owned explicitly rather than dropped silently:
+
+- `python-multipart==0.0.9` (14 rows) is untouched here. The Mf-0bl6 acceptance
+  criteria exclude the floor and its CVEs; the multipart upload path is covered
+  by the API suite, but the pin stays until Gate 1 raises it (MV-SEC-004
+  remains `CONFIRMED`).
+- `starlette.testclient` now prefers `httpx2` and emits a
+  `StarletteDeprecationWarning` when it falls back to the `httpx==0.27.2` the
+  verification lock pins. This is test-only with no production exposure - the
+  warning comes from the test client, not the runtime image - and moving the
+  development lock to `httpx2` is a follow-up owned outside Mf-0bl6.
 
 ### Web runtime and development toolchain
 
