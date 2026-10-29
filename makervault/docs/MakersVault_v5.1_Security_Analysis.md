@@ -819,7 +819,7 @@ Do not rely only on `Content-Length`.
 ```text
 makervault/api/auth.py
 makervault/web/src/lib/auth.ts
-makervault/web/src/lib/api.ts
+makervault/web/src/lib/api/
 ```
 
 The API accepts:

@@ -38,11 +38,11 @@ Three things v3 states explicitly, because they are the traps:
   width stays 2-3: `--max-lanes` keeps its 1-3 cap and its default of 2. A deep
   queue changes when a lane starts, never how many run at once.
 - **Disjointness is economy, not legality.** Plan-ahead is not conditional on
-  disjoint touch-sets. Two tickets that both touch `api.ts` or `models.py` are
-  the highest-value pipeline case: both plans are legal, the delta check
-  arbitrates at implementation time, and every re-plan increments `replans` and
-  `oracle_calls`, so the spend is counted rather than assumed. Never start two
-  lanes on the same files - that rule is unchanged.
+  disjoint touch-sets. Two tickets that both touch `lib/api/index.ts` or
+  `models.py` are the highest-value pipeline case: both plans are legal, the
+  delta check arbitrates at implementation time, and every re-plan increments
+  `replans` and `oracle_calls`, so the spend is counted rather than assumed.
+  Never start two lanes on the same files - that rule is unchanged.
 - **`oracle_calls` is a self-reported ledger, not a trace.** There is no
   OpenTelemetry source for it: this repo has no opentelemetry/otlp dependency or
   code. The count is the scheduler's own tally of the gate invocations it
@@ -540,7 +540,10 @@ is here so you can explain a refusal, and
 | `makervault/api/main.py` | app wiring and the lifespan boot guards: the router split landed, so it is no longer the chokepoint it was, but every new router and guard edits the include list |
 | `makervault/api/models.py` | shared contract modules: two lanes adding models or schemas merge cleanly and then fail semantically |
 | `makervault/api/schemas.py` | shared contract modules: two lanes adding models or schemas merge cleanly and then fail semantically |
-| `makervault/web/src/lib/api.ts` | one HTTP client for the whole UI: every frontend ticket appends to the same object |
+| `makervault/web/src/lib/api/index.ts` | the barrel every UI file imports by name: the per-domain clients beside it are lane-able, which is what the split is for; the same-stem loss is deliberate, because a test beside this barrel stops serialising while two lanes editing one test still conflict in git and each lane's own full suite is the semantic gate; the domain clients carry no stem protection, so the only guard there is a shared-directory warning, the same accepted hole the entry-point narrowing documents; and a second module at the same stem would shadow this barrel and must never be created |
+| `makervault/web/src/lib/api/baseUrl.ts` | the api transport core every domain client imports |
+| `makervault/web/src/lib/api/http.ts` | the api transport core every domain client imports |
+| `makervault/web/src/lib/api/grantPriming.ts` | the api transport core every domain client imports |
 | `makervault/web/src/ui/App.tsx` | shell components every view mounts through: the component split landed but these two are still the hot shared surface |
 | `makervault/web/src/ui/Sidebar.tsx` | shell components every view mounts through: the component split landed but these two are still the hot shared surface |
 | `makervault/web/src/ui/asset-grid/AssetGrid.tsx` | the entry points are serialised and the same-stem rule keeps AssetGrid.test.tsx and Settings.test.tsx serialised with them; non-entry siblings in those directories are lane-able because an unreferenced module is inert until an entry file imports it |

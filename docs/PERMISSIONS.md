@@ -345,7 +345,7 @@ sessions stay valid.
   ticket; Mf-arm6 owns that, and it will need a per-record check inside the
   handlers (the level stays `write`).
 * **The web client** maps a 403 to "Your role does not allow this action."
-  (`lib/api.ts`, `assertOk`) and gates the admin-only surfaces on the role
+  (`lib/api/http.ts`, `assertOk`) and gates the admin-only surfaces on the role
   `GET /me` reports: the sidebar "Audit log" entry, the Storage Structure
   settings entry and the mount-import card in the Imports section are hidden
   below `admin`, and a direct visit to the audit view renders a not-permitted

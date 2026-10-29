@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { getApiBase } from "./api";
+import { getApiBase } from "./api/baseUrl";
 
 /**
  * File/handoff URLs are resolved through short-lived, file-scoped, read-only
@@ -14,11 +14,12 @@ import { getApiBase } from "./api";
  * carries it in `?sig=`.
  *
  * This module owns the client-side grant cache and the batching queue in front
- * of `POST /file-grants`; `./api` owns the HTTP call itself and injects it via
- * `configureGrantMinter`. Injection rather than an import keeps the transport
- * out of this module: `api.ts` already imports this file, so importing `api.ts`
- * back for it would be a cycle. The one import that does come back from there
- * (`getApiBase`) is a pure base-URL helper used only for the final join.
+ * of `POST /file-grants`; `./api/grants.ts` owns the HTTP call itself and injects
+ * it via `configureGrantMinter`. Injection rather than an import keeps the
+ * transport out of this module: `./api/grants.ts` imports this file, so importing
+ * it back for the transport would be a cycle. The one import that does come back
+ * from there (`getApiBase`, from the leaf `./api/baseUrl.ts`) is a pure base-URL
+ * helper used only for the final join.
  *
  * When no minter is configured — e.g. a test that mocks `../lib/api` wholesale
  * — every function degrades to a no-op/miss: nothing fetches, `grantedFileUrl`
@@ -69,7 +70,7 @@ const cache = new Map<string, CachedGrant>();
 const pending = new Set<string>();
 let flushPromise: Promise<void> | null = null;
 
-/** Injects the transport `api.ts` owns (`mintFileGrants`); `null` disables minting. */
+/** Injects the transport `./api/grants.ts` owns (`mintFileGrants`); `null` disables minting. */
 export function configureGrantMinter(next: GrantMinter | null): void {
   minter = next;
 }

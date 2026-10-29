@@ -125,12 +125,12 @@ process state, exactly like the `tk add-note` a lane already does against the
 shared ticket store: it is a read, not an edit, so the "stay inside the
 worktree" rule is untouched.
 
-Disjointness is economy, not legality. Plan-ahead is not conditional on disjoint
-touch-sets: two tickets that both touch `api.ts` or `models.py` are the
-highest-value pipeline case, because their plans are legal and the delta check
-arbitrates at implementation time, with every re-plan counted in `replans` and
-`oracle_calls` rather than assumed away. The rule that two lanes never work on
-the same files is unchanged.
+Disjointness is economy, not legality. Plan-ahead is not conditional on
+disjoint touch-sets: two tickets that both touch `lib/api/index.ts` or
+`models.py` are the highest-value pipeline case, because their plans are legal
+and the delta check arbitrates at implementation time, with every re-plan
+counted in `replans` and `oracle_calls` rather than assumed away. The rule that
+two lanes never work on the same files is unchanged.
 
 Lane width is unchanged: 2-3 lanes, `--max-lanes` capped at 1-3 with a default of
 2. A queue of approved plans is not an authorisation to run more lanes than the
@@ -173,7 +173,8 @@ helper matches.
 | config | `**/nginx.conf`, `makervault/web/security-headers.conf`, `makervault/api/Dockerfile`, `makervault/web/Dockerfile`, `makervault/docker-compose.yml`, `makervault/docker-compose.deploy.yml`, `makervault/docker-compose.smoke.yml`, `makervault/docker-deploy.yml` | proxy and security-header config plus the container manifests: no unit test covers it, verified by the single end-of-batch full gate |
 | fixtures | `**/conftest.py` | fixtures for every API test module: a change re-baselines the whole suite |
 | training wheels: API contracts | `makervault/api/main.py`, `makervault/api/models.py`, `makervault/api/schemas.py` | shared wiring and contracts: two lanes merge cleanly, then fail semantically |
-| training wheels: UI shell | `makervault/web/src/lib/api.ts`, `makervault/web/src/ui/App.tsx`, `makervault/web/src/ui/Sidebar.tsx`, `makervault/web/src/ui/asset-grid/AssetGrid.tsx`, `makervault/web/src/ui/settings/Settings.tsx` | one HTTP client and the components every view mounts through |
+| training wheels: UI shell | `makervault/web/src/lib/api/index.ts`, `makervault/web/src/ui/App.tsx`, `makervault/web/src/ui/Sidebar.tsx`, `makervault/web/src/ui/asset-grid/AssetGrid.tsx`, `makervault/web/src/ui/settings/Settings.tsx` | the barrel the UI imports by name plus the components every view mounts through |
+| training wheels: UI transport | `makervault/web/src/lib/api/baseUrl.ts`, `makervault/web/src/lib/api/http.ts`, `makervault/web/src/lib/api/grantPriming.ts` | the api transport core every domain client imports |
 
 Two gaps are accepted. A new file beside an entry point no longer serialises:
 the entry point itself does not change, and an unreferenced module is inert until
@@ -181,8 +182,8 @@ something imports it, at which point whoever imports it edits a serialised entry
 file. And `makervault/scripts/check_version.py` is a known gap, not yet
 serialised, pending a follow-up ticket.
 
-The two training-wheels groups are what the router split and the component
-split were for; they stay serialised until nothing hot hangs off a single entry
+The three training-wheels groups are what the router, component and transport
+splits were for; they stay serialised until nothing hot hangs off a single entry
 point. The helper also serialises a same-directory sibling with the same stem
 (`makervault/web/src/ui/Sidebar.test.tsx` matches `makervault/web/src/ui/Sidebar.tsx`), so a test-only lane
 cannot defeat the gate.

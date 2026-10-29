@@ -104,7 +104,24 @@ SERIALISERS: list[Serialiser] = [
         ("path", "makervault/api/schemas.py"),
         reason="shared contract modules: two lanes adding models or schemas merge cleanly and then fail semantically",
     ),
-    ("path", "makervault/web/src/lib/api.ts", "one HTTP client for the whole UI: every frontend ticket appends to the same object"),
+    (
+        "path",
+        "makervault/web/src/lib/api/index.ts",
+        (
+            "the barrel every UI file imports by name: the per-domain clients beside it are lane-able, which is what "
+            "the split is for; the same-stem loss is deliberate, because a test beside this barrel stops serialising "
+            "while two lanes editing one test still conflict in git and each lane's own full suite is the semantic "
+            "gate; the domain clients carry no stem protection, so the only guard there is a shared-directory warning, "
+            "the same accepted hole the entry-point narrowing documents; and a second module at the same stem would "
+            "shadow this barrel and must never be created"
+        ),
+    ),
+    *entry_group(
+        ("path", "makervault/web/src/lib/api/baseUrl.ts"),
+        ("path", "makervault/web/src/lib/api/http.ts"),
+        ("path", "makervault/web/src/lib/api/grantPriming.ts"),
+        reason="the api transport core every domain client imports",
+    ),
     *entry_group(
         ("path", "makervault/web/src/ui/App.tsx"),
         ("path", "makervault/web/src/ui/Sidebar.tsx"),
