@@ -67,11 +67,20 @@ transitive versions blindly.
 
 ### Web runtime and development toolchain
 
-- `npm audit --omit=dev`: zero known vulnerabilities.
-- Full `npm audit`: two development-toolchain vulnerabilities remain through the
-  Vite 5/esbuild chain, requiring a major Vite upgrade according to npm.
+- `npm audit --omit=dev`: zero known vulnerabilities (re-measured for Mf-9azr
+  after `fflate` moved to `0.8.3` and `lucide-react` moved to the `1.x` line).
+- Full `npm audit`: ten development-toolchain vulnerabilities as of this
+  re-measurement - 2 critical (`vitest`, `tinypool`), 4 high (`vite`,
+  `source-map-js`, `browserslist`, `brace-expansion`) and 4 moderate
+  (`esbuild`, `@vitest/mocker`, `postcss-selector-parser`,
+  `baseline-browser-mapping`). The advisory set has grown since the two findings
+  recorded at Gate 0; none of it is attributable to Mf-9azr, whose `fflate` and
+  `lucide-react` bumps name neither package. All of it is cleared by the Vite 5
+  -> 7 / Vitest 3 -> 4 toolchain upgrade tracked on `Mf-qj7j`.
 - The critical advisory initially exposed by the new test dependency was removed
-  by moving Vitest to `3.2.6`; tests and production build are re-run by CI.
+  by moving Vitest to `3.2.6`; a later critical (`vitest`/`tinypool`) has since
+  been published against that same version and is owned by `Mf-qj7j`. Tests and
+  production build are re-run by CI.
 
 The production image contains static output and Nginx, not Vite or `node_modules`.
 Gate 1 still owns the build-tool upgrade and its compatibility evidence.
