@@ -148,9 +148,16 @@ overlay, nfs, cifs, xfs and fuse; anything else reports `unknown`.
 | Method | What it needs |
 |---|---|
 | `cephfs_snapdir` | `<root>/.snap` must already exist and be writable by the process. The probe never creates it. |
-| `zfs_dataset` | the `zfs` binary and delegated `snapshot` rights on the dataset; both probes are bounded at 2 s. |
+| `zfs_dataset` | the `zfs` binary, the library root as the dataset mountpoint, and delegated `snapshot`, `destroy` and `mount` rights on that dataset. The probe is bounded at 10 s and runs under `LC_ALL=C`, so a translated `zfs allow` listing cannot be misread. |
 | `btrfs_subvol` | detected, but taking a snapshot needs `CAP_SYS_ADMIN`, which the API container does not have, so it is reported unusable unless the operator opts into the privileged sidecar described in "Snapshots (BTRFS sidecar)" below. Without that sidecar the method is still detected, the reason names this document, and no socket is opened. |
 | `none` | no snapshot method for this filesystem; the reason names the `fstype`. |
+
+The `zfs_dataset` and `btrfs_subvol` answers are not a second opinion: the `zfs`
+arm of the report calls `snapshot_zfs.probe_zfs` and the `btrfs` arm calls
+`snapshot_btrfs.probe_sidecar`, the same probes the providers use, so what the
+badge says and what a create would do are one answer. A state either probe
+refuses is therefore never reported `usable`, and its prose reason (the missing
+permission, the subdirectory root) travels into the badge.
 
 `os.access` is always true for root, so the CephFS writability check is weakest
 for a root container: it reports what the process could do, not what the
@@ -313,8 +320,11 @@ one. Snapshot names are `<UTC stamp>-<reason>-<random suffix>`, used verbatim as
 the ZFS snapshot name.
 
 The library root itself must be the dataset mountpoint, not a directory inside a
-dataset. A subdirectory has no `.zfs` snapshot view of its own, so the provider
-refuses the store and the probe reports `library_not_mountpoint`:
+dataset. A subdirectory has no `.zfs` snapshot view of its own, so there is
+nowhere for a snapshot store to live: the provider is still constructed
+(construction is probe-free, so nothing fails until work is asked of it), the
+first `create()` answers 409, and the probe reports `library_not_mountpoint` so
+the capability report says so before an operator ever tries:
 
 ```
 zfs create -o mountpoint=<library> <pool>/<name>
@@ -333,10 +343,12 @@ fails without it. All three are required; a deployment that grants only
 `snapshot` can take snapshots it cannot prune, which the probe reports rather
 than discovering at delete time.
 
-`GET /storage/capabilities` answers whether snapshotting is usable using S1's
-capability check; `probe_zfs` in `snapshot_zfs.py` is the standalone, read-only,
-four-state answer for a ZFS root, and the manual procedure below uses it. It
-takes no snapshot and creates nothing, and it reports one of four states:
+One probe answers both. `GET /storage/capabilities` calls
+`snapshot_zfs.probe_zfs` -- the standalone, read-only, four-state answer for a
+ZFS root -- exactly as the btrfs arm asks its sidecar, so the badge and the
+manual procedure below cannot disagree and a state the probe refuses can never
+report `usable`. The probe takes no snapshot and creates nothing, and it reports
+one of four states:
 
 * `delegated` -- the dataset behind the library root delegates `snapshot`,
   `destroy` and `mount` to this principal. Snapshots can be taken and pruned.

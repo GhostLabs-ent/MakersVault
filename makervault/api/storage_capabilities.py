@@ -20,8 +20,6 @@ that to the service principal.
 import ctypes
 import os
 import re
-import shutil
-import subprocess
 import sys
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -57,7 +55,6 @@ FSTYPE_BY_MAGIC = {
 
 MOUNTS_PATH = Path("/proc/self/mounts")
 _STATFS_BUFFER_BYTES = 4096  # struct statfs is ~120 bytes; only f_type is read
-_ZFS_PROBE_TIMEOUT_SECONDS = 2
 _OCTAL_ESCAPE = re.compile(r"\\([0-7]{3})")
 _OCTAL_REPLACEMENTS = {"040": " ", "011": "\t", "012": "\n", "134": "\\"}
 _SQLITE_PREFIXES = ("sqlite:///", "sqlite+pysqlite:///")
@@ -177,26 +174,6 @@ def resolve_mount(path: Path, device: Optional[int]) -> Optional[tuple[Path, str
     return candidates[0]
 
 
-def binary(name: str) -> Optional[str]:
-    """The executable path for ``name``, or None when it is not installed."""
-    return shutil.which(name)
-
-
-def run_bounded(argv: list[str]) -> Optional[str]:
-    """Run a read-only probe with a timeout; stdout on success, else None."""
-    try:
-        completed = subprocess.run(
-            argv,
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=_ZFS_PROBE_TIMEOUT_SECONDS,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return None
-    return completed.stdout if completed.returncode == 0 else None
-
-
 def assess_snapshot(fstype: str, path: Path) -> tuple[str, bool, str]:
     """Return (method, usable, reason) for the volume mounted at ``path``."""
     if fstype == "ceph":
@@ -208,19 +185,17 @@ def assess_snapshot(fstype: str, path: Path) -> tuple[str, bool, str]:
         return CEPHFS_SNAPDIR, True, "the .snap directory exists and is writable"
 
     if fstype == "zfs":
-        zfs = binary("zfs")
-        if zfs is None:
-            return ZFS_DATASET, False, "the zfs binary is not installed"
-        listing = run_bounded([zfs, "list", "-H", "-o", "name", str(path)])
-        dataset = next((line.strip() for line in (listing or "").splitlines() if line.strip()), None)
-        if dataset is None:
-            return ZFS_DATASET, False, "the zfs dataset behind this path could not be resolved"
-        allowed = run_bounded([zfs, "allow", dataset])
-        # `zfs allow` prints the permission set comma-separated ("alice
-        # snapshot,destroy"), so a token split would miss it.
-        if allowed is not None and "snapshot" in allowed:
-            return ZFS_DATASET, True, f"the zfs dataset {dataset} grants snapshot"
-        return ZFS_DATASET, False, "the zfs dataset does not grant snapshot to this principal"
+        # One probe answers both: the capability report and the provider's
+        # four-state detail come from ``snapshot_zfs.probe_zfs``, so a root that
+        # is a subdirectory of a dataset, or a delegation of ``snapshot`` only,
+        # cannot report usable here and then fail at prune time.
+        import snapshot_zfs
+
+        # ``runner`` is resolved here rather than taken from ``probe_zfs``'s
+        # import-time default, so a caller (or a test) that replaces the runner
+        # is honoured.
+        probe = snapshot_zfs.probe_zfs(path, runner=snapshot_zfs.run_zfs)
+        return ZFS_DATASET, probe.state is snapshot_zfs.ZfsState.DELEGATED, probe.reason
 
     if fstype == "btrfs":
         return _btrfs_verdict(path)

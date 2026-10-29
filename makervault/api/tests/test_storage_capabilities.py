@@ -16,8 +16,10 @@ still finds the break-glass login available.
 import ctypes
 import json
 import socket
+import subprocess
 import urllib.error
 from pathlib import Path
+from typing import Optional
 
 import pytest
 from fastapi.testclient import TestClient
@@ -27,6 +29,7 @@ import config
 import db
 import login_throttle as login_throttle_module
 import snapshot_btrfs
+import snapshot_zfs
 import storage_capabilities
 from db import engine
 from main import app
@@ -368,12 +371,36 @@ def test_a_non_sqlite_or_in_memory_database_reports_only_the_library_volume(tmp_
 
 # --- zfs and btrfs ----------------------------------------------------------
 
+ALLOW_ALL = "---- Permissions on tank/library ----\nLocal permissions:\n    user alice snapshot,destroy,mount\n"
+
+
+def fake_zfs(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    allow_output: str = ALLOW_ALL,
+    dataset: str = "tank/library",
+    error: Optional[BaseException] = None,
+) -> list[list[str]]:
+    """Scripted ``zfs`` for the capability tests: records every argv, answers list and allow."""
+
+    def runner(argv: list[str]) -> subprocess.CompletedProcess[str]:
+        calls.append(list(argv))
+        if error is not None:
+            raise error
+        if argv[1] == "list":
+            return subprocess.CompletedProcess(list(argv), 0 if dataset else 1, f"{dataset}\n", "")
+        return subprocess.CompletedProcess(list(argv), 0, allow_output, "")
+
+    calls: list[list[str]] = []
+    monkeypatch.setattr(snapshot_zfs, "run_zfs", runner)
+    return calls
+
 
 def test_zfs_without_the_binary_is_not_usable(tmp_path, monkeypatch) -> None:
     library = make_library(tmp_path)
     fake_magic(monkeypatch, storage_capabilities.ZFS_MAGIC)
     write_mounts(tmp_path, monkeypatch, [(str(library), "zfs"), ("/", "ext4")])
-    monkeypatch.setattr(storage_capabilities, "binary", lambda name: None)
+    fake_zfs(monkeypatch, error=OSError("zfs: not found"))
 
     volumes = storage_capabilities.detect(library_root=library, database_url=None)
 
@@ -387,17 +414,7 @@ def test_zfs_dataset_with_delegated_snapshot_rights_is_usable(tmp_path, monkeypa
     library = make_library(tmp_path)
     fake_magic(monkeypatch, storage_capabilities.ZFS_MAGIC)
     write_mounts(tmp_path, monkeypatch, [(str(library), "zfs"), ("/", "ext4")])
-    monkeypatch.setattr(storage_capabilities, "binary", lambda name: "/usr/sbin/zfs")
-    calls: list[list[str]] = []
-
-    def fake_run_bounded(argv: list[str]):
-        calls.append(argv)
-        if argv[1] == "list":
-            return "tank/library\n"
-        # The real shape: permissions are comma-separated on one line.
-        return "---- Permissions on tank/library ----\nLocal permissions:\n    user alice snapshot,destroy,send\n"
-
-    monkeypatch.setattr(storage_capabilities, "run_bounded", fake_run_bounded)
+    calls = fake_zfs(monkeypatch)
 
     volumes = storage_capabilities.detect(library_root=library, database_url=None)
 
@@ -405,22 +422,61 @@ def test_zfs_dataset_with_delegated_snapshot_rights_is_usable(tmp_path, monkeypa
     assert volume.snapshot_method == "zfs_dataset"
     assert volume.usable is True
     assert "tank/library" in volume.reason
-    assert calls[-1] == ["/usr/sbin/zfs", "allow", "tank/library"]
+    # The capability report now asks the provider's own probe: an argv list for
+    # this principal, with a ``--`` before the operand.
+    assert calls[-1] == ["zfs", "allow", "--", "tank/library"]
 
 
 def test_zfs_dataset_that_cannot_be_resolved_is_not_usable(tmp_path, monkeypatch) -> None:
     library = make_library(tmp_path)
     fake_magic(monkeypatch, storage_capabilities.ZFS_MAGIC)
     write_mounts(tmp_path, monkeypatch, [(str(library), "zfs"), ("/", "ext4")])
-    monkeypatch.setattr(storage_capabilities, "binary", lambda name: "/usr/sbin/zfs")
-    monkeypatch.setattr(storage_capabilities, "run_bounded", lambda argv: None)
+    fake_zfs(monkeypatch, dataset="")
 
     volumes = storage_capabilities.detect(library_root=library, database_url=None)
 
     volume = volumes[0]
     assert volume.snapshot_method == "zfs_dataset"
     assert volume.usable is False
-    assert "could not be resolved" in volume.reason
+    assert "could not resolve" in volume.reason
+
+
+def test_zfs_capability_refuses_a_root_that_is_a_dataset_subdirectory(tmp_path, monkeypatch) -> None:
+    # B2: the old inline check only looked for the substring "snapshot" in `zfs
+    # allow`, so a library that is a subdirectory of a delegated dataset reported
+    # usable -- and a strict trash purge then 409s, because a subdirectory has no
+    # .zfs view of its own.
+    dataset_root = tmp_path / "tank"
+    dataset_root.mkdir()
+    library = dataset_root / "library"
+    library.mkdir()
+    fake_magic(monkeypatch, storage_capabilities.ZFS_MAGIC)
+    write_mounts(tmp_path, monkeypatch, [(str(dataset_root), "zfs"), ("/", "ext4")])
+    fake_zfs(monkeypatch)
+
+    volumes = storage_capabilities.detect(library_root=library, database_url=None)
+
+    volume = volumes[0]
+    assert volume.snapshot_method == "zfs_dataset"
+    assert volume.usable is False
+    assert "subdirectory" in volume.reason
+
+
+def test_zfs_capability_refuses_a_snapshot_only_delegation(tmp_path, monkeypatch) -> None:
+    # B2: "snapshot" alone was enough for the old substring check, so the volume
+    # reported usable and `zfs destroy` failed at prune time.
+    library = make_library(tmp_path)
+    fake_magic(monkeypatch, storage_capabilities.ZFS_MAGIC)
+    write_mounts(tmp_path, monkeypatch, [(str(library), "zfs"), ("/", "ext4")])
+    fake_zfs(monkeypatch, allow_output="Local permissions:\n\tuser alice snapshot\n")
+
+    volumes = storage_capabilities.detect(library_root=library, database_url=None)
+
+    volume = volumes[0]
+    assert volume.snapshot_method == "zfs_dataset"
+    assert volume.usable is False
+    assert "destroy" in volume.reason
+    assert "mount" in volume.reason
 
 
 def test_cephfs_ext_and_tmpfs_detection_never_enters_a_subprocess(tmp_path, monkeypatch) -> None:
@@ -430,7 +486,7 @@ def test_cephfs_ext_and_tmpfs_detection_never_enters_a_subprocess(tmp_path, monk
     def forbidden(*args, **kwargs):
         raise AssertionError("a subprocess was entered for a non-zfs filesystem")
 
-    monkeypatch.setattr(storage_capabilities.subprocess, "run", forbidden)
+    monkeypatch.setattr(snapshot_zfs, "run_zfs", forbidden)
 
     for magic in (storage_capabilities.CEPHFS_MAGIC, 0xEF53, 0x01021994):
         fake_magic(monkeypatch, magic)
