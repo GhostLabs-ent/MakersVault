@@ -5,6 +5,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, Request
 
 import audit
+import snapshot_guard
+import snapshots
 import trash_service
 from auth import AuthContext
 from permissions import require_admin, require_read
@@ -22,6 +24,7 @@ def list_trash(_: Optional[AuthContext] = Depends(require_read)):
     return TrashListOut(
         entries=[TrashEntryOut(**entry) for entry in entries],
         total_size=sum(entry["size"] for entry in entries),
+        snapshot=snapshot_guard.describe(snapshots.SnapshotReason.PRE_PURGE),
     )
 
 
@@ -31,7 +34,10 @@ def purge_trash(
     older_than_days: Optional[int] = Query(None, ge=0),
     context: Optional[AuthContext] = Depends(require_admin),
 ):
+    ctx = audit.context_for(request, context)
+    # Before the purge: a refused purge must have removed nothing.
+    snapshot_guard.guard(snapshots.SnapshotReason.PRE_PURGE, "trash", ctx=ctx)
     result = trash_service.purge(older_than_days)
     # The bytes are already gone and there is no row to roll back: fail-loud.
-    audit.record(audit.Event(audit.TRASH_PURGE, "trash", dict(result)), ctx=audit.context_for(request, context))
+    audit.record(audit.Event(audit.TRASH_PURGE, "trash", dict(result)), ctx=ctx)
     return TrashPurgeOut(**result)

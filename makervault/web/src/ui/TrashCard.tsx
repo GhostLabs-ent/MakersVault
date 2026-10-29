@@ -68,6 +68,8 @@ export default function TrashCard({ onUnauthorized }: Props) {
 
   const entries = trash?.entries || [];
   const totalSize = trash?.total_size || 0;
+  const purgeNotice = trash?.snapshot ?? null;
+  const purgeRefused = purgeNotice !== null && purgeNotice.action === "refuse";
 
   return (
     <div className="rounded-lg border border-panel bg-panel-soft p-4 flex flex-col gap-3">
@@ -168,6 +170,28 @@ export default function TrashCard({ onUnauthorized }: Props) {
               <p className="opacity-70">
                 Only the contents of the trash folder are removed; your library is not touched.
               </p>
+              {purgeNotice?.action === "snapshot" && (
+                <p className="opacity-70">
+                  A filesystem snapshot of the library is taken before the trash is emptied,
+                  named like <code>{purgeNotice.pattern}</code>. The exact name is recorded in
+                  the audit log.
+                  {purgeNotice.policy === "strict"
+                    ? " If the snapshot cannot be taken, the purge is refused and nothing is deleted."
+                    : " If the snapshot cannot be taken, the purge goes ahead without one and the miss is recorded in the audit log."}
+                </p>
+              )}
+              {purgeNotice?.action === "proceed_without" && (
+                <p className="opacity-70">
+                  No snapshot can be taken on this storage volume{purgeNotice.detail ? `, because ${purgeNotice.detail}` : ""}.
+                  {" Emptying the trash still goes ahead and the missed snapshot is recorded in the audit log."}
+                </p>
+              )}
+              {purgeNotice?.action === "refuse" && (
+                <p className="text-red-400">
+                  This storage volume cannot take snapshots, and this deployment refuses to
+                  empty the trash without one. Nothing will be deleted.
+                </p>
+              )}
               {error && <p className="text-red-400">{error}</p>}
             </div>
             <div className="flex items-center justify-end gap-2 border-t border-panel px-4 py-3">
@@ -183,7 +207,7 @@ export default function TrashCard({ onUnauthorized }: Props) {
                 type="button"
                 className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-red-600 text-white text-sm disabled:opacity-60"
                 onClick={() => void purge()}
-                disabled={purging}
+                disabled={purging || purgeRefused}
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 {purging ? "Emptying…" : "Empty trash permanently"}

@@ -36,6 +36,16 @@
         "title": "Entries",
         "type": "array"
       },
+      "snapshot": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/SnapshotNoticeOut"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "total_size": {
         "title": "Total Size",
         "type": "integer"

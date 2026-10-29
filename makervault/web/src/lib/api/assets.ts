@@ -117,6 +117,29 @@ export type AssetDeleteResult = {
   bytes: number;
 };
 
+// This module owns SnapshotNotice because schemas/assets.py owns SnapshotNoticeOut;
+// the other dialogs import the type from here rather than redeclaring it.
+export type SnapshotNotice = {
+  /** predelete | prepurge | prebulk */
+  reason: string;
+  policy: "warn" | "strict";
+  capability: "available" | "unavailable";
+  action: "snapshot" | "proceed_without" | "refuse";
+  /** The only promise the UI may make: the exact name is minted server-side. */
+  pattern: string;
+  name?: string | null;
+  /** Why the snapshot is unavailable, when it is. */
+  detail?: string | null;
+};
+
+/** Counts for a bulk delete, plus what the server will do about a snapshot. */
+export type AssetDeletePreview = {
+  assets: number;
+  files: number;
+  bytes: number;
+  snapshot?: SnapshotNotice | null;
+};
+
 export async function listAssets(params: {
   q?: string;
   tags?: string[];
@@ -374,6 +397,21 @@ export async function batchDeleteAssets(
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Bulk delete failed"));
   }
+  return res.json();
+}
+
+/**
+ * Preview of a bulk delete: counts and, on servers that support it, the snapshot
+ * notice. Repeated `asset_ids` params, not a comma-joined list; the server
+ * answers 400 when the list is empty.
+ */
+export async function getAssetDeletePreview(assetIds: string[]): Promise<AssetDeletePreview> {
+  const qs = new URLSearchParams();
+  for (const id of assetIds) qs.append("asset_ids", id);
+  const res = await fetch(`${apiBase()}/assets/delete-preview?${qs.toString()}`, {
+    headers: authHeaders(),
+  });
+  assertOk(res, "Failed to load delete preview");
   return res.json();
 }
 

@@ -1,9 +1,19 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
 import type { Asset } from "../lib/api";
+
+vi.mock("../lib/api", () => ({
+  getAssetDeletePreview: vi.fn(),
+}));
+
 import AssetDeleteDialog from "./AssetDeleteDialog";
+import { getAssetDeletePreview } from "../lib/api";
+
+const getAssetDeletePreviewMock = vi.mocked(getAssetDeletePreview);
+
+const NO_SNAPSHOT = { assets: 0, files: 0, bytes: 0, snapshot: null };
 
 function makeAsset(overrides: Partial<Asset> & Pick<Asset, "id" | "filename">): Asset {
   return {
@@ -67,6 +77,11 @@ function destructiveButton(name: string): HTMLButtonElement {
 }
 
 describe("AssetDeleteDialog", () => {
+  beforeEach(() => {
+    getAssetDeletePreviewMock.mockReset();
+    getAssetDeletePreviewMock.mockResolvedValue(NO_SNAPSHOT);
+  });
+
   afterEach(cleanup);
 
   it("keeps the single-asset button disabled until the exact file name is typed", () => {
@@ -212,5 +227,87 @@ describe("AssetDeleteDialog", () => {
 
     expect(onDelete).not.toHaveBeenCalled();
     expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("tells a single asset it is not snapshotted, and never asks for a preview", () => {
+    renderDialog([cube]);
+
+    expect(
+      dialog().getByText(/A snapshot is only taken for a bulk delete: this single asset is not snapshotted/),
+    ).toBeTruthy();
+    expect(getAssetDeletePreviewMock).not.toHaveBeenCalled();
+  });
+
+  it("names the snapshot pattern for a bulk delete when one will be taken", async () => {
+    getAssetDeletePreviewMock.mockResolvedValue({
+      assets: 2,
+      files: 3,
+      bytes: 3072,
+      snapshot: {
+        reason: "prebulk",
+        policy: "warn",
+        capability: "available",
+        action: "snapshot",
+        pattern: "<YYYYmmddTHHMMSSZ>-prebulk-<6 hex>",
+      },
+    });
+
+    renderDialog([cube, spool]);
+
+    expect(
+      await dialog().findByText(/A filesystem snapshot of the library is taken before these 2 items are deleted/),
+    ).toBeTruthy();
+    expect(dialog().getByText("<YYYYmmddTHHMMSSZ>-prebulk-<6 hex>")).toBeTruthy();
+    expect(dialog().getByText(/The exact name is recorded in the audit log/)).toBeTruthy();
+    expect(getAssetDeletePreviewMock).toHaveBeenCalledWith([cube.id, spool.id]);
+    expect(destructiveButton("Delete 2 items").disabled).toBe(false);
+  });
+
+  it("warns when a bulk delete goes ahead without a snapshot", async () => {
+    getAssetDeletePreviewMock.mockResolvedValue({
+      assets: 2,
+      files: 3,
+      bytes: 3072,
+      snapshot: {
+        reason: "prebulk",
+        policy: "warn",
+        capability: "unavailable",
+        action: "proceed_without",
+        pattern: "<YYYYmmddTHHMMSSZ>-prebulk-<6 hex>",
+        detail: "the volume is not snapshot-capable",
+      },
+    });
+
+    renderDialog([cube, spool]);
+
+    expect(
+      await dialog().findByText(/No snapshot can be taken on this storage volume, because the volume is not snapshot-capable/),
+    ).toBeTruthy();
+    expect(dialog().getByText(/there is no extra safety net/)).toBeTruthy();
+    expect(dialog().getByText(/the missed snapshot is recorded in the audit log/)).toBeTruthy();
+    // warn policy still lets the delete through.
+    expect(destructiveButton("Delete 2 items").disabled).toBe(false);
+  });
+
+  it("refuses a bulk delete when the deployment demands a snapshot it cannot take", async () => {
+    getAssetDeletePreviewMock.mockResolvedValue({
+      assets: 2,
+      files: 3,
+      bytes: 3072,
+      snapshot: {
+        reason: "prebulk",
+        policy: "strict",
+        capability: "unavailable",
+        action: "refuse",
+        pattern: "<YYYYmmddTHHMMSSZ>-prebulk-<6 hex>",
+      },
+    });
+    const { onDelete } = renderDialog([cube, spool]);
+
+    expect(
+      await dialog().findByText(/this deployment refuses to delete without one. Nothing will be deleted/),
+    ).toBeTruthy();
+    expect(destructiveButton("Delete 2 items").disabled).toBe(true);
+    expect(onDelete).not.toHaveBeenCalled();
   });
 });

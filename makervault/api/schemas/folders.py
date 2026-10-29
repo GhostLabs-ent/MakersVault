@@ -4,6 +4,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
+from .assets import SnapshotNoticeOut
+
 __all__ = [
   "FolderDeletePreviewOut",
   "FolderIn",
@@ -23,6 +25,7 @@ class FolderDeletePreviewOut(BaseModel):
   files: int
   bytes: int
   in_trash: bool
+  snapshot: Optional[SnapshotNoticeOut] = None
 
 
 class FolderOut(BaseModel):

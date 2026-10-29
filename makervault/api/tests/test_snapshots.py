@@ -927,7 +927,7 @@ def test_audit_the_snapshot_actions_are_declared_and_on_no_route() -> None:
     for action in (audit.SNAPSHOT_CREATE, audit.SNAPSHOT_PRUNE, audit.SNAPSHOT_DELETE):
         assert action in audit.ACTIONS
         assert all(action not in actions for actions in audit.ROUTE_ACTIONS.values())
-    assert len(audit.ACTIONS) == 24
+    assert len(audit.ACTIONS) == 26
     assert len(audit.ROUTE_ACTIONS) == 21
     assert audit.assert_audit_coverage() == audit.ROUTE_ACTIONS
 
@@ -944,13 +944,13 @@ def test_audit_docs_describe_the_snapshot_actions() -> None:
         pytest.skip("host-only: docs is outside the API image build context")
 
     text = path.read_text(encoding="utf-8")
-    assert "exactly these 24 strings" in text
+    assert "exactly these 26 strings" in text
     for needle in ("snapshot.create", "snapshot.prune", "snapshot.delete"):
         assert needle in text
     # The prose is hard-wrapped, so the sentence is pinned with its whitespace
     # normalised: the words are byte-for-byte, the wrap points are not.
     assert (
-        "The matrix has 65 routes, 25 of them `GET`; the remaining 40 split into 21 audited keys and 19 exempt keys."
+        "The matrix has 66 routes, 26 of them `GET`; the remaining 40 split into 21 audited keys and 19 exempt keys."
         in " ".join(text.split())
     )
     assert "fail-loud" in text

@@ -50,11 +50,13 @@ export default function FolderDeleteDialog({ folder, onCancel, onDeleted, onUnau
     return () => { active = false; };
   }, [folder.id, onUnauthorized]);
 
+  const notice = preview?.snapshot ?? null;
   const canDelete = !busy
     && !loading
     && !previewError
     && preview !== null
     && !preview.in_trash
+    && notice?.action !== "refuse"
     && typed.trim() === folder.name;
 
   const confirmDelete = async () => {
@@ -125,6 +127,28 @@ export default function FolderDeleteDialog({ folder, onCancel, onDeleted, onUnau
 
           {preview?.in_trash && (
             <p className="text-red-400">This folder is already in the trash.</p>
+          )}
+
+          {notice?.action === "snapshot" && (
+            <p className="opacity-80">
+              A filesystem snapshot of this folder is taken before it moves, named like{" "}
+              <code>{notice.pattern}</code>. The exact name is recorded in the audit log.
+              {notice.policy === "strict"
+                ? " If the snapshot cannot be taken, the delete is refused and nothing is removed."
+                : " If the snapshot cannot be taken, the delete goes ahead without one and the miss is recorded in the audit log."}
+            </p>
+          )}
+          {notice?.action === "proceed_without" && (
+            <p className="opacity-80">
+              No snapshot can be taken on this storage volume{notice.detail ? `, because ${notice.detail}` : ""}.
+              {" The delete still goes ahead and the missed snapshot is recorded in the audit log."}
+            </p>
+          )}
+          {notice?.action === "refuse" && (
+            <p className="text-red-400">
+              This storage volume cannot take snapshots, and this deployment refuses a folder
+              delete without one. Nothing will be deleted.
+            </p>
           )}
 
           {previewError && <p className="text-red-400">{previewError}</p>}

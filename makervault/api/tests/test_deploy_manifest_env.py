@@ -107,6 +107,10 @@ NEW_KEYS: set[str] = {
     "MAKERWORLD_COOKIE",
     "THINGIVERSE_COOKIE",
     "CHOWN_MODE",
+    "SNAPSHOT_POLICY_PREDELETE",
+    "SNAPSHOT_POLICY_PREPURGE",
+    "SNAPSHOT_POLICY_PREBULK",
+    "SNAPSHOT_REQUIRE_CAPABILITY",
 }
 
 PYTHON_SOURCES = ("config.py", "auth.py", "db.py", "main.py", "import_resolvers.py")

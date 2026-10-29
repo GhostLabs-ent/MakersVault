@@ -14,9 +14,10 @@ One mechanism, in three parts:
 | one drift guard | `audit.assert_audit_coverage()` in `main.lifespan` | refuses to boot when a mutating route is neither audited nor exempt with a reason |
 
 `audit.record(*events, ctx=...)` is the second emission function and exists for
-exactly two actions whose effect is outside the database (`trash.purge`,
-`library.scan.start`); it opens its own session and commits. There is no third
-way to write a row.
+the actions whose effect is outside the database (`trash.purge`,
+`library.scan.start`, and the two `destructive.snapshot_*` actions the snapshot
+guard writes); it opens its own session and commits. There is no third way to
+write a row.
 
 **The emission point is the action site, not `permissions.authorize()`.**
 Authorization and events are different facts. `permissions.authorize()` decides
@@ -63,7 +64,7 @@ could honestly reconstruct.
 
 ## The action taxonomy
 
-`audit.ACTIONS` holds exactly these 24 strings. Action names are stable and
+`audit.ACTIONS` holds exactly these 26 strings. Action names are stable and
 `namespace.verb`; a reader of a row does not need the code to know what it means.
 
 | Action | Route(s) that emit it | `target` | `detail` | Failure |
@@ -92,6 +93,8 @@ could honestly reconstruct.
 | `snapshot.create` | no route; emitted by the provider layer in `snapshots.py` | snapshot name | `{"reason", "method", "pruned"}` | fail-loud |
 | `snapshot.prune` | no route; emitted by retention inside `create()` in `snapshots.py` (one row per pruned snapshot) | pruned snapshot name | `{"rule", "trigger"}` | fail-loud |
 | `snapshot.delete` | no route; emitted by the provider layer in `snapshots.py` | snapshot name | `{"method"}` | fail-loud |
+| `destructive.snapshot_taken` | `DELETE /folder/{folder_id}`; `POST /trash/purge`; `POST /assets/batch/delete`; written by `snapshot_guard.guard` | the operation's subject: the folder id, `"trash"` or `"assets"` | `{"reason", "policy", "name", "method"}` - `name` is the snapshot's exact name | fail-loud |
+| `destructive.snapshot_missed` | the same three routes, when no snapshot was taken | the same subject | `{"reason", "policy", "cause", "error"}` - `cause` is `"unavailable"` or `"failed"`, `error` is the exception text or `null` | fail-loud |
 
 Three of those actions are not route actions. `snapshot.create`, `snapshot.prune`
 and `snapshot.delete` are written with `audit.record` by the snapshot provider
@@ -99,6 +102,15 @@ layer, because a snapshot is a filesystem object with no row to roll back. They
 are deliberately absent from `ROUTE_ACTIONS`: no route emits them, so
 `assert_audit_coverage()` and the audited/exempt route counts below are
 unchanged. They are fail-loud for the same reason as `trash.purge`.
+
+The two `destructive.*` actions are also written with `audit.record`, by
+`snapshot_guard.guard`, for exactly the same reason: a snapshot is a filesystem
+fact with no transaction to join. They are the one pair of actions in
+`ROUTE_ACTIONS` whose rows are written before their route's mutation, and the
+snapshot's exact name is in their `detail`. The guard hands the provider no audit
+context, so a route owns exactly one snapshot fact: a create whose retention then
+prunes writes no `snapshot.prune` row on that path, and the name in the
+`destructive.snapshot_taken` row is the whole record of it.
 
 Two routes can emit more than one row per request, because a request can change
 more than one fact:
@@ -112,12 +124,20 @@ more than one fact:
 `detail` is small JSON written with sorted keys and rendered as an object by
 `GET /audit`. It never holds a secret.
 
+The three destructive operations - deleting a folder, purging the trash and
+deleting a selection of assets in one request - share one seam,
+`makervault/api/snapshot_guard.py`. It asks `storage_capabilities.detect()`
+whether the library volume can snapshot, takes one through S2's provider layer
+when it can, and writes exactly one `destructive.snapshot_taken` or
+`destructive.snapshot_missed` row either way. A single-asset delete takes no
+snapshot: the trash keeps it restorable, so it stays `asset.delete` alone.
+
 ## Audited vs exempt routes
 
 The rule `assert_audit_coverage()` enforces: **every route in
 `permissions.ROUTE_PERMISSIONS` whose method is not `GET` must be in
 `ROUTE_ACTIONS` or in `EXEMPT_ROUTES` with a non-empty reason.** `GET` routes are
-out of scope by construction: they change nothing. The matrix has 65 routes, 25
+out of scope by construction: they change nothing. The matrix has 66 routes, 26
 of them `GET`; the remaining 40 split into 21 audited keys and 19 exempt keys.
 
 The guard also refuses stale keys (an entry for a route that no longer exists), a

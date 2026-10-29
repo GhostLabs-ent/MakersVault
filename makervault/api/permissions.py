@@ -152,6 +152,8 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     # mints a short-lived read-only grant; nothing mutates.
     ("POST", "/file-grants"): READ,
     ("GET", "/assets"): READ,
+    # A pure SELECT that counts what a bulk delete would remove.
+    ("GET", "/assets/delete-preview"): READ,
     ("GET", "/tags"): READ,
     ("GET", "/creators"): READ,
     # POST for a download: it builds a temp zip and streams it, nothing mutates.

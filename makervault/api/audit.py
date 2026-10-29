@@ -69,6 +69,8 @@ LOGIN_SUCCEEDED = "login.succeeded"
 SNAPSHOT_CREATE = "snapshot.create"
 SNAPSHOT_PRUNE = "snapshot.prune"
 SNAPSHOT_DELETE = "snapshot.delete"
+DESTRUCTIVE_SNAPSHOT_TAKEN = "destructive.snapshot_taken"
+DESTRUCTIVE_SNAPSHOT_MISSED = "destructive.snapshot_missed"
 
 ACTIONS: frozenset[str] = frozenset({
     ASSET_DELETE,
@@ -95,6 +97,8 @@ ACTIONS: frozenset[str] = frozenset({
     SNAPSHOT_CREATE,
     SNAPSHOT_PRUNE,
     SNAPSHOT_DELETE,
+    DESTRUCTIVE_SNAPSHOT_TAKEN,
+    DESTRUCTIVE_SNAPSHOT_MISSED,
 })
 
 
@@ -258,7 +262,7 @@ def list_events(
 ROUTE_ACTIONS: dict[tuple[str, str], tuple[str, ...]] = {
     ("POST", "/login"): (LOGIN_SUCCEEDED,),
     ("DELETE", "/asset/{asset_id}"): (ASSET_DELETE,),
-    ("POST", "/assets/batch/delete"): (ASSET_DELETE,),
+    ("POST", "/assets/batch/delete"): (ASSET_DELETE, DESTRUCTIVE_SNAPSHOT_TAKEN, DESTRUCTIVE_SNAPSHOT_MISSED),
     ("POST", "/asset/{asset_id}/rename"): (ASSET_RENAME,),
     ("POST", "/asset/{asset_id}/meta"): (ASSET_RENAME,),
     ("POST", "/asset/{asset_id}/folder"): (ASSET_MOVE,),
@@ -268,10 +272,10 @@ ROUTE_ACTIONS: dict[tuple[str, str], tuple[str, ...]] = {
     ("PUT", "/asset/{asset_id}/files/order"): (ASSET_FILE_REORDER,),
     ("DELETE", "/asset/{asset_id}/prepared-print"): (ASSET_PREPARED_PRINT_DELETE,),
     ("PATCH", "/folder/{folder_id}"): (FOLDER_RENAME, FOLDER_MOVE),
-    ("DELETE", "/folder/{folder_id}"): (FOLDER_DELETE,),
+    ("DELETE", "/folder/{folder_id}"): (FOLDER_DELETE, DESTRUCTIVE_SNAPSHOT_TAKEN, DESTRUCTIVE_SNAPSHOT_MISSED),
     ("PATCH", "/project/{project_id}"): (PROJECT_RENAME,),
     ("DELETE", "/project/{project_id}"): (PROJECT_DELETE,),
-    ("POST", "/trash/purge"): (TRASH_PURGE,),
+    ("POST", "/trash/purge"): (TRASH_PURGE, DESTRUCTIVE_SNAPSHOT_TAKEN, DESTRUCTIVE_SNAPSHOT_MISSED),
     ("POST", "/settings/storage"): (SETTINGS_STORAGE_UPDATE,),
     ("POST", "/settings/mount-import"): (SETTINGS_MOUNT_IMPORT_UPDATE,),
     ("POST", "/users"): (USER_CREATE,),

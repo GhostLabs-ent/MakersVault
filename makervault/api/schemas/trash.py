@@ -1,8 +1,10 @@
 """Trash listing and purge results (Mf-avo9 split)."""
 
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
+
+from .assets import SnapshotNoticeOut
 
 __all__ = [
   "TrashEntryOut",
@@ -21,6 +23,7 @@ class TrashEntryOut(BaseModel):
 class TrashListOut(BaseModel):
   entries: List[TrashEntryOut]
   total_size: int
+  snapshot: Optional[SnapshotNoticeOut] = None
 
 
 class TrashPurgeOut(BaseModel):

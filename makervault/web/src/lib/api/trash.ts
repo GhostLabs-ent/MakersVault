@@ -1,6 +1,7 @@
 // Deleted-asset trash: listing and purge.
 
 import { authHeaders } from "../auth";
+import type { SnapshotNotice } from "./assets";
 import { apiBase } from "./baseUrl";
 import { primeListGrants } from "./grantPriming";
 import { assertOk } from "./http";
@@ -15,6 +16,7 @@ export type TrashEntry = {
 export type TrashList = {
   entries: TrashEntry[];
   total_size: number;
+  snapshot?: SnapshotNotice | null;
 };
 
 export type TrashPurgeResult = {

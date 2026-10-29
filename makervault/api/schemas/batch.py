@@ -6,9 +6,10 @@ from pydantic import BaseModel, ConfigDict, field_validator
 
 from metadata_validation import normalise_creator, normalise_notes
 
-from .assets import AssetOut
+from .assets import AssetOut, SnapshotNoticeOut
 
 __all__ = [
+  "AssetDeletePreviewOut",
   "BatchDeleteOut",
   "BatchDeleteRequest",
   "BatchFailure",
@@ -19,6 +20,15 @@ __all__ = [
   "BatchTagsOut",
   "BatchTagsRequest",
 ]
+
+
+class AssetDeletePreviewOut(BaseModel):
+  """What a bulk delete would remove, and what it would do about a snapshot."""
+
+  assets: int
+  files: int
+  bytes: int
+  snapshot: Optional[SnapshotNoticeOut] = None
 
 
 class BatchFailure(BaseModel):

@@ -11,6 +11,8 @@ from sqlmodel import Session, select
 import audit
 import bulk_service
 import project_service
+import snapshot_guard
+import snapshots
 import trash_service
 from asset_service import (
     filename_for_model_name,
@@ -29,6 +31,7 @@ from permissions import require_read, require_write
 from routers.asset_helpers import apply_asset_filters, apply_asset_order, asset_page, require_asset_ids
 from routers.presenters import to_out
 from schemas import (
+    AssetDeletePreviewOut,
     AssetFolderUpdate,
     AssetMetaUpdate,
     AssetOut,
@@ -72,6 +75,29 @@ def list_assets(
 
     out: List[AssetOut] = [to_out(a) for a in assets]
     return out
+
+
+@router.get("/assets/delete-preview", response_model=AssetDeletePreviewOut)
+def asset_delete_preview(
+    asset_ids: List[str] = Query(default=[], description="Assets to describe"),
+    _: Optional[AuthContext] = Depends(require_read),
+):
+    """What a bulk delete would remove, and what it would do about a snapshot.
+
+    Pure SELECT: the counts mirror what the delete dialog displays (a mounted
+    reference contributes no files and no bytes, because deleting its row never
+    touches those bytes), and `snapshot` is the pure preview of the guard's
+    decision.
+    """
+    ids = require_asset_ids(asset_ids)
+    with Session(engine) as s:
+        assets = list(s.exec(select(Asset).where(Asset.id.in_(ids))))
+    return AssetDeletePreviewOut(
+        assets=len(assets),
+        files=sum(0 if asset.is_reference else 1 + (asset.supporting_file_count or 0) for asset in assets),
+        bytes=sum(0 if asset.is_reference else (asset.size or 0) for asset in assets),
+        snapshot=snapshot_guard.describe(snapshots.SnapshotReason.PRE_BULK),
+    )
 
 
 @router.get("/tags", response_model=List[str])
@@ -281,6 +307,9 @@ def batch_delete_assets(
     asset_ids = require_asset_ids(body.asset_ids)
     if body.confirm_count is None or body.confirm_count != len(asset_ids):
         raise HTTPException(status_code=400, detail="confirm_count must equal the number of assets to delete")
+    snapshot_guard.guard(
+        snapshots.SnapshotReason.PRE_BULK, "assets", ctx=audit.context_for(request, context)
+    )
     deleted, failed = bulk_service.delete_assets(asset_ids, audit_ctx=audit.context_for(request, context))
     return BatchDeleteOut(deleted=deleted, failed=failed)
 

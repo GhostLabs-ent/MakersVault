@@ -1202,6 +1202,57 @@
       "summary": "Batch Set Tags"
     }
   },
+  "/assets/delete-preview": {
+    "get": {
+      "description": "What a bulk delete would remove, and what it would do about a snapshot.\n\nPure SELECT: the counts mirror what the delete dialog displays (a mounted\nreference contributes no files and no bytes, because deleting its row never\ntouches those bytes), and `snapshot` is the pure preview of the guard's\ndecision.",
+      "operationId": "asset_delete_preview_assets_delete_preview_get",
+      "parameters": [
+        {
+          "description": "Assets to describe",
+          "in": "query",
+          "name": "asset_ids",
+          "required": false,
+          "schema": {
+            "default": [],
+            "description": "Assets to describe",
+            "items": {
+              "type": "string"
+            },
+            "title": "Asset Ids",
+            "type": "array"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetDeletePreviewOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Asset Delete Preview"
+    }
+  },
   "/audit": {
     "get": {
       "operationId": "list_audit_events_audit_get",

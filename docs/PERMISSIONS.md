@@ -149,7 +149,7 @@ rollback are in
 
 ## The route matrix
 
-Paths are FastAPI templates exactly as declared. 65 routes: 4 public, 22 read,
+Paths are FastAPI templates exactly as declared. 66 routes: 4 public, 23 read,
 30 write, 9 admin.
 
 The collection/instance templates are deliberately asymmetric: the collection is
@@ -181,6 +181,7 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | GET    | `/thumb/{asset_id}.jpg`                 | thumbnail |
 | POST   | `/file-grants`                          | mints a short-lived read-only signed file grant; nothing mutates |
 | GET    | `/assets`                               | list assets |
+| GET    | `/assets/delete-preview`                | pure SELECT that counts a bulk delete, and reports whether a pre-delete snapshot will be taken |
 | GET    | `/tags`                                 | list tags |
 | GET    | `/creators`                             | list the distinct creator facet |
 | POST   | `/download/zip`                         | POST-for-download: it builds a temp zip and streams it, nothing is stored |

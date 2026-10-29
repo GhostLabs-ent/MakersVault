@@ -52,6 +52,14 @@ services:
       - LOGIN_FAILURE_WINDOW_SECONDS=${LOGIN_FAILURE_WINDOW_SECONDS:-900}
       - LOGIN_LOCKOUT_SECONDS=${LOGIN_LOCKOUT_SECONDS:-300}
       - LOGIN_MAX_LOCKOUT_SECONDS=${LOGIN_MAX_LOCKOUT_SECONDS:-3600}
+      # Pre-operation snapshots for the three destructive operations. `warn`
+      # proceeds without one and says so; `strict` refuses only when
+      # SNAPSHOT_REQUIRE_CAPABILITY is true, because a volume with no snapshot
+      # method (ext4, tmpfs) must still allow Empty trash.
+      - SNAPSHOT_POLICY_PREDELETE=${SNAPSHOT_POLICY_PREDELETE:-warn}
+      - SNAPSHOT_POLICY_PREPURGE=${SNAPSHOT_POLICY_PREPURGE:-strict}
+      - SNAPSHOT_POLICY_PREBULK=${SNAPSHOT_POLICY_PREBULK:-strict}
+      - SNAPSHOT_REQUIRE_CAPABILITY=${SNAPSHOT_REQUIRE_CAPABILITY:-false}
     volumes:
       - makersvault_storage:/app/storage
       - makersvault_db:/app/data

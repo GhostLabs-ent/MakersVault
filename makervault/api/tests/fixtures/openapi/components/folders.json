@@ -20,6 +20,16 @@
       "in_trash": {
         "title": "In Trash",
         "type": "boolean"
+      },
+      "snapshot": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/SnapshotNoticeOut"
+          },
+          {
+            "type": "null"
+          }
+        ]
       }
     },
     "required": [

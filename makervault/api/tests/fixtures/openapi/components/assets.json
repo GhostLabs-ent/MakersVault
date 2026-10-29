@@ -424,6 +424,75 @@
     "title": "PreparedPrintOut",
     "type": "object"
   },
+  "SnapshotNoticeOut": {
+    "description": "What a destructive operation will do about a pre-operation snapshot.\n\nDescriptive, never prose: the dialogs build the sentence. `pattern` is the only\npromise a preview can keep, because the exact name is minted at create time;\n`name` is filled in only on the response to the mutation itself.",
+    "properties": {
+      "action": {
+        "enum": [
+          "snapshot",
+          "proceed_without",
+          "refuse"
+        ],
+        "title": "Action",
+        "type": "string"
+      },
+      "capability": {
+        "enum": [
+          "available",
+          "unavailable"
+        ],
+        "title": "Capability",
+        "type": "string"
+      },
+      "detail": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Detail"
+      },
+      "name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Name"
+      },
+      "pattern": {
+        "title": "Pattern",
+        "type": "string"
+      },
+      "policy": {
+        "enum": [
+          "warn",
+          "strict"
+        ],
+        "title": "Policy",
+        "type": "string"
+      },
+      "reason": {
+        "title": "Reason",
+        "type": "string"
+      }
+    },
+    "required": [
+      "reason",
+      "policy",
+      "capability",
+      "action",
+      "pattern"
+    ],
+    "title": "SnapshotNoticeOut",
+    "type": "object"
+  },
   "TagUpdate": {
     "properties": {
       "tags": {

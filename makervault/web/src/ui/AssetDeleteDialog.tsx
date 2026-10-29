@@ -1,5 +1,5 @@
-import { useState } from "react";
-import type { Asset } from "../lib/api";
+import { useEffect, useState } from "react";
+import { getAssetDeletePreview, type Asset, type AssetDeletePreview } from "../lib/api";
 import { formatBytes } from "../lib/format";
 
 /** Per-asset failure the dialog lists instead of claiming a clean delete. */
@@ -74,6 +74,34 @@ export default function AssetDeleteDialog({ assets, onDelete, onCancel, onClosed
   const [failed, setFailed] = useState<AssetDeleteFailure[]>([]);
 
   const single = assets.length === 1 ? assets[0] : null;
+  const isBulk = single === null;
+
+  // Only the bulk path snapshots: a single delete just moves one file to .trash.
+  const [preview, setPreview] = useState<AssetDeletePreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(isBulk);
+  const [previewFailed, setPreviewFailed] = useState(false);
+  const assetIdsKey = isBulk ? assets.map(asset => asset.id).join("\u0000") : null;
+
+  useEffect(() => {
+    if (assetIdsKey === null) return;
+    let active = true;
+    setPreviewLoading(true);
+    setPreviewFailed(false);
+    getAssetDeletePreview(assetIdsKey.split("\u0000"))
+      .then(data => {
+        if (active) setPreview(data);
+      })
+      .catch(() => {
+        if (active) setPreviewFailed(true);
+      })
+      .finally(() => {
+        if (active) setPreviewLoading(false);
+      });
+    return () => { active = false; };
+  }, [assetIdsKey]);
+
+  const notice = preview?.snapshot ?? null;
+  const snapshotRefused = notice !== null && notice.action === "refuse";
   const singleIsReference = single !== null && Boolean(single.is_reference);
   const singleIsMissing = single !== null && Boolean(single.missing_since);
   const referenceCount = assets.filter(asset => Boolean(asset.is_reference)).length;
@@ -81,7 +109,11 @@ export default function AssetDeleteDialog({ assets, onDelete, onCancel, onClosed
   const files = totalFiles(assets);
   const bytes = totalBytes(assets);
   // The single shape gates on the exact file name the server compares against.
-  const canDelete = !busy && (single === null || typed === single.filename);
+  // The refuse gate is only known once the preview lands; until then the button
+  // stays enabled on purpose. The confirm is not blocked on a preview round trip
+  // (this dialog never was), and a preview that turns out to refuse is still
+  // caught by the server, which answers 409 and deletes nothing.
+  const canDelete = !busy && !snapshotRefused && (single === null || typed === single.filename);
 
   const confirmDelete = async () => {
     if (!canDelete) return;
@@ -157,6 +189,46 @@ export default function AssetDeleteDialog({ assets, onDelete, onCancel, onClosed
             <p className="text-red-400">
               {missingCount} of these have files missing from storage: nothing moves to{" "}
               <code>.trash</code> for those, only their library records go.
+            </p>
+          )}
+
+          {single && (
+            <p className="opacity-80">
+              A snapshot is only taken for a bulk delete: this single asset is not
+              snapshotted, it only moves to <code>.trash</code>.
+            </p>
+          )}
+
+          {isBulk && previewLoading && (
+            <p className="opacity-80">Checking whether a snapshot will be taken…</p>
+          )}
+          {isBulk && !previewLoading && previewFailed && (
+            <p className="opacity-80">
+              Could not check whether a snapshot will be taken. The delete still moves
+              the files to <code>.trash</code>.
+            </p>
+          )}
+          {isBulk && !previewLoading && notice?.action === "snapshot" && (
+            <p className="opacity-80">
+              A filesystem snapshot of the library is taken before these {assets.length}{" "}
+              items are deleted, named like <code>{notice.pattern}</code>. The exact name is
+              recorded in the audit log.
+              {notice.policy === "strict"
+                ? " If the snapshot cannot be taken, the delete is refused and nothing is removed."
+                : " If the snapshot cannot be taken, the delete goes ahead without one and the miss is recorded in the audit log."}
+            </p>
+          )}
+          {isBulk && !previewLoading && notice?.action === "proceed_without" && (
+            <p className="opacity-80">
+              No snapshot can be taken on this storage volume{notice.detail ? `, because ${notice.detail}` : ""},
+              so there is no extra safety net. The delete still goes ahead and the missed
+              snapshot is recorded in the audit log.
+            </p>
+          )}
+          {isBulk && !previewLoading && notice?.action === "refuse" && (
+            <p className="text-red-400">
+              This storage volume cannot take snapshots, and this deployment refuses to
+              delete without one. Nothing will be deleted.
             </p>
           )}
 

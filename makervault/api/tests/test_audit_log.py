@@ -19,6 +19,7 @@ from typing import Callable
 from uuid import uuid4
 
 import pytest
+import snapshot_fakes
 from argon2 import PasswordHasher
 from fastapi.testclient import TestClient
 from httpx import Response
@@ -35,6 +36,7 @@ import login_throttle as login_throttle_module
 import main
 import permissions
 import settings_service
+import snapshot_guard
 from config import MOUNT_IMPORT_COPY, MOUNT_IMPORT_ENABLED
 from db import engine
 from migrations import run_migrations
@@ -283,6 +285,9 @@ def call_delete_asset(client, headers, ids, monkeypatch) -> Response:
 
 
 def call_batch_delete(client, headers, ids, monkeypatch) -> Response:
+    # The guard's decision must not depend on the host: on a CephFS box a real
+    # detection would take a snapshot, and a strict policy could answer 409.
+    snapshot_fakes.use_unavailable(monkeypatch)
     return client.post(
         "/assets/batch/delete",
         json={"asset_ids": [ids.spare_asset_id], "confirm_count": 1},
@@ -348,10 +353,14 @@ def call_rename_folder(client, headers, ids, monkeypatch) -> Response:
 
 
 def call_delete_folder(client, headers, ids, monkeypatch) -> Response:
+    # Same reason as the batch delete: pin the guard's capability answer.
+    snapshot_fakes.use_unavailable(monkeypatch)
     return client.delete(f"/folder/{ids.doomed_folder_id}", params={"confirm_name": "Doomed"}, headers=headers)
 
 
 def call_purge(client, headers, ids, monkeypatch) -> Response:
+    # Same reason as the batch delete: pin the guard's capability answer.
+    snapshot_fakes.use_unavailable(monkeypatch)
     return client.post("/trash/purge", headers=headers)
 
 
@@ -775,7 +784,20 @@ def explode(_session, _row) -> None:
     raise RuntimeError("audit insert failed")
 
 
+def stub_guard(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Take the snapshot guard out of the way, without changing what a test asserts.
+
+    The guard writes its own fail-loud row before the route's mutation, so with
+    `audit._add` exploding the failure would surface there first and never reach
+    the surface these tests pin (the rollback, the per-asset report, the logged
+    `trash.purge`). Stubbing it keeps each failure surface exactly as it was; the
+    guard's own ordering has its own test below.
+    """
+    monkeypatch.setattr(snapshot_guard, "guard", lambda *args, **kwargs: None)
+
+
 def test_audit_failure_rolls_back_the_asset_delete(client: TestClient, ids: Ids, monkeypatch: pytest.MonkeyPatch) -> None:
+    stub_guard(monkeypatch)
     monkeypatch.setattr(audit, "_add", explode)
 
     response = client.delete(
@@ -792,6 +814,7 @@ def test_audit_failure_rolls_back_the_asset_delete(client: TestClient, ids: Ids,
 def test_audit_failure_is_reported_per_asset_in_a_batch_delete(
     client: TestClient, ids: Ids, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    stub_guard(monkeypatch)
     monkeypatch.setattr(audit, "_add", explode)
 
     response = client.post(
@@ -809,6 +832,7 @@ def test_audit_failure_is_reported_per_asset_in_a_batch_delete(
 
 
 def test_audit_failure_on_purge_is_loud(client: TestClient, ids: Ids, monkeypatch: pytest.MonkeyPatch, caplog) -> None:
+    stub_guard(monkeypatch)
     monkeypatch.setattr(audit, "_add", explode)
 
     with caplog.at_level(logging.ERROR):
@@ -816,6 +840,34 @@ def test_audit_failure_on_purge_is_loud(client: TestClient, ids: Ids, monkeypatc
 
     assert response.status_code == 500
     assert "Audit write failed for trash.purge" in caplog.text
+
+
+def test_the_guards_own_row_fails_loud_before_the_purge_touches_anything(
+    client: TestClient, ids: Ids, monkeypatch: pytest.MonkeyPatch, caplog
+) -> None:
+    """A failure in the guard's row is the first thing to break, not `trash.purge`.
+
+    The guard writes `destructive.snapshot_missed` before the mutation, so an
+    audit failure surfaces there and the trash entries are still on disk. That
+    ordering is the point: a destructive route cannot destroy what it could not
+    audit. `snapshot_guard.guard` is deliberately NOT stubbed here.
+    """
+    snapshot_fakes.use_unavailable(monkeypatch)
+    entry = db.STORAGE / ".trash" / "20250101T000000Z-Old"
+    entry.mkdir(parents=True)
+    (entry / "a.stl").write_bytes(b"aaaa")
+    monkeypatch.setattr(audit, "_add", explode)
+
+    with caplog.at_level(logging.ERROR):
+        response = client.post("/trash/purge", headers=bearer(ids.admin_token))
+
+    assert response.status_code == 500
+    assert "Audit write failed for destructive.snapshot_missed" in caplog.text
+    assert "Audit write failed for trash.purge" not in caplog.text
+    assert (entry / "a.stl").read_bytes() == b"aaaa"
+    listing = client.get("/trash", headers=bearer(ids.admin_token))
+    assert listing.status_code == 200, listing.text
+    assert [item["name"] for item in listing.json()["entries"]] == ["20250101T000000Z-Old"]
 
 
 def test_audit_failure_on_login_leaves_no_session(

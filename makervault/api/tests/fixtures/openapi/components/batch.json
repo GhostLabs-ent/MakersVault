@@ -1,4 +1,38 @@
 {
+  "AssetDeletePreviewOut": {
+    "description": "What a bulk delete would remove, and what it would do about a snapshot.",
+    "properties": {
+      "assets": {
+        "title": "Assets",
+        "type": "integer"
+      },
+      "bytes": {
+        "title": "Bytes",
+        "type": "integer"
+      },
+      "files": {
+        "title": "Files",
+        "type": "integer"
+      },
+      "snapshot": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/SnapshotNoticeOut"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "assets",
+      "files",
+      "bytes"
+    ],
+    "title": "AssetDeletePreviewOut",
+    "type": "object"
+  },
   "BatchDeleteOut": {
     "properties": {
       "deleted": {

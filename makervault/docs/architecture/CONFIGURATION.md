@@ -156,6 +156,35 @@ overlay, nfs, cifs, xfs and fuse; anything else reports `unknown`.
 for a root container: it reports what the process could do, not what the
 deployment's service principal was granted. No snapshot is taken in this slice.
 
+## Snapshot policy settings
+
+S3 (`makervault/api/snapshot_guard.py`) is the slice that takes them. Three
+destructive operations ask for a pre-operation snapshot before they mutate
+anything: a folder delete (`DELETE /folder/{folder_id}`), a trash purge
+(`POST /trash/purge`) and a bulk asset delete (`POST /assets/batch/delete`). A
+single-asset delete takes no snapshot: the trash keeps it restorable. Retention
+from S2 (`snapshot_keep_last_n`, `snapshot_keep_daily`, `snapshot_max_age_days`,
+`snapshot_hard_cap`) still bounds every snapshot these operations create, and it
+runs on create with no opt-out.
+
+| Variable | Current default | Meaning |
+|---|---|---|
+| `SNAPSHOT_POLICY_PREDELETE` | `warn` | Policy for the folder delete. |
+| `SNAPSHOT_POLICY_PREPURGE` | `strict` | Policy for the trash purge. |
+| `SNAPSHOT_POLICY_PREBULK` | `strict` | Policy for the bulk asset delete. |
+| `SNAPSHOT_REQUIRE_CAPABILITY` | `false` | Whether `strict` refuses a volume that has no usable snapshot method. |
+
+Each policy is `warn` or `strict`, validated when `config` is imported: any other
+value fails the boot, so a typo cannot leave a policy inert. `warn` proceeds
+without a snapshot and reports it; `strict` does the same for an advertised
+absence unless `SNAPSHOT_REQUIRE_CAPABILITY=true`. That switch is the point: on
+ext4 or tmpfs there is no snapshot method at all, so refusing by default would
+make Empty trash impossible on a perfectly ordinary deployment. The absence is
+audited either way (`destructive.snapshot_missed`), so "no snapshot was taken"
+is a recorded fact rather than a silent one. A real failure while taking a
+snapshot is never a capability miss: a path defect, a name collision or a
+vanished `.snap` directory is refused under `strict` and reported under `warn`.
+
 ## Web runtime settings
 
 | Variable | Current default | Effect |

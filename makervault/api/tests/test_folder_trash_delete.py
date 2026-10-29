@@ -13,13 +13,17 @@ from pathlib import Path
 from typing import Optional
 
 import pytest
+import snapshot_fakes
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 import asset_service
+import config
 import db
 import library_scan
 import main
+import snapshot_guard
+import snapshots
 import trash_service
 from db import engine
 from main import app
@@ -161,6 +165,26 @@ def created_folder(client: TestClient, headers: dict, name: str, parent_id: Opti
     return response.json()
 
 
+# --- the pinned snapshot notice ---------------------------------------------
+
+
+def notice(reason: snapshots.SnapshotReason, policy: str) -> dict:
+    """The exact notice this module's fixture forces: no capability, so no snapshot.
+
+    Built through the guard's own helpers rather than re-typed, so a renamed
+    pattern or an added field fails here instead of drifting out of the pin.
+    """
+    return {
+        "reason": reason.value,
+        "policy": policy,
+        "capability": "unavailable",
+        "action": "proceed_without",
+        "pattern": snapshot_guard.name_pattern(reason),
+        "name": None,
+        "detail": snapshot_fakes.UNUSABLE.reason,
+    }
+
+
 @pytest.fixture(autouse=True)
 def isolated_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Point storage and thumbnails at temp roots and undo every row this test made."""
@@ -169,6 +193,19 @@ def isolated_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr(db, "STORAGE", storage)
     monkeypatch.setattr(db, "THUMBS", storage / "thumbs")
     monkeypatch.setattr(library_scan, "STORAGE", storage)
+    # The destructive operations ask the snapshot guard first. Detection probes
+    # the real filesystem, so answer with one fixed, unusable capability: no test
+    # in this module may construct a provider, copy a tree or read the host's
+    # mounts. A strict policy still proceeds, because SNAPSHOT_REQUIRE_CAPABILITY
+    # is pinned off here for the same reason (it is the operator's environment).
+    snapshot_fakes.use_unavailable(monkeypatch)
+    # Pin the whole policy surface, not just the switch: the bodies asserted below
+    # spell the policy out, so a developer's exported SNAPSHOT_POLICY_* must not
+    # be able to change them.
+    monkeypatch.setattr(config, "SNAPSHOT_REQUIRE_CAPABILITY", False)
+    monkeypatch.setattr(config, "SNAPSHOT_POLICY_PREDELETE", config.SNAPSHOT_POLICY_WARN)
+    monkeypatch.setattr(config, "SNAPSHOT_POLICY_PREPURGE", config.SNAPSHOT_POLICY_STRICT)
+    monkeypatch.setattr(config, "SNAPSHOT_POLICY_PREBULK", config.SNAPSHOT_POLICY_STRICT)
 
     # The schema is created by the app lifespan; a single-file run needs it first.
     run_migrations(engine)
@@ -498,7 +535,11 @@ def test_purge_respects_age_and_touches_nothing_else(isolated_storage: Path) -> 
 
         purge_all = client.post("/trash/purge", headers=headers)
         assert purge_all.json() == {"purged": 1, "bytes": 3, "failed": []}
-        assert client.get("/trash", headers=headers).json() == {"entries": [], "total_size": 0}
+        assert client.get("/trash", headers=headers).json() == {
+            "entries": [],
+            "total_size": 0,
+            "snapshot": notice(snapshots.SnapshotReason.PRE_PURGE, "strict"),
+        }
 
     assert live.read_bytes() == b"live bytes"
 
@@ -568,7 +609,14 @@ def test_delete_preview_counts_and_writes_nothing(isolated_storage: Path) -> Non
 
         preview = client.get(f"/folder/{parent['id']}/delete-preview", headers=headers)
         assert preview.status_code == 200, preview.text
-        assert preview.json() == {"folders": 2, "assets": 2, "files": 5, "bytes": 30, "in_trash": False}
+        assert preview.json() == {
+            "folders": 2,
+            "assets": 2,
+            "files": 5,
+            "bytes": 30,
+            "in_trash": False,
+            "snapshot": notice(snapshots.SnapshotReason.PRE_DELETE, "warn"),
+        }
 
         missing = client.get("/folder/does-not-exist/delete-preview", headers=headers)
         assert missing.status_code == 404

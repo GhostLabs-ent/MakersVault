@@ -1,6 +1,7 @@
 // Folders; the tree itself is assembled client-side.
 
 import { authHeaders } from "../auth";
+import type { SnapshotNotice } from "./assets";
 import { apiBase } from "./baseUrl";
 import { UnauthorizedError, assertOk, readErrorMessage } from "./http";
 
@@ -20,6 +21,7 @@ export type FolderDeletePreview = {
   files: number;
   bytes: number;
   in_trash: boolean;
+  snapshot?: SnapshotNotice | null;
 };
 
 export type FolderDeleteResult = {
@@ -29,6 +31,7 @@ export type FolderDeleteResult = {
   folders: number;
   assets: number;
   bytes: number;
+  snapshot?: SnapshotNotice | null;
 };
 
 export async function listFolders(): Promise<Folder[]> {

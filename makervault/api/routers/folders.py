@@ -9,6 +9,8 @@ from sqlmodel import Session, select
 import audit
 import folder_service
 import seams
+import snapshot_guard
+import snapshots
 import trash_service
 from auth import AuthContext
 from db import engine
@@ -82,8 +84,11 @@ def delete_folder(
             raise HTTPException(status_code=400, detail="confirm_name must match the folder name exactly")
         if seams.scan_status().get("running"):
             raise HTTPException(status_code=409, detail="A library scan is running; try again when it finishes")
+        notice = snapshot_guard.guard(
+            snapshots.SnapshotReason.PRE_DELETE, folder_id, ctx=audit.context_for(request, context)
+        )
         result = trash_service.trash_folder(s, folder, audit_ctx=audit.context_for(request, context))
-    return {"ok": True, **result}
+    return {"ok": True, **result, "snapshot": notice}
 
 
 @router.get("/folder/{folder_id}/delete-preview", response_model=FolderDeletePreviewOut)
@@ -92,7 +97,10 @@ def folder_delete_preview(folder_id: str, _: Optional[AuthContext] = Depends(req
         folder = s.get(Folder, folder_id)
         if not folder:
             raise HTTPException(404)
-        return trash_service.folder_delete_preview(s, folder)
+        return FolderDeletePreviewOut(
+            **trash_service.folder_delete_preview(s, folder),
+            snapshot=snapshot_guard.describe(snapshots.SnapshotReason.PRE_DELETE),
+        )
 
 
 @router.get("/folder/{folder_id}/download")

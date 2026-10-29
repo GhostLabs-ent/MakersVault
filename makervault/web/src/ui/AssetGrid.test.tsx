@@ -27,6 +27,7 @@ vi.mock("../lib/api", () => ({
   deletePreparedPrint: vi.fn(),
   downloadZip: vi.fn(),
   fileUrl: vi.fn((rel: string) => rel),
+  getAssetDeletePreview: vi.fn(),
   getLibraryScanStatus: vi.fn(),
   assetFilePreviewUrl: vi.fn((rel: string) => `${rel}?inline=1`),
   listAssetFileLimits: vi.fn(async () => ({
@@ -74,6 +75,7 @@ import {
   deleteAssetFile,
   deletePreparedPrint,
   fileUrl,
+  getAssetDeletePreview,
   getLibraryScanStatus,
   listAssetFileLimits,
   listAssetFiles,
@@ -109,6 +111,7 @@ const uploadAssetFileMock = vi.mocked(uploadAssetFile);
 const createFolderMock = vi.mocked(createFolder);
 const deleteAssetFileMock = vi.mocked(deleteAssetFile);
 const deletePreparedPrintMock = vi.mocked(deletePreparedPrint);
+const getAssetDeletePreviewMock = vi.mocked(getAssetDeletePreview);
 const listAssetFilesMock = vi.mocked(listAssetFiles);
 const listAssetFileLimitsMock = vi.mocked(listAssetFileLimits);
 const renameAssetFileMock = vi.mocked(renameAssetFile);
@@ -126,6 +129,9 @@ const NO_FILE_LIMITS = {
 beforeEach(() => {
   listTagsMock.mockReset();
   listTagsMock.mockResolvedValue([]);
+  // The bulk-delete dialog always asks for a preview; default it to "no snapshot".
+  getAssetDeletePreviewMock.mockReset();
+  getAssetDeletePreviewMock.mockResolvedValue({ assets: 0, files: 0, bytes: 0, snapshot: null });
 });
 
 /** The toast stack, scoped so `BulkActionBar`'s own `role="alert"` is never hit. */

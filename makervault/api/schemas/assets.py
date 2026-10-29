@@ -1,6 +1,6 @@
 """Assets, their metadata edits and the bulk download request (Mf-avo9 split)."""
 
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -14,6 +14,7 @@ __all__ = [
   "AssetRename",
   "DownloadRequest",
   "PreparedPrintOut",
+  "SnapshotNoticeOut",
   "TagUpdate",
 ]
 
@@ -33,6 +34,23 @@ class PreparedPrintOut(BaseModel):
   slicer: str = "unknown"
   format: Optional[str] = None
   removable: bool = False
+
+
+class SnapshotNoticeOut(BaseModel):
+  """What a destructive operation will do about a pre-operation snapshot.
+
+  Descriptive, never prose: the dialogs build the sentence. `pattern` is the only
+  promise a preview can keep, because the exact name is minted at create time;
+  `name` is filled in only on the response to the mutation itself.
+  """
+
+  reason: str                                      # predelete | prepurge | prebulk
+  policy: Literal["warn", "strict"]
+  capability: Literal["available", "unavailable"]
+  action: Literal["snapshot", "proceed_without", "refuse"]
+  pattern: str                                     # <YYYYmmddTHHMMSSZ>-<reason>-<6 hex>
+  name: Optional[str] = None                       # exact name once taken
+  detail: Optional[str] = None                     # why it is unavailable, when it is
 
 
 class AssetOut(BaseModel):

@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 
 def env_int(name: str, default: int) -> int:
@@ -99,3 +100,27 @@ LOGIN_MAX_FAILURES = env_int("LOGIN_MAX_FAILURES", 5)
 LOGIN_FAILURE_WINDOW_SECONDS = env_int("LOGIN_FAILURE_WINDOW_SECONDS", 900)
 LOGIN_LOCKOUT_SECONDS = env_int("LOGIN_LOCKOUT_SECONDS", 300)
 LOGIN_MAX_LOCKOUT_SECONDS = env_int("LOGIN_MAX_LOCKOUT_SECONDS", 3600)
+
+# Pre-operation snapshots for the three destructive operations (S3). A policy is
+# validated at import: a typo in a policy name must fail the boot, not silently
+# turn a refusal into a proceed or the other way round. `warn` proceeds without
+# a snapshot and says so; `strict` refuses only when SNAPSHOT_REQUIRE_CAPABILITY
+# is set, because an advertised absence with no snapshot method is audited but
+# not fatal (Empty trash must stay possible on ext4/tmpfs).
+SNAPSHOT_POLICY_WARN = "warn"
+SNAPSHOT_POLICY_STRICT = "strict"
+SNAPSHOT_POLICIES = frozenset({SNAPSHOT_POLICY_WARN, SNAPSHOT_POLICY_STRICT})
+
+
+def env_policy(name: str, raw: Optional[str], default: str) -> str:
+    """One snapshot-policy value, validated at import: a typo must not be inert."""
+    value = (raw or default).strip().lower()
+    if value not in SNAPSHOT_POLICIES:
+        raise ValueError(f"{name} must be one of {sorted(SNAPSHOT_POLICIES)}; got {value!r}")
+    return value
+
+
+SNAPSHOT_POLICY_PREDELETE = env_policy("SNAPSHOT_POLICY_PREDELETE", os.getenv("SNAPSHOT_POLICY_PREDELETE", "warn"), "warn")
+SNAPSHOT_POLICY_PREPURGE = env_policy("SNAPSHOT_POLICY_PREPURGE", os.getenv("SNAPSHOT_POLICY_PREPURGE", "strict"), "strict")
+SNAPSHOT_POLICY_PREBULK = env_policy("SNAPSHOT_POLICY_PREBULK", os.getenv("SNAPSHOT_POLICY_PREBULK", "strict"), "strict")
+SNAPSHOT_REQUIRE_CAPABILITY = env_bool("SNAPSHOT_REQUIRE_CAPABILITY", False)
