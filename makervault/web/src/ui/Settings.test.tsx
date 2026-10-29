@@ -47,7 +47,7 @@ const storedStorage = {
 
 /** Render Settings and navigate from the root menu into the storage section. */
 async function renderStorageSection() {
-  render(<Settings settings={settings} onChange={() => {}} />);
+  render(<Settings settings={settings} onChange={() => {}} role="admin" />);
 
   fireEvent.click(await screen.findByRole("button", { name: /Storage Structure/ }));
 
@@ -110,7 +110,7 @@ describe("Settings imports", () => {
 
   it("scopes the cookie copy to rate limits and reports the remember opt-in", async () => {
     const onChange = vi.fn();
-    render(<Settings settings={settings} onChange={onChange} />);
+    render(<Settings settings={settings} onChange={onChange} role="admin" />);
 
     fireEvent.click(await screen.findByRole("button", { name: /Imports & Folder Scan/ }));
 
@@ -122,5 +122,47 @@ describe("Settings imports", () => {
     const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1];
     const next = lastCall?.[0] as AppSettings;
     expect(next.imports.rememberCookies).toBe(true);
+  });
+});
+
+describe("Settings role gating", () => {
+  beforeEach(() => {
+    getStorageSettingsMock.mockReset();
+    getMountImportSettingsMock.mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("hides the admin-only storage section from a viewer", async () => {
+    render(<Settings settings={settings} onChange={() => {}} role="viewer" />);
+
+    await screen.findByRole("button", { name: /Imports & Folder Scan/ });
+    expect(screen.queryByRole("button", { name: /Storage Structure/ })).toBeNull();
+  });
+
+  it("omits the mount-import card and never fetches admin settings for a viewer", async () => {
+    render(<Settings settings={settings} onChange={() => {}} role="viewer" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Imports & Folder Scan/ }));
+
+    await screen.findByText(/Remember import cookies on this device/);
+    expect(screen.queryByText("Mount import (server)")).toBeNull();
+    expect(getMountImportSettingsMock).not.toHaveBeenCalled();
+    expect(getStorageSettingsMock).not.toHaveBeenCalled();
+  });
+
+  it("replaces the storage section with a notice when a non-admin opens it", async () => {
+    const { rerender } = render(
+      <Settings settings={settings} onChange={() => {}} role="admin" />,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: /Storage Structure/ }));
+    await screen.findByDisplayValue("{folder}/{model}/{filename}");
+
+    rerender(<Settings settings={settings} onChange={() => {}} role="viewer" />);
+
+    expect(await screen.findByText("Administrator access required.")).toBeTruthy();
+    expect(screen.queryByDisplayValue("{folder}/{model}/{filename}")).toBeNull();
   });
 });

@@ -374,6 +374,7 @@ describe("Sidebar footer navigation", () => {
         onOpenAudit={onOpenAudit}
         onOpenSettings={onOpenSettings}
         activeView="audit"
+        role="admin"
       />,
     );
 
@@ -384,5 +385,20 @@ describe("Sidebar footer navigation", () => {
     fireEvent.click(audit);
     expect(onOpenAudit).toHaveBeenCalledTimes(1);
     expect(onOpenSettings).not.toHaveBeenCalled();
+  });
+
+  it("hides the audit entry from a viewer", () => {
+    render(
+      <Sidebar
+        selectedId={null}
+        onSelect={vi.fn()}
+        onOpenAudit={vi.fn()}
+        onOpenSettings={vi.fn()}
+        role="viewer"
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Settings" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Audit log" })).toBeNull();
   });
 });

@@ -8,12 +8,15 @@ export class UnauthorizedError extends Error {
   }
 }
 
+/** The exact 403 message `assertOk` throws, so callers can match it once. */
+export const FORBIDDEN_MESSAGE = "Your role does not allow this action.";
+
 function assertOk(res: Response, message: string) {
   if (res.status === 401) {
     throw new UnauthorizedError();
   }
   if (res.status === 403) {
-    throw new Error("Your role does not allow this action.");
+    throw new Error(FORBIDDEN_MESSAGE);
   }
   if (!res.ok) {
     throw new Error(message);
@@ -1282,6 +1285,22 @@ export async function refreshToken(refresh: string): Promise<AuthTokens> {
     body: JSON.stringify({ refresh_token: refresh }),
   });
   assertOk(res, "Token refresh failed");
+  return res.json();
+}
+
+export type Me = {
+  id: string | null;
+  username: string;
+  email: string | null;
+  role: string;
+  disabled: boolean;
+  kind: string;
+};
+
+/** The caller's own account: the web client's only source of truth for role. */
+export async function getMe(): Promise<Me> {
+  const res = await fetch(`${apiBase()}/me`, { headers: authHeaders() });
+  assertOk(res, "Failed to load the signed-in user");
   return res.json();
 }
 

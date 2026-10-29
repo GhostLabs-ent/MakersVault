@@ -7,9 +7,18 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 // the lazy mount/hide contract, not the panes' own rendering.
 vi.mock("../lib/api", () => ({
   UnauthorizedError: class UnauthorizedError extends Error {},
+  FORBIDDEN_MESSAGE: "Your role does not allow this action.",
   apiHealth: vi.fn(async () => ({ ok: true, auth_required: true })),
   fileUrl: vi.fn((rel: string) => rel),
   getApiBase: vi.fn(() => "http://localhost:8000"),
+  getMe: vi.fn(async () => ({
+    id: "u1",
+    username: "admin",
+    email: null,
+    role: "admin",
+    disabled: false,
+    kind: "local",
+  })),
   listProjects: vi.fn(async () => []),
   logout: vi.fn(async () => {}),
   refreshToken: vi.fn(),

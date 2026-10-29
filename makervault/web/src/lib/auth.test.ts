@@ -5,9 +5,13 @@ import { refreshToken } from "./api";
 import {
   clearRefreshToken,
   clearToken,
+  parseRole,
   readRefreshToken,
+  readRole,
   readToken,
+  roleAtLeast,
   storeRefreshToken,
+  storeRole,
   storeToken,
 } from "./auth";
 
@@ -89,14 +93,69 @@ describe("auth token storage", () => {
     expect(readRefreshToken()).toBeNull();
   });
 
-  it("clears both tokens on sign-out", () => {
+  it("clears both tokens and the cached role on sign-out", () => {
     storeToken("access-1");
     storeRefreshToken("refresh-1");
+    storeRole("admin");
 
     clearToken();
 
     expect(readToken()).toBeNull();
     expect(readRefreshToken()).toBeNull();
+    expect(readRole()).toBeNull();
+  });
+});
+
+describe("role helpers", () => {
+  beforeEach(() => {
+    installMemoryStorage();
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("round-trips a stored role", () => {
+    expect(readRole()).toBeNull();
+
+    storeRole("editor");
+    expect(readRole()).toBe("editor");
+  });
+
+  it("fails closed on an unknown or corrupt stored value", () => {
+    window.localStorage.setItem("makersvault_auth_role", "superuser");
+
+    expect(readRole()).toBeNull();
+  });
+
+  it("parses only the three roles the API knows", () => {
+    expect(parseRole("admin")).toBe("admin");
+    expect(parseRole("editor")).toBe("editor");
+    expect(parseRole("viewer")).toBe("viewer");
+    expect(parseRole("Admin")).toBeNull();
+    expect(parseRole(null)).toBeNull();
+    expect(parseRole(undefined)).toBeNull();
+    expect(parseRole(3)).toBeNull();
+  });
+
+  it("ranks roles viewer < editor < admin and fails closed on no role", () => {
+    expect(roleAtLeast("viewer", "viewer")).toBe(true);
+    expect(roleAtLeast("viewer", "editor")).toBe(false);
+    expect(roleAtLeast("viewer", "admin")).toBe(false);
+    expect(roleAtLeast("editor", "editor")).toBe(true);
+    expect(roleAtLeast("editor", "admin")).toBe(false);
+    expect(roleAtLeast("admin", "admin")).toBe(true);
+    expect(roleAtLeast(null, "viewer")).toBe(false);
+  });
+
+  it("does not clear the role when only the refresh token goes", () => {
+    storeRole("viewer");
+    storeRefreshToken("refresh-1");
+
+    clearRefreshToken();
+
+    expect(readRole()).toBe("viewer");
   });
 });
 

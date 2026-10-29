@@ -2,6 +2,7 @@ import { useRef, type KeyboardEvent } from "react";
 import { Layers3 } from "lucide-react";
 
 import { fileUrl, type Project } from "../lib/api";
+import type { Role } from "../lib/auth";
 import SidebarFooter from "./SidebarFooter";
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
   activeView?: "library" | "settings" | "audit";
   onOpenSettings?: () => void;
   onOpenAudit?: () => void;
+  role?: Role | null;
 };
 
 /**
@@ -25,6 +27,7 @@ export default function ProjectSidebar({
   activeView = "library",
   onOpenSettings,
   onOpenAudit,
+  role = null,
 }: Props) {
   const listRef = useRef<HTMLDivElement | null>(null);
 
@@ -137,6 +140,7 @@ export default function ProjectSidebar({
         activeView={activeView}
         onOpenSettings={onOpenSettings}
         onOpenAudit={onOpenAudit}
+        role={role}
       />
     </aside>
   );

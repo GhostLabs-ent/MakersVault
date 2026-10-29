@@ -6,6 +6,8 @@ import { useSettingsSave, useSettingsSection } from "./useSettingsSection";
 type Props = {
   section: Section;
   onUnauthorized?: () => void;
+  /** Admin-only: a non-admin must never fire the request that 403s. */
+  enabled: boolean;
 };
 
 export type MountImportSettingsState = {
@@ -20,7 +22,7 @@ export type MountImportSettingsState = {
   saveMountSettings: () => Promise<void>;
 };
 
-export function useMountImportSettings({ section, onUnauthorized }: Props): MountImportSettingsState {
+export function useMountImportSettings({ section, onUnauthorized, enabled }: Props): MountImportSettingsState {
   const [mountEnabled, setMountEnabled] = React.useState(false);
   const [mountCopyFiles, setMountCopyFiles] = React.useState(true);
   const [mountPath, setMountPath] = React.useState<string | null>(null);
@@ -28,7 +30,7 @@ export function useMountImportSettings({ section, onUnauthorized }: Props): Moun
 
   const { loading } = useSettingsSection({
     section,
-    active: section === "imports",
+    active: enabled && section === "imports",
     load: getMountImportSettings,
     onLoaded: data => {
       setMountEnabled(Boolean(data.enabled));

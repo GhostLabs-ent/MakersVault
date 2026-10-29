@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { Folder, UnauthorizedError, createFolder, downloadFolderZip, listFolders, updateFolder } from "../lib/api";
+import type { Role } from "../lib/auth";
 import { flattenFolderTree } from "../lib/folderTree";
 import { saveResponseToDisk } from "../lib/download";
 import { entriesFromDataTransfer } from "../lib/uploadTree";
@@ -34,6 +35,7 @@ type Props = {
   onOpenAudit?: () => void;
   activeView?: "library" | "settings" | "audit";
   onAssetsChanged?: () => void;
+  role?: Role | null;
 };
 
 const DROP_ALL_ID = "__all";
@@ -48,6 +50,7 @@ export default function Sidebar({
   onOpenAudit,
   activeView = "library",
   onAssetsChanged,
+  role = null,
 }: Props) {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [creating, setCreating] = useState(false);
@@ -715,6 +718,7 @@ export default function Sidebar({
         activeView={activeView}
         onOpenSettings={onOpenSettings}
         onOpenAudit={onOpenAudit}
+        role={role}
       />
       {pendingDelete && (
         <FolderDeleteDialog

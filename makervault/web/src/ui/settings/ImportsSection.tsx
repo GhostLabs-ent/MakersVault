@@ -19,6 +19,7 @@ type Props = {
   settings: AppSettings;
   onChange: (next: AppSettings) => void;
   mount: MountImportSettingsState;
+  isAdmin: boolean;
   folderScan: FolderScanState;
   importRuns: ImportRunsState;
   makerworld: CookieDraft;
@@ -30,6 +31,7 @@ export default function ImportsSection({
   settings,
   onChange,
   mount,
+  isAdmin,
   folderScan,
   importRuns,
   makerworld,
@@ -72,7 +74,7 @@ export default function ImportsSection({
         onBack={onBack}
       />
 
-      <MountImportCard {...mount} />
+      {isAdmin && <MountImportCard {...mount} />}
 
       <ImportRunsCard state={importRuns} />
 

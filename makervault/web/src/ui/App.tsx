@@ -8,6 +8,7 @@ import ProjectView from "./ProjectView";
 import Login from "./Login";
 import Settings from "./settings/Settings";
 import AuditLog from "./AuditLog";
+import NotPermitted from "./NotPermitted";
 import UploadQueuePanel from "./UploadQueuePanel";
 import {
   UnauthorizedError,
@@ -26,11 +27,13 @@ import {
   clearToken,
   readRefreshToken,
   readToken,
+  roleAtLeast,
   storeRefreshToken,
   storeToken,
 } from "../lib/auth";
 import { type AppSettings, type ResolvedTheme, loadSettings, resolveTheme, saveSettings } from "../lib/settings";
 import { type LibraryMode, loadMode, saveMode } from "../lib/mode";
+import { useSessionRole } from "./useSessionRole";
 const DEFAULT_REFRESH_SECONDS = 900; // 15 minutes: the access token lifetime
 
 const logoForTheme = (theme: ResolvedTheme) => {
@@ -124,6 +127,8 @@ export default function App() {
     setSessionExpired(true);
     notifyError("Your session has expired. Please sign in again.");
   }, [sessionExpired]);
+
+  const role = useSessionRole({ token, authRequired, onUnauthorized: handleUnauthorized });
 
   const handleFoldersChanged = React.useCallback(() => {
     setFolderVersion(v => v + 1);
@@ -303,6 +308,7 @@ export default function App() {
               onOpenSettings={() => setActiveView("settings")}
               onOpenAudit={() => setActiveView("audit")}
               activeView={activeView}
+              role={role}
             />
           )}
         </div>
@@ -315,6 +321,7 @@ export default function App() {
               activeView={activeView}
               onOpenSettings={() => setActiveView("settings")}
               onOpenAudit={() => setActiveView("audit")}
+              role={role}
             />
           )}
         </div>
@@ -418,9 +425,13 @@ export default function App() {
             onFoldersChanged={handleFoldersChanged}
             onUnauthorized={handleUnauthorized}
             onSelectFolder={handleSelectFolder}
+            role={role}
           />
         )}
-        {activeView === "audit" && <AuditLog onUnauthorized={handleUnauthorized} />}
+        {activeView === "audit" && !roleAtLeast(role, "admin") && <NotPermitted />}
+        {activeView === "audit" && roleAtLeast(role, "admin") && (
+          <AuditLog onUnauthorized={handleUnauthorized} />
+        )}
       </main>
       {confirmingLogout && (
         <ConfirmDialog

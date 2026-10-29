@@ -84,6 +84,7 @@ describe("ProjectSidebar", () => {
         onSelect={vi.fn()}
         onOpenSettings={onOpenSettings}
         onOpenAudit={onOpenAudit}
+        role="admin"
       />,
     );
 
@@ -92,6 +93,22 @@ describe("ProjectSidebar", () => {
 
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
     expect(onOpenAudit).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides the audit entry from a viewer", () => {
+    render(
+      <ProjectSidebar
+        projects={projects}
+        selectedId={null}
+        onSelect={vi.fn()}
+        onOpenSettings={vi.fn()}
+        onOpenAudit={vi.fn()}
+        role="viewer"
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Settings" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Audit log" })).toBeNull();
   });
 
   it("moves focus with the arrow keys without opening anything", () => {

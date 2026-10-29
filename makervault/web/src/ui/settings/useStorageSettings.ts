@@ -6,6 +6,8 @@ import { useSettingsSave, useSettingsSection } from "./useSettingsSection";
 type Props = {
   section: Section;
   onUnauthorized?: () => void;
+  /** Admin-only: a non-admin must never fire the request that 403s. */
+  enabled: boolean;
 };
 
 export type StorageSettingsState = {
@@ -21,7 +23,7 @@ export type StorageSettingsState = {
   save: () => Promise<void>;
 };
 
-export function useStorageSettings({ section, onUnauthorized }: Props): StorageSettingsState {
+export function useStorageSettings({ section, onUnauthorized, enabled }: Props): StorageSettingsState {
   const [storageTemplate, setStorageTemplate] = React.useState("{folder}/{model}/{filename}");
   const [storageInitial, setStorageInitial] = React.useState("{folder}/{model}/{filename}");
   const [storageTokens, setStorageTokens] = React.useState<string[]>([]);
@@ -30,7 +32,7 @@ export function useStorageSettings({ section, onUnauthorized }: Props): StorageS
 
   const { loading } = useSettingsSection({
     section,
-    active: section === "storage",
+    active: enabled && section === "storage",
     load: () => {
       setStorageStatus(null);
       return getStorageSettings();

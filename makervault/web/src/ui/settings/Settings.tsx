@@ -1,5 +1,7 @@
 import React from "react";
+import { roleAtLeast, type Role } from "../../lib/auth";
 import type { AppSettings } from "../../lib/settings";
+import NotPermitted from "../NotPermitted";
 import EngravingSection from "./EngravingSection";
 import ImportsSection from "./ImportsSection";
 import NetworkSection from "./NetworkSection";
@@ -24,6 +26,8 @@ type Props = {
   onFoldersChanged?: () => void;
   onUnauthorized?: () => void;
   onSelectFolder?: (id: string | null) => void;
+  /** `null` until `/me` answers; admin-only sections stay hidden until then. */
+  role?: Role | null;
 };
 
 export default function Settings({
@@ -33,7 +37,9 @@ export default function Settings({
   onFoldersChanged,
   onUnauthorized,
   onSelectFolder,
+  role = null,
 }: Props) {
+  const isAdmin = roleAtLeast(role, "admin");
   const [section, setSection] = React.useState<Section>("root");
   const [makerworldDraft, setMakerworldDraft] = React.useState(settings.makerworld.cookie);
   const [thingiverseDraft, setThingiverseDraft] = React.useState(settings.thingiverse.cookie);
@@ -52,14 +58,14 @@ export default function Settings({
     setThingiverseEditing(!settings.thingiverse.cookie);
   }, [section, settings.makerworld.cookie, settings.thingiverse.cookie]);
 
-  const mount = useMountImportSettings({ section, onUnauthorized });
+  const mount = useMountImportSettings({ section, onUnauthorized, enabled: isAdmin });
 
   React.useEffect(() => {
     if (section !== "network") return;
     setNetworkDraft(settings.network.publicUrl || "");
   }, [section, settings.network.publicUrl]);
 
-  const storage = useStorageSettings({ section, onUnauthorized });
+  const storage = useStorageSettings({ section, onUnauthorized, enabled: isAdmin });
 
   React.useEffect(() => {
     if (!makerworldEditing) {
@@ -115,6 +121,10 @@ export default function Settings({
     );
   }
 
+  if (section === "storage" && !isAdmin) {
+    return <NotPermitted />;
+  }
+
   if (section === "storage") {
     return (
       <StorageSection
@@ -136,6 +146,7 @@ export default function Settings({
         settings={settings}
         onChange={onChange}
         mount={mount}
+        isAdmin={isAdmin}
         folderScan={folderScan}
         importRuns={importRuns}
         makerworld={{
@@ -157,7 +168,7 @@ export default function Settings({
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsRootMenu onOpen={setSection} />
+      <SettingsRootMenu onOpen={setSection} role={role} />
     </div>
   );
 }

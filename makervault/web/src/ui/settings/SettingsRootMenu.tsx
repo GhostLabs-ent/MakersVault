@@ -1,10 +1,12 @@
+import { roleAtLeast, type Role } from "../../lib/auth";
 import type { Section } from "./types";
 
 type Props = {
   onOpen: (section: Section) => void;
+  role?: Role | null;
 };
 
-export default function SettingsRootMenu({ onOpen }: Props) {
+export default function SettingsRootMenu({ onOpen, role = null }: Props) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <button
@@ -47,14 +49,16 @@ export default function SettingsRootMenu({ onOpen }: Props) {
         <div className="text-lg font-semibold">Model Previews</div>
         <div className="text-sm opacity-70">Choose automatic, on-demand, or disabled preview generation.</div>
       </button>
-      <button
-        className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
-        onClick={() => onOpen("storage")}
-      >
-        <div className="text-xs uppercase tracking-wide text-muted">Files</div>
-        <div className="text-lg font-semibold">Storage Structure</div>
-        <div className="text-sm opacity-70">Organize files with folders, model names, creators, and tags. Use Projects to group files.</div>
-      </button>
+      {roleAtLeast(role, "admin") && (
+        <button
+          className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
+          onClick={() => onOpen("storage")}
+        >
+          <div className="text-xs uppercase tracking-wide text-muted">Files</div>
+          <div className="text-lg font-semibold">Storage Structure</div>
+          <div className="text-sm opacity-70">Organize files with folders, model names, creators, and tags. Use Projects to group files.</div>
+        </button>
+      )}
       <button
         className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
         onClick={() => onOpen("imports")}
