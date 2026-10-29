@@ -13,6 +13,8 @@ import LicenceChip from "./LicenceChip";
 import ProjectLanding from "./ProjectLanding";
 
 type Props = {
+  /** Required, not defaulted: the compiler is what keeps the gating airtight. */
+  canWrite: boolean;
   /** `null` while the project list is loading. */
   projects: Project[] | null;
   selectedProjectId: string | null;
@@ -50,6 +52,7 @@ const SOURCE_CHIP =
  * closing returns focus to the card that was opened.
  */
 export default function ProjectView({
+  canWrite,
   projects,
   selectedProjectId,
   onOpenProject,
@@ -125,6 +128,7 @@ export default function ProjectView({
           </button>
         </div>
         <ProjectLanding
+          canWrite={canWrite}
           project={selectedProject}
           assetsVersion={assetsVersion}
           onProjectUpdated={onProjectUpdated}

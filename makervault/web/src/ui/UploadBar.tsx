@@ -16,6 +16,8 @@ import ImportProjectTargetControl from "./ImportProjectTarget";
 import { useUpload } from "./useUpload";
 
 type Props = {
+  /** Write capability of the current role; a viewer never sees this bar. */
+  canWrite: boolean;
   onUploaded: () => void;
   folderId?: string | null;
   makerworldCookie?: string | null;
@@ -42,6 +44,7 @@ function importErrorMessage(err: unknown): string {
 }
 
 export default function UploadBar({
+  canWrite,
   onUploaded,
   folderId,
   makerworldCookie,
@@ -312,6 +315,12 @@ export default function UploadBar({
     if (!url) return;
     await importFromUrl(url);
   };
+
+  // Every control in this bar writes (upload, folder upload, link import, and
+  // the project target that steers the import), so a viewer gets no bar at all
+  // rather than a row of disabled buttons advertising a capability it lacks.
+  // The early return sits after every hook so the hook order never changes.
+  if (!canWrite) return null;
 
   return (
     <>

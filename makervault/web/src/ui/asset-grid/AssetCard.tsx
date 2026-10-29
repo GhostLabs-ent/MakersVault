@@ -23,6 +23,7 @@ import type { AssetCardProps } from "./assetCardProps";
 
 const AssetCard = React.memo(function AssetCard({
   item,
+  canWrite,
   onSaveTags,
   onSaveDetails,
   onRename,
@@ -335,6 +336,13 @@ const AssetCard = React.memo(function AssetCard({
     }
   };
 
+  // A viewer keeps the name as plain text: rename mode is never entered.
+  const handleNameDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!canWrite) return;
+    e.stopPropagation();
+    setRenaming(true);
+  };
+
   const handleFolderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const next = e.target.value || null;
     const current = item.folder_id || null;
@@ -399,19 +407,23 @@ const AssetCard = React.memo(function AssetCard({
             Not found in storage since {formatMissingSince(item.missing_since)}.
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
-            <button
-              className="text-sm px-2 py-1 rounded-md border border-panel-strong disabled:opacity-60"
-              onClick={() => onRescanMissing(item)}
-              disabled={rescanning}
-            >
-              {rescanning ? "Scanning..." : "Re-scan"}
-            </button>
-            <button
-              className="text-sm px-2 py-1 rounded-md border border-red-300 text-red-700 dark:text-red-300 disabled:opacity-60"
-              onClick={() => onForgetMissing(item)}
-            >
-              Forget entry
-            </button>
+            {canWrite && (
+              <>
+                <button
+                  className="text-sm px-2 py-1 rounded-md border border-panel-strong disabled:opacity-60"
+                  onClick={() => onRescanMissing(item)}
+                  disabled={rescanning}
+                >
+                  {rescanning ? "Scanning..." : "Re-scan"}
+                </button>
+                <button
+                  className="text-sm px-2 py-1 rounded-md border border-red-300 text-red-700 dark:text-red-300 disabled:opacity-60"
+                  onClick={() => onForgetMissing(item)}
+                >
+                  Forget entry
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -419,7 +431,7 @@ const AssetCard = React.memo(function AssetCard({
         {item.prepared_print && (
           <PreparedPrintSummary
             prepared={item.prepared_print}
-            onClear={item.prepared_print.removable ? clearPreparedPrint : undefined}
+            onClear={canWrite && item.prepared_print.removable ? clearPreparedPrint : undefined}
             clearing={preparedClearing}
           />
         )}
@@ -474,7 +486,7 @@ const AssetCard = React.memo(function AssetCard({
             )}
           </div>
         )}
-        {showFolderControls && (
+        {canWrite && showFolderControls && (
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold uppercase text-muted">
               {moving ? "Updating..." : "Folder"}
@@ -496,10 +508,10 @@ const AssetCard = React.memo(function AssetCard({
         <div
           className="text-sm font-medium truncate cursor-text"
           title={`${item.name} · ${item.filename}`}
-          onDoubleClick={e => { e.stopPropagation(); setRenaming(true); }}
-          onClick={e => renaming && e.stopPropagation()}
+          onDoubleClick={handleNameDoubleClick}
+          onClick={e => canWrite && renaming && e.stopPropagation()}
         >
-          {renaming ? (
+          {canWrite && renaming ? (
             <>
               <input
                 ref={nameInputRef}
@@ -551,29 +563,31 @@ const AssetCard = React.memo(function AssetCard({
                 {fileCountLabel}
               </span>
             </button>
-            <>
-              <input
-                ref={relatedInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                accept=".pdf,.txt,.md,.markdown,.csv,.log,.json,.html,.htm,.xml,.yaml,.yml,.png,.jpg,.jpeg,.gif,.webp,.bmp,.doc,.docx,.rtf,.zip,.gcode,.gco,.bgcode,.3mf"
-                onChange={addRelatedFiles}
-              />
-              <button
-                type="button"
-                className="rounded-md border border-panel-strong px-2 py-1 text-xs disabled:opacity-60"
-                disabled={filesUploading || atFileLimit}
-                onClick={() => relatedInputRef.current?.click()}
-                title={
-                  atFileLimit
-                    ? `Supporting file limit reached (${maxFileCount})`
-                    : "Add documentation or a prepared print"
-                }
-              >
-                {filesUploading ? "Adding..." : "Add files"}
-              </button>
-            </>
+            {canWrite && (
+              <>
+                <input
+                  ref={relatedInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  accept=".pdf,.txt,.md,.markdown,.csv,.log,.json,.html,.htm,.xml,.yaml,.yml,.png,.jpg,.jpeg,.gif,.webp,.bmp,.doc,.docx,.rtf,.zip,.gcode,.gco,.bgcode,.3mf"
+                  onChange={addRelatedFiles}
+                />
+                <button
+                  type="button"
+                  className="rounded-md border border-panel-strong px-2 py-1 text-xs disabled:opacity-60"
+                  disabled={filesUploading || atFileLimit}
+                  onClick={() => relatedInputRef.current?.click()}
+                  title={
+                    atFileLimit
+                      ? `Supporting file limit reached (${maxFileCount})`
+                      : "Add documentation or a prepared print"
+                  }
+                >
+                  {filesUploading ? "Adding..." : "Add files"}
+                </button>
+              </>
+            )}
           </div>
           {filesExpanded && (
             <div className="border-t border-panel px-2 py-2">
@@ -638,38 +652,42 @@ const AssetCard = React.memo(function AssetCard({
                             >
                               Download
                             </a>
-                            <button
-                              type="button"
-                              className="px-1 disabled:opacity-40"
-                              aria-label={`Move ${file.filename} up`}
-                              disabled={fileBusy || index === 0}
-                              onClick={() => moveFile(file, -1)}
-                            >
-                              ↑
-                            </button>
-                            <button
-                              type="button"
-                              className="px-1 disabled:opacity-40"
-                              aria-label={`Move ${file.filename} down`}
-                              disabled={fileBusy || index === supportingFiles.length - 1}
-                              onClick={() => moveFile(file, 1)}
-                            >
-                              ↓
-                            </button>
-                            <button
-                              type="button"
-                              disabled={fileBusy}
-                              onClick={() => startFileRename(file)}
-                            >
-                              Rename
-                            </button>
-                            <button
-                              type="button"
-                              className="text-red-700 dark:text-red-300"
-                              onClick={() => removeRelatedFile(file)}
-                            >
-                              Remove
-                            </button>
+                            {canWrite && (
+                              <>
+                                <button
+                                  type="button"
+                                  className="px-1 disabled:opacity-40"
+                                  aria-label={`Move ${file.filename} up`}
+                                  disabled={fileBusy || index === 0}
+                                  onClick={() => moveFile(file, -1)}
+                                >
+                                  ↑
+                                </button>
+                                <button
+                                  type="button"
+                                  className="px-1 disabled:opacity-40"
+                                  aria-label={`Move ${file.filename} down`}
+                                  disabled={fileBusy || index === supportingFiles.length - 1}
+                                  onClick={() => moveFile(file, 1)}
+                                >
+                                  ↓
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={fileBusy}
+                                  onClick={() => startFileRename(file)}
+                                >
+                                  Rename
+                                </button>
+                                <button
+                                  type="button"
+                                  className="text-red-700 dark:text-red-300"
+                                  onClick={() => removeRelatedFile(file)}
+                                >
+                                  Remove
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
                       )}
@@ -702,7 +720,7 @@ const AssetCard = React.memo(function AssetCard({
           </div>
           {!notesCollapsed && (
             <>
-              {editingNotes ? (
+              {canWrite && editingNotes ? (
                 <>
                   <label className="flex flex-col gap-1">
                     <span className="text-[10px] uppercase tracking-wide text-muted">Creator</span>
@@ -754,12 +772,14 @@ const AssetCard = React.memo(function AssetCard({
                   <div className={`text-sm whitespace-pre-wrap ${noteText ? "text-foreground" : "opacity-60"}`}>
                     {noteText || "Add notes"}
                   </div>
-                  <button
-                    className="self-start text-xs px-2 py-1 rounded-md border border-panel-strong"
-                    onClick={() => setEditingNotes(true)}
-                  >
-                    Edit details
-                  </button>
+                  {canWrite && (
+                    <button
+                      className="self-start text-xs px-2 py-1 rounded-md border border-panel-strong"
+                      onClick={() => setEditingNotes(true)}
+                    >
+                      Edit details
+                    </button>
+                  )}
                 </>
               )}
             </>
@@ -773,7 +793,9 @@ const AssetCard = React.memo(function AssetCard({
           )}
         </div>
 
-        {editingTags ? (
+        {/* Both the tag editor and the row that opens it are write surfaces;
+            a demotion mid-edit therefore drops the editor with the buttons. */}
+        {canWrite && (editingTags ? (
           <div className="flex flex-col gap-2">
             <TagInput
               value={tagList}
@@ -801,7 +823,7 @@ const AssetCard = React.memo(function AssetCard({
               Delete
             </button>
           </div>
-        )}
+        ))}
       </div>
     </div>
   );

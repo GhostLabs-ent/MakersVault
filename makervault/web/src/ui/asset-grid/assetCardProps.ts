@@ -4,6 +4,8 @@ import type { ConfirmRequest } from "../ConfirmDialog";
 
 export type AssetCardProps = {
   item: Asset;
+  /** Write capability of the current role: a viewer keeps reads, loses every write control. */
+  canWrite: boolean;
   onSaveTags: (id: string, tags: string[]) => void;
   onSaveDetails: (id: string, payload: { notes: string; creator: string }) => void;
   onRename: (id: string, filename: string) => void;

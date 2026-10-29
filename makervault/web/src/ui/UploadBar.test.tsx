@@ -58,7 +58,7 @@ function renderUploadBar() {
   const onUploaded = vi.fn();
   render(
     <>
-      <UploadBar onUploaded={onUploaded} />
+      <UploadBar canWrite onUploaded={onUploaded} />
       <Toaster />
     </>,
   );
@@ -182,5 +182,34 @@ describe("UploadBar link import", () => {
     await waitFor(() => expect(onUploaded).toHaveBeenCalledTimes(1));
     expect(importFromLinkMock).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId("toaster")).toBeNull();
+  });
+});
+
+describe("UploadBar role capability", () => {
+  afterEach(cleanup);
+
+  /** Every control in the bar writes, so a viewer must see none of them. */
+  const WRITE_BUTTONS = ["Upload", "Upload folder", "Import link"];
+
+  it("shows the whole write bar to an editor", () => {
+    render(<UploadBar canWrite onUploaded={vi.fn()} />);
+
+    for (const name of WRITE_BUTTONS) {
+      expect(screen.getByRole("button", { name })).toBeTruthy();
+    }
+    expect(screen.getByPlaceholderText(LINK_INPUT)).toBeTruthy();
+    // The project-target picker steers a write, so it belongs to the same bar.
+    expect(screen.getByRole("radio", { name: "New project from the page" })).toBeTruthy();
+  });
+
+  it("renders no bar and no write control for a viewer", () => {
+    const { container } = render(<UploadBar canWrite={false} onUploaded={vi.fn()} />);
+
+    expect(container.innerHTML).toBe("");
+    for (const name of WRITE_BUTTONS) {
+      expect(screen.queryByRole("button", { name })).toBeNull();
+    }
+    expect(screen.queryByPlaceholderText(LINK_INPUT)).toBeNull();
+    expect(screen.queryByRole("radio", { name: "New project from the page" })).toBeNull();
   });
 });

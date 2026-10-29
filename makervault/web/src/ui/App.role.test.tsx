@@ -31,7 +31,19 @@ vi.mock("../lib/settings", () => ({
 }));
 
 vi.mock("./Sidebar", () => ({ default: () => null }));
-vi.mock("./ModeSwitch", () => ({ default: () => null }));
+// The switch is the only way to visit a second pane, so keep it interactive.
+vi.mock("./ModeSwitch", async () => {
+  const react = await import("react");
+  return {
+    default: ({ onChange }: { onChange: (mode: "files" | "projects") => void }) =>
+      react.createElement(
+        "div",
+        null,
+        react.createElement("button", { type: "button", onClick: () => onChange("files") }, "Switch to files"),
+        react.createElement("button", { type: "button", onClick: () => onChange("projects") }, "Switch to projects"),
+      ),
+  };
+});
 
 // The projects pane carries the real footer, so the role reaches the nav the
 // same way it does in the app; the extra button stands in for a direct visit
@@ -58,15 +70,41 @@ vi.mock("./ProjectSidebar", async () => {
   };
 });
 
-vi.mock("./ProjectView", () => ({ default: () => null }));
-vi.mock("./asset-grid/AssetGrid", () => ({ default: () => null }));
+// Both write-bearing panes render the `canWrite` they received, so the role
+// gating is asserted from the DOM instead of from a prop spy.
+vi.mock("./ProjectView", async () => {
+  const react = await import("react");
+  return {
+    default: ({ canWrite }: { canWrite: boolean }) =>
+      react.createElement("div", { "data-testid": "project-view", "data-can-write": String(canWrite) }),
+  };
+});
+vi.mock("./asset-grid/AssetGrid", async () => {
+  const react = await import("react");
+  return {
+    default: ({ canWrite }: { canWrite: boolean }) =>
+      react.createElement("div", { "data-testid": "asset-grid", "data-can-write": String(canWrite) }),
+  };
+});
 vi.mock("./settings/Settings", () => ({ default: () => null }));
 vi.mock("./AuditLog", async () => {
   const react = await import("react");
   return { default: () => react.createElement("div", null, "Audit view") };
 });
-vi.mock("./UploadBar", () => ({ default: () => null }));
-vi.mock("./UploadQueuePanel", () => ({ default: () => null }));
+// The real UploadBar hides itself when it receives `canWrite: false`, so the
+// mock does the same: the marker is present only when App threaded a write
+// capability down. (UploadQueuePanel is gated by App itself.)
+vi.mock("./UploadBar", async () => {
+  const react = await import("react");
+  return {
+    default: ({ canWrite }: { canWrite: boolean }) =>
+      canWrite ? react.createElement("div", null, "Upload bar") : null,
+  };
+});
+vi.mock("./UploadQueuePanel", async () => {
+  const react = await import("react");
+  return { default: () => react.createElement("div", null, "Upload queue") };
+});
 vi.mock("./Login", () => ({ default: () => null }));
 
 import App from "./App";
@@ -157,5 +195,39 @@ describe("App role-gated navigation", () => {
 
     await screen.findByText("Administrator access required.");
     expect(screen.queryByText("Audit view")).toBeNull();
+  });
+});
+
+describe("App write gating by role", () => {
+  /** Visit the files pane too, so both panes are mounted and can be asserted. */
+  async function visitBothPanes() {
+    const { unmount } = render(<App />);
+    await waitFor(() => expect(getMeMock).toHaveBeenCalled());
+    fireEvent.click(await screen.findByRole("button", { name: "Switch to files" }));
+    await screen.findByTestId("asset-grid");
+    await screen.findByTestId("project-view");
+    return unmount;
+  }
+
+  it("gives a viewer no upload bar, no upload queue panel and no write capability", async () => {
+    getMeMock.mockResolvedValue(me("viewer"));
+
+    await visitBothPanes();
+
+    expect(screen.queryByText("Upload bar")).toBeNull();
+    expect(screen.queryByText("Upload queue")).toBeNull();
+    expect(screen.getByTestId("asset-grid").dataset.canWrite).toBe("false");
+    expect(screen.getByTestId("project-view").dataset.canWrite).toBe("false");
+  });
+
+  it("gives an editor the upload bar, the upload queue panel and write capability", async () => {
+    getMeMock.mockResolvedValue(me("editor"));
+
+    await visitBothPanes();
+
+    expect(screen.getByText("Upload bar")).toBeTruthy();
+    expect(screen.getByText("Upload queue")).toBeTruthy();
+    expect(screen.getByTestId("asset-grid").dataset.canWrite).toBe("true");
+    expect(screen.getByTestId("project-view").dataset.canWrite).toBe("true");
   });
 });

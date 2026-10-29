@@ -127,6 +127,7 @@ type Props = ComponentProps<typeof ProjectLanding>;
 
 function landingProps(overrides: Partial<Props> = {}): Props {
   return {
+    canWrite: true,
     project: makeProject(),
     assetsVersion: 0,
     onProjectUpdated: vi.fn(),
@@ -139,6 +140,25 @@ function landingProps(overrides: Partial<Props> = {}): Props {
 
 function renderLanding(overrides: Partial<Props> = {}) {
   return render(<ProjectLanding {...landingProps(overrides)} />);
+}
+
+/** The plain object jsdom hands a drag handler for a file drag. */
+function fileDataTransfer(files: File[]): {
+  types: string[];
+  files: File[];
+  items: unknown[];
+} {
+  return { types: ["Files"], files, items: [] };
+}
+
+/** Every API call a viewer must never reach, whatever is on screen. */
+function expectNoWriteCalls(): void {
+  expect(uploadAssetMock).not.toHaveBeenCalled();
+  expect(uploadAssetFileMock).not.toHaveBeenCalled();
+  expect(updateProjectMock).not.toHaveBeenCalled();
+  expect(deleteProjectMock).not.toHaveBeenCalled();
+  expect(removeProjectAssetsMock).not.toHaveBeenCalled();
+  expect(addProjectAssetsMock).not.toHaveBeenCalled();
 }
 
 beforeEach(() => {
@@ -427,6 +447,147 @@ describe("ProjectLanding files", () => {
     await waitFor(() => expect(uploadAssetFileMock).toHaveBeenCalledWith("a1", file));
     await waitFor(() => expect(listProjectAssetsMock).toHaveBeenCalledTimes(2));
     expect(getToasts().some(toast => /notes\.txt/.test(toast.message))).toBe(true);
+  });
+});
+
+describe("ProjectLanding viewer role", () => {
+  it("hides every write control and keeps the read surfaces", async () => {
+    renderLanding({ canWrite: false, project: makeProject({ cover_asset_id: "a3" }) });
+    await screen.findByText("Body");
+
+    expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add files" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Use .* as cover$/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add a description" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Attach files" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Attach folder" })).toBeNull();
+    expect(screen.queryAllByRole("button", { name: /^Add supporting file to / })).toHaveLength(0);
+    expect(screen.queryAllByRole("button", { name: /^Remove .* from project$/ })).toHaveLength(0);
+
+    // Reads stay: the ZIP export, the member downloads and the rendered page.
+    expect(screen.getByRole("button", { name: /Download all as ZIP/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Download Body" })).toBeTruthy();
+    expect(screen.getByText("bold").tagName).toBe("STRONG");
+
+    const details = screen.getByRole("region", { name: "Details" });
+    expect(within(details).getByText("Own creation")).toBeTruthy();
+
+    const files = screen.getByRole("region", { name: "Files" });
+    expect(within(files).getByText("Body")).toBeTruthy();
+
+    // The gallery keeps its images and the cover badge.
+    const gallery = screen.getByTestId("project-gallery");
+    expect(within(gallery).getAllByRole("img").length).toBe(2);
+    expect(within(gallery).getByText("Cover")).toBeTruthy();
+  });
+
+  it("keeps the empty state readable without offering add or attach controls", async () => {
+    listProjectAssetsMock.mockResolvedValue({ items: [], hasMore: false });
+    renderLanding({ canWrite: false, project: makeProject({ asset_count: 0 }) });
+    await screen.findByText("This project has no files yet.");
+
+    expect(screen.queryByRole("button", { name: "Add files" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Attach files" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Attach folder" })).toBeNull();
+  });
+
+  it("shows the no-description placeholder without the edit affordance", async () => {
+    renderLanding({ canWrite: false, project: makeProject({ description: null }) });
+    await screen.findByText("Body");
+
+    expect(screen.getByText("No description yet.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Add a description" })).toBeNull();
+  });
+
+  it("drops the attach instruction from the gated-import note", async () => {
+    renderLanding({
+      canWrite: false,
+      project: makeProject({ origin: "imported", metadata_json: { _files: "user-supplied" } }),
+    });
+    await screen.findByText("Body");
+
+    const details = screen.getByRole("region", { name: "Details" });
+    const note = within(details).getByText(/Imported details only/);
+    expect(note.textContent).toContain("gated behind an account or a purchase");
+    expect(note.textContent).not.toContain("Attach files");
+  });
+
+  it("is not a drop target, so a dropped file attaches nothing", async () => {
+    renderLanding({ canWrite: false });
+    await screen.findByText("Body");
+
+    const section = screen.getByRole("heading", { name: "Files" }).closest("section");
+    if (!section) throw new Error("missing Files section");
+    const dataTransfer = fileDataTransfer([
+      new File(["cube"], "dropped.stl", { type: "model/stl" }),
+    ]);
+
+    // `fireEvent` returns false when the handler cancelled the event; a viewer's
+    // handlers must leave the browser's own drop handling alone.
+    expect(fireEvent.dragEnter(section, { dataTransfer })).toBe(true);
+    expect(screen.queryByText(/Drop files or a folder to attach/)).toBeNull();
+    expect(fireEvent.drop(section, { dataTransfer })).toBe(true);
+    await waitFor(() => expectNoWriteCalls());
+
+    expect(screen.queryByText(/Drop files or a folder to attach/)).toBeNull();
+  });
+
+  it("reaches no write API by clicking any visible control", async () => {
+    renderLanding({ canWrite: false });
+    await screen.findByText("Body");
+
+    const controls = screen.getAllByRole("button");
+    expect(controls.length).toBeGreaterThan(0);
+    for (const control of controls) {
+      fireEvent.click(control);
+    }
+    await waitFor(() => expectNoWriteCalls());
+
+    // Nothing in reach of a click can open a write-shaped dialog either.
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("ProjectLanding editor role", () => {
+  it("keeps every write control", async () => {
+    renderLanding({ project: makeProject({ cover_asset_id: "a3" }) });
+    await screen.findByText("Body");
+
+    expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add files" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Delete" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Use Photo one as cover" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Attach files" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Attach folder" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add supporting file to Body" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Remove Body from project" })).toBeTruthy();
+  });
+
+  it("keeps the empty-state write controls", async () => {
+    listProjectAssetsMock.mockResolvedValue({ items: [], hasMore: false });
+    renderLanding({ project: makeProject({ description: null, asset_count: 0 }) });
+    await screen.findByText("This project has no files yet.");
+
+    expect(screen.getByRole("button", { name: "Add a description" })).toBeTruthy();
+    // The action row and the empty state both offer the library picker.
+    expect(screen.getAllByRole("button", { name: "Add files" }).length).toBe(2);
+    expect(screen.getByRole("button", { name: "Attach files" })).toBeTruthy();
+  });
+
+  it("closes the editor when the role is demoted mid-edit", async () => {
+    const view = renderLanding();
+    await screen.findByText("Body");
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.getByRole("textbox", { name: "Project name" })).toBeTruthy();
+
+    view.rerender(<ProjectLanding {...landingProps({ canWrite: false })} />);
+
+    expect(screen.queryByRole("textbox", { name: "Project name" })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Licence" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
+    expect(screen.getByRole("heading", { level: 1, name: "Hydra" })).toBeTruthy();
   });
 });
 

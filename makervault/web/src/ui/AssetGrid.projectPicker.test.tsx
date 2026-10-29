@@ -129,7 +129,7 @@ afterEach(cleanup);
 describe("AssetGrid add-to-project", () => {
   it("opens the picker for the whole multi-selection from a card button", async () => {
     const onProjectsChanged = vi.fn();
-    render(<AssetGrid theme="dark" onProjectsChanged={onProjectsChanged} />);
+    render(<AssetGrid canWrite theme="dark" onProjectsChanged={onProjectsChanged} />);
 
     await screen.findByText("Model 1");
     const boxes = cardCheckboxes();
@@ -155,7 +155,7 @@ describe("AssetGrid add-to-project", () => {
 
   it("adds a cross-folder 100-asset selection in exactly one request", async () => {
     listAssetsMock.mockResolvedValue({ items: hundredAssets, hasMore: false });
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
 
     await screen.findByText("Model 1");
 

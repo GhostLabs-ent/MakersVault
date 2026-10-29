@@ -3,6 +3,9 @@ import React, { useState } from "react";
 import type { BatchFailure } from "../lib/api";
 
 export type BulkActionBarProps = {
+  /** Write capability of the current role: a viewer only sees the read-out.
+   * `Download zip`, `Select all`, `Clear` and the failure reports stay. */
+  canWrite: boolean;
   count: number;
   folderOptions: { id: string | null; name: string }[];
   /** Project mode hides the move control: projects have no folders. */
@@ -47,6 +50,7 @@ function parseTagList(raw: string): string[] {
  * (and the typed name on the single-asset path) lives there, never in the bar.
  */
 export default function BulkActionBar({
+  canWrite,
   count,
   folderOptions,
   showFolderControls = true,
@@ -98,7 +102,7 @@ export default function BulkActionBar({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        {showFolderControls && (
+        {canWrite && showFolderControls && (
           <>
             <select
               aria-label="Target folder"
@@ -124,48 +128,52 @@ export default function BulkActionBar({
           </>
         )}
 
-        <input
-          aria-label="Tags"
-          value={tagDraft}
-          onChange={e => setTagDraft(e.target.value)}
-          placeholder="tag-a, tag-b"
-          disabled={disabled}
-          className="px-2 py-1 rounded-md border border-panel-strong bg-panel-soft disabled:opacity-60"
-        />
-        <button
-          type="button"
-          onClick={() => submitTags(onAddTags)}
-          disabled={disabled || !tags.length}
-          className="px-3 py-1 rounded-md border border-panel-strong disabled:opacity-60"
-        >
-          Add tags
-        </button>
-        <button
-          type="button"
-          onClick={() => submitTags(onRemoveTags)}
-          disabled={disabled || !tags.length}
-          className="px-3 py-1 rounded-md border border-panel-strong disabled:opacity-60"
-        >
-          Remove tags
-        </button>
+        {canWrite && (
+          <>
+            <input
+              aria-label="Tags"
+              value={tagDraft}
+              onChange={e => setTagDraft(e.target.value)}
+              placeholder="tag-a, tag-b"
+              disabled={disabled}
+              className="px-2 py-1 rounded-md border border-panel-strong bg-panel-soft disabled:opacity-60"
+            />
+            <button
+              type="button"
+              onClick={() => submitTags(onAddTags)}
+              disabled={disabled || !tags.length}
+              className="px-3 py-1 rounded-md border border-panel-strong disabled:opacity-60"
+            >
+              Add tags
+            </button>
+            <button
+              type="button"
+              onClick={() => submitTags(onRemoveTags)}
+              disabled={disabled || !tags.length}
+              className="px-3 py-1 rounded-md border border-panel-strong disabled:opacity-60"
+            >
+              Remove tags
+            </button>
 
-        <button
-          type="button"
-          onClick={onEditMeta}
-          disabled={disabled}
-          className="px-3 py-1 rounded-md border border-panel-strong disabled:opacity-60"
-        >
-          Edit metadata…
-        </button>
+            <button
+              type="button"
+              onClick={onEditMeta}
+              disabled={disabled}
+              className="px-3 py-1 rounded-md border border-panel-strong disabled:opacity-60"
+            >
+              Edit metadata…
+            </button>
 
-        <button
-          type="button"
-          onClick={onAddToProject}
-          disabled={disabled}
-          className="px-3 py-1 rounded-md border border-panel-strong disabled:opacity-60"
-        >
-          Add to project…
-        </button>
+            <button
+              type="button"
+              onClick={onAddToProject}
+              disabled={disabled}
+              className="px-3 py-1 rounded-md border border-panel-strong disabled:opacity-60"
+            >
+              Add to project…
+            </button>
+          </>
+        )}
 
         <button
           type="button"
@@ -176,14 +184,16 @@ export default function BulkActionBar({
           Download zip
         </button>
 
-        <button
-          type="button"
-          onClick={onDelete}
-          disabled={disabled}
-          className="px-3 py-1 rounded-md border border-red-300 text-red-700 dark:text-red-300 disabled:opacity-60"
-        >
-          Delete
-        </button>
+        {canWrite && (
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={disabled}
+            className="px-3 py-1 rounded-md border border-red-300 text-red-700 dark:text-red-300 disabled:opacity-60"
+          >
+            Delete
+          </button>
+        )}
 
         <button
           type="button"

@@ -40,6 +40,9 @@ export default function Settings({
   role = null,
 }: Props) {
   const isAdmin = roleAtLeast(role, "admin");
+  // The scan card starts a server-side library write, so it needs the same
+  // threshold the app shell uses; derived here for the same reason (one helper).
+  const canWrite = roleAtLeast(role, "editor");
   const [section, setSection] = React.useState<Section>("root");
   const [makerworldDraft, setMakerworldDraft] = React.useState(settings.makerworld.cookie);
   const [thingiverseDraft, setThingiverseDraft] = React.useState(settings.thingiverse.cookie);
@@ -147,6 +150,7 @@ export default function Settings({
         onChange={onChange}
         mount={mount}
         isAdmin={isAdmin}
+        canWrite={canWrite}
         folderScan={folderScan}
         importRuns={importRuns}
         makerworld={{

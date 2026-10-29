@@ -86,7 +86,7 @@ const assets: Asset[] = [
 ];
 
 function projectGrid(projectId: string | null = "p1") {
-  return render(<AssetGrid theme="dark" projectId={projectId} projectName="Hydra" />);
+  return render(<AssetGrid canWrite theme="dark" projectId={projectId} projectName="Hydra" />);
 }
 
 beforeEach(() => {
@@ -209,7 +209,7 @@ describe("AssetGrid in project mode", () => {
   it("keeps using listAssets when no project is set", async () => {
     listAssetsMock.mockResolvedValue({ items: assets, hasMore: false });
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
 
     await screen.findByText("Calibration cube");
 

@@ -64,6 +64,8 @@ import MarkdownEditor from "./project-editor/MarkdownEditor";
 import TagBadge from "./TagBadge";
 
 type Props = {
+  /** Required, not defaulted: the compiler is what keeps the gating airtight. */
+  canWrite: boolean;
   project: Project;
   assetsVersion: number;
   /** App splices the returned row into its project list. */
@@ -163,6 +165,7 @@ const USER_SUPPLIED_FILES = "user-supplied";
  * their own.
  */
 export default function ProjectLanding({
+  canWrite,
   project,
   assetsVersion,
   onProjectUpdated,
@@ -192,7 +195,7 @@ export default function ProjectLanding({
     onAttached: onAssetsChanged,
     onUnauthorized,
   });
-  const attachDrop = useAttachDrop(attacher.attach);
+  const attachDrop = useAttachDrop(attacher.attach, canWrite);
 
   // --- Members (the project's files) --------------------------------------
 
@@ -546,9 +549,10 @@ export default function ProjectLanding({
       event.preventDefault();
       return;
     }
-    if (draft) {
+    if (canWrite && draft) {
       // Escape while editing must never bubble up as "close the project":
-      // ProjectView bails on `defaultPrevented`.
+      // ProjectView bails on `defaultPrevented`. A viewer has no editor to
+      // cancel, so a stale draft from a demotion must not prompt for one.
       event.preventDefault();
       requestCancelEdit();
     }
@@ -650,7 +654,9 @@ export default function ProjectLanding({
 
   // --- Render -------------------------------------------------------------------
 
-  const editing = draft !== null;
+  // A demotion mid-edit must not leave the editor on screen, so the edit mode
+  // is derived from the capability rather than from `draft` alone.
+  const editing = canWrite && draft !== null;
   const sourceLabel = project.source_url ? sourceHostLabel(project.source_url) : null;
   const shownTags = allTags.slice(0, MAX_TAG_CHIPS);
   const extraTagCount = allTags.length - shownTags.length;
@@ -799,15 +805,17 @@ export default function ProjectLanding({
                       </span>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    aria-label={`Use ${asset.name} as cover`}
-                    disabled={coverSavingId === asset.id}
-                    onClick={() => void setAssetAsCover(asset)}
-                    className={`mt-1 w-full truncate rounded border border-panel-strong px-1 py-0.5 text-[10px] text-muted transition-colors hover:bg-panel-soft hover:text-foreground disabled:opacity-60 ${FOCUS_VISIBLE}`}
-                  >
-                    {coverSavingId === asset.id ? "Saving…" : "Set cover"}
-                  </button>
+                  {canWrite && (
+                    <button
+                      type="button"
+                      aria-label={`Use ${asset.name} as cover`}
+                      disabled={coverSavingId === asset.id}
+                      onClick={() => void setAssetAsCover(asset)}
+                      className={`mt-1 w-full truncate rounded border border-panel-strong px-1 py-0.5 text-[10px] text-muted transition-colors hover:bg-panel-soft hover:text-foreground disabled:opacity-60 ${FOCUS_VISIBLE}`}
+                    >
+                      {coverSavingId === asset.id ? "Saving…" : "Set cover"}
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -851,14 +859,18 @@ export default function ProjectLanding({
               <Download className="h-4 w-4" aria-hidden="true" />
               {downloadingZip ? "Preparing…" : "Download all as ZIP"}
             </button>
-            <button type="button" className={BUTTON_SECONDARY} onClick={() => void openPicker()}>
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              Add files
-            </button>
-            <button type="button" className={BUTTON_SECONDARY} onClick={() => startEdit("name")}>
-              <Pencil className="h-4 w-4" aria-hidden="true" />
-              Edit
-            </button>
+            {canWrite && (
+              <>
+                <button type="button" className={BUTTON_SECONDARY} onClick={() => void openPicker()}>
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                  Add files
+                </button>
+                <button type="button" className={BUTTON_SECONDARY} onClick={() => startEdit("name")}>
+                  <Pencil className="h-4 w-4" aria-hidden="true" />
+                  Edit
+                </button>
+              </>
+            )}
             {primaryAsset && canOpenInSlicer(primaryAsset) && (
               <button
                 type="button"
@@ -868,10 +880,12 @@ export default function ProjectLanding({
                 Open in {slicerLabel}
               </button>
             )}
-            <button type="button" className={BUTTON_DANGER} onClick={requestDeleteProject}>
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-              Delete
-            </button>
+            {canWrite && (
+              <button type="button" className={BUTTON_DANGER} onClick={requestDeleteProject}>
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                Delete
+              </button>
+            )}
           </>
         )}
       </div>
@@ -971,8 +985,10 @@ export default function ProjectLanding({
         {filesUserSupplied && (
           <p className="mt-3 text-sm text-muted">
             Imported details only — the files for this model are gated behind an
-            account or a purchase, so they were not downloaded. Use "Attach files"
-            to add the files you downloaded yourself.
+            account or a purchase, so they were not downloaded.
+            {/* Only an editor can act on it: telling a viewer to use "Attach
+                files" points at a control they cannot see. */}
+            {canWrite && ' Use "Attach files" to add the files you downloaded yourself.'}
           </p>
         )}
 
@@ -1022,13 +1038,15 @@ export default function ProjectLanding({
         ) : (
           <div className="mt-2 rounded-lg border border-dashed border-panel-strong px-4 py-8 text-center">
             <p className="text-sm text-muted">No description yet.</p>
-            <button
-              type="button"
-              onClick={() => startEdit("description")}
-              className={`mt-2 text-sm font-semibold text-accent hover:underline ${FOCUS_VISIBLE}`}
-            >
-              Add a description
-            </button>
+            {canWrite && (
+              <button
+                type="button"
+                onClick={() => startEdit("description")}
+                className={`mt-2 text-sm font-semibold text-accent hover:underline ${FOCUS_VISIBLE}`}
+              >
+                Add a description
+              </button>
+            )}
           </div>
         )}
       </section>
@@ -1052,7 +1070,7 @@ export default function ProjectLanding({
               </span>
             )}
             {/* One control only: the empty state shows its own, below. */}
-            {members.length > 0 && <AttachFilesControl attacher={attacher} />}
+            {canWrite && members.length > 0 && <AttachFilesControl attacher={attacher} />}
           </div>
         </div>
 
@@ -1067,16 +1085,18 @@ export default function ProjectLanding({
         ) : members.length === 0 ? (
           <div className="mt-2 rounded-lg border border-dashed border-panel-strong px-4 py-8 text-center">
             <p className="text-sm text-muted">This project has no files yet.</p>
-            <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-              <button
-                type="button"
-                className={`text-sm font-semibold text-accent hover:underline ${FOCUS_VISIBLE}`}
-                onClick={() => void openPicker()}
-              >
-                Add files
-              </button>
-              <AttachFilesControl attacher={attacher} />
-            </div>
+            {canWrite && (
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  className={`text-sm font-semibold text-accent hover:underline ${FOCUS_VISIBLE}`}
+                  onClick={() => void openPicker()}
+                >
+                  Add files
+                </button>
+                <AttachFilesControl attacher={attacher} />
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -1133,25 +1153,29 @@ export default function ProjectLanding({
                       >
                         <Download className="h-4 w-4" aria-hidden="true" />
                       </button>
-                      <button
-                        type="button"
-                        aria-label={`Add supporting file to ${asset.name}`}
-                        title="Add supporting file"
-                        className={BUTTON_ICON}
-                        disabled={supportBusyId === asset.id}
-                        onClick={() => pickSupportingFile(asset)}
-                      >
-                        <Paperclip className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Remove ${asset.name} from project`}
-                        title="Remove from project"
-                        className={BUTTON_ICON}
-                        onClick={() => requestRemoveAsset(asset)}
-                      >
-                        <X className="h-4 w-4" aria-hidden="true" />
-                      </button>
+                      {canWrite && (
+                        <>
+                          <button
+                            type="button"
+                            aria-label={`Add supporting file to ${asset.name}`}
+                            title="Add supporting file"
+                            className={BUTTON_ICON}
+                            disabled={supportBusyId === asset.id}
+                            onClick={() => pickSupportingFile(asset)}
+                          >
+                            <Paperclip className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Remove ${asset.name} from project`}
+                            title="Remove from project"
+                            className={BUTTON_ICON}
+                            onClick={() => requestRemoveAsset(asset)}
+                          >
+                            <X className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </li>
                 );

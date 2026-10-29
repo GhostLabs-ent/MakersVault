@@ -287,7 +287,7 @@ function renderHarness(initialProps: HarnessProps = {}) {
   const scrollerRef = createRef<HTMLDivElement>();
   const tree = (props: HarnessProps) => (
     <div ref={scrollerRef} data-testid="asset-scroller">
-      <AssetGrid theme="dark" scrollElementRef={scrollerRef} {...props} />
+      <AssetGrid canWrite theme="dark" scrollElementRef={scrollerRef} {...props} />
     </div>
   );
   const utils = render(tree(initialProps));
@@ -420,7 +420,7 @@ describe("AssetGrid asset refresh", () => {
   afterEach(cleanup);
 
   it("keeps search, sort and selection and refetches exactly once when assets change", async () => {
-    const { rerender } = render(<AssetGrid theme="dark" />);
+    const { rerender } = render(<AssetGrid canWrite theme="dark" />);
 
     await waitFor(() => expect(listAssets).toHaveBeenCalledTimes(1));
     await screen.findByText("Calibration cube");
@@ -444,7 +444,7 @@ describe("AssetGrid asset refresh", () => {
 
     const callsBefore = listAssetsMock.mock.calls.length;
 
-    rerender(<AssetGrid theme="dark" assetsVersion={1} />);
+    rerender(<AssetGrid canWrite theme="dark" assetsVersion={1} />);
 
     await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(callsBefore + 1));
     await waitFor(() => expect(screen.queryByText("Loading...")).toBeNull());
@@ -555,7 +555,7 @@ describe("AssetGrid asset refresh", () => {
     }
 
     async function renderFirstBatch(): Promise<HTMLInputElement> {
-      render(<AssetGrid theme="dark" />);
+      render(<AssetGrid canWrite theme="dark" />);
       await waitFor(() => expect(listAssets).toHaveBeenCalledTimes(1));
       await screen.findByText("Calibration cube");
       await waitFor(() => expect(screen.queryByText("Loading...")).toBeNull());
@@ -623,7 +623,7 @@ describe("AssetGrid asset refresh", () => {
   // serialized attributes can be asserted here.
   describe("thumbnail loading hints", () => {
     it("marks card thumbnails lazy and async", async () => {
-      render(<AssetGrid theme="dark" />);
+      render(<AssetGrid canWrite theme="dark" />);
       await screen.findByText("Calibration cube");
       await waitFor(() => expect(screen.queryByText("Loading...")).toBeNull());
 
@@ -648,7 +648,7 @@ describe("AssetGrid asset refresh", () => {
       };
       listAssetsMock.mockResolvedValue({ items: [svgAsset], hasMore: false });
 
-      render(<AssetGrid theme="dark" />);
+      render(<AssetGrid canWrite theme="dark" />);
 
       const img = await screen.findByAltText("logo.svg");
       expect(img.getAttribute("loading")).toBe("lazy");
@@ -656,7 +656,7 @@ describe("AssetGrid asset refresh", () => {
     });
 
     it("keeps the modal preview image eager with async decoding", async () => {
-      render(<AssetGrid theme="dark" />);
+      render(<AssetGrid canWrite theme="dark" />);
       await screen.findByText("Engraved sign");
 
       // The double-click handler lives on the card's preview wrapper, so it bubbles.
@@ -687,7 +687,7 @@ describe("AssetGrid creator facet and server sort", () => {
   afterEach(cleanup);
 
   it("filters by creator through the exact server filter and shows the facet", async () => {
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await screen.findByText("Calibration cube");
 
     const creator = await screen.findByRole("combobox", { name: "Creator" });
@@ -705,7 +705,7 @@ describe("AssetGrid creator facet and server sort", () => {
   });
 
   it("sends name/size/creator sorts to the server and resets the creator filter", async () => {
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await screen.findByText("Calibration cube");
     expect(callQuery(0).sort).toBe("name");
     expect(callQuery(0).order).toBe("asc");
@@ -727,7 +727,7 @@ describe("AssetGrid creator facet and server sort", () => {
   });
 
   it("keeps type and folder sorting client-side and sends no server sort key", async () => {
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await screen.findByText("Calibration cube");
 
     fireEvent.change(sortSelect(), { target: { value: "type" } });
@@ -751,7 +751,7 @@ describe("files-mode \"not in any project\" filter", () => {
   }
 
   it("narrows the grid and the tag chips to unassigned assets when checked", async () => {
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await screen.findByText("Calibration cube");
     const callsBefore = listAssetsMock.mock.calls.length;
 
@@ -771,7 +771,7 @@ describe("files-mode \"not in any project\" filter", () => {
   });
 
   it("drops the flag from both requests when unchecked again", async () => {
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await screen.findByText("Calibration cube");
 
     fireEvent.click(notInProjectBox());
@@ -788,7 +788,7 @@ describe("files-mode \"not in any project\" filter", () => {
   });
 
   it("sends no unassigned filter on first load", async () => {
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await screen.findByText("Calibration cube");
 
     expect(notInProjectBox().checked).toBe(false);
@@ -1101,7 +1101,7 @@ describe("virtualized flat grid", () => {
   it("caps each grouped row and expands it on demand", async () => {
     listAssetsMock.mockResolvedValue({ items: makeSyntheticBatch(30), hasMore: false });
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
 
     await screen.findByText("Asset 1");
     fireEvent.change(sortSelect(), { target: { value: "type" } });
@@ -1138,7 +1138,7 @@ describe("AssetGrid missing assets", () => {
   });
 
   it("shows a missing-file banner without hiding the asset", async () => {
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
 
     await screen.findByText(/File missing/i);
     expect(screen.getByText(missingAsset.name)).toBeTruthy();
@@ -1146,7 +1146,7 @@ describe("AssetGrid missing assets", () => {
   });
 
   it("Forget entry opens the same delete dialog and requires the typed file name", async () => {
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
 
     await screen.findByText(/File missing/i);
     fireEvent.click(screen.getByRole("button", { name: "Forget entry" }));
@@ -1174,7 +1174,7 @@ describe("AssetGrid missing assets", () => {
     startLibraryScanMock.mockResolvedValue(idleScanStatus());
     getLibraryScanStatusMock.mockResolvedValue(idleScanStatus());
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
 
     await screen.findByText(/File missing/i);
     const callsBefore = listAssetsMock.mock.calls.length;
@@ -1228,7 +1228,7 @@ describe("AssetGrid bulk actions", () => {
   it("bulk delete issues one request for the whole selection", async () => {
     batchDeleteAssetsMock.mockImplementation(async ids => ({ deleted: ids, failed: [] }));
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await waitForGrid();
     const callsBefore = listAssetsMock.mock.calls.length;
 
@@ -1253,7 +1253,7 @@ describe("AssetGrid bulk actions", () => {
   it("bulk delete sends the dialog's frozen snapshot when the selection shrinks", async () => {
     batchDeleteAssetsMock.mockImplementation(async ids => ({ deleted: ids, failed: [] }));
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await waitForGrid();
 
     const boxes = selectCards(3);
@@ -1278,7 +1278,7 @@ describe("AssetGrid bulk actions", () => {
       ],
     });
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await waitForGrid();
     const callsBefore = listAssetsMock.mock.calls.length;
 
@@ -1314,7 +1314,7 @@ describe("AssetGrid bulk actions", () => {
   it("a rejected bulk delete restores the optimistic rows", async () => {
     batchDeleteAssetsMock.mockRejectedValue(new Error("Bulk delete failed: server exploded"));
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await waitForGrid();
     const callsBefore = listAssetsMock.mock.calls.length;
 
@@ -1351,7 +1351,7 @@ describe("AssetGrid bulk actions", () => {
     });
     batchDeleteAssetsMock.mockImplementation(async ids => ({ deleted: ids, failed: [] }));
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await screen.findByText("Asset 1");
     await waitFor(() => expect(screen.queryByText("Loading...")).toBeNull());
     expect(callQuery(0).offset).toBe(0);
@@ -1377,7 +1377,7 @@ describe("AssetGrid bulk actions", () => {
       failed: [],
     }));
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await waitForGrid();
     const callsBefore = listAssetsMock.mock.calls.length;
 
@@ -1412,7 +1412,7 @@ describe("AssetGrid bulk actions", () => {
       failed: [],
     }));
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await waitForGrid();
     const callsBefore = listAssetsMock.mock.calls.length;
 
@@ -1456,7 +1456,7 @@ describe("AssetGrid bulk actions", () => {
       failed: [],
     }));
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await waitForGrid();
 
     fireEvent.change(await screen.findByRole("combobox", { name: "Creator" }), {
@@ -1604,7 +1604,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
   it("deleting a card opens the in-app dialog without calling deleteAsset", async () => {
     listAssetsMock.mockResolvedValue({ items: [assets[0]], hasMore: false });
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await waitForGrid();
 
     fireEvent.click(cardDeleteButton());
@@ -1618,7 +1618,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
   it("cancelling the delete dialog makes no request and closes it", async () => {
     listAssetsMock.mockResolvedValue({ items: [assets[0]], hasMore: false });
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await waitForGrid();
 
     fireEvent.click(cardDeleteButton());
@@ -1633,7 +1633,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
     listAssetsMock.mockResolvedValue({ items: [assets[0]], hasMore: false });
     deleteAssetMock.mockResolvedValue({ ok: true, trash_path: ".trash/x", files: 1, bytes: 1200 });
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await waitForGrid();
 
     fireEvent.click(cardDeleteButton());
@@ -1655,7 +1655,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
   it("a multi-select delete confirms once and uses the batch endpoint", async () => {
     batchDeleteAssetsMock.mockImplementation(async ids => ({ deleted: ids, failed: [] }));
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await waitForGrid();
 
     const boxes = cardCheckboxes();
@@ -1680,7 +1680,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
     listAssetsMock.mockResolvedValue({ items: [assets[0]], hasMore: false });
     updateAssetMetaMock.mockRejectedValue(new Error("server says no"));
 
-    renderWithToaster(<AssetGrid theme="dark" />);
+    renderWithToaster(<AssetGrid canWrite theme="dark" />);
     await waitForGrid();
 
     fireEvent.doubleClick(screen.getByText("Calibration cube"));
@@ -1702,7 +1702,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
     listAssetsMock.mockResolvedValue({ items: [], hasMore: false });
     uploadAssetMock.mockRejectedValue(new Error("disk full"));
 
-    const { container } = renderWithToaster(<AssetGrid theme="dark" />);
+    const { container } = renderWithToaster(<AssetGrid canWrite theme="dark" />);
     await waitFor(() => expect(screen.queryByText("Loading...")).toBeNull());
 
     const dropped = new File(["content"], "sample.stl", { type: "application/octet-stream" });
@@ -1732,7 +1732,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
       },
     ]);
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await screen.findByText("Spool holder");
 
     fireEvent.click(screen.getByRole("button", { name: /Supporting files/ }));
@@ -1758,7 +1758,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
       return files.find(entry => entry.id === fileId)!;
     });
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await screen.findByText("Spool holder");
     await expandSupportingFiles();
     await screen.findByText("instructions.pdf");
@@ -1790,7 +1790,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
       return files;
     });
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await screen.findByText("Spool holder");
     await expandSupportingFiles();
     await screen.findByText("instructions.pdf");
@@ -1813,7 +1813,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
       supportingFile("sf1", "instructions.pdf", 0, { mime: "application/pdf" }),
     ]);
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await screen.findByText("Spool holder");
     await expandSupportingFiles();
     await screen.findByText("instructions.pdf");
@@ -1837,7 +1837,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     try {
-      render(<AssetGrid theme="dark" />);
+      render(<AssetGrid canWrite theme="dark" />);
       await screen.findByText("Spool holder");
       await expandSupportingFiles();
       await screen.findByText("notes.txt");
@@ -1867,7 +1867,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
       max_total_bytes: 1000,
     });
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await screen.findByText("Spool holder");
     await expandSupportingFiles();
     await screen.findByText("instructions.pdf");
@@ -1891,7 +1891,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
       max_total_bytes: 1000,
     });
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await screen.findByText("Spool holder");
     await expandSupportingFiles();
     await screen.findByText("instructions.pdf");
@@ -1908,7 +1908,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
       new Error("File is larger than the 10 MB per-file limit"),
     );
 
-    const { container } = renderWithToaster(<AssetGrid theme="dark" />);
+    const { container } = renderWithToaster(<AssetGrid canWrite theme="dark" />);
     await screen.findByText("Spool holder");
 
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
@@ -1938,7 +1938,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
       hasMore: false,
     });
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await screen.findByText("Calibration cube");
 
     fireEvent.click(screen.getByRole("button", { name: "Clear" }));
@@ -1966,7 +1966,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
     });
     updateAssetMetaMock.mockResolvedValue(undefined);
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await waitForGrid();
 
     fireEvent.click(screen.getByRole("button", { name: "Expand" }));
@@ -2008,7 +2008,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
     });
     updateAssetMetaMock.mockResolvedValue(undefined);
 
-    render(<AssetGrid theme="dark" />);
+    render(<AssetGrid canWrite theme="dark" />);
     await waitForGrid();
 
     fireEvent.click(screen.getByRole("button", { name: "Expand" }));

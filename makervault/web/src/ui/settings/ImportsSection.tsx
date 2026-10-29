@@ -20,6 +20,7 @@ type Props = {
   onChange: (next: AppSettings) => void;
   mount: MountImportSettingsState;
   isAdmin: boolean;
+  canWrite: boolean;
   folderScan: FolderScanState;
   importRuns: ImportRunsState;
   makerworld: CookieDraft;
@@ -32,6 +33,7 @@ export default function ImportsSection({
   onChange,
   mount,
   isAdmin,
+  canWrite,
   folderScan,
   importRuns,
   makerworld,
@@ -78,7 +80,11 @@ export default function ImportsSection({
 
       <ImportRunsCard state={importRuns} />
 
-      <FolderScanCard {...folderScan} />
+      {/* No direct-visit not-permitted state is needed for this WRITE surface:
+          there is no router and no write-only view, so the only mixed section
+          simply hides the scan card. The read-only runs card and the cookie
+          cards (client-side preferences, not API writes) stay for a viewer. */}
+      {canWrite && <FolderScanCard {...folderScan} />}
 
       <div className="rounded-lg border border-panel bg-panel-soft p-4 flex flex-col gap-2">
         <label className="text-xs flex items-center gap-2">

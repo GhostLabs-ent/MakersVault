@@ -7,6 +7,7 @@ import type { Project } from "../lib/api";
 
 /** The props the landing page is contractually handed by `ProjectView`. */
 type LandingProps = {
+  canWrite: boolean;
   project: Project;
   assetsVersion: number;
   onProjectUpdated: (project: Project) => void;
@@ -76,6 +77,7 @@ type Props = ComponentProps<typeof ProjectView>;
 
 function viewProps(overrides: Partial<Props> = {}): Props {
   return {
+    canWrite: true,
     projects,
     selectedProjectId: null,
     onOpenProject: vi.fn(),
@@ -212,6 +214,18 @@ describe("ProjectView", () => {
     expect(onAssetsChanged).toHaveBeenCalledTimes(1);
 
     expect(landing.onUnauthorized).toBe(onUnauthorized);
+  });
+
+  it("forwards canWrite to the landing page for each role", () => {
+    const { rerender } = render(
+      <ProjectView {...viewProps({ selectedProjectId: "p1" })} />,
+    );
+    expect(landingState.received?.canWrite).toBe(true);
+
+    rerender(
+      <ProjectView {...viewProps({ canWrite: false, selectedProjectId: "p1" })} />,
+    );
+    expect(landingState.received?.canWrite).toBe(false);
   });
 
   it("closes via the Back button", () => {

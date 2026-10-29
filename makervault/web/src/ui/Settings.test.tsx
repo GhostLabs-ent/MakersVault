@@ -108,6 +108,13 @@ describe("Settings imports", () => {
     cleanup();
   });
 
+  /** Render Settings and open the Imports section for the given role. */
+  async function renderImports(role: "admin" | "editor" | "viewer") {
+    render(<Settings settings={settings} onChange={() => {}} role={role} />);
+    fireEvent.click(await screen.findByRole("button", { name: /Imports & Folder Scan/ }));
+    await screen.findByText(/Remember import cookies on this device/);
+  }
+
   it("scopes the cookie copy to rate limits and reports the remember opt-in", async () => {
     const onChange = vi.fn();
     render(<Settings settings={settings} onChange={onChange} role="admin" />);
@@ -122,6 +129,22 @@ describe("Settings imports", () => {
     const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1];
     const next = lastCall?.[0] as AppSettings;
     expect(next.imports.rememberCookies).toBe(true);
+  });
+
+  it("a viewer sees the read-only import runs and cookie cards, not the folder scan", async () => {
+    await renderImports("viewer");
+
+    expect(screen.getByText("Mount import runs")).toBeTruthy();
+    expect(screen.getByText(/Remember import cookies on this device/)).toBeTruthy();
+    expect(screen.queryByText("Local folder scan")).toBeNull();
+  });
+
+  it("an editor sees both the folder scan card and the read-only cards", async () => {
+    await renderImports("editor");
+
+    expect(screen.getByText("Mount import runs")).toBeTruthy();
+    expect(screen.getByText("Local folder scan")).toBeTruthy();
+    expect(screen.getByText(/Remember import cookies on this device/)).toBeTruthy();
   });
 });
 

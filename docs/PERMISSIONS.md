@@ -287,11 +287,42 @@ sessions stay valid.
   below `admin`, and a direct visit to the audit view renders a not-permitted
   state instead of the raw 403 (`lib/auth.ts` `roleAtLeast`,
   `ui/SidebarFooter.tsx`, `ui/useSessionRole.ts`, `ui/NotPermitted.tsx`,
-  `ui/settings/Settings.tsx`). Nothing WRITE-level is gated yet, so an editor
-  and a viewer still see the same upload, folder, scan, asset and import
-  actions - the ones a viewer's API calls refuse; Mf-3r90 owns that. The client
-  is honesty, not enforcement: every hidden or ungated control is still refused
-  by the API.
+  `ui/settings/Settings.tsx`). That is honesty, not enforcement: the API
+  remains the control, and every hidden or ungated control is still refused by
+  it.
+* **Write surfaces are gated client-side as of Mf-3r90.** The write capability
+  is `roleAtLeast(role, "editor")` (`lib/auth.ts`), derived once in
+  `ui/App.tsx` from the same `/me` role cache and threaded down as a
+  **required** `canWrite` prop to `ui/UploadBar.tsx`, `ui/asset-grid/*`
+  (including `AssetCard` and `useAssetDrop`), `ui/BulkActionBar.tsx`,
+  `ui/ProjectView.tsx`, `ui/ProjectLanding.tsx`,
+  `ui/project-attach/useAttachDrop.ts`, and `ui/UploadQueuePanel.tsx` is
+  rendered by `App` only when the capability is present (its only action is a
+  retry, which is a write). `ui/Sidebar.tsx`
+  and `ui/settings/Settings.tsx` keep receiving `role` and derive the same
+  capability internally, so there is one threshold in one helper rather than a
+  second comparison per surface. `role` is `null` until `/me` answers, so an
+  unknown role has no write access (fail closed), and a demotion lands on the
+  next `/me` refresh.
+  A viewer loses the upload bar, drag-and-drop upload, folder
+  create/rename/delete, asset edit/tags/move/delete/add-to-project, per-file
+  mutation/re-scan/forget, the bulk write actions, project
+  edit/delete/cover/attach/remove-member, the local folder-scan card and the
+  upload-queue panel. A viewer keeps search, sort and filters, breadcrumbs,
+  subfolder tiles, downloads (including folder ZIP export), preview, the
+  slicer, project browsing, the read-only mount-import run history and the
+  cookie preferences (client-side settings, not API writes). The upload-queue
+  panel is gated too because its only action is a retry: a queued upload still
+  running when the role drops would otherwise leave a visible control whose
+  click answers with a raw 403.
+  The client is still not the boundary: a stale or tampered role cache only
+  hides or shows a button, it cannot change what the API allows.
+* **No direct-visit not-permitted state is needed for the WRITE surfaces.**
+  There is no client router and no write-only view or route, so there is
+  nothing to visit directly: the only mixed section is Settings → Imports,
+  which hides the scan card while the read-only import-run history and the
+  cookie cards stay. The audit and storage `NotPermitted` states from Mf-5tyz
+  are unchanged.
 * **Audit.** Every audited action now writes one row (one per affected asset on
   the batch routes) in the same transaction as the mutation, so an audit write
   failure is a failed mutation - fail-closed, except for the two filesystem-only

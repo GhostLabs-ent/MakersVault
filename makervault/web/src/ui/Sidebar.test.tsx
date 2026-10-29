@@ -17,14 +17,32 @@ vi.mock("../lib/api", () => ({
   updateFolder: vi.fn(),
 }));
 
+// A drop reads the DataTransfer and then hands the batch to the transport. Both
+// are mocked so a rendered drop can be asserted without a browser or network.
+vi.mock("../lib/uploadTree", async importOriginal => {
+  const actual = await importOriginal<typeof import("../lib/uploadTree")>();
+  return {
+    ...actual,
+    uploadEntriesToFolder: vi.fn(async () => ({
+      uploaded: 1,
+      failed: [],
+      failedEntries: [],
+      uploadedEntries: [],
+      cancelled: 0,
+    })),
+  };
+});
+
 import Sidebar from "./Sidebar";
 import Toaster from "./Toaster";
 import { deleteFolder, getFolderDeletePreview, listFolders } from "../lib/api";
+import { uploadEntriesToFolder } from "../lib/uploadTree";
 import { resetToasts } from "../lib/toast";
 
 const listFoldersMock = vi.mocked(listFolders);
 const deleteFolderMock = vi.mocked(deleteFolder);
 const previewMock = vi.mocked(getFolderDeletePreview);
+const uploadEntriesMock = vi.mocked(uploadEntriesToFolder);
 
 const folders: Folder[] = [
   { id: "f1", name: "Keep", tags: [] },
@@ -83,6 +101,7 @@ describe("Sidebar folder deletion", () => {
         onSelect={onSelect}
         onFoldersChanged={onFoldersChanged}
         onAssetsChanged={onAssetsChanged}
+        role="editor"
       />,
     );
 
@@ -119,6 +138,7 @@ describe("Sidebar folder deletion", () => {
         onSelect={onSelect}
         onFoldersChanged={onFoldersChanged}
         onAssetsChanged={onAssetsChanged}
+        role="editor"
       />,
     );
 
@@ -349,6 +369,100 @@ describe("Sidebar error reporting", () => {
       expect(toaster.getAllByRole("alert")).toHaveLength(1);
       expect(toaster.getByText("Unable to load folders.")).toBeTruthy();
     });
+  });
+});
+
+describe("Sidebar write controls by role", () => {
+  beforeEach(() => {
+    resetToasts();
+    listFoldersMock.mockReset();
+    listFoldersMock.mockResolvedValue(folders);
+    uploadEntriesMock.mockClear();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  function makeDrop(files: File[]) {
+    return { types: ["Files"], items: [], files, dropEffect: "copy" };
+  }
+
+  /** The open `<details>` menu for a folder, so items can be queried inside it. */
+  function folderMenu(folderName: string): HTMLElement {
+    const summary = screen.getByLabelText(`Actions for ${folderName}`);
+    fireEvent.click(summary);
+    const details = summary.closest("details");
+    if (!details) throw new Error(`No action menu for ${folderName}`);
+    return details;
+  }
+
+  it("a viewer sees no write controls but keeps the read actions", async () => {
+    render(<Sidebar selectedId={null} onSelect={vi.fn()} role="viewer" />);
+    await screen.findByText("Keep");
+
+    expect(screen.queryByTitle("New folder")).toBeNull();
+
+    const menu = folderMenu("Keep");
+    expect(within(menu).getByText("Download ZIP")).toBeTruthy();
+    expect(within(menu).queryByText("Subfolder")).toBeNull();
+    expect(within(menu).queryByText(/Rename & edit/)).toBeNull();
+    expect(within(menu).queryByText("Delete")).toBeNull();
+  });
+
+  it("an editor sees the create, rename and delete controls", async () => {
+    render(<Sidebar selectedId={null} onSelect={vi.fn()} role="editor" />);
+    await screen.findByText("Keep");
+
+    expect(screen.getByTitle("New folder")).toBeTruthy();
+
+    const menu = folderMenu("Keep");
+    expect(within(menu).getByText("Download ZIP")).toBeTruthy();
+    expect(within(menu).getByText("Subfolder")).toBeTruthy();
+    expect(within(menu).getByText(/Rename & edit/)).toBeTruthy();
+    expect(within(menu).getByText("Delete")).toBeTruthy();
+  });
+
+  it("offers the empty state's create button only to an editor", async () => {
+    listFoldersMock.mockResolvedValue([]);
+    const { unmount } = render(<Sidebar selectedId={null} onSelect={vi.fn()} role="viewer" />);
+
+    await screen.findByText("No folders yet");
+    expect(screen.queryByRole("button", { name: "Create your first folder" })).toBeNull();
+
+    unmount();
+    render(<Sidebar selectedId={null} onSelect={vi.fn()} role="editor" />);
+    expect(await screen.findByRole("button", { name: "Create your first folder" })).toBeTruthy();
+  });
+
+  it("a viewer's drop on a folder row starts no upload and shows no drop target", async () => {
+    render(<Sidebar selectedId={null} onSelect={vi.fn()} role="viewer" />);
+    await screen.findByText("Keep");
+
+    const row = treeRow("f1");
+    const dataTransfer = makeDrop([new File(["content"], "dropped.stl")]);
+    fireEvent.dragOver(row, { dataTransfer });
+    expect(row.className).not.toContain("is-drop-target");
+
+    fireEvent.drop(row, { dataTransfer });
+
+    expect(uploadEntriesMock).not.toHaveBeenCalled();
+    expect(row.className).not.toContain("is-drop-target");
+  });
+
+  it("an editor's drop on a folder row shows the target and uploads there", async () => {
+    render(<Sidebar selectedId={null} onSelect={vi.fn()} role="editor" />);
+    await screen.findByText("Keep");
+
+    const row = treeRow("f1");
+    const dataTransfer = makeDrop([new File(["content"], "dropped.stl")]);
+    fireEvent.dragOver(row, { dataTransfer });
+    expect(row.className).toContain("is-drop-target");
+
+    fireEvent.drop(row, { dataTransfer });
+
+    await waitFor(() => expect(uploadEntriesMock).toHaveBeenCalledTimes(1));
+    expect(uploadEntriesMock.mock.calls[0][1]).toBe("f1");
   });
 });
 

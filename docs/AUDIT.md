@@ -394,8 +394,13 @@ renders a not-permitted state (`ui/NotPermitted.tsx`) instead of the raw 403.
 That is honesty, not enforcement: the API answers 403 "Administrator access
 required" and remains the control, `AuditLog.tsx` keeps its inline 403 handling
 as the race handler, and the role cache is only a cache - a stale or tampered
-value can hide or reveal a button but cannot change what the API allows.
-WRITE-level surfaces are still ungated (Mf-3r90).
+value can hide or reveal a button but cannot change what the API allows. Write
+surfaces are gated the same way as of Mf-3r90: `roleAtLeast(role, "editor")` is
+derived once in `ui/App.tsx` and threaded down as a required `canWrite` prop,
+`role === null` fails closed until `/me` answers, and the upload-queue panel is
+gated too because its only action is a retry - that closes the demotion-race
+path where a queued upload still running when the role drops leaves a visible
+control that answers with a raw 403.
 
 ## Scope and follow-ups
 

@@ -15,7 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { Folder, UnauthorizedError, createFolder, downloadFolderZip, listFolders, updateFolder } from "../lib/api";
-import type { Role } from "../lib/auth";
+import { roleAtLeast, type Role } from "../lib/auth";
 import { flattenFolderTree } from "../lib/folderTree";
 import { saveResponseToDisk } from "../lib/download";
 import { entriesFromDataTransfer } from "../lib/uploadTree";
@@ -52,6 +52,9 @@ export default function Sidebar({
   onAssetsChanged,
   role = null,
 }: Props) {
+  // Derived here rather than passed in so the threshold stays in `roleAtLeast`:
+  // `role` is null until `/me` answers, and an unknown role has no write access.
+  const canWrite = roleAtLeast(role, "editor");
   const [folders, setFolders] = useState<Folder[]>([]);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
@@ -477,8 +480,8 @@ export default function Sidebar({
           data-tree-row={folder.id}
           tabIndex={folder.id === rovingFolderId ? 0 : -1}
           ref={setRowElement(folder.id)}
-          onDragOver={handleDragOverTarget(folder.id)}
-          onDrop={handleDropFiles(folder.id)}
+          onDragOver={canWrite ? handleDragOverTarget(folder.id) : undefined}
+          onDrop={canWrite ? handleDropFiles(folder.id) : undefined}
         >
           {hasChildren ? (
             <button
@@ -514,20 +517,24 @@ export default function Sidebar({
                 <MoreHorizontal className="h-4 w-4" />
               </summary>
               <div className="sidebar-folder-menu">
-                <button
-                  className="sidebar-menu-item"
-                  disabled={busy}
-                  onClick={(e) => { closeFolderMenu(e); startCreate(folder.id); }}
-                >
-                  <FolderPlus className="h-4 w-4" /> Subfolder
-                </button>
-                <button
-                  className="sidebar-menu-item"
-                  disabled={busy}
-                  onClick={(e) => { closeFolderMenu(e); startEdit(folder); }}
-                >
-                  <Pencil className="h-4 w-4" /> Rename &amp; edit
-                </button>
+                {canWrite && (
+                  <button
+                    className="sidebar-menu-item"
+                    disabled={busy}
+                    onClick={(e) => { closeFolderMenu(e); startCreate(folder.id); }}
+                  >
+                    <FolderPlus className="h-4 w-4" /> Subfolder
+                  </button>
+                )}
+                {canWrite && (
+                  <button
+                    className="sidebar-menu-item"
+                    disabled={busy}
+                    onClick={(e) => { closeFolderMenu(e); startEdit(folder); }}
+                  >
+                    <Pencil className="h-4 w-4" /> Rename &amp; edit
+                  </button>
+                )}
                 <button
                   className="sidebar-menu-item"
                   disabled={busy}
@@ -535,16 +542,18 @@ export default function Sidebar({
                 >
                   <Download className="h-4 w-4" /> Download ZIP
                 </button>
-                <button
-                  className="sidebar-menu-item sidebar-menu-danger"
-                  disabled={busy}
-                  onClick={(e) => {
-                    closeFolderMenu(e);
-                    setPendingDelete({ id: folder.id, name: folder.name || "Untitled" });
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" /> Delete
-                </button>
+                {canWrite && (
+                  <button
+                    className="sidebar-menu-item sidebar-menu-danger"
+                    disabled={busy}
+                    onClick={(e) => {
+                      closeFolderMenu(e);
+                      setPendingDelete({ id: folder.id, name: folder.name || "Untitled" });
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" /> Delete
+                  </button>
+                )}
               </div>
             </details>
           </div>
@@ -562,9 +571,9 @@ export default function Sidebar({
     <aside
       className="sidebar-shell"
       aria-label="Files"
-      onDragOver={handleSidebarDragOver}
-      onDragLeave={handleSidebarDragLeave}
-      onDrop={handleSidebarDrop}
+      onDragOver={canWrite ? handleSidebarDragOver : undefined}
+      onDragLeave={canWrite ? handleSidebarDragLeave : undefined}
+      onDrop={canWrite ? handleSidebarDrop : undefined}
     >
       <div className="sidebar-header">
         <div className="min-w-0">
@@ -574,10 +583,12 @@ export default function Sidebar({
             <span className="sidebar-count" title={`${folders.length} folders`}>{folders.length}</span>
           </div>
         </div>
-        <button className="sidebar-new-button" onClick={() => startCreate(null)} title="New folder">
-          <Plus className="h-4 w-4" />
-          <span>New</span>
-        </button>
+        {canWrite && (
+          <button className="sidebar-new-button" onClick={() => startCreate(null)} title="New folder">
+            <Plus className="h-4 w-4" />
+            <span>New</span>
+          </button>
+        )}
       </div>
 
       <label className="sidebar-search">
@@ -605,8 +616,8 @@ export default function Sidebar({
             event.preventDefault();
             focusTreeRow(treeRows[0]?.id ?? null);
           }}
-          onDragOver={handleDragOverTarget(DROP_ALL_ID)}
-          onDrop={handleDropFiles(null)}
+          onDragOver={canWrite ? handleDragOverTarget(DROP_ALL_ID) : undefined}
+          onDrop={canWrite ? handleDropFiles(null) : undefined}
         >
           <span className="sidebar-all-icon"><Layers3 className="h-4 w-4" /></span>
           <span className="flex-1 text-left">All files</span>
@@ -629,7 +640,7 @@ export default function Sidebar({
             <div className="sidebar-empty" role="none">
               <FolderPlus className="h-5 w-5" />
               <span>No folders yet</span>
-              <button onClick={() => startCreate(null)}>Create your first folder</button>
+              {canWrite && <button onClick={() => startCreate(null)}>Create your first folder</button>}
             </div>
           )}
           {!!folders.length && visibleFolderIds?.size === 0 && (
@@ -642,7 +653,9 @@ export default function Sidebar({
         </div>
       </nav>
 
-      {creating && (
+      {/* Wrapped too: a demotion mid-edit must not leave a Create/Save dialog
+          on screen whose submit the API will refuse. */}
+      {canWrite && creating && (
         <div className="sidebar-editor" role="dialog" aria-label="Create folder">
           <div className="sidebar-editor-heading">
             <span className="sidebar-editor-icon"><FolderPlus className="h-4 w-4" /></span>
@@ -677,7 +690,7 @@ export default function Sidebar({
         </div>
       )}
 
-      {editing && (
+      {canWrite && editing && (
         <div className="sidebar-editor" role="dialog" aria-label="Edit folder">
           <div className="sidebar-editor-heading">
             <span className="sidebar-editor-icon"><Pencil className="h-4 w-4" /></span>

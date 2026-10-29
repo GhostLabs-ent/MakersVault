@@ -7,6 +7,7 @@ import BulkActionBar, { BulkActionBarProps } from "./BulkActionBar";
 
 function renderBar(overrides: Partial<BulkActionBarProps> = {}) {
   const props: BulkActionBarProps = {
+    canWrite: true,
     count: 3,
     folderOptions: [
       { id: null, name: "Unassigned" },
@@ -194,5 +195,64 @@ describe("BulkActionBar", () => {
   it("surfaces a whole-request error", () => {
     renderBar({ requestError: "Bulk delete failed." });
     expect(screen.getByRole("alert").textContent).toBe("Bulk delete failed.");
+  });
+});
+
+describe("BulkActionBar role capability", () => {
+  afterEach(cleanup);
+
+  const WRITE_CONTROLS = [
+    "Move",
+    "Add tags",
+    "Remove tags",
+    "Edit metadata…",
+    "Add to project…",
+    "Delete",
+  ];
+  const READ_CONTROLS = ["Download zip", "Select all", "Clear"];
+
+  it("offers every bulk write action to an editor", () => {
+    renderBar({ canWrite: true });
+
+    for (const name of WRITE_CONTROLS) {
+      expect(screen.getByRole("button", { name })).toBeTruthy();
+    }
+    expect(screen.getByRole("combobox", { name: "Target folder" })).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "Tags" })).toBeTruthy();
+    for (const name of READ_CONTROLS) {
+      expect(screen.getByRole("button", { name })).toBeTruthy();
+    }
+  });
+
+  it("keeps only the download, selection and clearing controls for a viewer", () => {
+    renderBar({ canWrite: false });
+
+    expect(screen.getByText("3 selected")).toBeTruthy();
+    for (const name of READ_CONTROLS) {
+      expect(screen.getByRole("button", { name })).toBeTruthy();
+    }
+    for (const name of WRITE_CONTROLS) {
+      expect(screen.queryByRole("button", { name })).toBeNull();
+    }
+    expect(screen.queryByRole("combobox", { name: "Target folder" })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Tags" })).toBeNull();
+  });
+
+  it("still reports what already happened, dismissible, to a viewer", () => {
+    const { props } = renderBar({
+      canWrite: false,
+      requestError: "Bulk delete failed.",
+      failures: [{ id: "b2", code: "conflict", status: 409, error: "Storage path exists" }],
+      failureLabels: [{ id: "b2", label: "spool-holder.stl", message: "Storage path exists" }],
+    });
+
+    expect(screen.getByRole("alert").textContent).toBe("Bulk delete failed.");
+    expect(screen.getByTestId("bulk-failures").textContent).toContain("spool-holder.stl");
+
+    // Both reporting blocks share the one dismiss callback.
+    for (const button of screen.getAllByRole("button", { name: "Dismiss" })) {
+      fireEvent.click(button);
+    }
+    expect(props.onDismissFailures).toHaveBeenCalledTimes(2);
   });
 });
