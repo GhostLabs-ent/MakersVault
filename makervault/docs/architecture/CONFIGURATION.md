@@ -185,6 +185,48 @@ is a recorded fact rather than a silent one. A real failure while taking a
 snapshot is never a capability miss: a path defect, a name collision or a
 vanished `.snap` directory is refused under `strict` and reported under `warn`.
 
+## Scheduled snapshots
+
+S8 (`makervault/api/snapshot_schedule.py`) is the slice that takes them on a
+schedule. When `SNAPSHOT_SCHEDULE_ENABLED` is true, `main.lifespan` starts one
+daemon thread as the last step of the boot sequence, so it is provably after
+migrations and after both boot guards. The thread sleeps
+`SNAPSHOT_SCHEDULE_START_DELAY_SECONDS`, then ticks every
+`SNAPSHOT_SCHEDULE_CHECK_SECONDS`. A tick takes a library snapshot with reason
+`scheduled` when the newest scheduled snapshot is older than
+`SNAPSHOT_SCHEDULE_HOURS` (and immediately when there is none). It hands S2's
+provider a hand-built system audit context, so the provider's own
+`snapshot.create` and `snapshot.prune` rows record the work: a successful tick
+adds no new audit action.
+
+Retention is read, never re-declared. The thread rebuilds the provider on every
+tick, so a retention edit through `POST /snapshots/retention` takes effect
+without a restart, and the scheduler itself never issues a delete; retention
+runs inside create.
+
+The status surface is `GET /snapshots/schedule` (ADMIN). It reports the last
+attempt and its outcome, the snapshot count, the oldest and newest snapshot, a
+24-hour count, the retention policy in force, `warnings[]` and a
+`database_caveat`. It reports rather than operates: on a volume with no
+snapshot method, or with a corrupt stored retention row, it still answers 200
+and says so in `warnings[]`. `last_attempt` and `last_outcome` are in-process
+and reset on restart; the snapshot names on disk are the durable record.
+
+The one thing an operator must not miss: **a library snapshot covers the
+filesystem only and does not cover the SQLite database.** A daily snapshot plus
+a database backup is the complete restore story; backup and restore procedure is
+Mf-ljld's and is not repeated here.
+
+| Variable | Current default | Meaning |
+|---|---|---|
+| `SNAPSHOT_SCHEDULE_ENABLED` | `false` | Whether the API starts the scheduled-snapshot thread at boot. |
+| `SNAPSHOT_SCHEDULE_HOURS` | `24` | Take a snapshot when the newest scheduled one is older than this many hours. |
+| `SNAPSHOT_SCHEDULE_CHECK_SECONDS` | `300` | How often the thread asks whether one is due. |
+| `SNAPSHOT_SCHEDULE_START_DELAY_SECONDS` | `60` | Delay before the first tick, keeping it clear of migrations and the boot guards. |
+
+A `SNAPSHOT_SCHEDULE_HOURS` of `0` or less makes every tick due; the retention
+policy is what bounds the count.
+
 ## Web runtime settings
 
 | Variable | Current default | Effect |

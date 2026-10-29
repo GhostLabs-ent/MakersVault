@@ -125,6 +125,16 @@ SNAPSHOT_POLICY_PREPURGE = env_policy("SNAPSHOT_POLICY_PREPURGE", os.getenv("SNA
 SNAPSHOT_POLICY_PREBULK = env_policy("SNAPSHOT_POLICY_PREBULK", os.getenv("SNAPSHOT_POLICY_PREBULK", "strict"), "strict")
 SNAPSHOT_REQUIRE_CAPABILITY = env_bool("SNAPSHOT_REQUIRE_CAPABILITY", False)
 
+# Scheduled library snapshots (S8). The thread starts from `main.lifespan` only
+# when this is true, so a deployment that never opted in takes no snapshot
+# behind the operator's back. The defaults are the documented ones: daily, a
+# five-minute due check, and a one-minute start delay that keeps the first tick
+# clear of migrations and the boot guards.
+SNAPSHOT_SCHEDULE_ENABLED = env_bool("SNAPSHOT_SCHEDULE_ENABLED", False)
+SNAPSHOT_SCHEDULE_HOURS = env_int("SNAPSHOT_SCHEDULE_HOURS", 24)
+SNAPSHOT_SCHEDULE_CHECK_SECONDS = env_int("SNAPSHOT_SCHEDULE_CHECK_SECONDS", 300)
+SNAPSHOT_SCHEDULE_START_DELAY_SECONDS = env_int("SNAPSHOT_SCHEDULE_START_DELAY_SECONDS", 60)
+
 # BTRFS snapshots are opt-in through a privileged sidecar: an empty URL means
 # disabled (the default), never broken. The health probe runs inside every
 # capability detection, so its timeout is a hardcoded budget rather than an

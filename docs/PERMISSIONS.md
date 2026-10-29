@@ -149,8 +149,8 @@ rollback are in
 
 ## The route matrix
 
-Paths are FastAPI templates exactly as declared. 73 routes: 4 public, 25 read,
-32 write, 12 admin.
+Paths are FastAPI templates exactly as declared. 74 routes: 4 public, 25 read,
+32 write, 13 admin.
 
 The collection/instance templates are deliberately asymmetric: the collection is
 `/projects` while one project is `/project/{project_id}`, exactly like `/folders`
@@ -247,6 +247,7 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | POST   | `/trash/purge`                 | destroying deleted data is irreversible |
 | GET    | `/snapshots/retention`         | retention decides what history survives; admin namespace |
 | POST   | `/snapshots/retention`         | mutates retention |
+| GET    | `/snapshots/schedule`          | the scheduler's status report: last attempt, count, retention echo, warnings; operates nothing |
 | DELETE | `/snapshots/{name}`            | deleting a snapshot decides what history survives |
 
 ## Destructive confirmations

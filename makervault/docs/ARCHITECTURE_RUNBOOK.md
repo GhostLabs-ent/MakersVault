@@ -820,6 +820,61 @@ Jobs require idempotency keys or equivalent duplicate protection, progress that
 does not grow without bound, time/resource budgets, retry policy, and stale-worker
 recovery. Moving work to a queue does not by itself make it safe.
 
+#### 9.3.1 Scheduled library snapshots
+
+S8 (`makervault/api/snapshot_schedule.py`) takes a library snapshot on a timer.
+It is one daemon thread, started from `main.lifespan` as the last step of the
+boot sequence and only when `SNAPSHOT_SCHEDULE_ENABLED=true`, so it starts after
+migrations and after both boot guards. The thread waits
+`SNAPSHOT_SCHEDULE_START_DELAY_SECONDS`, then ticks every
+`SNAPSHOT_SCHEDULE_CHECK_SECONDS`.
+
+A tick is due when the newest `scheduled` snapshot is older than
+`SNAPSHOT_SCHEDULE_HOURS`, and immediately when there is none. A tick does one
+thing: one provider `create(reason=scheduled)` with a hand-built system audit
+context. The tick never deletes; retention runs inside create, and its
+`snapshot.prune` rows are written by the provider. A due tick therefore records
+`snapshot.create` (plus any `snapshot.prune`), and a *successful* tick needs no
+other audit action at all.
+
+```text
+boot: migrations -> boot guards -> lifespan starts the thread
+                                   |
+                        start delay, then every check interval
+                                   |
+                        due? newest scheduled < hours
+                                   |        |
+                                  yes       no  -> nothing happens, and nothing is written
+                                   |
+                        provider.create(reason=scheduled)
+                          -> snapshot.create (+ snapshot.prune)
+                          -> or snapshot.schedule.skipped / .failed
+```
+
+How to see what happened:
+
+- `GET /snapshots/schedule` (admin) is the status report: last attempt and
+  outcome, count, oldest, newest, the 24-hour count, the retention policy echo
+  and `warnings[]`.
+- `GET /audit?action=snapshot.schedule.skipped` covers a tick that was due but
+  refused, because the volume cannot snapshot.
+- `GET /audit?action=snapshot.schedule.failed` covers a tick that raised.
+- Both are deduplicated by cause, so a volume that cannot snapshot writes one
+  row, not one per tick.
+
+Operational traps, in plain terms:
+
+- **The snapshot is filesystem-only and does not cover the SQLite database.**
+  A snapshot plus a database backup is the whole restore story.
+- `last_attempt` and `last_outcome` are in-process state and reset on restart. A
+  restarted API reports "no attempt yet" until its first tick, while the
+  snapshots already on disk are untouched and still there.
+- A volume with no snapshot method reports a warning forever and takes nothing.
+  That is the honest state on ext4 or tmpfs, not a stuck scheduler.
+
+Backup and restore procedure, including the database half, is Mf-ljld's; this
+section is only about the scheduler.
+
 ### 9.4 API and client contract change
 
 - Add fields before requiring them.

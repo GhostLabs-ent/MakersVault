@@ -60,6 +60,13 @@ services:
       - SNAPSHOT_POLICY_PREPURGE=${SNAPSHOT_POLICY_PREPURGE:-strict}
       - SNAPSHOT_POLICY_PREBULK=${SNAPSHOT_POLICY_PREBULK:-strict}
       - SNAPSHOT_REQUIRE_CAPABILITY=${SNAPSHOT_REQUIRE_CAPABILITY:-false}
+      # Scheduled library snapshots are operator-tunable, so unlike the BTRFS
+      # sidecar keys they ARE forwarded. The fallbacks must match config.py;
+      # tests/test_deploy_manifest_env.py pins them.
+      - SNAPSHOT_SCHEDULE_ENABLED=${SNAPSHOT_SCHEDULE_ENABLED:-false}
+      - SNAPSHOT_SCHEDULE_HOURS=${SNAPSHOT_SCHEDULE_HOURS:-24}
+      - SNAPSHOT_SCHEDULE_CHECK_SECONDS=${SNAPSHOT_SCHEDULE_CHECK_SECONDS:-300}
+      - SNAPSHOT_SCHEDULE_START_DELAY_SECONDS=${SNAPSHOT_SCHEDULE_START_DELAY_SECONDS:-60}
     volumes:
       - makersvault_storage:/app/storage
       - makersvault_db:/app/data

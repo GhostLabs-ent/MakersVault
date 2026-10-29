@@ -936,9 +936,21 @@ def test_audit_the_snapshot_actions_are_declared_and_carried_by_their_routes() -
     for key, actions in audit.ROUTE_ACTIONS.items():
         if key not in carried_by:
             assert not snapshot_actions & set(actions), f"{key} names a provider snapshot action"
-    assert len(audit.ACTIONS) == 28
+    assert len(audit.ACTIONS) == 30
     assert len(audit.ROUTE_ACTIONS) == 25
     assert audit.assert_audit_coverage() == audit.ROUTE_ACTIONS
+
+
+def test_audit_the_scheduler_actions_are_declared_and_carried_by_no_route() -> None:
+    # The two `snapshot.schedule.*` actions come from a background thread, so
+    # there is no route to declare them on: they are in `ACTIONS` and must not
+    # appear in any `ROUTE_ACTIONS` tuple.
+    scheduler_actions = {audit.SNAPSHOT_SCHEDULE_SKIPPED, audit.SNAPSHOT_SCHEDULE_FAILED}
+
+    for action in scheduler_actions:
+        assert action in audit.ACTIONS
+    for key, actions in audit.ROUTE_ACTIONS.items():
+        assert not scheduler_actions & set(actions), f"{key} declares a background-thread action"
 
 
 # --- docs pins ------------------------------------------------------------
@@ -953,13 +965,13 @@ def test_audit_docs_describe_the_snapshot_actions() -> None:
         pytest.skip("host-only: docs is outside the API image build context")
 
     text = path.read_text(encoding="utf-8")
-    assert "exactly these 28 strings" in text
-    for needle in ("snapshot.create", "snapshot.prune", "snapshot.delete", "snapshot.restore"):
+    assert "exactly these 30 strings" in text
+    for needle in ("snapshot.create", "snapshot.prune", "snapshot.delete", "snapshot.restore", "snapshot.schedule.skipped", "snapshot.schedule.failed"):
         assert needle in text
     # The prose is hard-wrapped, so the sentence is pinned with its whitespace
     # normalised: the words are byte-for-byte, the wrap points are not.
     assert (
-        "The matrix has 73 routes, 29 of them `GET`; the remaining 44 split into 25 audited keys and 19 exempt keys."
+        "The matrix has 74 routes, 30 of them `GET`; the remaining 44 split into 25 audited keys and 19 exempt keys."
         in " ".join(text.split())
     )
     assert "fail-loud" in text

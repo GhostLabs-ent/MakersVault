@@ -30,6 +30,8 @@ const AUDIT_ACTIONS = [
   "user.enable",
   "library.scan.start",
   "login.succeeded",
+  "snapshot.schedule.skipped",
+  "snapshot.schedule.failed",
 ];
 
 type Props = {

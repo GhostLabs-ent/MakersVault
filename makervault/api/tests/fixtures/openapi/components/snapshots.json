@@ -297,5 +297,127 @@
     ],
     "title": "SnapshotRetentionOut",
     "type": "object"
+  },
+  "SnapshotScheduleOut": {
+    "properties": {
+      "check_seconds": {
+        "title": "Check Seconds",
+        "type": "integer"
+      },
+      "count": {
+        "title": "Count",
+        "type": "integer"
+      },
+      "database_caveat": {
+        "title": "Database Caveat",
+        "type": "string"
+      },
+      "enabled": {
+        "title": "Enabled",
+        "type": "boolean"
+      },
+      "hours": {
+        "title": "Hours",
+        "type": "integer"
+      },
+      "last_24h": {
+        "title": "Last 24H",
+        "type": "integer"
+      },
+      "last_attempt": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Last Attempt"
+      },
+      "last_error": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Last Error"
+      },
+      "last_outcome": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Last Outcome"
+      },
+      "last_snapshot": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Last Snapshot"
+      },
+      "newest": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Newest"
+      },
+      "oldest": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Oldest"
+      },
+      "retention": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/SnapshotRetentionOut"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "warnings": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Warnings",
+        "type": "array"
+      }
+    },
+    "required": [
+      "enabled",
+      "hours",
+      "check_seconds",
+      "count",
+      "last_24h",
+      "warnings",
+      "database_caveat"
+    ],
+    "title": "SnapshotScheduleOut",
+    "type": "object"
   }
 }

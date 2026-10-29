@@ -220,6 +220,9 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("POST", "/settings/storage"): ADMIN,
     # Reading the retention policy that bounds every snapshot is administration.
     ("GET", "/snapshots/retention"): ADMIN,
+    # The scheduler's status surface reports what a background thread did; it
+    # operates nothing, so it is administration, not a library mutation.
+    ("GET", "/snapshots/schedule"): ADMIN,
     # Changing it decides what history survives, so it is not an editor action.
     ("POST", "/snapshots/retention"): ADMIN,
     # Deleting a snapshot decides what history survives too.

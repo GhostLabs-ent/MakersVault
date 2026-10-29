@@ -1,9 +1,11 @@
 """Snapshot routes, split out of main.py in Mf-x9dx; the logic lives in ``snapshot_service``.
 
-The declaration order below is load-bearing: both ``/snapshots/retention`` routes
-are declared before any ``/snapshots/{name}`` template, so a one-segment detail
-route can never shadow the literal. FastAPI matches in declaration order, so
-moving a ``{name}`` route up here would swallow ``retention`` as a snapshot name.
+The declaration order below is load-bearing: the three literal one-segment routes
+(``/snapshots/retention`` GET+POST and ``/snapshots/schedule``) are declared before
+any ``/snapshots/{name}`` template, so a detail route can never shadow a literal.
+FastAPI matches in declaration order, so moving a ``{name}`` route up here would
+swallow ``retention`` or ``schedule`` as a snapshot name. The schedule route is the
+admin status surface of the background scheduler; it reports and operates nothing.
 """
 
 from typing import Optional
@@ -13,6 +15,7 @@ from sqlmodel import Session
 
 import audit
 import snapshot_guard
+import snapshot_schedule
 import snapshot_service
 import snapshots
 from auth import AuthContext
@@ -27,6 +30,7 @@ from schemas import (
     SnapshotRestoreRequest,
     SnapshotRetentionIn,
     SnapshotRetentionOut,
+    SnapshotScheduleOut,
 )
 
 router = APIRouter()
@@ -72,6 +76,16 @@ def update_snapshot_retention(
         )
         s.commit()
     return _retention()
+
+
+@router.get("/snapshots/schedule", response_model=SnapshotScheduleOut)
+def get_snapshot_schedule(_: Optional[AuthContext] = Depends(require_admin)):
+    # Deliberately NOT through `_guard`: this route reports, it does not operate.
+    # Routing it through the guard would turn a NullProvider's SnapshotUnavailable
+    # into a 409, when the honest answer is 200 with a warning - and
+    # `snapshot_schedule.status_out()` already degrades every failure it can meet
+    # (an unavailable provider, a corrupt retention row) into `warnings[]`.
+    return snapshot_schedule.status_out()
 
 
 @router.get("/snapshots/{name}/browse", response_model=SnapshotBrowseOut)

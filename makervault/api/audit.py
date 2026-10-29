@@ -71,6 +71,12 @@ SNAPSHOT_CREATE = "snapshot.create"
 SNAPSHOT_PRUNE = "snapshot.prune"
 SNAPSHOT_DELETE = "snapshot.delete"
 SNAPSHOT_RESTORE = "snapshot.restore"
+# The scheduler's skip and failure rows are ACTIONS-only: they come from a
+# background thread with no route to declare and no request context, so
+# ROUTE_ACTIONS must not list them. A successful tick writes no new action; the
+# provider's own snapshot.create/snapshot.prune rows cover it.
+SNAPSHOT_SCHEDULE_SKIPPED = "snapshot.schedule.skipped"
+SNAPSHOT_SCHEDULE_FAILED = "snapshot.schedule.failed"
 DESTRUCTIVE_SNAPSHOT_TAKEN = "destructive.snapshot_taken"
 DESTRUCTIVE_SNAPSHOT_MISSED = "destructive.snapshot_missed"
 
@@ -101,6 +107,8 @@ ACTIONS: frozenset[str] = frozenset({
     SNAPSHOT_PRUNE,
     SNAPSHOT_DELETE,
     SNAPSHOT_RESTORE,
+    SNAPSHOT_SCHEDULE_SKIPPED,
+    SNAPSHOT_SCHEDULE_FAILED,
     DESTRUCTIVE_SNAPSHOT_TAKEN,
     DESTRUCTIVE_SNAPSHOT_MISSED,
 })

@@ -64,7 +64,7 @@ could honestly reconstruct.
 
 ## The action taxonomy
 
-`audit.ACTIONS` holds exactly these 28 strings. Action names are stable and
+`audit.ACTIONS` holds exactly these 30 strings. Action names are stable and
 `namespace.verb`; a reader of a row does not need the code to know what it means.
 
 | Action | Route(s) that emit it | `target` | `detail` | Failure |
@@ -97,6 +97,8 @@ could honestly reconstruct.
 | `snapshot.restore` | `POST /snapshots/{name}/restore` | snapshot name | `{"path", "destination", "files", "bytes", "scan_started"}` | fail-loud |
 | `destructive.snapshot_taken` | `DELETE /folder/{folder_id}`; `POST /trash/purge`; `POST /assets/batch/delete`; written by `snapshot_guard.guard` | the operation's subject: the folder id, `"trash"` or `"assets"` | `{"reason", "policy", "name", "method"}` - `name` is the snapshot's exact name | fail-loud |
 | `destructive.snapshot_missed` | the same three routes, when no snapshot was taken | the same subject | `{"reason", "policy", "cause", "error"}` - `cause` is `"unavailable"` or `"failed"`, `error` is the exception text or `null` | fail-loud |
+| `snapshot.schedule.skipped` | written by `snapshot_schedule.run_once` when the scheduled tick was due but the volume cannot snapshot; no route emits it | `"snapshot_schedule"` | `{"cause", "method", "hours"}` | logged; the tick continues |
+| `snapshot.schedule.failed` | the same tick, when taking the snapshot raised; no route emits it | `"snapshot_schedule"` | `{"cause", "method", "hours"}` | logged; the tick continues |
 
 The snapshot actions are route actions now that `POST /snapshots` and
 `DELETE /snapshots/{name}` exist. Those two routes hand the provider an audit
@@ -116,6 +118,21 @@ snapshot's exact name is in their `detail`. The guard hands the provider no audi
 context, so a route owns exactly one snapshot fact: a create whose retention then
 prunes writes no `snapshot.prune` row on that path, and the name in the
 `destructive.snapshot_taken` row is the whole record of it.
+
+The two `snapshot.schedule.*` actions come from S8's background thread instead.
+They are in `ACTIONS` and deliberately not in `ROUTE_ACTIONS`, because there is
+no request to declare them on: a tick is not a route. They are deduplicated by
+cause, so a volume that cannot snapshot writes one row rather than one row per
+tick. A *successful* tick needs no action of its own at all, because the
+provider's `snapshot.create` and `snapshot.prune` rows already record it. Their
+actor is the fixed `system` principal and their request id is empty.
+
+Those two rows are the one exception to fail-loud, and only in the writing of
+their own row: `audit.record` raises for a request caller who can act on it, but
+a background thread has no caller to fail, and re-raising would kill the thread
+that is supposed to keep ticking. A failed write is logged, the dedupe key stays
+unset so the next identical tick retries it, and the tick's outcome is reported
+through the status surface either way.
 
 Two routes can emit more than one row per request, because a request can change
 more than one fact:
@@ -142,7 +159,7 @@ snapshot: the trash keeps it restorable, so it stays `asset.delete` alone.
 The rule `assert_audit_coverage()` enforces: **every route in
 `permissions.ROUTE_PERMISSIONS` whose method is not `GET` must be in
 `ROUTE_ACTIONS` or in `EXEMPT_ROUTES` with a non-empty reason.** `GET` routes are
-out of scope by construction: they change nothing. The matrix has 73 routes, 29
+out of scope by construction: they change nothing. The matrix has 74 routes, 30
 of them `GET`; the remaining 44 split into 25 audited keys and 19 exempt keys.
 
 The guard also refuses stale keys (an entry for a route that no longer exists), a
@@ -396,7 +413,7 @@ administration).
 | Parameter | Type | Semantics |
 |---|---|---|
 | `actor` | string | exact match, case-insensitive (both sides lowered, value stripped) |
-| `action` | string | exact match, case-sensitive - one of the 28 names above |
+| `action` | string | exact match, case-sensitive - one of the 30 names above |
 | `target` | string | case-sensitive substring match; `%`, `_` and `\` are escaped, so it is a literal substring |
 | `since` | string | `created_at >= value` |
 | `until` | string | `created_at <= value` |

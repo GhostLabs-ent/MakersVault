@@ -3138,6 +3138,29 @@
       "summary": "Update Snapshot Retention"
     }
   },
+  "/snapshots/schedule": {
+    "get": {
+      "operationId": "get_snapshot_schedule_snapshots_schedule_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnapshotScheduleOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Get Snapshot Schedule"
+    }
+  },
   "/snapshots/{name}": {
     "delete": {
       "operationId": "delete_snapshot_snapshots__name__delete",

@@ -16,6 +16,7 @@ __all__ = [
   "SnapshotRestoreRequest",
   "SnapshotRetentionIn",
   "SnapshotRetentionOut",
+  "SnapshotScheduleOut",
 ]
 
 
@@ -97,3 +98,27 @@ class SnapshotRetentionIn(BaseModel):
   keep_daily: int = Field(ge=0)
   max_age_days: int = Field(ge=1)
   hard_cap: int = Field(ge=1)
+
+
+class SnapshotScheduleOut(BaseModel):
+  enabled: bool
+  hours: int
+  check_seconds: int
+  # The next four are in-process state written by the scheduler thread: they
+  # reset to None on restart.
+  last_attempt: Optional[str] = None
+  last_outcome: Optional[str] = None
+  last_snapshot: Optional[str] = None
+  last_error: Optional[str] = None
+  # Total snapshots on the volume, then the ones from the last 24h: every
+  # reason counts, scheduled or not.
+  count: int
+  last_24h: int
+  oldest: Optional[str] = None
+  newest: Optional[str] = None
+  # S4's policy echoed; None when the stored row cannot be read, which is one
+  # of the reasons `warnings` exists.
+  retention: Optional[SnapshotRetentionOut] = None
+  warnings: List[str]
+  # A filesystem snapshot does not cover the SQLite database: one line saying so.
+  database_caveat: str

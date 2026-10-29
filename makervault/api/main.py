@@ -107,6 +107,14 @@ async def lifespan(_app: FastAPI):
     threading.Thread(target=backfill_prepared_print_metadata, daemon=True).start()
     if mount_import_should_run():
         threading.Thread(target=scan_mount_imports, daemon=True).start()
+    # Last in the boot sequence on purpose: the scheduled-snapshot thread is
+    # provably started after migrations and after both boot guards, and the
+    # function-local import keeps the snapshot stack out of every `import main`
+    # (mirroring the function-local `import snapshot_zfs` idiom).
+    import snapshot_schedule
+
+    if snapshot_schedule.should_run():
+        threading.Thread(target=snapshot_schedule.run_forever, args=(threading.Event(),), daemon=True).start()
     yield
 
 
