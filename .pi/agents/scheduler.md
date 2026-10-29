@@ -587,19 +587,29 @@ tests.
 
 ## State of the repo at v3
 
-Schema version 9 (migrations 1-9 are immutable). 1105 API tests on the host,
-1014 passed plus 12 skipped in-container — the skips are an artifact of the image
-build context being `makervault/api`, so six whole modules (the four docs
-guards and both scheduler-tooling modules) and six tests in
-`test_deploy_manifest_env.py` skip there and only there; 863 web tests in 79
-files; the permission matrix is pinned at 64 routes, and
-`assert_routes_classified()` plus `assert_audit_coverage()` are green. Product
-version 5.2.0-rc.1, with the drift guard in `make verify`
-(`makervault/scripts/check_version.py`). `make verify-fast` takes 90-105 s and
-the full `make verify` about 170 s, both measured on this host in batch 15
-rather than carried over from v2. `makervault/api/main.py` is 186 lines with 13
-routers under `makervault/api/routers/`; the web component split landed
-(`makervault/web/src/ui/asset-grid/`, `makervault/web/src/ui/settings/`). Both
+Schema version 9 (migrations 1-9 are immutable; the snapshots batch added none).
+1579 API tests collected on the host -- 1578 passed plus the opt-in skip
+(`test_snapshots_integration.py`, which needs `SNAPSHOT_INTEGRATION=1`) -- and
+1406 passed plus 23 skipped in-container. The in-container skips are an artifact
+of the image build context being `makervault/api`, so repo-root files are absent
+there: eight whole modules skip at import (the ADR, auth-docs, log-hygiene, zfs
+docs and sidecar guards plus the two scheduler-tooling modules), then six tests
+in `test_deploy_manifest_env.py`, one docs/manifest invariant in
+`test_snapshot_btrfs.py`, three docs pins in `test_snapshot_schedule.py`, three
+in `test_snapshots.py`, one in `test_storage_capabilities.py`, and the opt-in
+integration module -- each one a `pytest.skip`, never a fixed-index
+`parents[3]` walk, because that index is an `IndexError` in the image. 933 web
+tests in 85 files; the permission matrix is pinned at 74 routes (4 public / 25
+read / 32 write / 13 admin), and `assert_routes_classified()` plus
+`assert_audit_coverage()` are green. Product version 5.2.0-rc.1, with the drift
+guard in `make verify` (`makervault/scripts/check_version.py`).
+`make verify-fast` takes 115 s and the full `make verify` 180 s, both measured
+on this host in batch 16 rather than carried over from an earlier batch; the
+full gate split over its stages as lint 9 s, API 114 s, web 34 s, bridge 8 s,
+compose 1 s and container smoke 13 s. `makervault/api/main.py` is 196 lines with
+14 routers under `makervault/api/routers/` (`snapshots.router` is the newest).
+The web component split landed
+(`makervault/web/src/ui/asset-grid/`, `makervault/web/src/ui/settings/`); both
 split refactors were the enablers for lanes, not just hygiene.
 
 ## Final report (your deliverable)
