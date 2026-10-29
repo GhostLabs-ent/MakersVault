@@ -11,15 +11,26 @@ cleanly, the review is what costs.
     python3 makervault/scripts/wave_plan.py --lane Mf-6d52:makervault/api/permissions.py --lane Mf-nhhy:README.md
     python3 makervault/scripts/wave_plan.py --plan /tmp/wave-1.json --max-lanes 3
     python3 makervault/scripts/wave_plan.py --plan /tmp/wave-1.json --json
+    python3 makervault/scripts/wave_plan.py --check-delta .plans/batch-13/Mf-z5qa.json
+    python3 makervault/scripts/wave_plan.py --report-timings .plans/batch-13
 
-Exit 0 accepts the wave, 1 refuses it with the reason on stderr, 2 is a usage
-error. A plan file is {"lanes": [{"id": "Mf-6d52", "touches": ["path/one.py"],
-"serialises": false, "reason": "why this lane serialises"}]}.
+A plan file is a statement of intent plus a touch-set, and a per-ticket plan
+file carries the commit it was written against. The delta check exists because
+the plan says what will be done, not what happened since: re-validating the
+plan against base..HEAD is the cheap check before implementation starts, and it
+is not a re-plan. A wave file is {"lanes": [{"id": "Mf-6d52", "touches":
+["path/one.py"], "serialises": false, "reason": "why this lane serialises"}]}.
+
+Exit 0 accepts the wave, reports a fresh plan, or prints a timing report; 1
+refuses the wave or fails a delta check closed with the reason on stderr; 2 is
+a usage error or a malformed plan file.
 """
 
 import argparse
 import fnmatch
 import json
+import math
+import subprocess
 import sys
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
@@ -75,7 +86,7 @@ SERIALISERS: list[Serialiser] = [
         "path",
         "makervault/api/main.py",
         (
-            "app wiring and the lifespan boot guards: the router split landed (12 routers under makervault/api/routers/, 152 lines), "
+            "app wiring and the lifespan boot guards: the router split landed (13 routers under makervault/api/routers/, 176 lines), "
             "so it is no longer the 16-commit chokepoint, but every new router and guard edits the include list"
         ),
     ),
@@ -341,6 +352,365 @@ def print_wave(lanes: Sequence[Lane], max_lanes: int, notes: Sequence[str]) -> N
         print(note)
 
 
+# --- per-ticket plans: the delta check and the plan-gate timing report ------
+
+
+@dataclass(frozen=True)
+class GateRun:
+    """One gate record from a plan: the unit the timing report aggregates."""
+
+    gate: str
+    seconds: float | None
+    oracle_calls: int
+    overlapped_with: str
+
+
+@dataclass(frozen=True)
+class TicketPlan:
+    """One ticket's plan: the lane shape plus the metadata the scheduler doc requires."""
+
+    id: str
+    touches: tuple[str, ...]
+    serialises: bool = False
+    reason: str = ""
+    base: str = ""
+    approach: str = ""
+    risks: tuple[str, ...] = ()
+    acceptance: tuple[tuple[str, str], ...] = ()
+    gates: tuple[GateRun, ...] = ()
+
+
+def optional_strings(raw: dict[str, object], key: str, path: Path) -> tuple[str, ...]:
+    """A list-of-strings field that may be absent, or raise naming the file and field."""
+    value = raw.get(key)
+    if value is None:
+        return ()
+    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+        raise TypeError(f"{path}: {key} must be a list of strings")
+    return tuple(value)
+
+
+def optional_acceptance(raw: dict[str, object], path: Path) -> tuple[tuple[str, str], ...]:
+    """The acceptance map as ordered pairs: presence is all the warnings need."""
+    value = raw.get("acceptance")
+    if value is None:
+        return ()
+    if not isinstance(value, dict) or any(not isinstance(item, str) for item in value.values()):
+        raise TypeError(f"{path}: acceptance must be an object of string keys to string values")
+    return tuple((str(key), item) for key, item in value.items())
+
+
+def gate_seconds(raw: dict[str, object]) -> float | None:
+    """Measured seconds, or None when the record carries no usable number.
+
+    `bool` is an int in Python and JSON permits `NaN`/`Infinity`, so both are
+    rejected here: a non-finite value would slip past the `<= 0` warning and
+    poison the total into `nan`.
+    """
+    seconds = raw.get("seconds")
+    if isinstance(seconds, bool) or not isinstance(seconds, (int, float)):
+        return None
+    return float(seconds) if math.isfinite(seconds) else None
+
+
+def parse_gate(raw: dict[str, object]) -> GateRun:
+    """One gate record; a field the plan did not record stays absent instead of guessed."""
+    calls = raw.get("oracle_calls")
+    counted = calls if isinstance(calls, int) and not isinstance(calls, bool) else 0
+    return GateRun(
+        gate=str(raw.get("gate", "")),
+        seconds=gate_seconds(raw),
+        oracle_calls=counted,
+        overlapped_with=str(raw.get("overlapped_with") or ""),
+    )
+
+
+def optional_gates(raw: dict[str, object], path: Path) -> tuple[GateRun, ...]:
+    """Gate records: the only structural rule is a list of objects, fields are read leniently."""
+    value = raw.get("gates")
+    if value is None:
+        return ()
+    if not isinstance(value, list) or any(not isinstance(item, dict) for item in value):
+        raise TypeError(f"{path}: gates must be a list of objects")
+    return tuple(parse_gate(item) for item in value)
+
+
+def load_ticket_plan(path: Path) -> TicketPlan:
+    """Read one per-ticket plan, or raise naming the file and the field at fault.
+
+    The same loader serves the delta check and the timing report so both agree
+    on what a well-formed plan is: 2 for the check, a skipped file for the
+    report. Everything opt-in is optional, because an in-flight plan is a
+    legitimate thing to see and must never crash the report.
+    """
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise TypeError(f"{path}: expected a JSON object, got {type(raw).__name__}")
+    plan_id = raw.get("id")
+    if not isinstance(plan_id, str) or not plan_id.strip():
+        raise ValueError(f"{path}: id must be a non-empty string")
+    touches = raw.get("touches")
+    if not isinstance(touches, list) or not touches or any(not isinstance(touch, str) for touch in touches):
+        raise TypeError(f"{path}: touches must be a non-empty list of strings")
+    base = raw.get("base")
+    if not isinstance(base, str) or not base.strip():
+        raise ValueError(f"{path}: base must be a non-empty string naming the commit the plan was written against")
+    approach = raw.get("approach")
+    return TicketPlan(
+        id=plan_id.strip(),
+        touches=clean_touches(touches),
+        serialises=bool(raw.get("serialises", False)),
+        reason=str(raw.get("reason", "")),
+        base=base.strip(),
+        approach=approach.strip() if isinstance(approach, str) else "",
+        risks=optional_strings(raw, "risks", path),
+        acceptance=optional_acceptance(raw, path),
+        gates=optional_gates(raw, path),
+    )
+
+
+def run_git(*arguments: str) -> subprocess.CompletedProcess[str]:
+    """One git call in the process's working directory: every check is cwd-relative."""
+    return subprocess.run(["git", *arguments], capture_output=True, check=False, text=True)
+
+
+def in_git_work_tree() -> bool:
+    """`rev-parse --is-inside-work-tree` answers the repo question and nothing else."""
+    result = run_git("rev-parse", "--is-inside-work-tree")
+    return result.returncode == 0 and result.stdout.strip() == "true"
+
+
+def resolves_to_commit(revision: str) -> bool:
+    """`cat-file -e <rev>^{commit}` fails when the object is absent or is not a commit."""
+    return run_git("cat-file", "-e", f"{revision}^{{commit}}").returncode == 0
+
+
+def is_ancestor(base: str) -> bool:
+    """`merge-base --is-ancestor base HEAD`: exit 0 means ancestor, 1 means not.
+
+    Not a `rev-parse`-based comparison: rev-parse happily resolves a sha that
+    lives only on a side branch and the diff it enables is nonsense. Refuse
+    unless this plain exit-0 ancestry test passes.
+    """
+    return run_git("merge-base", "--is-ancestor", base, "HEAD").returncode == 0
+
+
+def rev_parse(*arguments: str) -> str:
+    """Trimmed rev-parse stdout, or "" when the call fails."""
+    result = run_git("rev-parse", *arguments)
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def short_sha(revision: str) -> str:
+    """Short form for the prose message, falling back to the raw value."""
+    return rev_parse("--short", revision) or revision
+
+
+def commit_count(base: str) -> int:
+    """Commits in the delta: `rev-list --count base..HEAD`."""
+    result = run_git("rev-list", "--count", f"{base}..HEAD")
+    if result.returncode != 0:
+        return 0
+    try:
+        return int(result.stdout.strip())
+    except ValueError:
+        return 0
+
+
+def delta_paths(base: str, head: str) -> tuple[str, ...] | None:
+    """Changed paths between two commits, normalised for touch-set comparison.
+
+    `git diff <base> <head>` is commit-to-commit, so uncommitted work cannot
+    make a plan look stale. There is no dirty-tree guard on purpose: it could
+    only manufacture re-plans, and every re-plan is real Oracle spend.
+
+    `-z` because the default output C-quotes a non-ASCII path, which would then
+    never match the plan's touch-set and a stale plan would read as fresh.
+    """
+    result = run_git("diff", "--name-only", "-z", base, head)
+    if result.returncode != 0:
+        return None
+    return tuple(normalise_path(name) for name in result.stdout.split("\0") if name.strip())
+
+
+def delta_refusal(reason: str) -> int:
+    """Fail closed: the diagnostic goes to stderr and the caller returns 1."""
+    print(f"FAIL-CLOSED: {reason}", file=sys.stderr)
+    return 1
+
+
+def plan_warnings(plan: TicketPlan) -> tuple[str, ...]:
+    """Non-fatal plan faults: each one means this ticket cannot ride a lane."""
+    notes: list[str] = []
+    if not plan.approach:
+        notes.append(f"warning: {plan.id}: the plan has no approach, which the scheduler doc requires before implementation")
+    if not plan.acceptance:
+        notes.append(f"warning: {plan.id}: the plan has no acceptance records, which the scheduler doc requires")
+    if plan.serialises:
+        notes.append(f"warning: {plan.id}: the plan declares serialises: true, so this ticket cannot ride a lane")
+    for path in plan.touches:
+        hit = serialiser_hit(path)
+        if hit is not None:
+            pattern, reason = hit
+            notes.append(f"warning: {plan.id}: the plan touches {path}, a serialiser ({pattern}): {reason} - cannot ride a lane")
+    return tuple(notes)
+
+
+def check_delta(plan: TicketPlan) -> int:
+    """Re-validate one plan against base..HEAD: 0 fresh, 1 stale or unresolvable.
+
+    Exit 2 is decided by the caller before this runs, so the two failure modes
+    stay distinguishable: 2 means the plan file itself is wrong, 1 means the
+    repository moved under a plan that is otherwise well-formed.
+    """
+    if not in_git_work_tree():
+        return delta_refusal("the current directory is not inside a git work tree, so base..HEAD cannot be compared")
+    if not resolves_to_commit(plan.base):
+        return delta_refusal(f"base {plan.base} does not resolve to a commit in this repository")
+    if not is_ancestor(plan.base):
+        return delta_refusal(
+            f"base {plan.base} is not an ancestor of HEAD: a sha that lives only on a side branch yields a nonsense delta"
+        )
+    head = rev_parse("HEAD")
+    changed = delta_paths(plan.base, head)
+    if changed is None:
+        return delta_refusal(f"git diff {plan.base} HEAD failed, so the delta is unknown")
+    touches = set(plan.touches)
+    stale = [path for path in changed if path in touches]
+    if stale:
+        print(
+            f"STALE: the delta {short_sha(plan.base)}..{short_sha(head)} changes {len(stale)} path(s) this plan declares, "
+            "so the plan predates a merge that touched its own work. Do not implement: re-plan against the new base with a fresh plan gate.",
+            file=sys.stderr,
+        )
+        for path in stale:
+            print(f"  {path}", file=sys.stderr)
+        return 1
+    print(f"plan {plan.id}: FRESH")
+    print(f"base {short_sha(plan.base)}, {commit_count(plan.base)} commit(s) since base")
+    print(f"HEAD {head}")
+    print(f"declared touch-set: {len(plan.touches)} path(s), 0 changed by the delta")
+    print()
+    if not changed:
+        print("changed outside the touch-set: none")
+    else:
+        print(f"changed outside the touch-set ({len(changed)}):")
+        for path in changed:
+            print(f"  {path}")
+            hit = serialiser_hit(path)
+            if hit is not None:
+                pattern, reason = hit
+                print(f"    serialiser: {pattern} - {reason}")
+    notes = plan_warnings(plan)
+    if notes:
+        print()
+        for note in notes:
+            print(note)
+    return 0
+
+
+@dataclass(frozen=True)
+class TimingRow:
+    """One plan's plan-gate cost, as printed by the timing report."""
+
+    id: str
+    plan_gate_s: float | None
+    overlapped: str
+    replans: int
+    oracle_calls: int
+
+
+TIMING_FOOTER = """note: oracle_calls is this scheduler's own ledger of gate invocations (it dispatches
+them, so it can count them). This repository has no OpenTelemetry instrumentation in
+its deps or code, so no independent trace corroborates the count. plan_gate_s is the
+self-reported sum of the plan-gate records, not a stopwatch this tool ran."""
+
+
+def timing_row(plan: TicketPlan) -> tuple[TimingRow, tuple[str, ...]]:
+    """Aggregate one plan's gate records, with a warning per unmeasured plan gate.
+
+    A self-reported zero is not a measurement, so it is reported and warned
+    about rather than quietly summed into the total as if it were real.
+    """
+    plan_gates = [gate for gate in plan.gates if gate.gate == "plan"]
+    oracle_calls = sum(gate.oracle_calls for gate in plan.gates)
+    if not plan_gates:
+        row = TimingRow(id=plan.id, plan_gate_s=None, overlapped="no", replans=0, oracle_calls=oracle_calls)
+        return row, (f"warning: {plan.id}: timings are unknown - the plan records no plan gate",)
+    notes: list[str] = []
+    for gate in plan_gates:
+        if gate.seconds is None:
+            notes.append(f"warning: {plan.id}: a plan gate record has no numeric seconds, so plan_gate_s undercounts")
+        elif gate.seconds <= 0:
+            notes.append(f"warning: {plan.id}: a plan gate reports {gate.seconds:g}s, which is not a measurement")
+    measured = [gate.seconds for gate in plan_gates if gate.seconds is not None and gate.seconds > 0]
+    row = TimingRow(
+        id=plan.id,
+        plan_gate_s=sum(measured) if measured else None,
+        overlapped=plan_gates[0].overlapped_with or "no",
+        replans=max(len(plan_gates) - 1, 0),
+        oracle_calls=oracle_calls,
+    )
+    return row, tuple(notes)
+
+
+def print_timings(rows: Sequence[TimingRow], notes: Sequence[str], skipped: int) -> None:
+    """The table, then the warnings, then the totals, then the honest footer."""
+    print(f"plan-gate timings: {len(rows)} plan(s)")
+    print()
+    id_width = max(len("ticket"), *(len(row.id) for row in rows))
+    print(f"{'ticket':<{id_width}}  {'plan_gate_s':>12}  {'overlapped':<10}  {'replans':>7}  {'oracle_calls':>12}")
+    for row in rows:
+        gate_seconds = "not recorded" if row.plan_gate_s is None else f"{row.plan_gate_s:.1f}"
+        print(f"{row.id:<{id_width}}  {gate_seconds:>12}  {row.overlapped:<10}  {row.replans:>7}  {row.oracle_calls:>12}")
+    print()
+    for note in notes:
+        print(note)
+    if notes:
+        print()
+    measured = [row.plan_gate_s for row in rows if row.plan_gate_s is not None]
+    overlapped = sum(1 for row in rows if row.overlapped != "no")
+    print(
+        f"totals: {len(rows)} plan(s) reported, plan_gate_s {sum(measured):.1f}s, "
+        f"overlapped {overlapped} of {len(rows)}, replans {sum(row.replans for row in rows)}, "
+        f"oracle_calls {sum(row.oracle_calls for row in rows)}, "
+        f"{skipped} plan file(s) skipped as unreadable or malformed"
+    )
+    print()
+    print(TIMING_FOOTER)
+
+
+def report_timings(directory: Path) -> int:
+    """Report per-ticket plan-gate cost from a plan directory; 2 when there is nothing to report."""
+    if not directory.is_dir():
+        print(f"error: {directory} is not a directory", file=sys.stderr)
+        return 2
+    files = sorted(path for path in directory.rglob("*.json") if path.is_file())
+    if not files:
+        print(f"error: {directory} holds no *.json plan files", file=sys.stderr)
+        return 2
+    rows: list[TimingRow] = []
+    notes: list[str] = []
+    skipped = 0
+    for path in files:
+        try:
+            plan = load_ticket_plan(path)
+        except (OSError, ValueError, TypeError) as error:
+            print(f"warning: skipping {path}: {error}", file=sys.stderr)
+            skipped += 1
+            continue
+        row, row_notes = timing_row(plan)
+        rows.append(row)
+        notes.extend(row_notes)
+        if path.stem != plan.id:
+            notes.append(f"warning: {path.name} holds plan {plan.id}, so the file name and the plan id disagree")
+    if not rows:
+        print(f"error: {directory} holds no readable plan files ({skipped} skipped)", file=sys.stderr)
+        return 2
+    print_timings(rows, notes, skipped)
+    return 0
+
+
 def lane_limit(raw: str) -> int:
     try:
         value = int(raw)
@@ -355,7 +725,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="wave_plan.py",
         description="Refuse a scheduler wave whose lanes are not disjoint.",
-        epilog="Exit 0 accepts the wave, 1 refuses it with the reason on stderr, 2 is a usage error.",
+        epilog=(
+            "Exit 0 accepts the wave, reports a fresh plan or prints a timing report; "
+            "1 refuses the wave or fails a delta check closed with the reason on stderr; "
+            "2 is a usage error or a malformed plan file."
+        ),
     )
     parser.add_argument("--list-serialisers", action="store_true", help="print the serialising set and exit")
     source = parser.add_mutually_exclusive_group()
@@ -370,6 +744,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--plan",
         metavar="FILE",
         help='a wave JSON file: {"lanes": [{"id", "touches", "serialises", "reason"}]}',
+    )
+    source.add_argument(
+        "--check-delta",
+        metavar="FILE",
+        help="one per-ticket plan: re-validate base..HEAD and exit 0 fresh, 1 stale",
+    )
+    source.add_argument(
+        "--report-timings",
+        metavar="DIR",
+        help="a directory of per-ticket plan files: report plan-gate cost per ticket",
     )
     parser.add_argument(
         "--max-lanes",
@@ -388,6 +772,14 @@ def main(argv: Sequence[str]) -> int:
     if args.list_serialisers:
         print_serialisers()
         return 0
+    if args.check_delta is not None:
+        try:
+            plan = load_ticket_plan(Path(args.check_delta))
+        except (OSError, ValueError, TypeError) as error:
+            parser.error(str(error))
+        return check_delta(plan)
+    if args.report_timings is not None:
+        return report_timings(Path(args.report_timings))
     if args.plan is not None:
         try:
             lanes = load_plan(Path(args.plan))
@@ -399,7 +791,7 @@ def main(argv: Sequence[str]) -> int:
         except ValueError as error:
             parser.error(str(error))
     else:
-        parser.error("one of --lane or --plan is required")
+        parser.error("one of --lane, --plan, --check-delta or --report-timings is required")
 
     reason = refusal(lanes, args.max_lanes)
     if reason is not None:

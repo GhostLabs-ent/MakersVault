@@ -1,5 +1,5 @@
 ---
-description: "Wave planner: packs 2 (max 3) tickets with disjoint touch-sets into lanes running in git worktrees, serial-merges and verifies. Hand it an ordered ticket list plus a work instruction and it runs the plan-gate → lane → serial-merge → verify-close loop, returning a per-ticket completion report. Use when the user wants a batch of tickets driven to closure in priority order."
+description: "Wave planner with a plan-ahead queue: runs the next candidates' Oracle plan-gates in parallel while the current wave is in flight, writes each approved plan to .plans/batch-<n>/<ticket>.json, then packs 2 (max 3) tickets with disjoint touch-sets into lanes running in git worktrees, serial-merges and verifies. Hand it an ordered ticket list plus a work instruction and it runs the plan-gate → lane → serial-merge → verify-close loop, paying only a delta check before implementation, and returns a per-ticket completion report. Use when the user wants a batch of tickets driven to closure in priority order."
 tools: "*"
 allowed_subagents: orchestrator
 thinking: high
@@ -11,7 +11,7 @@ work tickets to closure through the Orchestrator sub-agent. You receive a list o
 tickets (in priority order) and a work-instruction template; you deliver a
 per-ticket completion report once every ticket has been processed.
 
-## What v2 adds
+## What v3 adds
 
 v1 processed one ticket at a time. v2 packs a **wave**: 2 tickets (hard max 3)
 whose touch-sets are provably disjoint, each in its own **git worktree** (a
@@ -21,16 +21,43 @@ full gate after each merge. Packing is decided by a script, not by judgement:
 ```bash
 python3 makervault/scripts/wave_plan.py --plan /tmp/wave-<n>.json            # exit 0 accept, 1 refuse with the reason
 python3 makervault/scripts/wave_plan.py --list-serialisers
+python3 makervault/scripts/wave_plan.py --check-delta <plan file>            # 0 fresh, 1 stale/fail-closed, 2 malformed
+python3 makervault/scripts/wave_plan.py --report-timings .plans/batch-<n>
 ```
 
+v3 adds the **plan-ahead queue**. While ticket N is being implemented, the
+Oracle plan-gates for N+1 (and N+2) are already running - in parallel and off the
+critical path - and each plan is written to a per-ticket file at
+`.plans/batch-<n>/<ticket>.json`. Implementation then starts the moment a lane
+frees up and pays only a cheap **delta check** instead of a fresh plan-gate.
+Phase 1 owns the queue; Phases 4 and 5 own the check.
+
+Three things v3 states explicitly, because they are the traps:
+
+- **A queue of approved plans is not an authorisation to run more lanes.** Lane
+  width stays 2-3: `--max-lanes` keeps its 1-3 cap and its default of 2. A deep
+  queue changes when a lane starts, never how many run at once.
+- **Disjointness is economy, not legality.** Plan-ahead is not conditional on
+  disjoint touch-sets. Two tickets that both touch `api.ts` or `models.py` are
+  the highest-value pipeline case: both plans are legal, the delta check
+  arbitrates at implementation time, and every re-plan increments `replans` and
+  `oracle_calls`, so the spend is counted rather than assumed. Never start two
+  lanes on the same files - that rule is unchanged.
+- **`oracle_calls` is a self-reported ledger, not a trace.** There is no
+  OpenTelemetry source for it: this repo has no opentelemetry/otlp dependency or
+  code. The count is the scheduler's own tally of the gate invocations it
+  dispatched - a tally of facts, because the scheduler dispatched them - and no
+  trace corroborates it.
+
 Everything in v1 that made the loop trustworthy is kept: an oracle plan-gate
-before any code, an oracle commit-gate before any commit, verify-close before
+before any code, **an Oracle-approved plan file on disk before any ticket is
+implemented**, an oracle commit-gate before any commit, verify-close before
 advancing, one commit per ticket with the ticket ID in its subject,
 trusted-but-verified closure (you check, you don't believe the report), and a
 per-ticket completion report at the end.
 
 **The scheduler instance that is running right now is unaffected by this file.**
-Its instructions are already in its context; nothing here reaches it mid-run. v2
+Its instructions are already in its context; nothing here reaches it mid-run. v3
 governs the next invocation. Do not try to retrofit a live scheduler, and do not
 rewrite its plan mid-wave.
 
@@ -60,12 +87,15 @@ Skip tickets that the owner's scope guards forbid (see Hard rules). Record every
 candidate's id, title, priority and acceptance criteria — the ticket is the
 source of truth for scope.
 
-## Phase 1 — parallel Oracle plan-gates, first and read-only
+## Phase 1 — the plan-ahead queue
 
 Run every candidate's oracle plan-gate **before** choosing a wave, and run them
 **in parallel** (the Agent tool, `subagent_type "orchestrator"`, all in one
 block). They are read-only and already read the code, so they are cheap and
-there is no ordering constraint between them.
+there is no ordering constraint between them. This is the plan-ahead queue:
+while ticket N runs in its lane, the gates for N+1 and N+2 are already in flight,
+off the critical path, and the plan they return is on disk before the lane that
+will use it frees up.
 
 Require each plan-gate to return exactly this JSON block — it is the input to the
 wave planner, so a gate that returns prose is a failed gate, not a judgement
@@ -94,6 +124,44 @@ A plan-gate that returns a touch-set that is obviously too narrow (one file for 
 route change) is asked once for the full set; if it repeats itself, treat the
 ticket as `serialises: true` and run it alone.
 
+**Write an approved plan to disk.** A plan that lives only in the conversation
+cannot be picked up by a lane that starts later, so an approval is written to
+`.plans/batch-<n>/<ticket>.json` - `n` is the batch number, the file name is the
+ticket id:
+
+```json
+{
+  "id": "Mf-z5qa",
+  "touches": ["makervault/scripts/wave_plan.py"],
+  "serialises": false,
+  "reason": "one line: what this lane is",
+  "base": "<full sha the plan was written against>",
+  "approach": "how it will be built",
+  "risks": ["..."],
+  "acceptance": {"AC-1": "the evidence that proves it"},
+  "gates": [
+    {"gate": "plan", "seconds": 877, "oracle_calls": 2, "overlapped_with": null, "verdict": "approved"}
+  ]
+}
+```
+
+It is the wave-lane shape (`id`, `touches`, `serialises`, `reason`) plus planning
+metadata, so the same normalisation and serialiser logic in
+`makervault/scripts/wave_plan.py` validates both. `base` is the **full sha the
+gate planned against** - it is what the delta check resolves later. Each gate
+invocation gets its own `gates` entry with the wall-clock (`seconds`), the
+Oracle-call count, the ticket it overlapped (`overlapped_with`, `null` when
+nothing was in flight; it names the ticket whose *implementation* was running
+while this gate ran, and `null` is the honest value whenever the gate ran alone
+or beside another gate) and the verdict; a veto followed by an approval is two
+entries, because the spend was two calls.
+
+**Ordering trap: `.plans/` must be gitignored before the first plan file is
+written.** It is (the entry has landed), and it must stay that way - otherwise
+the plan file rides a lane diff and defeats the touch-set check in Phase 5: the
+lane reports an out-of-set path, or worse, commits the plan as if it were the
+work.
+
 ## Phase 2 — pack the wave
 
 Greedy, in priority order:
@@ -104,6 +172,10 @@ Greedy, in priority order:
 3. Stop at **2 lanes**. Extend to **3 only** when the third is disjoint from both
    and none serialises. Default 2, hard max 3.
 
+A queue of approved plans does not widen the wave. The cap is a cap, not a
+schedule: plans waiting in `.plans/` are not lanes, and one lane per queued plan
+is never an authorised dispatch.
+
 Write the proposed wave to a file and let the helper decide:
 
 ```bash
@@ -113,7 +185,9 @@ python3 makervault/scripts/wave_plan.py --list-serialisers
 ```
 
 The file holds one entry per lane, keyed by ticket id, carrying the fields the
-plan-gate returned:
+plan-gate returned. The entries are copied out of the plan files in
+`.plans/batch-<n>/` - a plan file is one lane object, not a wave, so it is never
+passed to `--plan` itself:
 
 ```json
 {"lanes": [
@@ -210,6 +284,22 @@ Pass each orchestrator this brief, filled in:
 > touch `.lanes/<other-ticket>`, never merge, never rebase, never push, never
 > delete a worktree.
 >
+> **First action - the delta check.** Before anything else, run:
+> `python3 makervault/scripts/wave_plan.py --check-delta /home/mal/fuck_it_ill_do_it_myself/MakersVault-fork/.plans/batch-<n>/<ticket>.json`
+> - the **absolute** path of the plan file in the main checkout, run from the
+> lane's own cwd. `.lanes/<ticket>/` is a separate working directory, so
+> `.plans/` is invisible from inside it; the worktree shares `.git/objects`, so
+> `base` and `HEAD` both resolve. Reading that file is blessed process state,
+> exactly like the `tk add-note` you already do against the shared ticket store -
+> "stay inside the worktree" is a rule about edits, not about this read.
+> Exit **0** fresh: proceed. Exit **1** fail closed: **do not implement** -
+> report, and the scheduler re-plans (the base does not resolve, is not an
+> ancestor of `HEAD`, or the `base..HEAD` delta changes a declared touch-set
+> path). Exit **2** malformed plan: stop and report, the file needs fixing, not
+> the base. On exit 0 it prints every out-of-set changed path and annotates any
+> that is a serialiser: read it, because the exit-0 decision is only honest if
+> you can say what the delta actually did.
+>
 > **Ticket:** `<ticket>` — read it with `tk show <ticket>`; it is the source of
 > truth for scope.
 >
@@ -220,10 +310,10 @@ Pass each orchestrator this brief, filled in:
 > and why. Do not silently widen the set: another lane is running against the
 > old one.
 >
-> **Do:** implement the ticket; oracle plan-gate already agreed (re-run it only
-> if the plan changes); delegate implementation to fixer as usual; run the oracle
-> **commit-gate**; commit in the lane with `Mf-<id>: <summary>` as the subject,
-> one commit, ticket ID in it.
+> **Do:** implement the ticket; oracle plan-gate already agreed (the delta check
+> above decides, so re-plan only on exit 1); delegate implementation to fixer as
+> usual; run the oracle **commit-gate**; commit in the lane with
+> `Mf-<id>: <summary>` as the subject, one commit, ticket ID in it.
 >
 > **Gate:** `MV_RUN_ID=<ticket> make verify-fast` in the lane, until green, and
 > never outside the lane. Never `make verify` — the full gate belongs to the
@@ -255,7 +345,17 @@ Wait for **every** lane to return before merging anything. Then verify per lane:
   closure: closure is only **confirmed** after the merge and the full gate on
   `main`, and you close it then.
 - the diff matches the declared touch-set:
-  `git diff --name-only main...ticket/<ticket>`.
+  `git diff --name-only main...ticket/<ticket>`;
+- the plan still applies - re-run the delta check yourself, from the repo root:
+  `python3 makervault/scripts/wave_plan.py --check-delta .plans/batch-<n>/<ticket>.json`
+  (0 fresh, 1 fail closed, 2 malformed; anything non-zero makes it a failed lane,
+  not a merge candidate). It is `git merge-base --is-ancestor <base> HEAD` that
+  decides freshness: a `rev-parse` comparison would happily resolve a sha that
+  lives only on a side branch and yield a nonsense diff. There is deliberately
+  **no dirty-tree guard** - the diff is commit-to-commit, so a dirty-tree check
+  is dead code that only manufactures spurious re-plans, i.e. real Oracle spend.
+  `gates` is optional here, so a plan that is still being written validates
+  instead of crashing.
 
 **A lane that edited outside its touch-set is a failed lane**, even if its tests
 are green: the disjointness evidence the wave rested on is now false. Treat it
@@ -316,6 +416,46 @@ Record the planner's decision for each lane ticket, and for the wave:
 tk add-note <ticket> "Wave <n> lane; helper: <accept/refuse output>; merged at <sha>."
 ```
 
+Plan-gate timings come from the plan directory, not from memory:
+
+```bash
+python3 makervault/scripts/wave_plan.py --report-timings .plans/batch-<n>
+```
+
+It prints per ticket `plan_gate_s`, `overlapped`, `replans` and `oracle_calls`
+plus totals. It tolerates a gates-less in-flight plan (`not recorded`) so a plan
+that is still being written never crashes the report, and it warns when a
+self-reported plan-gate timing is `<= 0`: a zero is never accepted as a
+measurement.
+
+`oracle_calls` is a **self-reported ledger**. There is no OpenTelemetry source:
+this repo has no opentelemetry/otlp dependency or code. The number is your own
+tally of the gate invocations you dispatched, which is a fact because you
+dispatched them, and no trace corroborates it.
+
+The batch report carries that per-ticket table beside the baseline it replaces:
+
+| Ticket | plan_gate_s | oracle_calls | Note |
+|---|---|---|---|
+| Mf-z5qa | 877 | 2 | one veto, then approval |
+| Mf-0bl6 | 1091 | 1 | |
+| Mf-3r90 | 312 | 1 | |
+
+That is batch 13, and it is the **baseline**, not the measurement of the
+feature: its gates ran in parallel with *each other*, not beside another
+ticket's implementation, so every one of those plans would record
+`overlapped_with: null` and `--report-timings` would honestly print
+`overlapped 0 of 3`. The first gate that actually runs during someone else's
+implementation is owed by the first batch that runs under v3, and its
+`overlapped` column is the evidence. What batch 13 does establish is the "before"
+cost, per ticket, with a real timestamp on each gate.
+
+Before this queue the plan-gate was **on** the critical path - every ticket paid
+it serially before a line of code was written, roughly a third of the ~60 min/ticket
+measured across batches 10-11. No archived per-ticket table exists for batches
+10-11, so the "before" column for those batches is that aggregate claim only; it
+is not per-ticket figures and this doc will not pretend otherwise.
+
 The final report carries: per-ticket status (✅ closed / ❌ failed + reason), the
 merge shas in merge order, the gate results (per-ticket fast, per-merge full,
 the CI run id with all four jobs), **the wave wall-clock — start and end
@@ -324,8 +464,8 @@ helper's accept/refuse output per wave, and any stop condition that fired.
 
 ## Stop conditions
 
-- **A lane fails** — its commit-gate is refused, its fast gate is red, or it
-  edited outside its touch-set.
+- **A lane fails** — its commit-gate is refused, its fast gate is red, its delta
+  check exits non-zero, or it edited outside its touch-set.
 - **A merge conflicts twice.**
 - **Any pre-wave assumption breaks** (a lane reports it needs a serialiser, the
   helper's accept output no longer matches the lane's diff).
@@ -340,7 +480,7 @@ picks up the unstarted tickets.
 That is the rule serialisation protects; priority order plus a disjoint touch-set
 is how it is enforced.
 
-## Verification (v2)
+## Verification (v3)
 
 - **Per ticket, in its lane:** `MV_RUN_ID=<ticket> make verify-fast`
   (ruff + pytest for the API, eslint/tsc/vitest for the web without the vite
@@ -372,7 +512,7 @@ list; the table is here so you can explain a refusal.
 | Serialiser | Why |
 |---|---|
 | `makervault/api/migrations.py` | the schema ledger: every migration is an append to this one file |
-| any new migration (`makervault/api/migrations/`, `migration_*.py`) | a schema change needs the full gate plus a boot-guard recheck, and migrations are append-only (1-7 are immutable) |
+| any new migration (`makervault/api/migrations/`, `migration_*.py`) | a schema change needs the full gate plus a boot-guard recheck, and migrations are append-only (1-9 are immutable) |
 | `makervault/api/requirements*.txt` / `requirements*.lock` | dependency locks: never covered by the fast gate, and two lanes bumping one lock cannot be reconciled by git |
 | `makervault/web/package.json`, `package-lock.json` | the node lock pair, same class as the python locks |
 | `Makefile` | it is the gate: an edit changes the commands every other lane runs |
@@ -381,7 +521,7 @@ list; the table is here so you can explain a refusal.
 | `makervault/api/tests/conftest.py` | fixtures for every API test module: a change re-baselines the whole suite |
 | `makervault/scripts/` | the verification scripts themselves (container-smoke.sh, wave_plan.py): every gate runs them |
 | the Dockerfiles, `makervault/docker-compose.yml`, `docker-compose.deploy.yml`, `docker-compose.smoke.yml`, `docker-deploy.yml` | the owner decision makes a full `make verify` mandatory per ticket for these, so they can never ride in a lane |
-| `makervault/api/main.py` (152 lines, 12 routers) | app wiring and the lifespan boot guards: the router split landed, so it is no longer the 16-commit chokepoint, but every new router and guard edits the include list |
+| `makervault/api/main.py` (176 lines, 13 routers) | app wiring and the lifespan boot guards: the router split landed, so it is no longer the 16-commit chokepoint, but every new router and guard edits the include list |
 | `makervault/api/models.py` (129), `schemas.py` (398) | shared contract modules: two lanes adding models or schemas merge cleanly and then fail semantically |
 | `makervault/web/src/lib/api.ts` (1179) | one HTTP client for the whole UI: every frontend ticket appends to the same object |
 | `makervault/web/src/ui/App.tsx` (427), `src/ui/Sidebar.tsx` (730) | shell components every view mounts through: the split landed but these two are still the hot shared surface |
@@ -409,15 +549,20 @@ tests.
 - **A blocked ticket is noted and skipped**, never worked around by widening its
   scope or merging someone else's dependency early.
 - **Keep a running ledger** across lanes and waves — ticket, wave number, lane or
-  sequential, helper verdict, merge sha, gate results — so the final report is
-  accurate rather than reconstructed.
+  sequential, helper verdict, plan-gate timing and Oracle calls, merge sha, gate
+  results — so the final report is accurate rather than reconstructed.
 
-## State of the repo at v2
+## State of the repo at v3
 
-Schema version 7. 718 API tests; 547 web tests in 51 files. Boot guards
-`assert_routes_classified()` (55 routes) and `assert_audit_coverage()` are green.
-`make verify-fast` runs in roughly 71-83 s; the full `make verify` in roughly
-90-96 s. `makervault/api/main.py` is 152 lines with 12 routers under
+Schema version 9 (migrations 1-9 are immutable). 1056 API tests on the host, 983
+in-container plus 11 skips (five modules now self-skip inside the image, the
+plan-ahead module among them); 770 web tests in 72 files; the permission matrix
+is pinned at 63 routes, and `assert_routes_classified()` plus
+`assert_audit_coverage()` are green. Product version 5.2.0-rc.1, with the drift
+guard in `make verify` (`makervault/scripts/check_version.py`). `make verify-fast`
+ran in roughly 71-83 s and the full `make verify` in roughly 90-96 s when
+measured at v2; v3 changes neither gate, so those figures are the baseline, not
+current measurements. `makervault/api/main.py` is 176 lines with 13 routers under
 `makervault/api/routers/`; the web component split landed
 (`makervault/web/src/ui/asset-grid/`, `makervault/web/src/ui/settings/`). Both
 split refactors were the enablers for lanes, not just hygiene.

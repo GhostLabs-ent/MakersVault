@@ -4,6 +4,11 @@
 # Scheduler lanes: one git worktree per ticket, never committed
 .lanes/
 
+# Plan-ahead queue: per-ticket Oracle plans and their timings (process state,
+# like .tickets/). Gitignored BEFORE the first plan is written, or a plan file
+# would ride a lane's diff and defeat the touch-set check in Phase 5.
+.plans/
+
 # Local secrets and environment overrides
 .env
 .env.*
