@@ -956,13 +956,20 @@ def test_audit_the_scheduler_actions_are_declared_and_carried_by_no_route() -> N
 # --- docs pins ------------------------------------------------------------
 
 
+def _repo_path(*parts: str) -> Path:
+    """Locate a repo-root file from either the host or the API image layout."""
+    for parent in Path(__file__).resolve().parents:
+        candidate = parent.joinpath(*parts)
+        if candidate.exists():
+            return candidate
+    pytest.skip(f"{'/'.join(parts)} is outside the API image build context", allow_module_level=False)
+
+
 def test_audit_docs_describe_the_snapshot_actions() -> None:
-    path = Path(__file__).resolve().parents[3] / "docs" / "AUDIT.md"
-    # The API image build context is makervault/api, so docs/ is absent there.
-    # This must be a function-level skip, not a module-level one: the other tests in
-    # this module still have to run inside the image.
-    if not path.exists():
-        pytest.skip("host-only: docs is outside the API image build context")
+    # The API image build context is makervault/api, so docs/ is absent there and
+    # `_repo_path` skips. This must be a function-level skip, not a module-level
+    # one: the other tests in this module still have to run inside the image.
+    path = _repo_path("docs", "AUDIT.md")
 
     text = path.read_text(encoding="utf-8")
     assert "exactly these 30 strings" in text
@@ -978,10 +985,7 @@ def test_audit_docs_describe_the_snapshot_actions() -> None:
 
 
 def test_configuration_docs_describe_the_retention_settings() -> None:
-    path = Path(__file__).resolve().parents[2] / "docs" / "architecture" / "CONFIGURATION.md"
-    # Function-level for the same reason as the test above.
-    if not path.exists():
-        pytest.skip("host-only: makervault/docs is outside the API image build context")
+    path = _repo_path("makervault", "docs", "architecture", "CONFIGURATION.md")
 
     text = path.read_text(encoding="utf-8")
     for needle in (
@@ -1006,10 +1010,7 @@ def test_configuration_docs_describe_the_retention_settings() -> None:
 
 
 def test_development_docs_describe_the_snapshot_integration_opt_in() -> None:
-    path = Path(__file__).resolve().parents[2] / "docs" / "DEVELOPMENT.md"
-    # Function-level for the same reason as the tests above.
-    if not path.exists():
-        pytest.skip("host-only: makervault/docs is outside the API image build context")
+    path = _repo_path("makervault", "docs", "DEVELOPMENT.md")
 
     text = path.read_text(encoding="utf-8")
     assert "SNAPSHOT_INTEGRATION=1" in text

@@ -738,10 +738,17 @@ def test_the_lifespan_starts_the_scheduler_last_and_as_a_daemon() -> None:
 # --- AC-5: the docs (host-only: absent inside the API image) ----------------
 
 
+def _repo_path(*parts: str) -> Path:
+    """Locate a repo-root file from either the host or the API image layout."""
+    for parent in Path(__file__).resolve().parents:
+        candidate = parent.joinpath(*parts)
+        if candidate.exists():
+            return candidate
+    pytest.skip(f"{'/'.join(parts)} is outside the API image build context", allow_module_level=False)
+
+
 def test_ac5_the_runbook_documents_the_scheduler() -> None:
-    path = Path(__file__).resolve().parents[2] / "docs" / "ARCHITECTURE_RUNBOOK.md"
-    if not path.exists():
-        pytest.skip("host-only: makervault/docs is outside the API image build context")
+    path = _repo_path("makervault", "docs", "ARCHITECTURE_RUNBOOK.md")
 
     text = path.read_text(encoding="utf-8")
     normalised = " ".join(text.split())
@@ -763,9 +770,7 @@ def test_ac5_the_runbook_documents_the_scheduler() -> None:
 
 
 def test_ac5_the_configuration_reference_documents_the_scheduler_keys() -> None:
-    path = Path(__file__).resolve().parents[2] / "docs" / "architecture" / "CONFIGURATION.md"
-    if not path.exists():
-        pytest.skip("host-only: makervault/docs is outside the API image build context")
+    path = _repo_path("makervault", "docs", "architecture", "CONFIGURATION.md")
 
     text = path.read_text(encoding="utf-8")
     for needle in (
@@ -789,10 +794,8 @@ def test_ac5_the_configuration_reference_documents_the_scheduler_keys() -> None:
 
 
 def test_ac5_the_audit_and_permissions_docs_list_the_new_actions() -> None:
-    audit_path = Path(__file__).resolve().parents[3] / "docs" / "AUDIT.md"
-    permissions_path = Path(__file__).resolve().parents[3] / "docs" / "PERMISSIONS.md"
-    if not audit_path.exists() or not permissions_path.exists():
-        pytest.skip("host-only: docs is outside the API image build context")
+    audit_path = _repo_path("docs", "AUDIT.md")
+    permissions_path = _repo_path("docs", "PERMISSIONS.md")
 
     audit_text = audit_path.read_text(encoding="utf-8")
     assert "snapshot.schedule.skipped" in audit_text
