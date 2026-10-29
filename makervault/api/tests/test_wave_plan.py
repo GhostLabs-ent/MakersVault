@@ -6,6 +6,8 @@ module skips itself there instead of failing the container gate.
 
 import importlib.util
 import json
+import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -15,6 +17,27 @@ import pytest
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "wave_plan.py"
 if not SCRIPT.exists():
     pytest.skip("host-only scheduler tooling (not present in the API image)", allow_module_level=True)
+
+REPO_ROOT = SCRIPT.parents[2]
+
+# The migration entries name paths that do not exist yet: migrations live in
+# migrations.py, which this ticket keeps exactly as is, so existence cannot be
+# asserted for them. They must instead match their canonical future path, and
+# this exemption must stay exactly these two entries so a third zombie cannot hide.
+FORWARD_LOOKING = frozenset({("glob", "**/migration_*.py"), ("dir", "makervault/api/migrations")})
+
+# Directory spellings the ledger no longer serialises: no markdown table row may
+# carry one backticked as a token (row-scoped and trailing-slash so the accepted-
+# hole prose and the usage example cannot false-positive).
+OLD_DIRECTORY_SPELLINGS = frozenset(
+    {
+        "makervault/scripts/",
+        "src/ui/asset-grid/",
+        "src/ui/settings/",
+        "makervault/web/src/ui/asset-grid/",
+        "makervault/web/src/ui/settings/",
+    }
+)
 
 
 def load_script() -> object:
@@ -37,6 +60,27 @@ def run(*args: str) -> subprocess.CompletedProcess[str]:
         text=True,
         timeout=60,
     )
+
+
+def tracked_paths() -> list[str]:
+    result = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    return [path for path in result.stdout.split("\0") if path.strip()]
+
+
+def document_section(path: Path, heading: str) -> str:
+    """The section from `heading` up to the next markdown heading (any level)."""
+    lines = path.read_text(encoding="utf-8").splitlines()
+    start = next(index for index, line in enumerate(lines) if line.startswith(heading))
+    following = lines[start + 1 :]
+    end = next((index for index, line in enumerate(following) if line.startswith("#")), len(following))
+    return "\n".join([lines[start], *following[:end]])
 
 
 def write_plan(path: Path, lanes: list[dict[str, object]]) -> Path:
@@ -67,6 +111,98 @@ def test_serialiser_data_is_unique_and_carries_a_reason() -> None:
     assert ("path", "Makefile") in {(kind, value) for kind, value, _ in entries}
 
 
+DOCUMENTED_SERIALISERS: list[tuple[str, str]] = [
+    ("path", "makervault/api/migrations.py"),
+    ("glob", "**/migration_*.py"),
+    ("dir", "makervault/api/migrations"),
+    ("glob", "makervault/api/requirements*.txt"),
+    ("glob", "makervault/api/requirements*.lock"),
+    ("glob", "**/package.json"),
+    ("glob", "**/package-lock.json"),
+    ("path", "Makefile"),
+    ("glob", ".github/workflows/*"),
+    ("glob", "**/nginx.conf"),
+    ("path", "makervault/web/security-headers.conf"),
+    ("glob", "**/conftest.py"),
+    ("path", "makervault/scripts/container-smoke.sh"),
+    ("path", "makervault/scripts/wave_plan.py"),
+    ("path", "makervault/api/Dockerfile"),
+    ("path", "makervault/web/Dockerfile"),
+    ("path", "makervault/docker-compose.yml"),
+    ("path", "makervault/docker-compose.deploy.yml"),
+    ("path", "makervault/docker-compose.smoke.yml"),
+    ("path", "makervault/docker-deploy.yml"),
+    ("path", "makervault/api/main.py"),
+    ("path", "makervault/api/models.py"),
+    ("path", "makervault/api/schemas.py"),
+    ("path", "makervault/web/src/lib/api.ts"),
+    ("path", "makervault/web/src/ui/App.tsx"),
+    ("path", "makervault/web/src/ui/Sidebar.tsx"),
+    ("path", "makervault/web/src/ui/asset-grid/AssetGrid.tsx"),
+    ("path", "makervault/web/src/ui/settings/Settings.tsx"),
+]
+
+
+def test_serialiser_set_matches_the_documented_list() -> None:
+    assert [(kind, value) for kind, value, _ in wave_plan.SERIALISERS] == DOCUMENTED_SERIALISERS
+
+
+def test_no_directory_is_serialised_except_the_documented_one() -> None:
+    assert [value for kind, value, _ in wave_plan.SERIALISERS if kind == "dir"] == ["makervault/api/migrations"]
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is required to resolve serialiser paths")
+def test_every_serialiser_entry_resolves_to_an_existing_path() -> None:
+    tracked = tracked_paths()
+    unresolved = {
+        (kind, value)
+        for kind, value, _ in wave_plan.SERIALISERS
+        if not any(wave_plan.match_serialiser(kind, value, path) for path in tracked)
+    }
+    assert unresolved == FORWARD_LOOKING
+    assert wave_plan.match_serialiser("glob", "**/migration_*.py", "makervault/api/migrations/migration_010_x.py")
+    assert wave_plan.match_serialiser("dir", "makervault/api/migrations", "makervault/api/migrations/010_x.py")
+
+
+def test_docs_quote_every_serialiser() -> None:
+    documents = {
+        "docs/TICKET_WORKFLOW.md": document_section(REPO_ROOT / "docs/TICKET_WORKFLOW.md", "### Serialisers"),
+        ".pi/agents/scheduler.md": document_section(REPO_ROOT / ".pi/agents/scheduler.md", "## Hard serialisers"),
+    }
+    for name, section in documents.items():
+        for _, value, _ in wave_plan.SERIALISERS:
+            assert f"`{value}`" in section, f"{name} is missing serialiser `{value}`"
+        for row in (line for line in section.splitlines() if line.startswith("|")):
+            for token in re.findall(r"`([^`]+)`", row):
+                assert token not in OLD_DIRECTORY_SPELLINGS, f"{name} still quotes the old directory {token}"
+
+
+def test_a_new_file_beside_an_entry_point_does_not_serialise() -> None:
+    for path in (
+        "makervault/scripts/new_helper.py",
+        "makervault/web/src/ui/asset-grid/useSomething.ts",
+        "makervault/web/src/ui/settings/useSomething.ts",
+    ):
+        result = run("--lane", f"Mf-6d52:{path}")
+        assert result.returncode == 0, result.stderr
+        assert result.stderr == ""
+
+
+def test_entry_files_still_serialise() -> None:
+    for path in (
+        "makervault/scripts/container-smoke.sh",
+        "makervault/scripts/wave_plan.py",
+        "makervault/web/src/ui/asset-grid/AssetGrid.tsx",
+        "makervault/web/src/ui/settings/Settings.tsx",
+    ):
+        result = run("--lane", f"Mf-6d52:{path}")
+        assert result.returncode == 1
+        assert path in result.stderr
+    sibling = run("--lane", "Mf-6d52:makervault/web/src/ui/asset-grid/AssetGrid.test.tsx")
+    assert sibling.returncode == 1
+    assert "same-stem sibling of makervault/web/src/ui/asset-grid/AssetGrid.tsx" in sibling.stderr
+
+
 def test_accepts_two_disjoint_lanes() -> None:
     result = run(
         "--lane",
@@ -93,6 +229,17 @@ def test_refuses_shared_file() -> None:
     assert result.stdout == ""
 
 
+def test_two_lanes_overlap_on_a_now_lane_able_path() -> None:
+    result = run(
+        "--lane",
+        "Mf-6d52:makervault/web/src/ui/asset-grid/useSomething.ts,makervault/api/permissions.py",
+        "--lane",
+        "Mf-nhhy:makervault/web/src/ui/asset-grid/useSomething.ts,README.md",
+    )
+    assert result.returncode == 1
+    assert "both touch makervault/web/src/ui/asset-grid/useSomething.ts" in result.stderr
+
+
 def test_refuses_serialiser_exact_path() -> None:
     result = run("--lane", "Mf-6d52:makervault/api/migrations.py")
     assert result.returncode == 1
@@ -100,10 +247,10 @@ def test_refuses_serialiser_exact_path() -> None:
     assert "the schema ledger" in result.stderr
 
 
-def test_refuses_serialiser_directory_prefix() -> None:
+def test_accepts_a_file_beside_an_entry_point() -> None:
     result = run("--lane", "Mf-6d52:makervault/web/src/ui/asset-grid/AssetCard.tsx")
-    assert result.returncode == 1
-    assert "a serialiser (makervault/web/src/ui/asset-grid)" in result.stderr
+    assert result.returncode == 0, result.stderr
+    assert result.stderr == ""
 
 
 def test_refuses_serialiser_stem_sibling() -> None:

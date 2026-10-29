@@ -510,29 +510,50 @@ All four jobs (api, web, bridge, containers) must be `success`.
 ## Hard serialisers — never in a lane
 
 A serialiser is a file whose concurrent edit cannot be reconciled by git, or
-which the process requires to be verified on its own. The helper enforces this
-list; the table is here so you can explain a refusal.
+which the process requires to be verified on its own.
+`makervault/scripts/wave_plan.py --list-serialisers` prints the list; the table
+is here so you can explain a refusal, and
+`makervault/api/tests/test_wave_plan.py` pins this table to the ledger.
 
 | Serialiser | Why |
 |---|---|
 | `makervault/api/migrations.py` | the schema ledger: every migration is an append to this one file |
-| any new migration (`makervault/api/migrations/`, `migration_*.py`) | a schema change needs the full gate plus a boot-guard recheck, and migrations are append-only (1-9 are immutable) |
-| `makervault/api/requirements*.txt` / `requirements*.lock` | dependency locks: never covered by the fast gate, and two lanes bumping one lock cannot be reconciled by git |
-| `makervault/web/package.json`, `package-lock.json` | the node lock pair, same class as the python locks |
+| `**/migration_*.py` | a new migration is a schema change: full gate plus a boot-guard recheck, and migrations are append-only |
+| `makervault/api/migrations` (directory) | a new migration is a schema change: full gate plus a boot-guard recheck, and migrations are append-only |
+| `makervault/api/requirements*.txt` | dependency locks: never covered by the fast gate, and two lanes bumping one lock cannot be reconciled by git |
+| `makervault/api/requirements*.lock` | dependency locks: never covered by the fast gate, and two lanes bumping one lock cannot be reconciled by git |
+| `**/package.json` | the node lock pair: same class as the python locks |
+| `**/package-lock.json` | the node lock pair: same class as the python locks |
 | `Makefile` | it is the gate: an edit changes the commands every other lane runs |
 | `.github/workflows/*` | one CI workflow for the whole repository |
-| `makervault/web/nginx.conf`, `makervault/web/security-headers.conf` | proxy and security-header config: no unit test covers it, full gate only |
-| `makervault/api/tests/conftest.py` | fixtures for every API test module: a change re-baselines the whole suite |
-| `makervault/scripts/` | the verification scripts themselves (container-smoke.sh, wave_plan.py): every gate runs them |
-| the Dockerfiles, `makervault/docker-compose.yml`, `docker-compose.deploy.yml`, `docker-compose.smoke.yml`, `docker-deploy.yml` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
-| `makervault/api/main.py` (176 lines, 13 routers) | app wiring and the lifespan boot guards: the router split landed, so it is no longer the 16-commit chokepoint, but every new router and guard edits the include list |
-| `makervault/api/models.py` (129), `schemas.py` (398) | shared contract modules: two lanes adding models or schemas merge cleanly and then fail semantically |
-| `makervault/web/src/lib/api.ts` (1179) | one HTTP client for the whole UI: every frontend ticket appends to the same object |
-| `makervault/web/src/ui/App.tsx` (427), `src/ui/Sidebar.tsx` (730) | shell components every view mounts through: the split landed but these two are still the hot shared surface |
-| `makervault/web/src/ui/asset-grid/`, `src/ui/settings/` (directories) | the split landed (Settings.tsx 160) but 12 and 20 files hang off two entry points: serialise the directories so a split-out test cannot slip past an entry-point lane |
+| `**/nginx.conf` | proxy and security-header config: no unit test covers it, full gate only |
+| `makervault/web/security-headers.conf` | proxy and security-header config: no unit test covers it, full gate only |
+| `**/conftest.py` | fixtures for every API test module: a change re-baselines the whole suite |
+| `makervault/scripts/container-smoke.sh` | the recipe `verify-smoke` executes: an edit changes what the smoke gate checks |
+| `makervault/scripts/wave_plan.py` | the wave validator itself: an edit changes how every future wave is judged |
+| `makervault/api/Dockerfile` | the owner decision makes the full `make verify` mandatory per ticket for these, so they can never ride in a lane |
+| `makervault/web/Dockerfile` | the owner decision makes the full `make verify` mandatory per ticket for these, so they can never ride in a lane |
+| `makervault/docker-compose.yml` | the owner decision makes the full `make verify` mandatory per ticket for these, so they can never ride in a lane |
+| `makervault/docker-compose.deploy.yml` | the owner decision makes the full `make verify` mandatory per ticket for these, so they can never ride in a lane |
+| `makervault/docker-compose.smoke.yml` | the owner decision makes the full `make verify` mandatory per ticket for these, so they can never ride in a lane |
+| `makervault/docker-deploy.yml` | the owner decision makes the full `make verify` mandatory per ticket for these, so they can never ride in a lane |
+| `makervault/api/main.py` | app wiring and the lifespan boot guards: the router split landed, so it is no longer the chokepoint it was, but every new router and guard edits the include list |
+| `makervault/api/models.py` | shared contract modules: two lanes adding models or schemas merge cleanly and then fail semantically |
+| `makervault/api/schemas.py` | shared contract modules: two lanes adding models or schemas merge cleanly and then fail semantically |
+| `makervault/web/src/lib/api.ts` | one HTTP client for the whole UI: every frontend ticket appends to the same object |
+| `makervault/web/src/ui/App.tsx` | shell components every view mounts through: the component split landed but these two are still the hot shared surface |
+| `makervault/web/src/ui/Sidebar.tsx` | shell components every view mounts through: the component split landed but these two are still the hot shared surface |
+| `makervault/web/src/ui/asset-grid/AssetGrid.tsx` | the entry points are serialised and the same-stem rule keeps AssetGrid.test.tsx and Settings.test.tsx serialised with them; non-entry siblings in those directories are lane-able because an unreferenced module is inert until an entry file imports it |
+| `makervault/web/src/ui/settings/Settings.tsx` | the entry points are serialised and the same-stem rule keeps AssetGrid.test.tsx and Settings.test.tsx serialised with them; non-entry siblings in those directories are lane-able because an unreferenced module is inert until an entry file imports it |
+
+Two gaps are accepted. A new file beside an entry point no longer serialises:
+the entry point itself does not change, and an unreferenced module is inert until
+something imports it, at which point whoever imports it edits a serialised entry
+file. And `makervault/scripts/check_version.py` is a known gap, not yet
+serialised, pending a follow-up ticket.
 
 The helper also serialises a **same-directory sibling with the same stem**
-(`src/ui/Sidebar.test.tsx` matches `src/ui/Sidebar.tsx`), because a test-only
+(`makervault/web/src/ui/Sidebar.test.tsx` matches `makervault/web/src/ui/Sidebar.tsx`), because a test-only
 lane would otherwise defeat the gate by touching the file next to the one it
 tests.
 
@@ -558,7 +579,7 @@ tests.
 
 ## State of the repo at v3
 
-Schema version 9 (migrations 1-9 are immutable). 1056 API tests on the host, 983
+Schema version 9 (migrations 1-9 are immutable). 1095 API tests on the host, 983
 in-container plus 11 skips (five modules now self-skip inside the image, the
 plan-ahead module among them); 770 web tests in 72 files; the permission matrix
 is pinned at 63 routes, and `assert_routes_classified()` plus

@@ -44,9 +44,10 @@ def entry_group(*pairs: tuple[str, str], reason: str) -> list[Serialiser]:
     return [(kind, value, reason) for kind, value in pairs]
 
 
-# The serialising set: (kind, value, reason), in documentation order. This is
-# the single source of truth - --list-serialisers prints it and the scheduler
-# doc quotes it, so an entry carries the reason it exists.
+# The serialising set: (kind, value, reason), in documentation order.
+# --list-serialisers prints it, docs/TICKET_WORKFLOW.md and .pi/agents/scheduler.md
+# quote it, and makervault/api/tests/test_wave_plan.py pins both docs to it, so an
+# entry carries the reason it exists.
 SERIALISERS: list[Serialiser] = [
     ("path", "makervault/api/migrations.py", "the schema ledger: every migration is an append to this one file"),
     *entry_group(
@@ -72,7 +73,15 @@ SERIALISERS: list[Serialiser] = [
         reason="proxy and security-header config: no unit test covers it, full gate only",
     ),
     ("glob", "**/conftest.py", "fixtures for every API test module: a change re-baselines the whole suite"),
-    ("dir", "makervault/scripts", "the verification scripts themselves (container-smoke.sh, wave_plan.py): every gate runs them"),
+    *entry_group(
+        ("path", "makervault/scripts/container-smoke.sh"),
+        ("path", "makervault/scripts/wave_plan.py"),
+        reason=(
+            "container-smoke.sh is the recipe verify-smoke executes and wave_plan.py is the wave validator itself, "
+            "so an edit changes how every future wave is judged; a new sibling file under scripts/ is lane-able, and "
+            "makervault/scripts/check_version.py is a known gap - not yet serialised - pending a follow-up ticket"
+        ),
+    ),
     *entry_group(
         ("path", "makervault/api/Dockerfile"),
         ("path", "makervault/web/Dockerfile"),
@@ -86,8 +95,8 @@ SERIALISERS: list[Serialiser] = [
         "path",
         "makervault/api/main.py",
         (
-            "app wiring and the lifespan boot guards: the router split landed (13 routers under makervault/api/routers/, 176 lines), "
-            "so it is no longer the 16-commit chokepoint, but every new router and guard edits the include list"
+            "app wiring and the lifespan boot guards: the router split landed, so it is no longer the chokepoint it "
+            "was, but every new router and guard edits the include list"
         ),
     ),
     *entry_group(
@@ -102,11 +111,12 @@ SERIALISERS: list[Serialiser] = [
         reason="shell components every view mounts through: the component split landed but these two are still the hot shared surface",
     ),
     *entry_group(
-        ("dir", "makervault/web/src/ui/asset-grid"),
-        ("dir", "makervault/web/src/ui/settings"),
+        ("path", "makervault/web/src/ui/asset-grid/AssetGrid.tsx"),
+        ("path", "makervault/web/src/ui/settings/Settings.tsx"),
         reason=(
-            "the split landed (Settings.tsx is 160 lines) but 12 and 20 files hang off two entry points: "
-            "serialise the directories so a split-out test cannot slip past an entry-point lane"
+            "the entry points are serialised and the same-stem rule keeps AssetGrid.test.tsx and Settings.test.tsx "
+            "serialised with them; non-entry siblings in those directories are lane-able because an unreferenced "
+            "module is inert until an entry file imports it"
         ),
     ),
 ]

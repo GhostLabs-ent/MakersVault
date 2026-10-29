@@ -160,20 +160,31 @@ it is an assumption rather than a measurement.
 
 ### Serialisers — never in a lane
 
+`makervault/scripts/wave_plan.py --list-serialisers` prints this set and
+`.pi/agents/scheduler.md` quotes it; `makervault/api/tests/test_wave_plan.py`
+pins both documents to the ledger, so every value below is the exact spelling the
+helper matches.
+
 | Group | Files | Why |
 |---|---|---|
-| schema | `makervault/api/migrations.py`, any new migration (`makervault/api/migrations/`, `migration_*.py`) | append-only ledger (1-9 immutable); needs the full gate and a boot-guard recheck |
-| locks | `makervault/api/requirements*.txt` / `requirements*.lock`, `makervault/web/package.json`, `package-lock.json` | unseen by the fast gate; two lanes bumping one lock cannot be reconciled by git |
-| the gate | `Makefile`, `.github/workflows/*`, `makervault/scripts/` | an edit changes the commands every lane runs |
-| config | `makervault/web/nginx.conf`, `makervault/web/security-headers.conf`, the Dockerfiles, `makervault/docker-compose.yml`, `docker-compose.deploy.yml`, `docker-compose.smoke.yml`, `docker-deploy.yml` | no unit test covers it: verified by the single end-of-batch full gate |
-| fixtures | `makervault/api/tests/conftest.py` | re-baselines the whole API suite |
-| training wheels: API contracts | `makervault/api/main.py` (176 lines, 13 routers), `models.py` (129), `schemas.py` (398) | shared wiring and contracts: two lanes merge cleanly, then fail semantically |
-| training wheels: UI shell | `makervault/web/src/lib/api.ts` (1179), `src/ui/App.tsx` (427), `src/ui/Sidebar.tsx` (730), the `src/ui/asset-grid/` and `src/ui/settings/` directories | one HTTP client and the components every view mounts through |
+| schema | `makervault/api/migrations.py`, `**/migration_*.py`, `makervault/api/migrations` (directory) | a new migration is a schema change: full gate plus a boot-guard recheck, and migrations are append-only |
+| locks | `makervault/api/requirements*.txt`, `makervault/api/requirements*.lock`, `**/package.json`, `**/package-lock.json` | dependency locks: never covered by the fast gate, and two lanes bumping one lock cannot be reconciled by git |
+| the gate | `Makefile`, `.github/workflows/*`, `makervault/scripts/container-smoke.sh`, `makervault/scripts/wave_plan.py` | the gate, the one CI workflow, the smoke recipe `verify-smoke` runs and the wave validator itself: an edit changes the commands every lane runs or how every future wave is judged |
+| config | `**/nginx.conf`, `makervault/web/security-headers.conf`, `makervault/api/Dockerfile`, `makervault/web/Dockerfile`, `makervault/docker-compose.yml`, `makervault/docker-compose.deploy.yml`, `makervault/docker-compose.smoke.yml`, `makervault/docker-deploy.yml` | proxy and security-header config plus the container manifests: no unit test covers it, verified by the single end-of-batch full gate |
+| fixtures | `**/conftest.py` | fixtures for every API test module: a change re-baselines the whole suite |
+| training wheels: API contracts | `makervault/api/main.py`, `makervault/api/models.py`, `makervault/api/schemas.py` | shared wiring and contracts: two lanes merge cleanly, then fail semantically |
+| training wheels: UI shell | `makervault/web/src/lib/api.ts`, `makervault/web/src/ui/App.tsx`, `makervault/web/src/ui/Sidebar.tsx`, `makervault/web/src/ui/asset-grid/AssetGrid.tsx`, `makervault/web/src/ui/settings/Settings.tsx` | one HTTP client and the components every view mounts through |
+
+Two gaps are accepted. A new file beside an entry point no longer serialises:
+the entry point itself does not change, and an unreferenced module is inert until
+something imports it, at which point whoever imports it edits a serialised entry
+file. And `makervault/scripts/check_version.py` is a known gap, not yet
+serialised, pending a follow-up ticket.
 
 The two training-wheels groups are what the router split and the component
 split were for; they stay serialised until nothing hot hangs off a single entry
 point. The helper also serialises a same-directory sibling with the same stem
-(`src/ui/Sidebar.test.tsx` matches `src/ui/Sidebar.tsx`), so a test-only lane
+(`makervault/web/src/ui/Sidebar.test.tsx` matches `makervault/web/src/ui/Sidebar.tsx`), so a test-only lane
 cannot defeat the gate.
 
 ### Worktrees
