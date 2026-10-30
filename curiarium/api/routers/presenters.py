@@ -96,6 +96,8 @@ def to_out(a: Asset) -> AssetOut:
         prepared_print=prepared,
         slicer_url=slicer_url,
         slicer_filename=(prepared_filename(a.name, prepared) if a.prepared_file_id else a.filename),
+        created_by=a.created_by,
+        created_via=a.created_via,
     )
 
 

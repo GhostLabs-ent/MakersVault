@@ -45,6 +45,7 @@ def insert_asset(
     folder_id: str,
     *,
     creator: Optional[str] = None,
+    created_by: Optional[str] = None,
     filename: Optional[str] = None,
     size: int = 10,
 ) -> str:
@@ -55,6 +56,7 @@ def insert_asset(
         size=size,
         name=name,
         creator=creator,
+        created_by=created_by,
         folder_id=folder_id,
         storage_path=f"Sorts/{unique}/{filename or f'{name}.stl'}",
     )
@@ -162,6 +164,43 @@ def test_blank_creator_filter_is_ignored(isolated_storage: Path) -> None:
         found = listed(client, headers, folder_id=folder_id, creator="   ")
 
         assert {asset["id"] for asset in found} == ids
+
+
+def test_added_by_filter_is_exact_and_case_insensitive(isolated_storage: Path) -> None:
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        folder_id = create_folder(client, headers, "Added-by shelf")
+        ada = insert_asset("Ada uploaded", folder_id, created_by="Ada")
+        ada_lower = insert_asset("Ada lower uploaded", folder_id, created_by="ada")
+        bob = insert_asset("Bob uploaded", folder_id, created_by="Bob")
+        anonymous = insert_asset("Anonymous uploaded", folder_id, created_by=None)
+
+        found = listed(client, headers, folder_id=folder_id, added_by="ADA")
+
+        # Exact, not a prefix/substring, and case-insensitive like `creator`.
+        assert {asset["id"] for asset in found} == {ada, ada_lower}
+        assert bob not in {asset["id"] for asset in found}
+        # NULL never equals a string: an anonymous row is never matched by a name.
+        assert anonymous not in {asset["id"] for asset in found}
+        assert all(asset["created_by"] is not None for asset in found)
+
+        # Surrounding whitespace from a chip is trimmed, like the facet's values.
+        found = listed(client, headers, folder_id=folder_id, added_by="  Ada  ")
+        assert {asset["id"] for asset in found} == {ada, ada_lower}
+
+
+def test_blank_added_by_filter_is_ignored(isolated_storage: Path) -> None:
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        folder_id = create_folder(client, headers, "Blank added-by shelf")
+        ids = {
+            insert_asset("First uploaded", folder_id, created_by="Ada"),
+            insert_asset("Second uploaded", folder_id, created_by=None),
+        }
+
+        for blank in ("", "   "):
+            found = listed(client, headers, folder_id=folder_id, added_by=blank)
+            assert {asset["id"] for asset in found} == ids, repr(blank)
 
 
 # --- sorting ----------------------------------------------------------------

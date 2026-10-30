@@ -32,11 +32,21 @@ time, which is a `sys.modules` lookup after the first request.
 `library_scan` directly, because `main` is the name the suite patches. That is
 today's exact semantics, not an accident to be "fixed": a direct
 `library_scan.start_scan()` call would silently stop honouring the patch.
+
+The import accessors forward the caller's `AssetOrigin` (Mf-0u1y) as a keyword
+argument, unconditionally, so a fake patched into `main` has to accept it: the
+in-tree fakes are variadic or declare `origin` themselves. `AssetOrigin` is
+imported under `TYPE_CHECKING` only: `asset_service` imports this module, so a
+module-level import of it here would close that same cycle.
 """
 
 import sys
+from typing import TYPE_CHECKING, Optional
 
 import config
+
+if TYPE_CHECKING:
+    from asset_service import AssetOrigin
 
 _MISSING = object()
 
@@ -113,11 +123,11 @@ def normalize_import_url(url: str) -> str:
     return _resolved("normalize_import_url", url_utils.normalize_import_url)(url)
 
 
-def import_asset_from_url(url: str, body):
+def import_asset_from_url(url: str, body, *, origin: Optional["AssetOrigin"] = None):
     """Import a URL through `main.import_asset_from_url` (the suite's patch point)."""
     import import_service
 
-    return _resolved("import_asset_from_url", import_service.import_asset_from_url)(url, body)
+    return _resolved("import_asset_from_url", import_service.import_asset_from_url)(url, body, origin=origin)
 
 
 def open_import_response(url: str, body):
@@ -134,15 +144,20 @@ def download_import_to_temp(url: str, body):
     return _resolved("download_import_to_temp", import_service.download_import_to_temp)(url, body)
 
 
-def import_asset_attempt(url: str, body):
+def import_asset_attempt(url: str, body, *, origin: Optional["AssetOrigin"] = None):
     """One single-file attempt through `main.import_asset_attempt` (patch point)."""
     import import_service
 
-    return _resolved("import_asset_attempt", import_service.import_asset_attempt)(url, body)
+    return _resolved("import_asset_attempt", import_service.import_asset_attempt)(url, body, origin=origin)
 
 
 def download_zip_attempt(url: str, body):
-    """One zip attempt through `main.download_zip_attempt` (patch point)."""
+    """One zip attempt through `main.download_zip_attempt` (patch point).
+
+    No origin parameter: this call only downloads a temp file and creates no row.
+    The zip's asset rows are created later by `extract_zip_entries_to_assets`,
+    which receives the origin from its own caller.
+    """
     import import_service
 
     return _resolved("download_zip_attempt", import_service.download_zip_attempt)(url, body)

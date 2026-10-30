@@ -177,7 +177,7 @@ def scan_mount_imports() -> Optional[ScanState]:
         return True
 
     def build(rel_path: str, size: int) -> Asset:
-        row = build_asset(root, rel_path, size)
+        row = build_asset(root, rel_path, size, created_via="mount-import")
         if not copy_files:
             row.storage_path = None
             row.source_path = _source_key(root, rel_path)

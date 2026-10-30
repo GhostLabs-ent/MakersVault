@@ -83,6 +83,15 @@ action is to set `AUTH_SECRET` to at least 32 bytes, for example
 `openssl rand -hex 32`. A secret shaped like a PEM, SSH, or JWK key is not a
 usable HMAC secret: PyJWT rejects it with `InvalidKeyError`.
 
+One caveat about attribution: `asset.created_by` exists only when Curiarium's own
+auth is enabled - local users or OIDC - because it is a snapshot of the
+authenticated principal taken when the row was created. Behind a reverse-proxy or
+Cosmos route gate with app auth off, every request is anonymous: every asset reads
+`created_by` NULL with only `created_via` set, and the gate does not pass identity
+through, so nothing downstream can recover it. Attribution is therefore meaningful
+only in the OIDC configuration this document describes; behind the gate the record
+says when and through which door a file arrived, not who brought it.
+
 ## OIDC / SSO settings
 
 Owned by `curiarium/api/oidc.py` (the flow and the claim policy),

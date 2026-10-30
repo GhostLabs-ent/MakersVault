@@ -95,6 +95,36 @@
         "description": "Legacy v5.1 metadata; inert since Mf-aoyv. Use Projects. Kept in responses for old clients.",
         "title": "Collection"
       },
+      "created_by": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Created By"
+      },
+      "created_via": {
+        "anyOf": [
+          {
+            "enum": [
+              "upload",
+              "link-import",
+              "zip-import",
+              "mount-import",
+              "scan",
+              "system"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Created Via"
+      },
       "creator": {
         "anyOf": [
           {

@@ -33,6 +33,11 @@ class Asset(SQLModel, table=True):
   disk_mtime: Optional[int] = None
   is_reference: int = 0
   thumb_version: int = Field(default=0)
+  # A username SNAPSHOT, not a foreign key: audit.AuditEvent.actor is copied the
+  # same way, so a renamed or deleted user cannot turn an old row anonymous.
+  created_by: Optional[str] = None
+  # Which door the row came through; NULL only on pre-014 rows.
+  created_via: Optional[str] = None
 
 
 class AssetFile(SQLModel, table=True):

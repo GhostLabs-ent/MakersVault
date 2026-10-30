@@ -439,9 +439,10 @@ def test_a_contributor_action_is_audited_with_the_contributor_role(client: TestC
 
     A support bundle that says "editor" for a contributor's action would make the
     audit trail useless exactly where the new rank is asked about. A supporting
-    file rename is used because it is an audited CONTRIBUTE route: `POST /upload`
-    is exempt and a notes-only `/asset/{id}/meta` edit stages nothing, so either
-    would leave no row to assert on.
+    file rename is used because it is the audited CONTRIBUTE route that records
+    a metadata-only edit, with its own action; a notes-only `/asset/{id}/meta`
+    edit stages nothing. `POST /upload` also writes a row now (creation is
+    audited, Mf-0u1y) but that is a different action.
     """
     asset = upload(client, contributor.token)
     supporting = add_supporting_file(client, contributor.token, asset["id"])
@@ -462,10 +463,10 @@ def test_a_contributor_action_is_audited_with_the_contributor_role(client: TestC
     assert row.actor_role == "contributor"
     assert row.actor == CONTRIBUTOR_USERNAME
 
-    # The other half of "no audit.py edit": the split changed levels, not the
-    # audited surface, so the upload route is still exempt and the coverage
-    # guard still sees the same 36 audited / 18 exempt routes.
-    assert ("POST", "/upload") in audit.EXEMPT_ROUTES
+    # The split changed because creation is audited now (Mf-0u1y), not because
+    # a level moved: the upload route moved from exempt to audited, and the
+    # coverage guard sees 40 audited / 14 exempt routes.
+    assert audit.ROUTE_ACTIONS[("POST", "/upload")] == (audit.ASSET_CREATE,)
     assert audit.assert_audit_coverage() is audit.ROUTE_ACTIONS
-    assert len(audit.ROUTE_ACTIONS) == 36
-    assert len(audit.EXEMPT_ROUTES) == 18
+    assert len(audit.ROUTE_ACTIONS) == 40
+    assert len(audit.EXEMPT_ROUTES) == 14

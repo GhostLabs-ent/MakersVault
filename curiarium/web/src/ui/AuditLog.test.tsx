@@ -143,6 +143,21 @@ describe("AuditLog", () => {
     await waitFor(() => expect(lastParams()).toEqual({ limit: 50, offset: 0 }));
   });
 
+  it("offers asset.create in the action filter", async () => {
+    render(<AuditLog />);
+    await screen.findByText("root");
+
+    const action = screen.getByLabelText("Action") as HTMLSelectElement;
+    // The action name is also cell text in the table, so scope to the select.
+    const option = within(action).getByRole("option", { name: "asset.create" }) as HTMLOptionElement;
+    expect(option.value).toBe("asset.create");
+
+    fireEvent.change(action, { target: { value: "asset.create" } });
+    await waitFor(() =>
+      expect(lastParams()).toEqual({ action: "asset.create", limit: 50, offset: 0 })
+    );
+  });
+
   it("pages with Previous/Next and labels the visible range", async () => {
     const total = 123;
     listMock.mockImplementation(async params => {

@@ -59,6 +59,7 @@ def list_assets(
     tags: Optional[str] = Query(default=None, description="Comma-separated tags"),
     folder_id: Optional[str] = None,
     creator: Optional[str] = Query(default=None, description="Exact creator, case-insensitive"),
+    added_by: Optional[str] = Query(default=None, description="Exact uploader, case-insensitive"),
     sort: Optional[Literal["name", "size", "creator"]] = Query(default=None, description="Optional sort key; omitted keeps the default order"),
     order: Literal["asc", "desc"] = Query(default="asc", description="Sort direction"),
     not_in_project: bool = Query(default=False, description="Only assets that belong to no project"),
@@ -68,7 +69,7 @@ def list_assets(
 ):
     with Session(engine) as s:
         stmt = apply_asset_filters(
-            select(Asset), q, tags, folder_id, not_in_project=not_in_project, creator=creator
+            select(Asset), q, tags, folder_id, not_in_project=not_in_project, creator=creator, added_by=added_by
         )
         stmt = apply_asset_order(stmt, sort, order)
         assets = asset_page(s, stmt, response, limit, offset)

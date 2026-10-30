@@ -13,6 +13,7 @@ const FORBIDDEN_NOTICE = "Administrator access required.";
 const PAGE_SIZE = 50;
 
 const AUDIT_ACTIONS = [
+  "asset.create",
   "asset.delete",
   "asset.rename",
   "asset.move",

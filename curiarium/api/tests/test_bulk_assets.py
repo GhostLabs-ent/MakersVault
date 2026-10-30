@@ -362,7 +362,9 @@ def test_batch_meta_writes_no_audit_event(isolated_storage: Path) -> None:
     request_id = "batch-meta-no-audit"
     with TestClient(app) as client:
         headers = {**auth_header(client), "X-Request-ID": request_id}
-        asset_id = upload(client, headers, "alpha.stl", b"solid alpha\n")["id"]
+        # The upload is audited on a request id of its own (Mf-0u1y): this test
+        # is about the metadata call, so keep the two requests apart.
+        asset_id = upload(client, {**headers, "X-Request-ID": "batch-meta-upload"}, "alpha.stl", b"solid alpha\n")["id"]
 
         response = client.post(
             "/assets/batch/meta",

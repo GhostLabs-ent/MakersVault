@@ -27,6 +27,19 @@ export type Asset = {
   notes?: string | null;
   creator?: string | null;
   /**
+   * The household account that added this file, a username snapshot taken when
+   * the row was created - not the model's designer. `creator` above is provenance
+   * a person types (who designed the model); `created_by` is who uploaded it. The
+   * two are different people and the card renders them as such. Null when nobody
+   * was signed in (auth disabled) and on rows written before attribution existed.
+   */
+  created_by?: string | null;
+  /**
+   * Which door the file came through: `upload | link-import | zip-import |
+   * mount-import | scan | system`; null only on pre-attribution rows.
+   */
+  created_via?: string | null;
+  /**
    * @deprecated Legacy v5.1 metadata, inert since Mf-aoyv and no longer offered
    * by this client (ADR 0003); still returned by the API for old clients.
    */

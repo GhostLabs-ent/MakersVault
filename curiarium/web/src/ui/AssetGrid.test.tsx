@@ -743,6 +743,46 @@ describe("AssetGrid creator facet and server sort", () => {
   });
 });
 
+describe("AssetGrid attribution", () => {
+  beforeEach(() => {
+    resetToasts();
+    listAssetsMock.mockReset();
+    fileUrlMock.mockClear();
+  });
+
+  afterEach(cleanup);
+
+  /** One card, so the assertions cannot accidentally match a neighbour. */
+  async function renderCard(overrides: Partial<Asset>) {
+    listAssetsMock.mockResolvedValue({
+      items: [{ ...assets[0], ...overrides }],
+      hasMore: false,
+    });
+    render(<AssetGrid canContribute canDelete theme="dark" />);
+    await screen.findByText("Calibration cube");
+  }
+
+  it("shows the uploader beside the designer, never instead of it", async () => {
+    await renderCard({ creator: "Grace Hopper", created_by: "Ada", created_via: "upload" });
+
+    expect(screen.getByText("By Grace Hopper")).toBeTruthy();
+    expect(screen.getByText("Added by Ada")).toBeTruthy();
+  });
+
+  it("renders the uploader on a card with no designer", async () => {
+    await renderCard({ created_by: "Ada", created_via: "zip-import" });
+
+    expect(screen.queryByText(/^By /)).toBeNull();
+    expect(screen.getByText("Added by Ada")).toBeTruthy();
+  });
+
+  it("renders nothing for an anonymous asset", async () => {
+    await renderCard({ created_by: null, created_via: "upload" });
+
+    expect(screen.queryByText(/Added by/)).toBeNull();
+  });
+});
+
 describe("files-mode \"not in any project\" filter", () => {
   beforeEach(() => {
     resetToasts();

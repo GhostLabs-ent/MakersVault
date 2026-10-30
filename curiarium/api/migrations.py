@@ -692,6 +692,21 @@ def _migration_013_asset_thumb_version(conn: Connection) -> None:
     _add_column(conn, "asset", "thumb_version", "INTEGER NOT NULL DEFAULT 0")
 
 
+def _migration_014_asset_attribution(conn: Connection) -> None:
+    """Who added each asset, and by which door (Mf-0u1y).
+
+    Two nullable text columns and nothing else: no index, no backfill, no
+    filesystem work. `created_by` is a username SNAPSHOT (mirrors
+    `audit.AuditEvent.actor`, so a renamed or deleted user cannot turn an old row
+    anonymous) and `created_via` is the creation path. Both go on through
+    `_add_column` (guarded by `PRAGMA table_info`), so re-applying 014 is
+    harmless, like 004-013. Pre-014 rows read (NULL, NULL), which is deliberately
+    distinguishable from an anonymous creation (NULL, 'upload').
+    """
+    _add_column(conn, "asset", "created_by", "VARCHAR")
+    _add_column(conn, "asset", "created_via", "VARCHAR")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
@@ -706,6 +721,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(11, "session_rotation_history", _migration_011_session_rotation_history),
     Migration(12, "mfa_totp", _migration_012_mfa_totp),
     Migration(13, "asset_thumb_version", _migration_013_asset_thumb_version),
+    Migration(14, "asset_attribution", _migration_014_asset_attribution),
 )
 
 

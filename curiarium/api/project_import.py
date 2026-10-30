@@ -21,9 +21,9 @@ No member-level de-duplication exists on this path - this is an accepted
 limitation of Mf-56z9, not something another flow covers.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from urllib.parse import urlparse
 from zipfile import BadZipFile
 
@@ -32,6 +32,7 @@ from fastapi import HTTPException
 import project_service
 import seams
 import zip_service
+from asset_service import AssetOrigin
 from import_metadata import PageMetadata, parse_page_metadata
 from import_policy import GATED_IMPORT_DETAIL
 from models import Asset
@@ -82,14 +83,20 @@ def _is_gated(page, metadata: PageMetadata, error: HTTPException) -> bool:
     return metadata.gated or error.status_code in GATED_STATUS_CODES
 
 
-def _zip_assets(attempt, body: ImportProjectRequest) -> Tuple[List[Asset], List[str]]:
-    """Extract the selected entries, always removing the downloaded temp file."""
+def _zip_assets(attempt, body: ImportProjectRequest, origin: Optional[AssetOrigin]) -> Tuple[List[Asset], List[str]]:
+    """Extract the selected entries, always removing the downloaded temp file.
+
+    Extracting a zip is its own door (`CreatedVia`), even inside a project
+    import: the route names the request "link-import", and every row this
+    function creates is honestly "zip-import".
+    """
     tmp_path = attempt.tmp_path
+    zip_origin = None if origin is None else replace(origin, created_via="zip-import")
     try:
         if Path(attempt.filename).suffix.lower() != ".zip":
             raise HTTPException(status_code=415, detail="Imported file is not a zip")
         try:
-            return zip_service.extract_zip_entries_to_assets(tmp_path, body.entries, body)
+            return zip_service.extract_zip_entries_to_assets(tmp_path, body.entries, body, origin=zip_origin)
         except BadZipFile:
             raise HTTPException(status_code=400, detail="Invalid zip file") from None
     finally:
@@ -97,12 +104,15 @@ def _zip_assets(attempt, body: ImportProjectRequest) -> Tuple[List[Asset], List[
             tmp_path.unlink(missing_ok=True)
 
 
-def import_into_project(url: str, body: ImportProjectRequest) -> ImportOutcome:
+def import_into_project(url: str, body: ImportProjectRequest, *, origin: Optional[AssetOrigin] = None) -> ImportOutcome:
     """Import `url` (already normalised) and attach the result to a project."""
     if body.project_id:
         project_service.require_project(body.project_id)
     wants_zip = body.entries is not None
-    attempt = seams.download_zip_attempt(url, body) if wants_zip else seams.import_asset_attempt(url, body)
+    if wants_zip:
+        attempt = seams.download_zip_attempt(url, body)
+    else:
+        attempt = seams.import_asset_attempt(url, body, origin=origin)
 
     page = attempt.page
     metadata = parse_page_metadata(page.html, page.url) if page else PageMetadata()
@@ -127,7 +137,7 @@ def import_into_project(url: str, body: ImportProjectRequest) -> ImportOutcome:
         return ImportOutcome(project_id=project_id, created=created, gated=True, message=GATED_IMPORT_DETAIL)
 
     if wants_zip:
-        assets, failed = _zip_assets(attempt, body)
+        assets, failed = _zip_assets(attempt, body, origin)
     elif attempt.asset is not None:
         assets, failed = [attempt.asset], []
     else:

@@ -45,6 +45,7 @@ log = logging.getLogger(__name__)
 ACTOR_DISABLED_USERNAME = "local"
 ACTOR_DISABLED_ROLE = "auth-disabled"
 
+ASSET_CREATE = "asset.create"
 ASSET_DELETE = "asset.delete"
 ASSET_RENAME = "asset.rename"
 ASSET_MOVE = "asset.move"
@@ -109,6 +110,7 @@ MFA_RECOVERY_CODES_REGENERATE = "mfa.recovery_codes.regenerate"
 SETTINGS_MFA_REQUIRE_ADMIN_UPDATE = "settings.mfa_require_admin.update"
 
 ACTIONS: frozenset[str] = frozenset({
+    ASSET_CREATE,
     ASSET_DELETE,
     ASSET_RENAME,
     ASSET_MOVE,
@@ -264,6 +266,13 @@ def record(*events: Event, ctx: AuditContext) -> None:
         raise
 
 
+def asset_create_event(asset_id: str, created_via: str, name: str) -> Event:
+    """The creation row: `target` IS the asset id, so `GET /audit?target=<id>`
+    cross-links the asset to the request that made it. `via` mirrors the stored
+    `asset.created_via` column; `name` is the stored model name."""
+    return Event(ASSET_CREATE, target=asset_id, detail={"via": created_via, "name": name})
+
+
 def _normalise_bound(value: str, *, upper: bool) -> str:
     """A bare YYYY-MM-DD means the whole day; anything else is compared as given."""
     candidate = value.strip()
@@ -321,6 +330,12 @@ ROUTE_ACTIONS: dict[tuple[str, str], tuple[str, ...]] = {
     # `login.oidc.failed`, but it is a GET and records through `audit.record`
     # with its own transaction, so it has no entry here by design.
     ("POST", "/auth/oidc/exchange"): (LOGIN_OIDC_SUCCEEDED,),
+    # Creation is audited too (Mf-0u1y): the event's target IS the new asset id,
+    # so `GET /audit?target=<id>` cross-links an asset to the request that made it.
+    ("POST", "/upload"): (ASSET_CREATE,),
+    ("POST", "/import"): (ASSET_CREATE,),
+    ("POST", "/import/project"): (ASSET_CREATE,),
+    ("POST", "/import/zip"): (ASSET_CREATE,),
     ("DELETE", "/asset/{asset_id}"): (ASSET_DELETE,),
     ("POST", "/assets/batch/delete"): (ASSET_DELETE, DESTRUCTIVE_SNAPSHOT_TAKEN, DESTRUCTIVE_SNAPSHOT_MISSED),
     ("POST", "/asset/{asset_id}/rename"): (ASSET_RENAME,),
@@ -368,12 +383,8 @@ ROUTE_ACTIONS: dict[tuple[str, str], tuple[str, ...]] = {
 # drift guard prints these, so "not audited" is a decision with a sentence, not
 # an omission.
 EXEMPT_ROUTES: dict[tuple[str, str], str] = {
-    ("POST", "/upload"): "creates an asset; not destructive or administrative",
-    ("POST", "/import"): "creates an asset from a URL",
-    ("POST", "/import/project"): "creates a project and imports files from a URL",
     ("POST", "/import/inspect"): "outbound fetch, no mutation",
     ("POST", "/import/zip/entries"): "outbound fetch, no mutation",
-    ("POST", "/import/zip"): "creates assets from a zip",
     ("POST", "/asset/{asset_id}/files"): "uploads a supporting file",
     ("POST", "/asset/{asset_id}/thumbnail-generated"): "derived cache artifact",
     ("POST", "/asset/{asset_id}/tags"): "metadata edit; rename and move are the audited edits",
