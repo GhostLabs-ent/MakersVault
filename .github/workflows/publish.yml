@@ -1,0 +1,92 @@
+name: Publish
+
+# Builds and publishes the two runtime images to GHCR.
+#
+# Tag scheme:
+#   edge            - every push to main (what a self-hosted deployment should pin
+#                     to, or a sha- tag for reproducibility)
+#   sha-<7>         - every commit, immutable handle for a rollback
+#   <semver>        - from a v* git tag (v5.2.0 -> 5.2.0, plus 5.2 and 5)
+#
+# Images are multi-arch (amd64 + arm64) so a homelab box and an Apple/ARM host
+# pull the same tag. Builds are cached per image in the Actions cache, which
+# keeps a no-op rebuild to well under a minute.
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: api
+            context: curiarium/api
+            description: Curiarium API (FastAPI)
+          - name: web
+            context: curiarium/web
+            description: Curiarium web UI (nginx + static bundle)
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/curiarium-${{ matrix.name }}
+          labels: |
+            org.opencontainers.image.title=curiarium-${{ matrix.name }}
+            org.opencontainers.image.description=${{ matrix.description }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          tags: |
+            type=raw,value=edge,enable={{is_default_branch}}
+            type=sha,prefix=sha-,format=short
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+      - name: Summary
+        run: |
+          {
+            echo "### curiarium-${{ matrix.name }}"
+            echo ""
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+            echo "digest: \`${{ steps.build.outputs.digest }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

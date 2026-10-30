@@ -41,7 +41,8 @@
 </ul>
 
 <h2>Getting Started</h2>
-<p>Curiarium is deployable using Docker pull or Docker Compose:</p>
+<p>Curiarium is deployable using Docker pull or Docker Compose. Images are published to GHCR on every push to <code>main</code>:
+<code>ghcr.io/insanemal/curiarium-api</code> and <code>ghcr.io/insanemal/curiarium-web</code> — tagged <code>edge</code> for the tip, <code>sha-&lt;short&gt;</code> per commit (pin this for reproducibility), and semver tags from <code>v*</code> git tags.</p>
 <h3>Docker Compose</h3>
 
 ```bash
@@ -58,8 +59,8 @@ docker compose -f docker-compose.deploy.yml up -d
 ```yaml
 PUID=1000
 PGID=1000
-API_IMAGE=shotgunwilly555/curiarium-api:latest
-WEB_IMAGE=shotgunwilly555/curiarium-web:latest
+API_IMAGE=ghcr.io/insanemal/curiarium-api:edge
+WEB_IMAGE=ghcr.io/insanemal/curiarium-web:edge
 FILE_STORAGE=/app/storage
 DB_URL=sqlite:///./curiarium.db
 API_PORT=8000
