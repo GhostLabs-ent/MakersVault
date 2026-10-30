@@ -67,7 +67,7 @@ jobs:
 
       - name: Build and push API image
         id: api
-        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: makervault/api
           target: runtime
@@ -84,7 +84,7 @@ jobs:
 
       - name: Build and push web image
         id: web
-        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: makervault/web
           platforms: linux/amd64,linux/arm64
