@@ -1,19 +1,19 @@
 version: 2
 updates:
   - package-ecosystem: pip
-    directory: /makervault/api
+    directory: /curiarium/api
     schedule:
       interval: weekly
   - package-ecosystem: npm
-    directory: /makervault/web
+    directory: /curiarium/web
     schedule:
       interval: weekly
   - package-ecosystem: gomod
-    directory: /makervault/slicer-bridge
+    directory: /curiarium/slicer-bridge
     schedule:
       interval: weekly
   - package-ecosystem: docker
-    directory: /makervault/api
+    directory: /curiarium/api
     schedule:
       interval: weekly
   # Floats `N-alpine` on a supported Node LTS major. Dependabot only proposes
@@ -22,7 +22,7 @@ updates:
   # the last non-LTS line and is EOL; from 27 every annual major is LTS, so a
   # major PR is an LTS: the reviewed accept-or-reject decision.
   - package-ecosystem: docker
-    directory: /makervault/web
+    directory: /curiarium/web
     schedule:
       interval: weekly
   - package-ecosystem: github-actions

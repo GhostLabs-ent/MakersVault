@@ -12,7 +12,7 @@ GO ?= go
 # ports - is namespaced by MV_RUN_ID so two runs can share one host and one
 # Docker daemon. Default: this make process's pid plus the worktree directory,
 # which keeps concurrent runs apart with no setup. Set MV_RUN_ID to join a lane
-# (see makervault/docs/DEVELOPMENT.md).
+# (see curiarium/docs/DEVELOPMENT.md).
 ifeq ($(strip $(MV_RUN_ID)),)
 MV_RUN_ID := $(shell echo "$$PPID-$$(basename "$(CURDIR)")")
 endif
@@ -24,10 +24,10 @@ endif
 RUN_ID := $(shell printf '%s' '$(MV_RUN_ID)' | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9_-]/-/g')
 export MV_RUN_ID
 
-API_TEST_IMAGE ?= makersvault-api-gate0-test:$(RUN_ID)
-WEB_TEST_IMAGE ?= makersvault-web-gate0-test:$(RUN_ID)
-API_LINT_IMAGE ?= makersvault-api-lint:$(RUN_ID)
-WEB_LINT_IMAGE ?= makersvault-web-lint:$(RUN_ID)
+API_TEST_IMAGE ?= curiarium-api-gate0-test:$(RUN_ID)
+WEB_TEST_IMAGE ?= curiarium-web-gate0-test:$(RUN_ID)
+API_LINT_IMAGE ?= curiarium-api-lint:$(RUN_ID)
+WEB_LINT_IMAGE ?= curiarium-web-lint:$(RUN_ID)
 
 # Full gate. Run once per wave (or per ticket when it touches migrations,
 # Dockerfiles, nginx.conf, compose manifests or dependency locks).
@@ -38,48 +38,48 @@ verify: verify-lint verify-api verify-web verify-bridge verify-compose verify-sm
 verify-fast: verify-version verify-fast-api verify-fast-web verify-fast-bridge
 
 verify-fast-api:
-	cd makervault/api && $(RUFF) check . && $(PYTHON) -m pytest -q
+	cd curiarium/api && $(RUFF) check . && $(PYTHON) -m pytest -q
 
 verify-fast-web:
-	cd makervault/web && $(NPM) run lint && $(NPM) run typecheck && $(NPM) run test:run
+	cd curiarium/web && $(NPM) run lint && $(NPM) run typecheck && $(NPM) run test:run
 
 verify-fast-bridge:
-	cd makervault/slicer-bridge && $(GO) test ./...
+	cd curiarium/slicer-bridge && $(GO) test ./...
 
 verify-lint: lint-api lint-web
 
 lint-api:
-	docker build --target lint -t $(API_LINT_IMAGE) makervault/api
+	docker build --target lint -t $(API_LINT_IMAGE) curiarium/api
 	docker image rm $(API_LINT_IMAGE) >/dev/null 2>&1 || true
 
 lint-web:
-	docker build --target lint -t $(WEB_LINT_IMAGE) makervault/web
+	docker build --target lint -t $(WEB_LINT_IMAGE) curiarium/web
 	docker image rm $(WEB_LINT_IMAGE) >/dev/null 2>&1 || true
 
 # Version drift guard (Mf-cvoo). `python3` on CI runners, repo .venv locally.
 verify-version:
-	$(PYTHON) makervault/scripts/check_version.py
+	$(PYTHON) curiarium/scripts/check_version.py
 
 verify-api: verify-version
-	docker build --target test -t $(API_TEST_IMAGE) makervault/api
+	docker build --target test -t $(API_TEST_IMAGE) curiarium/api
 	status=0; docker run --rm $(API_TEST_IMAGE) || status=$$?; \
 		docker image rm $(API_TEST_IMAGE) >/dev/null 2>&1 || true; exit $$status
 
 verify-web: verify-version
-	status=0; docker build --target test -t $(WEB_TEST_IMAGE) makervault/web || status=$$?; \
+	status=0; docker build --target test -t $(WEB_TEST_IMAGE) curiarium/web || status=$$?; \
 		docker image rm $(WEB_TEST_IMAGE) >/dev/null 2>&1 || true; exit $$status
 
 verify-bridge:
 	docker run --rm \
-		-v "$(CURDIR)/makervault/slicer-bridge:/src" \
+		-v "$(CURDIR)/curiarium/slicer-bridge:/src" \
 		-w /src golang:1.21.13 \
-		sh -c 'go test ./... && go build -o /tmp/makersvault-bridge ./cmd/slicer-bridge'
+		sh -c 'go test ./... && go build -o /tmp/curiarium-bridge ./cmd/slicer-bridge'
 
 verify-compose:
-	cd makervault && docker compose -f docker-compose.yml config -q
-	cd makervault && docker compose -f docker-compose.deploy.yml config -q
-	cd makervault && docker compose -f docker-deploy.yml config -q
-	cd makervault && docker compose -f docker-compose.yml -f docker-compose.smoke.yml config -q
+	cd curiarium && docker compose -f docker-compose.yml config -q
+	cd curiarium && docker compose -f docker-compose.deploy.yml config -q
+	cd curiarium && docker compose -f docker-deploy.yml config -q
+	cd curiarium && docker compose -f docker-compose.yml -f docker-compose.smoke.yml config -q
 
 verify-smoke:
-	./makervault/scripts/container-smoke.sh
+	./curiarium/scripts/container-smoke.sh

@@ -20,11 +20,11 @@ fast gate after each merge. The full gate is paid once per batch, at the end.
 Packing is decided by a script, not by judgement:
 
 ```bash
-python3 makervault/scripts/wave_plan.py --plan /tmp/wave-<n>.json            # exit 0 accept, 1 refuse with the reason
-python3 makervault/scripts/wave_plan.py --list-serialisers
-python3 makervault/scripts/wave_plan.py --check-delta <plan file>            # 0 fresh, 1 stale/fail-closed, 2 malformed
-python3 makervault/scripts/wave_plan.py --check-shape .plans/batch-<n>       # 0 proceed, 1 withhold the queue, 2 bad directory
-python3 makervault/scripts/wave_plan.py --report-timings .plans/batch-<n>
+python3 curiarium/scripts/wave_plan.py --plan /tmp/wave-<n>.json            # exit 0 accept, 1 refuse with the reason
+python3 curiarium/scripts/wave_plan.py --list-serialisers
+python3 curiarium/scripts/wave_plan.py --check-delta <plan file>            # 0 fresh, 1 stale/fail-closed, 2 malformed
+python3 curiarium/scripts/wave_plan.py --check-shape .plans/batch-<n>       # 0 proceed, 1 withhold the queue, 2 bad directory
+python3 curiarium/scripts/wave_plan.py --report-timings .plans/batch-<n>
 ```
 
 v3 adds the **plan-ahead queue**. While ticket N is being implemented, the
@@ -107,7 +107,7 @@ code, so it is cheap and off the critical path.
 Each time a plan lands, before starting any further gate, run:
 
 ```bash
-python3 makervault/scripts/wave_plan.py --check-shape .plans/batch-<n>
+python3 curiarium/scripts/wave_plan.py --check-shape .plans/batch-<n>
 ```
 
 - **exit 0** - the queue may be topped up: gate the next candidate, one at a
@@ -143,7 +143,7 @@ Rules you enforce on the returned block:
   from `admin` to `write` also edits `docs/PERMISSIONS.md`; if the plan-gate does
   not declare it, the disjointness evidence is a lie. Same for `docs/AUDIT.md`
   when a route's audit classification changes, and
-  `makervault/docs/DEVELOPMENT.md` when the verification story changes.
+  `curiarium/docs/DEVELOPMENT.md` when the verification story changes.
 - **`serialises: true` whenever the work needs a migration, a lockfile, or
   touches an item in the serialiser list below** (see [Hard
   serialisers](#hard-serialisers--never-in-a-lane)). When in doubt the gate sets
@@ -162,7 +162,7 @@ ticket id:
 ```json
 {
   "id": "Mf-z5qa",
-  "touches": ["makervault/scripts/wave_plan.py"],
+  "touches": ["curiarium/scripts/wave_plan.py"],
   "serialises": false,
   "reason": "one line: what this lane is",
   "base": "<full sha the plan was written against>",
@@ -177,7 +177,7 @@ ticket id:
 
 It is the wave-lane shape (`id`, `touches`, `serialises`, `reason`) plus planning
 metadata, so the same normalisation and serialiser logic in
-`makervault/scripts/wave_plan.py` validates both. `base` is the **full sha the
+`curiarium/scripts/wave_plan.py` validates both. `base` is the **full sha the
 gate planned against** - it is what the delta check resolves later. Each gate
 invocation gets its own `gates` entry with the wall-clock (`seconds`), the
 Oracle-call count, the ticket it overlapped (`overlapped_with`, `null` when
@@ -209,9 +209,9 @@ is never an authorised dispatch.
 Write the proposed wave to a file and let the helper decide:
 
 ```bash
-python3 makervault/scripts/wave_plan.py --plan /tmp/wave-<n>.json            # exit 0 accept, 1 refuse with the reason
-python3 makervault/scripts/wave_plan.py --plan /tmp/wave-<n>.json --max-lanes 3   # only when packing a third lane
-python3 makervault/scripts/wave_plan.py --list-serialisers
+python3 curiarium/scripts/wave_plan.py --plan /tmp/wave-<n>.json            # exit 0 accept, 1 refuse with the reason
+python3 curiarium/scripts/wave_plan.py --plan /tmp/wave-<n>.json --max-lanes 3   # only when packing a third lane
+python3 curiarium/scripts/wave_plan.py --list-serialisers
 ```
 
 The file holds one entry per lane, keyed by ticket id, carrying the fields the
@@ -221,8 +221,8 @@ passed to `--plan` itself:
 
 ```json
 {"lanes": [
-  {"id": "Mf-aaaa", "touches": ["makervault/api/routers/assets.py"], "serialises": false, "reason": "adds a filter to the asset list"},
-  {"id": "Mf-bbbb", "touches": ["makervault/web/src/ui/SomeView.tsx"], "serialises": false, "reason": "new view component"}
+  {"id": "Mf-aaaa", "touches": ["curiarium/api/routers/assets.py"], "serialises": false, "reason": "adds a filter to the asset list"},
+  {"id": "Mf-bbbb", "touches": ["curiarium/web/src/ui/SomeView.tsx"], "serialises": false, "reason": "new view component"}
 ]}
 ```
 
@@ -253,8 +253,8 @@ From the repo root, `/home/mal/fuck_it_ill_do_it_myself/MakersVault-fork`:
 git worktree add .lanes/<ticket> -b ticket/<ticket>
 cd .lanes/<ticket>
 uv venv --python 3.12 .venv
-cd makervault/api && uv pip install --python ../../.venv/bin/python -r requirements.lock -r requirements-dev.lock ruff && cd ../..
-cd makervault/web && npm ci --no-audit --no-fund && cd ../..
+cd curiarium/api && uv pip install --python ../../.venv/bin/python -r requirements.lock -r requirements-dev.lock ruff && cd ../..
+cd curiarium/web && npm ci --no-audit --no-fund && cd ../..
 ```
 
 Measured on this host: `uv venv` under 1 s; the lock install under 1 s with a
@@ -274,16 +274,16 @@ nothing for the web half, which still needs the lane's own `node_modules`, so
 bootstrapping remains the documented default.
 
 **FORBIDDEN: symlinking the lane's `node_modules` to the main checkout's.**
-`makervault/web/vite.config.js` sets no `cacheDir`, so the dependency-optimiser
+`curiarium/web/vite.config.js` sets no `cacheDir`, so the dependency-optimiser
 cache is `node_modules/.vite`; two vitest runs plus the main checkout would race
 re-optimising it through the symlink, and `npm ci` deletes `node_modules` first —
 a lane symlinked to the main checkout would **delete the main checkout's
 modules**. Never do it, and never accept a lane report that says it did.
 
 Isolation makes the parallelism legal: `MV_RUN_ID` namespaces the API test
-database and storage root (`/tmp/makersvault-tests/<id>/`), the four image tags,
+database and storage root (`/tmp/curiarium-tests/<id>/`), the four image tags,
 the smoke Compose project name, and the smoke host ports. The smoke script claims
-lanes 0-2 by scanning and atomically locking `/tmp/makersvault-smoke-lanes/`, so
+lanes 0-2 by scanning and atomically locking `/tmp/curiarium-smoke-lanes/`, so
 **lanes never pin ports by hand**. Because of that, two lanes may run
 `make verify-fast` at the same moment, and the main checkout may run its
 per-merge `make verify-fast` while they do; the batch's one full `make verify`
@@ -316,7 +316,7 @@ Pass each orchestrator this brief, filled in:
 > delete a worktree.
 >
 > **First action - the delta check.** Before anything else, run:
-> `python3 makervault/scripts/wave_plan.py --check-delta /home/mal/fuck_it_ill_do_it_myself/MakersVault-fork/.plans/batch-<n>/<ticket>.json`
+> `python3 curiarium/scripts/wave_plan.py --check-delta /home/mal/fuck_it_ill_do_it_myself/MakersVault-fork/.plans/batch-<n>/<ticket>.json`
 > - the **absolute** path of the plan file in the main checkout, run from the
 > lane's own cwd. `.lanes/<ticket>/` is a separate working directory, so
 > `.plans/` is invisible from inside it; the worktree shares `.git/objects`, so
@@ -378,7 +378,7 @@ Wait for **every** lane to return before merging anything. Then verify per lane:
 - the diff matches the declared touch-set:
   `git diff --name-only main...ticket/<ticket>`;
 - the plan still applies - re-run the delta check yourself, from the repo root:
-  `python3 makervault/scripts/wave_plan.py --check-delta .plans/batch-<n>/<ticket>.json`
+  `python3 curiarium/scripts/wave_plan.py --check-delta .plans/batch-<n>/<ticket>.json`
   (0 fresh, 1 fail closed, 2 malformed; anything non-zero makes it a failed lane,
   not a merge candidate). It is `git merge-base --is-ancestor <base> HEAD` that
   decides freshness: a `rev-parse` comparison would happily resolve a sha that
@@ -452,7 +452,7 @@ tk add-note <ticket> "Wave <n> lane; helper: <accept/refuse output>; merged at <
 Plan-gate timings come from the plan directory, not from memory:
 
 ```bash
-python3 makervault/scripts/wave_plan.py --report-timings .plans/batch-<n>
+python3 curiarium/scripts/wave_plan.py --report-timings .plans/batch-<n>
 ```
 
 It prints per ticket `plan_gate_s`, `overlapped`, `replans` and `oracle_calls`
@@ -538,9 +538,9 @@ is how it is enforced.
 - **Once per batch:** dispatch CI and check all four jobs.
 
 ```bash
-gh workflow run Verify --repo insanemal/MakersVault --ref main
-gh run list --repo insanemal/MakersVault --limit 1
-gh run view <run-id> --repo insanemal/MakersVault --json jobs \
+gh workflow run Verify --repo insanemal/Curiarium --ref main
+gh run list --repo insanemal/Curiarium --limit 1
+gh run view <run-id> --repo insanemal/Curiarium --json jobs \
   -q '.jobs[] | "\(.name): \(.status)/\(.conclusion)"'
 ```
 
@@ -550,44 +550,44 @@ All four jobs (api, web, bridge, containers) must be `success`.
 
 A serialiser is a file whose concurrent edit cannot be reconciled by git, or
 which the process requires to be verified on its own.
-`makervault/scripts/wave_plan.py --list-serialisers` prints the list; the table
+`curiarium/scripts/wave_plan.py --list-serialisers` prints the list; the table
 is here so you can explain a refusal, and
-`makervault/api/tests/test_wave_plan.py` pins this table to the ledger.
+`curiarium/api/tests/test_wave_plan.py` pins this table to the ledger.
 
 | Serialiser | Why |
 |---|---|
-| `makervault/api/migrations.py` | the schema ledger: every migration is an append to this one file |
+| `curiarium/api/migrations.py` | the schema ledger: every migration is an append to this one file |
 | `**/migration_*.py` | a new migration is a schema change: covered by the single end-of-batch full gate plus a boot-guard recheck, and migrations are append-only |
-| `makervault/api/migrations` (directory) | a new migration is a schema change: covered by the single end-of-batch full gate plus a boot-guard recheck, and migrations are append-only |
-| `makervault/api/requirements*.txt` | dependency locks: never covered by the fast gate, and two lanes bumping one lock cannot be reconciled by git |
-| `makervault/api/requirements*.lock` | dependency locks: never covered by the fast gate, and two lanes bumping one lock cannot be reconciled by git |
+| `curiarium/api/migrations` (directory) | a new migration is a schema change: covered by the single end-of-batch full gate plus a boot-guard recheck, and migrations are append-only |
+| `curiarium/api/requirements*.txt` | dependency locks: never covered by the fast gate, and two lanes bumping one lock cannot be reconciled by git |
+| `curiarium/api/requirements*.lock` | dependency locks: never covered by the fast gate, and two lanes bumping one lock cannot be reconciled by git |
 | `**/package.json` | the node lock pair: same class as the python locks |
 | `**/package-lock.json` | the node lock pair: same class as the python locks |
 | `Makefile` | it is the gate: an edit changes the commands every other lane runs |
 | `.github/workflows/*` | one CI workflow for the whole repository |
 | `**/nginx.conf` | proxy and security-header config: no unit test covers it, the single end-of-batch full gate only |
-| `makervault/web/security-headers.conf` | proxy and security-header config: no unit test covers it, the single end-of-batch full gate only |
+| `curiarium/web/security-headers.conf` | proxy and security-header config: no unit test covers it, the single end-of-batch full gate only |
 | `**/conftest.py` | fixtures for every API test module: a change re-baselines the whole suite |
-| `makervault/scripts/container-smoke.sh` | the recipe `verify-smoke` executes: an edit changes what the smoke gate checks |
-| `makervault/scripts/wave_plan.py` | the wave validator itself: an edit changes how every future wave is judged |
-| `makervault/scripts/check_version.py` | the version drift guard: `verify-version` runs it, and `verify-version` is a prerequisite of `verify-fast` and of `verify-api`/`verify-web`, so an edit can break every gate at once and no test covers the script itself |
-| `makervault/api/Dockerfile` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
-| `makervault/web/Dockerfile` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
-| `makervault/docker-compose.yml` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
-| `makervault/docker-compose.deploy.yml` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
-| `makervault/docker-compose.smoke.yml` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
-| `makervault/docker-deploy.yml` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
-| `makervault/api/main.py` | app wiring and the lifespan boot guards: the router split landed, so it is no longer the chokepoint it was, but every new router and guard edits the include list |
-| `makervault/api/models.py` | shared contract modules: two lanes adding models or schemas merge cleanly and then fail semantically |
-| `makervault/api/schemas/__init__.py` | the barrel every schema module is re-exported through: the per-domain modules beside it are lane-able, which is what the split is for; the barrel's import list, `MODULES` tuple and `__all__` are the shared surface, and an exact path entry cannot be left on the deleted `schemas.py` because `stem_files()` keys on (directory, stem) and never matches a file under `schemas/` |
-| `makervault/web/src/lib/api/index.ts` | the barrel every UI file imports by name: the per-domain clients beside it are lane-able, which is what the split is for; the same-stem loss is deliberate, because a test beside this barrel stops serialising while two lanes editing one test still conflict in git and each lane's own full suite is the semantic gate; the domain clients carry no stem protection, so the only guard there is a shared-directory warning, the same accepted hole the entry-point narrowing documents; and a second module at the same stem would shadow this barrel and must never be created |
-| `makervault/web/src/lib/api/baseUrl.ts` | the api transport core every domain client imports |
-| `makervault/web/src/lib/api/http.ts` | the api transport core every domain client imports |
-| `makervault/web/src/lib/api/grantPriming.ts` | the api transport core every domain client imports |
-| `makervault/web/src/ui/App.tsx` | shell components every view mounts through: the component split landed but these two are still the hot shared surface |
-| `makervault/web/src/ui/Sidebar.tsx` | shell components every view mounts through: the component split landed but these two are still the hot shared surface |
-| `makervault/web/src/ui/asset-grid/AssetGrid.tsx` | the entry points are serialised and the same-stem rule keeps AssetGrid.test.tsx and Settings.test.tsx serialised with them; non-entry siblings in those directories are lane-able because an unreferenced module is inert until an entry file imports it |
-| `makervault/web/src/ui/settings/Settings.tsx` | the entry points are serialised and the same-stem rule keeps AssetGrid.test.tsx and Settings.test.tsx serialised with them; non-entry siblings in those directories are lane-able because an unreferenced module is inert until an entry file imports it |
+| `curiarium/scripts/container-smoke.sh` | the recipe `verify-smoke` executes: an edit changes what the smoke gate checks |
+| `curiarium/scripts/wave_plan.py` | the wave validator itself: an edit changes how every future wave is judged |
+| `curiarium/scripts/check_version.py` | the version drift guard: `verify-version` runs it, and `verify-version` is a prerequisite of `verify-fast` and of `verify-api`/`verify-web`, so an edit can break every gate at once and no test covers the script itself |
+| `curiarium/api/Dockerfile` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
+| `curiarium/web/Dockerfile` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
+| `curiarium/docker-compose.yml` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
+| `curiarium/docker-compose.deploy.yml` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
+| `curiarium/docker-compose.smoke.yml` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
+| `curiarium/docker-deploy.yml` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
+| `curiarium/api/main.py` | app wiring and the lifespan boot guards: the router split landed, so it is no longer the chokepoint it was, but every new router and guard edits the include list |
+| `curiarium/api/models.py` | shared contract modules: two lanes adding models or schemas merge cleanly and then fail semantically |
+| `curiarium/api/schemas/__init__.py` | the barrel every schema module is re-exported through: the per-domain modules beside it are lane-able, which is what the split is for; the barrel's import list, `MODULES` tuple and `__all__` are the shared surface, and an exact path entry cannot be left on the deleted `schemas.py` because `stem_files()` keys on (directory, stem) and never matches a file under `schemas/` |
+| `curiarium/web/src/lib/api/index.ts` | the barrel every UI file imports by name: the per-domain clients beside it are lane-able, which is what the split is for; the same-stem loss is deliberate, because a test beside this barrel stops serialising while two lanes editing one test still conflict in git and each lane's own full suite is the semantic gate; the domain clients carry no stem protection, so the only guard there is a shared-directory warning, the same accepted hole the entry-point narrowing documents; and a second module at the same stem would shadow this barrel and must never be created |
+| `curiarium/web/src/lib/api/baseUrl.ts` | the api transport core every domain client imports |
+| `curiarium/web/src/lib/api/http.ts` | the api transport core every domain client imports |
+| `curiarium/web/src/lib/api/grantPriming.ts` | the api transport core every domain client imports |
+| `curiarium/web/src/ui/App.tsx` | shell components every view mounts through: the component split landed but these two are still the hot shared surface |
+| `curiarium/web/src/ui/Sidebar.tsx` | shell components every view mounts through: the component split landed but these two are still the hot shared surface |
+| `curiarium/web/src/ui/asset-grid/AssetGrid.tsx` | the entry points are serialised and the same-stem rule keeps AssetGrid.test.tsx and Settings.test.tsx serialised with them; non-entry siblings in those directories are lane-able because an unreferenced module is inert until an entry file imports it |
+| `curiarium/web/src/ui/settings/Settings.tsx` | the entry points are serialised and the same-stem rule keeps AssetGrid.test.tsx and Settings.test.tsx serialised with them; non-entry siblings in those directories are lane-able because an unreferenced module is inert until an entry file imports it |
 
 One gap is accepted. A new file beside an entry point no longer serialises: the
 entry point itself does not change, and an unreferenced module is inert until
@@ -595,7 +595,7 @@ something imports it, at which point whoever imports it edits a serialised entry
 file.
 
 The helper also serialises a **same-directory sibling with the same stem**
-(`makervault/web/src/ui/Sidebar.test.tsx` matches `makervault/web/src/ui/Sidebar.tsx`), because a test-only
+(`curiarium/web/src/ui/Sidebar.test.tsx` matches `curiarium/web/src/ui/Sidebar.tsx`), because a test-only
 lane would otherwise defeat the gate by touching the file next to the one it
 tests.
 
@@ -603,7 +603,7 @@ tests.
 
 - **Never touch `upstream` (GhostLabs-ent/MakersVault).** It is read-only for us:
   never merge, rebase, cherry-pick from, or push to it. `origin`
-  (insanemal/MakersVault) is the push target.
+  (insanemal/Curiarium) is the push target.
 - **No hidden processes.** Do not create or run `.sh` wrappers, do not invoke
   `pi` (or any agent) through bash, do not background a headless process. Work is
   launched by the Agent tool only. The single exception is
@@ -625,7 +625,7 @@ Schema version 9 (migrations 1-9 are immutable; the snapshots batch added none).
 1601 API tests collected on the host -- 1600 passed plus the opt-in skip
 (`test_snapshots_integration.py`, which needs `SNAPSHOT_INTEGRATION=1`) -- and
 1414 passed plus 23 skipped in-container. The in-container skips are an artifact
-of the image build context being `makervault/api`, so repo-root files are absent
+of the image build context being `curiarium/api`, so repo-root files are absent
 there: eight whole modules skip at import (the ADR, auth-docs, log-hygiene, zfs
 docs and sidecar guards plus the two scheduler-tooling modules), then six tests
 in `test_deploy_manifest_env.py`, one docs/manifest invariant in
@@ -636,14 +636,14 @@ integration module -- each one a `pytest.skip`, never a fixed-index
 tests in 88 files; the permission matrix is pinned at 74 routes (4 public / 25
 read / 32 write / 13 admin), and `assert_routes_classified()` plus
 `assert_audit_coverage()` are green. Product version 5.2.0-rc.1, with the drift
-guard in `make verify` (`makervault/scripts/check_version.py`).
+guard in `make verify` (`curiarium/scripts/check_version.py`).
 `make verify-fast` takes 115 s and the full `make verify` 180 s, both measured
 on this host in batch 16 rather than carried over from an earlier batch; the
 full gate split over its stages as lint 9 s, API 114 s, web 34 s, bridge 8 s,
-compose 1 s and container smoke 13 s. `makervault/api/main.py` is 196 lines with
-14 routers under `makervault/api/routers/` (`snapshots.router` is the newest).
+compose 1 s and container smoke 13 s. `curiarium/api/main.py` is 196 lines with
+14 routers under `curiarium/api/routers/` (`snapshots.router` is the newest).
 The web component split landed
-(`makervault/web/src/ui/asset-grid/`, `makervault/web/src/ui/settings/`); both
+(`curiarium/web/src/ui/asset-grid/`, `curiarium/web/src/ui/settings/`); both
 split refactors were the enablers for lanes, not just hygiene.
 
 ## Final report (your deliverable)

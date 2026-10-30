@@ -1,14 +1,14 @@
 
-<img width="612" height="408" alt="makersvaultlogoneon-removebg-preview" src="https://github.com/user-attachments/assets/32e7faae-23e3-41bb-a188-376ad2fa68df" />
+<img width="612" height="408" alt="curiariumlogoneon-removebg-preview" src="https://github.com/user-attachments/assets/32e7faae-23e3-41bb-a188-376ad2fa68df" />
 
 ![Status](https://img.shields.io/badge/status-Beta%20release-brightgreen)
 ![Version](https://img.shields.io/badge/version-5.2.0--rc.1-blue)
-![Docker Pulls](https://img.shields.io/docker/pulls/shotgunwilly555/makersvault-web)
-![License](https://img.shields.io/github/license/VincentCinque/MakersVault)
+![License](https://img.shields.io/github/license/insanemal/curiarium)
 
 
-<h1>Makers Vault</h1>
-<p>Makers Vault is a home for all your 3D print files and creative images/illustrations. Tired of having basic folders on your desktop filled with 3D print files with inconsistent names? Tired of having to load a 3D print file into your slicer just to see what it is? Look no further. Create folders, tag your files, and preview them in 3D directly in your browser. Makers Vault is fully self-hostable using Docker and accessible through your web browser for ease of use and deployment.</p> <h2>Makers Vault Home Screen</h2>
+<h1>Curiarium</h1>
+<p><em>Curiarium is a fork of <a href="https://github.com/GhostLabs-ent/MakersVault">MakersVault</a> by VincentCinque and GhostLabs-ent, MIT licensed, substantially reworked (see <a href="NOTICE">NOTICE</a>).</em></p>
+<p>Curiarium is a home for all your 3D print files and creative images/illustrations. Tired of having basic folders on your desktop filled with 3D print files with inconsistent names? Tired of having to load a 3D print file into your slicer just to see what it is? Look no further. Create folders, tag your files, and preview them in 3D directly in your browser. Curiarium is fully self-hostable using Docker and accessible through your web browser for ease of use and deployment.</p> <h2>Curiarium Home Screen</h2>
 
 <img width="1898" height="940" alt="Screenshot 2025-12-31 093628" src="https://github.com/user-attachments/assets/5d1b62d7-73ce-4dff-b1f5-001195ea2ff2" />
 
@@ -30,26 +30,26 @@
   <li>Secure deployment defaults and tested upgrade/recovery guidance.</li>
   <li>Polish for metadata, supporting files, prepared-print summaries, LightBurn, and the local bridge.</li>
 </ul>
-<p>Multi-user accounts, MFA, SSO, and the full Project/Artifact/Revision architecture are deliberately deferred. See <a href="makervault/docs/V5.1_SCOPE.md">the v5.1 release contract</a> and <a href="makervault/docs/ARCHITECTURE_RUNBOOK.md">architecture runbook</a>.</p>
+<p>Multi-user accounts, MFA, SSO, and the full Project/Artifact/Revision architecture are deliberately deferred. See <a href="curiarium/docs/V5.1_SCOPE.md">the v5.1 release contract</a> and <a href="curiarium/docs/ARCHITECTURE_RUNBOOK.md">architecture runbook</a>.</p>
 
 <h2>Versioning</h2>
-<p><code>makervault/api/version.py</code> holds the product version and is the single source of truth. <code>makervault/web/package.json</code> and <code>makervault/web/package-lock.json</code> mirror that literal because npm needs it in the manifest; all three are compared by <code>makervault/scripts/check_version.py</code>, which <code>make verify-version</code> runs as part of the verify gates and which fails on any drift.</p>
+<p><code>curiarium/api/version.py</code> holds the product version and is the single source of truth. <code>curiarium/web/package.json</code> and <code>curiarium/web/package-lock.json</code> mirror that literal because npm needs it in the manifest; all three are compared by <code>curiarium/scripts/check_version.py</code>, which <code>make verify-version</code> runs as part of the verify gates and which fails on any drift.</p>
 <ul>
   <li>The version is reported by <code>GET /health</code>, published as the OpenAPI <code>info.version</code>, and shown in Settings.</li>
   <li>Releases are tagged <code>vX.Y.Z</code>; prereleases are tagged <code>vX.Y.Z-rc.N</code>.</li>
-  <li>This fork's release line starts from upstream's v5.1.2 beta, so the v5.1 docs under <code>makervault/docs/</code> describe that earlier contract.</li>
+  <li>This fork's release line starts from upstream's v5.1.2 beta, so the v5.1 docs under <code>curiarium/docs/</code> describe that earlier contract.</li>
 </ul>
 
 <h2>Getting Started</h2>
-<p>Makers Vault is deployable using Docker pull or Docker Compose:</p>
+<p>Curiarium is deployable using Docker pull or Docker Compose:</p>
 <h3>Docker Compose</h3>
 
 ```bash
-cd makervault
+cd curiarium
 docker compose -f docker-compose.deploy.yml up -d
 ```
 
-<p><code>makervault/docker-compose.deploy.yml</code> is the canonical production manifest. <code>makervault/docker-compose.yml</code> is the canonical local source-build manifest. The historical <code>docker-deploy.yml</code> filename is retained only as a compatibility alias.</p>
+<p><code>curiarium/docker-compose.deploy.yml</code> is the canonical production manifest. <code>curiarium/docker-compose.yml</code> is the canonical local source-build manifest. The historical <code>docker-deploy.yml</code> filename is retained only as a compatibility alias.</p>
 <p><strong>Security notice:</strong> the current beta authentication defaults are suitable only for a trusted local test deployment. Do not expose the current build directly to the Internet. The API refuses to start if <code>AUTH_PASSWORD</code> or <code>AUTH_SECRET</code> are still the published sample values; set your own in <code>.env</code>. Repeated failed logins are throttled with an escalating account lockout: this is a deliberate single-admin tradeoff, so anyone who can reach the login form can temporarily lock you out — change the default <code>AUTH_USERNAME</code> and, if the instance is publicly reachable, put it behind a proxy or network policy that restricts who can POST to the login endpoint. The web container also sends HSTS, CSP, <code>X-Content-Type-Options</code>, Referrer-Policy, frame, and Permissions-Policy headers on every response; they are configurable (or disableable) through the <code>SECURITY_HEADERS_*</code> variables for proxy setups that own those headers themselves.</p>
 
 <h3>Setting up the .env file</h3>
@@ -58,10 +58,10 @@ docker compose -f docker-compose.deploy.yml up -d
 ```yaml
 PUID=1000
 PGID=1000
-API_IMAGE=shotgunwilly555/makersvault-api:latest
-WEB_IMAGE=shotgunwilly555/makersvault-web:latest
+API_IMAGE=shotgunwilly555/curiarium-api:latest
+WEB_IMAGE=shotgunwilly555/curiarium-web:latest
 FILE_STORAGE=/app/storage
-DB_URL=sqlite:///./app.db
+DB_URL=sqlite:///./curiarium.db
 API_PORT=8000
 PUBLIC_URL=
 CORS_ORIGINS=
@@ -94,18 +94,18 @@ SECURITY_HEADERS_CONTENT_TYPE_OPTIONS=
 
 <p>An empty <code>SECURITY_HEADERS_*</code> value means "keep the built-in default"; the literal value <code>off</code> omits that one header; <code>SECURITY_HEADERS_ENABLED=false</code> disables all of them (useful when an external proxy already sends its own headers).</p>
 
-<p><strong>Authentication and sessions:</strong> an access token is a 15-minute JWT (<code>AUTH_ACCESS_TOKEN_TTL</code>, default <code>900</code>) bound to a live server-side session row, so signing out, revoking the session, or disabling the user locks it out on the very next request. The refresh token is an opaque value the server stores only as a sha256 hash; each refresh rotates it once and it expires after 30 days (<code>AUTH_REFRESH_TTL_SECONDS</code>, default <code>2592000</code>). The <code>AUTH_USERNAME</code>/<code>AUTH_PASSWORD</code> environment admin is break-glass only: it is rejected as soon as a real user account exists, so a real account always wins over the published sample credentials. <code>AUTH_TOKEN_TTL</code> is deprecated and ignored; it is still read only so an old <code>.env</code> keeps starting. <strong>SSO/OIDC login is opt-in and off by default</strong> (<code>OIDC_ENABLED=false</code>); enabling it keeps local password login working, a half-configured SSO setup refuses to boot, and claims can never grant <code>admin</code> — a newly provisioned SSO user is a <code>viewer</code>, and the only escalation a claim set can produce is <code>editor</code> via <code>OIDC_EDITOR_GROUPS</code>. The ten <code>OIDC_*</code> keys, the fail-closed boot rules and the derived <code>${PUBLIC_URL}/auth/oidc/callback</code> redirect URI are documented in <a href="makervault/api/.env.example"><code>.env.example</code></a>, <a href="makervault/docs/architecture/CONFIGURATION.md">the configuration inventory</a> and <a href="makervault/docs/adr/0006-oidc-sso-flow-and-role-policy.md">ADR 0006</a>.</p>
+<p><strong>Authentication and sessions:</strong> an access token is a 15-minute JWT (<code>AUTH_ACCESS_TOKEN_TTL</code>, default <code>900</code>) bound to a live server-side session row, so signing out, revoking the session, or disabling the user locks it out on the very next request. The refresh token is an opaque value the server stores only as a sha256 hash; each refresh rotates it once and it expires after 30 days (<code>AUTH_REFRESH_TTL_SECONDS</code>, default <code>2592000</code>). The <code>AUTH_USERNAME</code>/<code>AUTH_PASSWORD</code> environment admin is break-glass only: it is rejected as soon as a real user account exists, so a real account always wins over the published sample credentials. <code>AUTH_TOKEN_TTL</code> is deprecated and ignored; it is still read only so an old <code>.env</code> keeps starting. <strong>SSO/OIDC login is opt-in and off by default</strong> (<code>OIDC_ENABLED=false</code>); enabling it keeps local password login working, a half-configured SSO setup refuses to boot, and claims can never grant <code>admin</code> — a newly provisioned SSO user is a <code>viewer</code>, and the only escalation a claim set can produce is <code>editor</code> via <code>OIDC_EDITOR_GROUPS</code>. The ten <code>OIDC_*</code> keys, the fail-closed boot rules and the derived <code>${PUBLIC_URL}/auth/oidc/callback</code> redirect URI are documented in <a href="curiarium/api/.env.example"><code>.env.example</code></a>, <a href="curiarium/docs/architecture/CONFIGURATION.md">the configuration inventory</a> and <a href="curiarium/docs/adr/0006-oidc-sso-flow-and-role-policy.md">ADR 0006</a>.</p>
 
 <p>For direct/LAN mode, set <code>VITE_API_URL</code> to a browser-reachable API URL (for example, <code>http://10.0.0.160:8000</code>).</p>
 
 <h3>Reverse Proxy Support (Any Provider)</h3>
-<p>Makers Vault is reverse-proxy agnostic. Nginx Proxy Manager, Traefik, Nginx, Caddy, HAProxy, and Apache all work.</p>
+<p>Curiarium is reverse-proxy agnostic. Nginx Proxy Manager, Traefik, Nginx, Caddy, HAProxy, and Apache all work.</p>
 <p><strong>Recommended single-host route:</strong></p>
 <ul>
-  <li>Send all paths for <code>makersvault.example</code> to <code>web:5173</code>.</li>
+  <li>Send all paths for <code>curiarium.example</code> to <code>web:5173</code>.</li>
   <li>The web container serves the UI and proxies <code>/api/*</code> internally to <code>api:8000</code>.</li>
 </ul>
-<p>A second public API hostname is optional, not required. See <a href="makervault/docs/architecture/REVERSE_PROXY.md">the reverse-proxy topology guide</a>.</p>
+<p>A second public API hostname is optional, not required. See <a href="curiarium/docs/architecture/REVERSE_PROXY.md">the reverse-proxy topology guide</a>.</p>
 
 <h4>Recommended flow for proxied setups</h4>
 <p>Start containers:</p>
@@ -117,10 +117,10 @@ docker compose -f docker-compose.deploy.yml up -d
 <ol>
   <li>Bring the stack up with Docker Compose.</li>
   <li>Configure one reverse-proxy host that sends all paths to the web service.</li>
-  <li>Set <code>PUBLIC_URL</code> in <code>.env</code> (for example, <code>https://makersvault.example.com</code>) and restart.</li>
-  <li>Open Makers Vault at your public domain.</li>
+  <li>Set <code>PUBLIC_URL</code> in <code>.env</code> (for example, <code>https://curiarium.example.com</code>) and restart.</li>
+  <li>Open Curiarium at your public domain.</li>
 </ol>
-<p>When served on standard proxy ports (80/443), Makers Vault automatically calls the API at <code>&lt;current-origin&gt;/api</code>.</p>
+<p>When served on standard proxy ports (80/443), Curiarium automatically calls the API at <code>&lt;current-origin&gt;/api</code>.</p>
 
 <h4>Environment values when using a reverse proxy</h4>
 <ul>
@@ -131,8 +131,8 @@ docker compose -f docker-compose.deploy.yml up -d
 <p>Example:</p>
 
 ```yaml
-PUBLIC_URL=https://makersvault.example.com
-CORS_ORIGINS=https://makersvault.example.com,http://10.0.0.160:5173
+PUBLIC_URL=https://curiarium.example.com
+CORS_ORIGINS=https://curiarium.example.com,http://10.0.0.160:5173
 VITE_API_URL=
 VITE_ALLOWED_HOSTS=
 ```
@@ -144,7 +144,7 @@ VITE_ALLOWED_HOSTS=
 <ul>
   <li>Login fails with CORS error: add the public domain to <code>CORS_ORIGINS</code>.</li>
   <li>UI loads but API calls 404 under <code>/api</code>: forward the path unchanged to the web container and let its Nginx proxy reach the API.</li>
-  <li>LetsEncrypt HTTP-01 challenge fails and returns app HTML: make sure external port 80 points to your reverse proxy (not directly to Makers Vault).</li>
+  <li>LetsEncrypt HTTP-01 challenge fails and returns app HTML: make sure external port 80 points to your reverse proxy (not directly to Curiarium).</li>
   <li>Public login fails while LAN/direct works: clear/avoid hardcoded private-IP <code>VITE_API_URL</code> for proxied access.</li>
 </ul>
 
@@ -153,7 +153,7 @@ VITE_ALLOWED_HOSTS=
 <h2>Contributing</h2> 
 <p>Contributions are always welcome, whether it be bug fixes or feature improvements. For large changes, please open a discussion first!</p> <h2>Feature Requests and Bug Reporting</h2> <p>For bug reports or feature improvement requests, please open an issue or start a discussion thread.</p> 
 <h2>Features, UI Walkthrough, and Supported File Types</h2> 
-<h3>Supported File Types</h3> <p>Makers Vault supports the following file types:</p>
+<h3>Supported File Types</h3> <p>Curiarium supports the following file types:</p>
 <h3>3D Print Files:</h3> 
 <ul> 
   <li>STL</li> 
@@ -171,12 +171,12 @@ VITE_ALLOWED_HOSTS=
   <li>BMP</li> 
 </ul> 
 <h3>Other File Types</h3>
-<p>Most other file types (docx, ppt, pdf, zip, etc.) are supported, but they will not render a preview. Makers Vault is mainly designed for 3D printing files, CAD, and artistic illustrations. If you need a document-focused solution, other tools may be more suitable. That said, feel free to request features if needed!</p>
+<p>Most other file types (docx, ppt, pdf, zip, etc.) are supported, but they will not render a preview. Curiarium is mainly designed for 3D printing files, CAD, and artistic illustrations. If you need a document-focused solution, other tools may be more suitable. That said, feel free to request features if needed!</p>
 <h3>Feature List</h3> 
-<p>Makers Vault is intentionally kept simple to remain user-friendly while still being feature-rich for its purpose:</p> 
+<p>Curiarium is intentionally kept simple to remain user-friendly while still being feature-rich for its purpose:</p> 
 <ul> 
   <li>Create and delete folders.</li> 
-  <li>Tag any document uploaded to Makers Vault.</li>
+  <li>Tag any document uploaded to Curiarium.</li>
   <li>Sort, search, and rename documents.</li>
   <li>Add notes to documents.</li>
   <li>Toggle between light and dark mode for better viewing of differently colored 3D models.</li>
@@ -206,7 +206,7 @@ VITE_ALLOWED_HOSTS=
 
 
 <h2>Uploading Files</h2>
-<p>Makers Vault supports both single-file, batch uploads, and drag and drop. To upload a file, click the Upload button in the top-right corner. To upload a folder, use the Upload Folder button and select the entire folder. This action can also be performed by utilizing the drag and drop function </p> 
+<p>Curiarium supports both single-file, batch uploads, and drag and drop. To upload a file, click the Upload button in the top-right corner. To upload a folder, use the Upload Folder button and select the entire folder. This action can also be performed by utilizing the drag and drop function </p> 
 
 <img width="1912" height="936" alt="Screenshot 2025-12-31 100124" src="https://github.com/user-attachments/assets/ef14d95e-fb73-4f38-a8b9-2bbb0391c326" />
 
@@ -219,7 +219,7 @@ VITE_ALLOWED_HOSTS=
 
 
 <h3>Dragging and Dropping to Upload</h3>
-<p>Files that are dragged and dropped to upload will be placed in whatever folder is currently selected. For example: You are clicked into the folder "3D prints" and drag files into Makers Vault, it will upload to that location.</p>
+<p>Files that are dragged and dropped to upload will be placed in whatever folder is currently selected. For example: You are clicked into the folder "3D prints" and drag files into Curiarium, it will upload to that location.</p>
 
 <img width="1914" height="935" alt="Screenshot 2025-12-31 100230" src="https://github.com/user-attachments/assets/4a4abbbf-ee7c-4872-b6ec-306c36b6d846" />
 
@@ -245,7 +245,7 @@ In the future there are plans to add support for more websites, but in this curr
 <img width="1903" height="934" alt="Screenshot 2025-12-31 101923" src="https://github.com/user-attachments/assets/cfb322a0-f155-4b2e-b1c5-264fef84ae9c" />
 
 <h2>Model Rendering, Tagging, and Adding Notes</h2>
-<p>Makers Vault uses static 3D preview images in each tile to keep folder browsing fast. To view a fully interactive 3D preview, double-click the tile. In the pop-up window, you can rotate and inspect the 3D model interactively by clicking and holding with your mouse and dragging.</p>
+<p>Curiarium uses static 3D preview images in each tile to keep folder browsing fast. To view a fully interactive 3D preview, double-click the tile. In the pop-up window, you can rotate and inspect the 3D model interactively by clicking and holding with your mouse and dragging.</p>
 
 <img width="1911" height="938" alt="Screenshot 2025-12-31 102102" src="https://github.com/user-attachments/assets/78b326af-d805-4054-a658-56751e9b125c" />
 
@@ -314,13 +314,13 @@ In the future there are plans to add support for more websites, but in this curr
 
 
 <h2>Slicer Bridge</h2>
-<p>For the Open in Slicer function to work, a standalone executable will need to be installed (supported for Windows and Linux). The bridge will need to be installed on any standalone machine, with the slicer installed. Example: You host Makers Vault on a Ubuntu Server but utilize the slicer on a Window's Laptop, the slicer bridge will need to be installed only once on the windows Laptop. Makers Vault is then accessed via the web browser from the Windows laptop, Open in Slicer button is clicked and the model is loaded into the Slicer of your choice.</p>
+<p>For the Open in Slicer function to work, a standalone executable will need to be installed (supported for Windows and Linux). The bridge will need to be installed on any standalone machine, with the slicer installed. Example: You host Curiarium on a Ubuntu Server but utilize the slicer on a Window's Laptop, the slicer bridge will need to be installed only once on the windows Laptop. Curiarium is then accessed via the web browser from the Windows laptop, Open in Slicer button is clicked and the model is loaded into the Slicer of your choice.</p>
 
-<a href="https://github.com/VincentCinque/MakersVault/tree/main/makervault/slicer-bridge">The Slicer Bridge can be downloaded here.</a>
+<a href="https://github.com/insanemal/curiarium/tree/main/curiarium/slicer-bridge">The Slicer Bridge can be downloaded here.</a>
 
 <h2>Model Bundles</h2>
 <p>Each model can include visible supporting files such as assembly PDFs, text notes, and other documentation. Expand <strong>Supporting files</strong> on a model card to add, download, remove, rename, or reorder them. Renaming changes only the label the file is listed under: the stored file is never moved or rewritten, so a download keeps working. New uploads join the end of the list and the order can be changed at any time. A PDF, an image (PNG, JPEG, GIF, WebP, BMP), or a text file previews inline in the browser; anything else is offered as a download only, and an SVG is always a download so it can never run as this site. Three limits apply per model - the size of each supporting file, the total size of its supporting files, and how many there are - and all three are configurable with <code>ASSET_FILE_MAX_MB</code>, <code>ASSET_FILE_TOTAL_MAX_MB</code>, and <code>ASSET_FILE_MAX_COUNT</code>; an upload that would cross a limit is refused before it is stored. Supporting documents are included when models are downloaded as a ZIP, in the list's order and under their renamed labels; when two members would land on the same name the later one gets a <code> (2)</code> suffix, so every entry extracts.</p>
-<p>Prepared print files are handled as internal model data rather than shown as downloadable attachments. When MakersVault finds prepared data in a 3MF or an added print file, the card shows the printer, material, nozzle size, slicer, and estimated time when detected, and treats any fact the file does not carry as unknown. <strong>Open in Slicer</strong> hands the supplied prepared file to the configured slicer; MakersVault never slices a model, sends it to a printer, or starts a print.</p>
+<p>Prepared print files are handled as internal model data rather than shown as downloadable attachments. When Curiarium finds prepared data in a 3MF or an added print file, the card shows the printer, material, nozzle size, slicer, and estimated time when detected, and treats any fact the file does not carry as unknown. <strong>Open in Slicer</strong> hands the supplied prepared file to the configured slicer; Curiarium never slices a model, sends it to a printer, or starts a print.</p>
 
 <h2>Settings</h2>
 <p>The settings page is available from the button at the bottom-left of the app. Sub-menus include Open in Slicer, Reverse Proxy, Themes, Storage Structure, and Imports.</p>
@@ -332,22 +332,22 @@ In the future there are plans to add support for more websites, but in this curr
 <p>The currently available themes are: System default, light, dark, neon green, neon purple, and neon blue. The themes change page accents as well as the background color.</p>
 
 <h3>Model Previews</h3>
-<p>MakersVault automatically uses embedded 3MF thumbnail artwork when available. Missing previews are generated only when their cards approach the visible area, one at a time, and are saved to the server so other browsers do not need to render them again.</p>
+<p>Curiarium automatically uses embedded 3MF thumbnail artwork when available. Missing previews are generated only when their cards approach the visible area, one at a time, and are saved to the server so other browsers do not need to render them again.</p>
 <p>The Model Previews setting offers <strong>Automatic</strong>, <strong>On demand</strong>, and <strong>Disabled</strong> modes. Saved or embedded thumbnails are always displayed. Interactive 3D viewing remains available when card generation is disabled.</p>
 
 <h3>Storage Structure</h3>
 <p>Managed files can be organized with a configurable path template. The default is <code>{folder}/{model}/{filename}</code>. The tokens the settings picker offers are <code>{folder}</code>, <code>{tags}</code>, <code>{creator}</code>, <code>{model}</code>, <code>{name}</code>, <code>{filename}</code>, and <code>{id}</code>. The template must contain <code>{filename}</code> in its final path segment.</p>
 <p><code>{collection}</code> is deprecated. Templates that already contain it keep working and render <code>Uncollected</code> for new files, but collections are no longer offered anywhere in the UI; use Projects to group files. Existing managed files are never moved because of this change.</p>
-<p>Model names are unique inside each MakerVault folder. Renaming a model renames the stored file while preserving its extension, and the inline editor strips one typed extension when it matches the stored file, so a rename cannot double the extension. The path template applies only to new uploads and imports; existing files are never moved because of a template change. Use <strong>Rescan storage folder</strong> to register files you copied into the storage folder with another tool.</p>
+<p>Model names are unique inside each Curiarium folder. Renaming a model renames the stored file while preserving its extension, and the inline editor strips one typed extension when it matches the stored file, so a rename cannot double the extension. The path template applies only to new uploads and imports; existing files are never moved because of a template change. Use <strong>Rescan storage folder</strong> to register files you copied into the storage folder with another tool.</p>
 <p>Upstream issue #27 is addressed: unique-per-folder name editing that renames the file, a configurable storage template, tags, and a validated creator are all available, while collections are retired in favour of Projects per ADR 0003.</p>
 
 <h2>Imports Settings</h2>
 <p>Mounted imports now keep a run history in the API. Settings → Imports shows the latest attempt with live progress and its errors, and the API exposes the newest 50 at <code>GET /imports/runs</code>; a run left unfinished by a restart is marked interrupted. Skipped runs (missing path, mount overlapping storage) say why they did nothing. Only mounted imports are recorded; storage rescans remain log-only.</p>
 <p>MakerWorld limits anonymous downloads (currently 5). Import from Link uses that anonymous access, so a few imports can exhaust the allowance. The optional session cookie field in the import settings exists only to lift that anonymous rate limit for free, public models. It is a rate-limit workaround, not a way to reach anything else.</p>
 
-<p>MakersVault never downloads paid or account-gated files. Files that need a purchase or a signed-in account are supplied by you: download them yourself, then upload the files (or a zip of them) so they are attached to the model. Pointing the importer at a recognised paid or checkout URL is refused with that instruction before any request is made to the site.</p>
+<p>Curiarium never downloads paid or account-gated files. Files that need a purchase or a signed-in account are supplied by you: download them yourself, then upload the files (or a zip of them) so they are attached to the model. Pointing the importer at a recognised paid or checkout URL is refused with that instruction before any request is made to the site.</p>
 
-<p><strong>Storage:</strong> by default the cookie is kept in this tab and forgotten when the tab closes. Tick <strong>Remember import cookies on this device</strong> to keep it in this browser instead. Your browser only ever sends this value to your own MakersVault API.</p>
+<p><strong>Storage:</strong> by default the cookie is kept in this tab and forgotten when the tab closes. Tick <strong>Remember import cookies on this device</strong> to keep it in this browser instead. Your browser only ever sends this value to your own Curiarium API.</p>
 
 <p><strong>Server side:</strong> the API attaches the cookie to an outbound request only when it is fetching from makerworld.com (or a subdomain) or thingiverse.com, drops it on a cross-origin redirect, and never logs the value. An operator can instead (or additionally) set <code>MAKERWORLD_COOKIE</code> or <code>THINGIVERSE_COOKIE</code> for the API process; the same host restriction applies.</p>
 

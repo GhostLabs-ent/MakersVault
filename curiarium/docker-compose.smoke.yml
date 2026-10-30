@@ -1,0 +1,12 @@
+# Verification-only overlay. It replaces bind-mounted runtime data with
+# project-scoped named volumes that the smoke script removes on exit.
+services:
+  api:
+    volumes:
+      - curiarium_smoke_storage:/app/storage
+      - curiarium_smoke_db:/app/data
+      - ./api:/app
+
+volumes:
+  curiarium_smoke_storage:
+  curiarium_smoke_db:

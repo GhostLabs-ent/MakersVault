@@ -1,6 +1,6 @@
 # Audit log (Mf-s3z0)
 
-MakerVault records every destructive, administrative and identity-changing action
+Curiarium records every destructive, administrative and identity-changing action
 in one append-only table. The table is the record; the API is the only writer.
 
 ## What it is
@@ -9,8 +9,8 @@ One mechanism, in three parts:
 
 | Part | Where | What it does |
 |---|---|---|
-| one table | `audit_events`, created by migration 006 (`makervault/api/migrations.py`, `_migration_006_audit_log`) | every row is one action on one target, never updated or deleted |
-| one emission point | `audit.stage(session, ctx, *events)` in `makervault/api/audit.py` | adds the row(s) to the mutation's own session; the caller commits |
+| one table | `audit_events`, created by migration 006 (`curiarium/api/migrations.py`, `_migration_006_audit_log`) | every row is one action on one target, never updated or deleted |
+| one emission point | `audit.stage(session, ctx, *events)` in `curiarium/api/audit.py` | adds the row(s) to the mutation's own session; the caller commits |
 | one drift guard | `audit.assert_audit_coverage()` in `main.lifespan` | refuses to boot when a mutating route is neither audited nor exempt with a reason |
 
 `audit.record(*events, ctx=...)` is the second emission function and exists for
@@ -35,12 +35,12 @@ Files involved:
 
 | File | Role |
 |---|---|
-| `makervault/api/audit.py` | taxonomy, `ROUTE_ACTIONS`, `EXEMPT_ROUTES`, `stage`, `record`, `list_events`, the drift guard |
-| `makervault/api/request_id.py` | one request id per request (`X-Request-ID` middleware) |
-| `makervault/api/models.py` | `AuditEvent`, describing the migration-created table (no `create_all` in this codebase) |
-| `makervault/api/schemas/audit_log.py` | `AuditEventOut`, `AuditListOut` |
-| `makervault/api/main.py` | `GET /audit`, the lifespan guard, and the emission call sites |
-| `makervault/web/src/ui/AuditLog.tsx` | the admin view behind the sidebar "Audit log" button |
+| `curiarium/api/audit.py` | taxonomy, `ROUTE_ACTIONS`, `EXEMPT_ROUTES`, `stage`, `record`, `list_events`, the drift guard |
+| `curiarium/api/request_id.py` | one request id per request (`X-Request-ID` middleware) |
+| `curiarium/api/models.py` | `AuditEvent`, describing the migration-created table (no `create_all` in this codebase) |
+| `curiarium/api/schemas/audit_log.py` | `AuditEventOut`, `AuditListOut` |
+| `curiarium/api/main.py` | `GET /audit`, the lifespan guard, and the emission call sites |
+| `curiarium/web/src/ui/AuditLog.tsx` | the admin view behind the sidebar "Audit log" button |
 
 ## Why migration 6 was needed
 
@@ -176,7 +176,7 @@ change more than one fact or act on more than one target:
 
 The three destructive operations - deleting a folder, purging the trash and
 deleting a selection of assets in one request - share one seam,
-`makervault/api/snapshot_guard.py`. It asks `storage_capabilities.detect()`
+`curiarium/api/snapshot_guard.py`. It asks `storage_capabilities.detect()`
 whether the library volume can snapshot, takes one through S2's provider layer
 when it can, and writes exactly one `destructive.snapshot_taken` or
 `destructive.snapshot_missed` row either way. A single-asset delete takes no
@@ -428,13 +428,13 @@ failing, and `GET /audit` answers 200 in that mode like every other route
 or hash reaches `actor`, `target` or `detail`: `login.succeeded` records the
 username, the login kind and the client IP, and nothing from the request body.
 The do-not-log list is
-`makervault/docs/MakersVault_v5.1_Security_Analysis.md` section 9 ("Audit
+`curiarium/docs/Curiarium_v5.1_Security_Analysis.md` section 9 ("Audit
 Logging"): passwords, JWTs, session cookies, MakerWorld cookies, Thingiverse
 cookies, MFA secrets, recovery codes.
 
 ## Request ids
 
-`makervault/api/request_id.py` assigns one id per request, before any route
+`curiarium/api/request_id.py` assigns one id per request, before any route
 dependency runs, and echoes it back.
 
 | Property | Behaviour |
@@ -500,7 +500,7 @@ covers the filters, paging and ordering;
 viewer and 401 for anonymous.
 
 **The web client is not the security boundary.** As of Mf-5tyz the client holds
-the role `/me` last reported (`makervault/web/src/lib/auth.ts`,
+the role `/me` last reported (`curiarium/web/src/lib/auth.ts`,
 `ui/useSessionRole.ts`), so the sidebar "Audit log" entry and the admin-only
 settings entries are hidden below `admin` and a direct visit to the audit view
 renders a not-permitted state (`ui/NotPermitted.tsx`) instead of the raw 403.

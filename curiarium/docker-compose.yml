@@ -1,0 +1,62 @@
+services:
+  api:
+    build: ./api
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - FILE_STORAGE=/app/storage
+      - DB_URL=sqlite:////app/data/curiarium.db
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173}
+      # Local source build only. The published sample credentials are accepted
+      # here so `docker compose up` works out of the box; never expose this
+      # manifest to a network you do not control.
+      - AUTH_USERNAME=${AUTH_USERNAME:-admin}
+      - AUTH_PASSWORD=${AUTH_PASSWORD:-super-secret}
+      - AUTH_SECRET=${AUTH_SECRET:-changeme-secret}
+      - AUTH_ALLOW_INSECURE_DEFAULTS=${AUTH_ALLOW_INSECURE_DEFAULTS:-1}
+      # Login throttling. Repeated failed logins lock the single admin account
+      # out with escalating backoff.
+      - LOGIN_THROTTLE_ENABLED=${LOGIN_THROTTLE_ENABLED:-true}
+      - LOGIN_MAX_FAILURES=${LOGIN_MAX_FAILURES:-5}
+      - LOGIN_FAILURE_WINDOW_SECONDS=${LOGIN_FAILURE_WINDOW_SECONDS:-900}
+      - LOGIN_LOCKOUT_SECONDS=${LOGIN_LOCKOUT_SECONDS:-300}
+      - LOGIN_MAX_LOCKOUT_SECONDS=${LOGIN_MAX_LOCKOUT_SECONDS:-3600}
+      # OIDC / SSO is opt-in and off by default; local password login keeps
+      # working when it is on. A half-configuration refuses to boot. See
+      # api/.env.example for the keys and the validator's rules.
+      - OIDC_ENABLED=${OIDC_ENABLED:-false}
+      - OIDC_ISSUER=${OIDC_ISSUER:-}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-}
+      - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET:-}
+      - OIDC_SCOPES=${OIDC_SCOPES:-openid profile email}
+      - OIDC_GROUPS_CLAIM=${OIDC_GROUPS_CLAIM:-groups}
+      - OIDC_ALLOWED_GROUPS=${OIDC_ALLOWED_GROUPS:-}
+      - OIDC_ALLOWED_DOMAINS=${OIDC_ALLOWED_DOMAINS:-}
+      - OIDC_EDITOR_GROUPS=${OIDC_EDITOR_GROUPS:-}
+      - OIDC_ADMIN_GROUPS=${OIDC_ADMIN_GROUPS:-}
+    volumes:
+      - ./data/storage:/app/storage
+      - ./data/db:/app/data
+      - ./api:/app
+  web:
+    build: ./web
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+    environment:
+      # IMPORTANT: This URL must be reachable by the browser, not by the container.
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+      - PUBLIC_URL=${PUBLIC_URL:-}
+      - VITE_ALLOWED_HOSTS=${VITE_ALLOWED_HOSTS:-}
+      # Security headers emitted by the bundled Nginx. Empty means "use the
+      # built-in default"; the literal value `off` omits that header.
+      - SECURITY_HEADERS_ENABLED=${SECURITY_HEADERS_ENABLED:-true}
+      - SECURITY_HEADERS_HSTS=${SECURITY_HEADERS_HSTS:-}
+      - SECURITY_HEADERS_CSP=${SECURITY_HEADERS_CSP:-}
+      - SECURITY_HEADERS_REFERRER_POLICY=${SECURITY_HEADERS_REFERRER_POLICY:-}
+      - SECURITY_HEADERS_FRAME_OPTIONS=${SECURITY_HEADERS_FRAME_OPTIONS:-}
+      - SECURITY_HEADERS_PERMISSIONS_POLICY=${SECURITY_HEADERS_PERMISSIONS_POLICY:-}
+      - SECURITY_HEADERS_CONTENT_TYPE_OPTIONS=${SECURITY_HEADERS_CONTENT_TYPE_OPTIONS:-}
+    depends_on:
+      - api

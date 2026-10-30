@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+Dockerfile
+.git
+.gitignore
+.gitattributes
+__pycache__
+.env
+data
+api/curiarium.db
+api/storage
+web/dist
+slicer-bridge/slicer-bridge
+slicer-bridge/slicer-bridge.exe

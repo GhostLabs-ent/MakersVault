@@ -1,0 +1,21 @@
+Curiarium
+=========
+
+Curiarium is a fork of MakersVault (https://github.com/GhostLabs-ent/MakersVault),
+originally by VincentCinque, MIT licensed. The upstream copyright notice is
+retained verbatim in LICENSE; this notice records the relationship so the
+attribution travels with the code.
+
+Substantially reworked in this fork, including: filesystem-authoritative folders
+and root scanning, trash-backed destructive operations, filesystem snapshot
+support (CephFS/ZFS/BTRFS), a per-route permission matrix with boot guards, an
+append-only audit log enforced by database triggers, users/roles/OIDC/MFA/session
+management, signed file grants replacing bearer tokens in URLs, streamed uploads,
+and the project/membership layer.
+
+Upstream work is ported by hand, one ticket at a time, and is not merged or
+rebased: the two trees diverged deliberately (see docs/TICKET_WORKFLOW.md and the
+fork-stance ticket in the local ticket store).
+
+No trademark rights are claimed over "MakersVault"; "Curiarium" is this fork's
+own name.

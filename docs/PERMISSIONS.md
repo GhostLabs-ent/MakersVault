@@ -1,6 +1,6 @@
 # Roles and permissions (Mf-2nbc)
 
-MakerVault enforces three roles server-side, on every route. The web client is
+Curiarium enforces three roles server-side, on every route. The web client is
 not part of the security boundary: anything it hides (or forgets to hide) is
 still refused by the API.
 
@@ -47,7 +47,7 @@ policy and reading the scheduler status are admin on both sides.
 
 ## How enforcement works
 
-`makervault/api/permissions.py` is the only mechanism. Each guarded route names
+`curiarium/api/permissions.py` is the only mechanism. Each guarded route names
 its level in the signature:
 
 ```python
@@ -60,7 +60,7 @@ then call `permissions.authorize(request, context, level)`, which raises 403
 when the principal's role does not reach the level. `require_auth` reads the
 `Authorization: Bearer` header and nothing else: `?token=` was retired with the
 file grants, so a session token in the query string is a 401 on every route,
-the four file routes included. Two tests pin that in `makervault/api`:
+the four file routes included. Two tests pin that in `curiarium/api`:
 `tests/test_auth_users.py::test_query_token_no_longer_authorizes` and
 `tests/test_file_grants.py::test_a_session_token_in_the_query_is_retired_on_every_file_route`.
 The declaration *is* the enforcement: there is no second place to look for a
@@ -117,16 +117,16 @@ mutating route is neither audited nor exempt with a reason. See
 ### File grants (`?sig=`)
 
 A URL credential still exists because a browser surface cannot carry a header:
-an `<img>` preview, an `<a download>` and the `makersvault-slicer://` OS
+an `<img>` preview, an `<a download>` and the `curiarium-slicer://` OS
 handoff are navigations, not fetches, and none of them can set `Authorization`.
 What travels in the query now is not a session token but a **grant**:
 
 * signed with a domain-separated subkey (`auth.file_grant_key()`): HMAC-SHA256
-  over `AUTH_SECRET` with the info string `makervault/file-grant/v1`, so a grant
+  over `AUTH_SECRET` with the info string `curiarium/file-grant/v1`, so a grant
   never verifies as a session token and a session token never verifies as a
   grant;
 * one path (`p`), read-only (`scope="file:read"`, `typ="file-grant"`,
-  `aud="makervault:file-grant"`), 60 seconds (`FILE_GRANT_TTL_SECONDS`), with
+  `aud="curiarium:file-grant"`), 60 seconds (`FILE_GRANT_TTL_SECONDS`), with
   the verifier independently refusing any grant whose `exp - iat` exceeds 300
   (`FILE_GRANT_MAX_TTL_SECONDS`);
 * bound to a live session (`sid`), so signing out invalidates every outstanding
@@ -149,7 +149,7 @@ file is a 404. `POST /file-grants` is in `ROUTE_PERMISSIONS` as READ and in
 mutates nothing". It also answers 200 when `AUTH_ENABLED` is false, minting with
 `sid=None`, unlike the token endpoints that 503.
 
-Log posture: `web/nginx.conf` declares `log_format makervault` and binds it with
+Log posture: `web/nginx.conf` declares `log_format curiarium` and binds it with
 `access_log`; the format rebuilds the request line from `$request_method`,
 `$uri` and `$server_protocol` (never `$request`), so the query never reaches the
 access log, and adds the query-free `$upstream_addr`/`$upstream_status`. The same
@@ -161,7 +161,7 @@ that guarantee. `api/Dockerfile` runs uvicorn with `--no-access-log`, and
 through the live proxy, then stops the API and sends the same query shape again,
 failing if the canary, `?token=` or `?sig=` appears in any container log. The
 design, its residual risks and its rollback are in
-[ADR 0005](../makervault/docs/adr/0005-file-grant-urls.md).
+[ADR 0005](../curiarium/docs/adr/0005-file-grant-urls.md).
 
 ### OIDC / external identity (Mf-4c24)
 
@@ -202,7 +202,7 @@ becomes a permission:
 
 The flow, the claim policy, the threat model and the in-process-store limitation
 are in
-[ADR 0006](../makervault/docs/adr/0006-oidc-sso-flow-and-role-policy.md).
+[ADR 0006](../curiarium/docs/adr/0006-oidc-sso-flow-and-role-policy.md).
 
 ## The route matrix
 
@@ -350,7 +350,7 @@ still proves the client is deleting exactly the rows it showed the user.
   immediately. The four file routes additionally accept a `?sig=` grant (see
   "File grants" above). Session lifecycle (rotation, the 60-second grace window
   and refresh replay) is described in
-  [ADR 0007](../makervault/docs/adr/0007-session-lifecycle-and-refresh-replay.md).
+  [ADR 0007](../curiarium/docs/adr/0007-session-lifecycle-and-refresh-replay.md).
 * **Break-glass admin**: the env credentials authenticate as the `admin` role -
   but only while the users table is **empty**. The first `POST /users` revokes
   the break-glass sessions in the same transaction as the insert, and after that
@@ -368,7 +368,7 @@ Two-factor is TOTP (RFC 6238: HMAC-SHA1, six digits, thirty-second steps) and it
 is self-service: every `/mfa*` route is READ, because it acts on the caller's own
 account exactly like `/me/sessions`, while the admin-wide policy is one ADMIN
 route. The design and its threat model are in
-[ADR 0008](../makervault/docs/adr/0008-mfa-totp-enrolment.md).
+[ADR 0008](../curiarium/docs/adr/0008-mfa-totp-enrolment.md).
 
 **The policy.** `mfa_require_admin` is an appconfig setting, `false` by default,
 and `POST /settings/mfa` (`{"require_admin": true|false}`) is the only way to
@@ -579,4 +579,4 @@ one nullable column to `sessions` (`mfa_verified_at`, the per-session proof the
 admin policy reads), and a `mfa_recovery_codes` table with a unique
 `(user_id, code_hmac)` index. Every object is `IF NOT EXISTS`/`_add_column`
 guarded, so re-applying 012 is harmless. The schema and the reasoning are in
-[ADR 0008](../makervault/docs/adr/0008-mfa-totp-enrolment.md).
+[ADR 0008](../curiarium/docs/adr/0008-mfa-totp-enrolment.md).

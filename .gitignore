@@ -46,17 +46,17 @@ yarn-debug.log*
 yarn-error.log*
 
 # Go and desktop bridge build output
-makervault/slicer-bridge/slicer-bridge
-makervault/slicer-bridge/slicer-bridge.exe
-makervault/slicer-bridge/bin/
-makervault/slicer-bridge/build/
-makervault/slicer-bridge/dist/
+curiarium/slicer-bridge/slicer-bridge
+curiarium/slicer-bridge/slicer-bridge.exe
+curiarium/slicer-bridge/bin/
+curiarium/slicer-bridge/build/
+curiarium/slicer-bridge/dist/
 
-# MakersVault runtime content
-makervault/data/
-makervault/imports/
-makervault/api/storage/
-makervault/storage/
+# Curiarium runtime content
+curiarium/data/
+curiarium/imports/
+curiarium/api/storage/
+curiarium/storage/
 
 # IDE, operating-system, and temporary files
 .idea/
