@@ -67,6 +67,12 @@ The P0 findings below should be treated as part of the v5.1 release gate.
 
 This review focused on the security-sensitive portions of the current MakersVault repository:
 
+> **Source-tree note (2026-10-30):** The tree below is the `80ddc5bb` snapshot
+> as reviewed and is kept byte-for-byte. Its `api/schemas.py` entry is now
+> `makervault/api/schemas/` and its `web/src/lib/api.ts` entry is now
+> `makervault/web/src/lib/api/` (batch 15: `Mf-avo9` `29330d6`, `Mf-h8kp`
+> `fcbe4e0`, 2026-10-29); other entries have also since moved or been split.
+
 ```text
 makervault/api/
 ├── auth.py

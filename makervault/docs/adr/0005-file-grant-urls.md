@@ -12,6 +12,22 @@ import-cookie decision (MV-SEC-017) and its `localStorage` risk acceptance
 **Implementation:** ticket `M3-7bb7`; error-log closure in `Mf-c80i`;
 deferred-interaction re-mint in `Mf-1vxh`.
 
+**Path note (2026-10-30):** The paths quoted below are accurate as written on
+2026-10-29 and are left unchanged; one of them has since moved. Batch 15 landed
+that evening, after this ADR was accepted: `Mf-h8kp` (`fcbe4e0`, 2026-10-29)
+split `web/src/lib/api.ts` into `makervault/web/src/lib/api/`. Every reference to
+that file in this record therefore now resolves against the package: the
+transport injection `configureGrantMinter(mintFileGrants)` is at
+`makervault/web/src/lib/api/grants.ts:31`, `fileUrl` and `assetFilePreviewUrl`
+are at `makervault/web/src/lib/api/mediaUrls.ts:15` and `:27`, and
+`downloadAsset` is at `makervault/web/src/lib/api/downloads.ts:35`;
+`fileUrl`, `assetFilePreviewUrl`, `downloadAsset` and `mintFileGrants` are
+re-exported from the `makervault/web/src/lib/api/index.ts` barrel
+(`configureGrantMinter` itself stays in `web/src/lib/fileGrants.ts`, from where
+`grants.ts` imports it), which is also what the later `web/src/lib/api`
+reference in the deferred-interaction material names — that one is the package
+path, not the deleted file, so it still resolves as written.
+
 ## Context
 
 Some file loads are navigations, not fetches. An `<img>` thumbnail, an
