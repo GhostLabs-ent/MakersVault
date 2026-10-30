@@ -144,7 +144,10 @@ def test_fresh_database_reaches_the_latest_schema(tmp_path: Path) -> None:
 
     assert shipped_ledger_entries(database_engine) == SHIPPED_LEDGER
     assert set(table_columns(database_engine, "users")) == USERS_COLUMNS
-    assert set(table_columns(database_engine, "sessions")) == SESSIONS_COLUMNS
+    # A subset, not equality: later append-only migrations add columns to
+    # `sessions` (011 adds the rotation history), and this test is about 005
+    # still shipping every column it promised, not about freezing the table.
+    assert SESSIONS_COLUMNS.issubset(set(table_columns(database_engine, "sessions")))
     assert NEW_INDEXES.issubset(index_names(database_engine))
 
 

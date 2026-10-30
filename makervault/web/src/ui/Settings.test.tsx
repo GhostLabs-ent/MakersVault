@@ -12,18 +12,23 @@ vi.mock("../lib/api", () => ({
   getStorageCapabilities: vi.fn(async () => ({ volumes: [] })),
   getStorageSettings: vi.fn(),
   getTrash: vi.fn(async () => ({ entries: [], total_size: 0 })),
+  listSessions: vi.fn(async () => []),
+  listUserSessions: vi.fn(),
   purgeTrash: vi.fn(),
+  revokeSession: vi.fn(),
+  revokeUserSession: vi.fn(),
   startLibraryScan: vi.fn(),
   updateMountImportSettings: vi.fn(),
   updateStorageSettings: vi.fn(),
 }));
 
 import Settings from "./settings/Settings";
-import { getMountImportSettings, getStorageSettings, updateStorageSettings } from "../lib/api";
+import { getMountImportSettings, getStorageSettings, listSessions, updateStorageSettings } from "../lib/api";
 import type { AppSettings } from "../lib/settings";
 
 const getMountImportSettingsMock = vi.mocked(getMountImportSettings);
 const getStorageSettingsMock = vi.mocked(getStorageSettings);
+const listSessionsMock = vi.mocked(listSessions);
 const updateStorageSettingsMock = vi.mocked(updateStorageSettings);
 
 const settings: AppSettings = {
@@ -188,5 +193,25 @@ describe("Settings role gating", () => {
 
     expect(await screen.findByText("Administrator access required.")).toBeTruthy();
     expect(screen.queryByDisplayValue("{folder}/{model}/{filename}")).toBeNull();
+  });
+});
+
+describe("Settings sessions", () => {
+  beforeEach(() => {
+    listSessionsMock.mockReset();
+    listSessionsMock.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("opens the sessions section for a viewer and loads the device list once", async () => {
+    render(<Settings settings={settings} onChange={() => {}} role="viewer" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Sessions/ }));
+
+    expect(await screen.findByText("Devices signed in to this account.")).toBeTruthy();
+    expect(listSessionsMock).toHaveBeenCalledTimes(1);
   });
 });

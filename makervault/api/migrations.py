@@ -581,6 +581,32 @@ def _migration_010_oidc_identities(conn: Connection) -> None:
     )
 
 
+def _migration_011_session_rotation_history(conn: Connection) -> None:
+    """Give refresh rotation one generation of history (Mf-7op4).
+
+    Only a hash is kept, never a token: `previous_refresh_token_hash` holds the
+    sha256 of the refresh token that the last rotation superseded, exactly as
+    `refresh_token_hash` holds the current one. One generation is enough for
+    the grace window - a tab that wakes with the token it slept with can rotate
+    once more - and keeping more would widen the window in which an old token
+    is still interchangeable with the victim's live one.
+
+    The new column is deliberately **not unique**: it only ever holds a hash
+    that has already been replaced, so a second row carrying the same value
+    would be a bug elsewhere, not a state the schema needs to refuse. The
+    current hash keeps its unique index from migration 005.
+
+    `_add_column` is guarded by `PRAGMA table_info`, so re-applying 011 is
+    harmless, like 004-010.
+    """
+    _add_column(conn, "sessions", "previous_refresh_token_hash", "TEXT")
+    _add_column(conn, "sessions", "rotated_at", "INTEGER")
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_sessions_previous_refresh_token_hash "
+        "ON sessions(previous_refresh_token_hash)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
@@ -592,6 +618,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(8, "import_run_history", _migration_008_import_run_history),
     Migration(9, "asset_file_order", _migration_009_asset_file_order),
     Migration(10, "oidc_identities", _migration_010_oidc_identities),
+    Migration(11, "session_rotation_history", _migration_011_session_rotation_history),
 )
 
 

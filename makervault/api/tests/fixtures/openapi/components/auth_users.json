@@ -143,6 +143,81 @@
     "title": "RefreshRequest",
     "type": "object"
   },
+  "SessionOut": {
+    "description": "One active session, as the owner or an administrator may see it.\n\nTimestamps are epoch seconds because the client renders relative times\n(\"last used 3 minutes ago\"), which would need a second parse from an ISO\nstring. Neither refresh hash is ever part of this contract: that is a\nsecurity boundary, not an oversight, so the model has no field for either and\nthe handler never passes one.",
+    "properties": {
+      "client_ip": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Client Ip"
+      },
+      "created_at": {
+        "title": "Created At",
+        "type": "integer"
+      },
+      "current": {
+        "title": "Current",
+        "type": "boolean"
+      },
+      "device": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Device"
+      },
+      "id": {
+        "title": "Id",
+        "type": "string"
+      },
+      "kind": {
+        "title": "Kind",
+        "type": "string"
+      },
+      "last_used_at": {
+        "title": "Last Used At",
+        "type": "integer"
+      },
+      "user_agent": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "User Agent"
+      },
+      "username": {
+        "title": "Username",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "username",
+      "kind",
+      "device",
+      "user_agent",
+      "client_ip",
+      "created_at",
+      "last_used_at",
+      "current"
+    ],
+    "title": "SessionOut",
+    "type": "object"
+  },
   "UserCreate": {
     "properties": {
       "email": {

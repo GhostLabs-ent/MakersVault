@@ -185,6 +185,7 @@ class Ids:
     admin_token: str
     editor_token: str
     viewer_token: str
+    admin_refresh_token: str
     admin_id: str
     editor_id: str
     viewer_id: str
@@ -252,6 +253,7 @@ def seed_library(client: TestClient, headers: dict[str, str]) -> Ids:
         admin_token="",
         editor_token="",
         viewer_token="",
+        admin_refresh_token="",
         admin_id="",
         editor_id="",
         viewer_id="",
@@ -286,6 +288,7 @@ def ids(client: TestClient) -> Ids:
         admin_token=admin_session["token"],
         editor_token=editor_session["token"],
         viewer_token=viewer_session["token"],
+        admin_refresh_token=admin_session["refresh_token"],
         admin_id=admin["id"],
         editor_id=editor["id"],
         viewer_id=viewer["id"],
@@ -334,6 +337,32 @@ def call_oidc_exchange(client, headers, ids, monkeypatch) -> Response:
     monkeypatch.setenv("PUBLIC_URL", "https://vault.example.com")
     code = oidc.park_handoff({"sub": "audit-sweep-subject", "preferred_username": "sso-sweep", "groups": []})
     return client.post("/auth/oidc/exchange", json={"code": code}, headers=headers)
+
+
+def call_refresh(client, headers, ids, monkeypatch) -> Response:
+    """Drive the grace path: it is the only refresh path the sweep may see.
+
+    The first presentation rotates silently (a normal refresh writes no row);
+    the second presents the same token inside the grace window, which is the
+    one refresh outcome worth a row.
+    """
+    client.post("/refresh", json={"refresh_token": ids.admin_refresh_token})
+    return client.post("/refresh", json={"refresh_token": ids.admin_refresh_token}, headers=headers)
+
+
+def call_delete_own_session(client, headers, ids, monkeypatch) -> Response:
+    """Delete one of the admin's *other* sessions, never the sweep's own."""
+    login(client, ADMIN_USERNAME, ADMIN_PASSWORD)
+    listing = ok(client.get("/me/sessions", headers=headers)).json()
+    target = next(row for row in listing if not row["current"])
+    return client.delete(f"/me/sessions/{target['id']}", headers=headers)
+
+
+def call_admin_delete_session(client, headers, ids, monkeypatch) -> Response:
+    """Revoke a freshly created viewer session, leaving the fixture's alone."""
+    viewer_session = login(client, VIEWER_USERNAME, VIEWER_PASSWORD)
+    sid = auth.decode_access_token(viewer_session["token"])["sid"]
+    return client.delete(f"/sessions/{sid}", headers=headers)
 
 
 def call_delete_asset(client, headers, ids, monkeypatch) -> Response:
@@ -497,7 +526,10 @@ def call_delete_project(client, headers, ids, monkeypatch) -> Response:
 
 CALLS: dict[tuple[str, str], CallSpec] = {
     ("POST", "/login"): call_login,
+    ("POST", "/refresh"): call_refresh,
     ("POST", "/auth/oidc/exchange"): call_oidc_exchange,
+    ("DELETE", "/me/sessions/{session_id}"): call_delete_own_session,
+    ("DELETE", "/sessions/{session_id}"): call_admin_delete_session,
     ("DELETE", "/asset/{asset_id}"): call_delete_asset,
     ("POST", "/assets/batch/delete"): call_batch_delete,
     ("POST", "/asset/{asset_id}/rename"): call_rename_asset,
@@ -562,6 +594,45 @@ def test_every_audited_route_emits_one_of_its_actions(client, ids, key, monkeypa
     assert row.actor_user_id == ids.admin_id
     assert row.actor_role == "admin"
     assert row.actor_kind == "password"
+
+
+def test_a_replayed_refresh_token_revokes_the_session_and_writes_its_own_row(
+    client: TestClient, ids: Ids
+) -> None:
+    """The replay 401 path is deliberately outside the sweep.
+
+    The sweep asserts every audited route answers `< 400`; this route's audited
+    outcome *is* the 401, so it needs its own test. The revoke and the row must
+    both be committed before the exception unwinds the handler's transaction.
+    """
+    value = request_id_for("replay")
+    sid = auth.decode_access_token(ids.admin_token)["sid"]
+    first = client.post("/refresh", json={"refresh_token": ids.admin_refresh_token})
+    assert first.status_code == 200, first.text
+    with Session(engine) as db_session:
+        row = db_session.get(UserSession, sid)
+        assert row is not None
+        row.rotated_at = sessions._now() - sessions.REFRESH_GRACE_SECONDS - 1
+        db_session.commit()
+
+    replayed = client.post(
+        "/refresh",
+        json={"refresh_token": ids.admin_refresh_token},
+        headers={REQUEST_ID_HEADER: value},
+    )
+
+    assert replayed.status_code == 401
+    rows = events_for(value)
+    assert [row.action for row in rows] == [audit.SESSION_REFRESH_REPLAYED]
+    row = rows[0]
+    assert row.actor == ADMIN_USERNAME
+    assert row.actor_user_id == ids.admin_id
+    assert row.target == sid
+    assert "client_ip" in json.loads(row.detail_json or "{}")
+    with Session(engine) as db_session:
+        stored = db_session.get(UserSession, sid)
+        assert stored is not None and stored.revoked_at is not None
+    assert client.get("/assets", headers=bearer(ids.admin_token)).status_code == 401
 
 
 # --- what the row says ---------------------------------------------------------

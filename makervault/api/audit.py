@@ -84,6 +84,17 @@ SNAPSHOT_SCHEDULE_SKIPPED = "snapshot.schedule.skipped"
 SNAPSHOT_SCHEDULE_FAILED = "snapshot.schedule.failed"
 DESTRUCTIVE_SNAPSHOT_TAKEN = "destructive.snapshot_taken"
 DESTRUCTIVE_SNAPSHOT_MISSED = "destructive.snapshot_missed"
+SESSION_REVOKE = "session.revoke"
+SESSION_ADMIN_REVOKE = "session.admin_revoke"
+# A normal refresh changes nothing worth a row: the same session, a fresh token.
+# Only the two decisions that matter - the grace window being used and a
+# previous-generation token being replayed - write anything. Both carry the
+# client ip and the sid, never a token or a hash.
+SESSION_REFRESH_GRACED = "session.refresh_graced"
+SESSION_REFRESH_REPLAYED = "session.refresh_replayed"
+# ACTIONS-only, like the scheduler's pair: `session_prune.run_once` is a
+# background thread with no route, so no ROUTE_ACTIONS tuple may name it.
+SESSION_PRUNE = "session.prune"
 
 ACTIONS: frozenset[str] = frozenset({
     ASSET_DELETE,
@@ -118,6 +129,11 @@ ACTIONS: frozenset[str] = frozenset({
     SNAPSHOT_SCHEDULE_FAILED,
     DESTRUCTIVE_SNAPSHOT_TAKEN,
     DESTRUCTIVE_SNAPSHOT_MISSED,
+    SESSION_REVOKE,
+    SESSION_ADMIN_REVOKE,
+    SESSION_REFRESH_GRACED,
+    SESSION_REFRESH_REPLAYED,
+    SESSION_PRUNE,
 })
 
 
@@ -310,6 +326,12 @@ ROUTE_ACTIONS: dict[tuple[str, str], tuple[str, ...]] = {
     ("POST", "/users"): (USER_CREATE,),
     ("PATCH", "/users/{user_id}"): (USER_ROLE_CHANGE, USER_DISABLE, USER_ENABLE),
     ("POST", "/library/scan"): (LIBRARY_SCAN_START,),
+    # Silent on the normal path, audited on the two paths that say something
+    # happened: the grace window was used, or a previous-generation token was
+    # replayed and the session revoked.
+    ("POST", "/refresh"): (SESSION_REFRESH_GRACED, SESSION_REFRESH_REPLAYED),
+    ("DELETE", "/me/sessions/{session_id}"): (SESSION_REVOKE,),
+    ("DELETE", "/sessions/{session_id}"): (SESSION_ADMIN_REVOKE,),
 }
 
 # Mutating routes that are deliberately NOT audited, each with the reason. The
@@ -331,7 +353,6 @@ EXEMPT_ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/projects"): "creates a project",
     ("POST", "/project/{project_id}/assets"): "membership edit; deletes no files or asset rows",
     ("DELETE", "/project/{project_id}/assets"): "membership edit; deletes no files or asset rows",
-    ("POST", "/refresh"): "session-token bookkeeping; the abusable surface is POST /login",
     ("POST", "/logout"): "session-token bookkeeping",
     ("POST", "/download/zip"): "streams a temp zip; stores nothing",
     ("POST", "/file-grants"): "mints a short-lived read-only file grant; mutates nothing",

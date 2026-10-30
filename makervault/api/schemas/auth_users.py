@@ -11,6 +11,7 @@ __all__ = [
   "OidcExchangeRequest",
   "OidcStatusOut",
   "RefreshRequest",
+  "SessionOut",
   "UserCreate",
   "UserOut",
   "UserUpdate",
@@ -31,6 +32,27 @@ class LoginResponse(BaseModel):
 
 class RefreshRequest(BaseModel):
   refresh_token: Optional[str] = None
+
+
+class SessionOut(BaseModel):
+  """One active session, as the owner or an administrator may see it.
+
+  Timestamps are epoch seconds because the client renders relative times
+  ("last used 3 minutes ago"), which would need a second parse from an ISO
+  string. Neither refresh hash is ever part of this contract: that is a
+  security boundary, not an oversight, so the model has no field for either and
+  the handler never passes one.
+  """
+
+  id: str
+  username: str
+  kind: str
+  device: Optional[str]
+  user_agent: Optional[str]
+  client_ip: Optional[str]
+  created_at: int
+  last_used_at: int
+  current: bool
 
 
 class UserCreate(BaseModel):

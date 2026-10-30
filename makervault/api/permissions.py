@@ -149,6 +149,13 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("POST", "/auth/oidc/exchange"): PUBLIC,
     # read: any authenticated principal, including viewers.
     ("GET", "/me"): READ,
+    # A viewer must be able to list and sign out their own devices, so both
+    # `/me/sessions` routes are READ. Ownership scoping is a data constraint in
+    # the handler, not a second permission mechanism: a foreign session id
+    # answers 404 rather than 403, so the route never reveals that somebody
+    # else's session exists.
+    ("GET", "/me/sessions"): READ,
+    ("DELETE", "/me/sessions/{session_id}"): READ,
     ("GET", "/library/scan"): READ,
     ("GET", "/imports/runs"): READ,
     ("GET", "/imports/runs/{run_id}"): READ,
@@ -239,6 +246,11 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("POST", "/users"): ADMIN,
     ("GET", "/users"): ADMIN,
     ("PATCH", "/users/{user_id}"): ADMIN,
+    # Session administration over another principal: listing somebody else's
+    # devices and revoking one are admin, like every other user-administration
+    # route, and unlike the `/me/sessions` pair above.
+    ("GET", "/users/{user_id}/sessions"): ADMIN,
+    ("DELETE", "/sessions/{session_id}"): ADMIN,
     # Purging deleted data is irreversible, so it is not an editor action.
     ("POST", "/trash/purge"): ADMIN,
 }

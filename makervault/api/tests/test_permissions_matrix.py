@@ -1,7 +1,7 @@
 """Per-route permission sweeps driven by `permissions.ROUTE_PERMISSIONS`.
 
 Why this file exists: Mf-2nbc enforces a level with a *per-route dependency*, and
-the only thing that keeps 74 hand-written declarations honest is a test that
+the only thing that keeps 82 hand-written declarations honest is a test that
 visits every route at every role. The sweeps below are parametrised from
 `permissions.ROUTE_PERMISSIONS`, so that table is both the documentation and the
 test plan: add a route without classifying it and
@@ -111,6 +111,12 @@ DISABLED_503_KEYS = {
     ("GET", "/auth/oidc/start"),
     ("GET", "/auth/oidc/callback"),
     ("POST", "/auth/oidc/exchange"),
+    # Session management (Mf-7op4): every session route has to say so rather
+    # than guess a principal when auth is off.
+    ("GET", "/me/sessions"),
+    ("DELETE", "/me/sessions/{session_id}"),
+    ("GET", "/users/{user_id}/sessions"),
+    ("DELETE", "/sessions/{session_id}"),
 }
 
 
@@ -885,6 +891,27 @@ def call_oidc_exchange(client, headers, ids, monkeypatch) -> Response:
     return client.post("/auth/oidc/exchange", json={"code": "not-a-real-code"}, headers=headers)
 
 
+# The session routes use a nonexistent id for the two DELETEs, so no sweep can
+# mutate a real session and the expected answer is a stable 404. The admin list
+# names the seeded admin when it has one and a placeholder otherwise; a
+# placeholder keeps the path well-formed so the anonymous/disabled sweeps reach
+# the guard instead of a router-level 404.
+def call_list_own_sessions(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    return client.get("/me/sessions", headers=headers)
+
+
+def call_delete_own_session(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    return client.delete(f"/me/sessions/{PLACEHOLDER_USER_ID}", headers=headers)
+
+
+def call_list_user_sessions(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    return client.get(f"/users/{ids.admin_id or PLACEHOLDER_USER_ID}/sessions", headers=headers)
+
+
+def call_delete_session(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    return client.delete(f"/sessions/{PLACEHOLDER_USER_ID}", headers=headers)
+
+
 CALLS: dict[tuple[str, str], CallSpec] = {
     ("GET", "/health"): call_health,
     ("POST", "/login"): call_login,
@@ -895,6 +922,8 @@ CALLS: dict[tuple[str, str], CallSpec] = {
     ("GET", "/auth/oidc/callback"): call_oidc_callback,
     ("POST", "/auth/oidc/exchange"): call_oidc_exchange,
     ("GET", "/me"): call_me,
+    ("GET", "/me/sessions"): call_list_own_sessions,
+    ("DELETE", "/me/sessions/{session_id}"): call_delete_own_session,
     ("GET", "/library/scan"): call_scan_status,
     ("GET", "/file/{asset_id}/{name}"): call_file,
     ("GET", "/asset/{asset_id}/files"): call_supporting_files,
@@ -947,6 +976,8 @@ CALLS: dict[tuple[str, str], CallSpec] = {
     ("POST", "/users"): call_create_user,
     ("GET", "/users"): call_list_users,
     ("PATCH", "/users/{user_id}"): call_update_user,
+    ("GET", "/users/{user_id}/sessions"): call_list_user_sessions,
+    ("DELETE", "/sessions/{session_id}"): call_delete_session,
     ("GET", "/audit"): call_list_audit,
     ("POST", "/trash/purge"): call_purge_trash,
     ("GET", "/snapshots"): call_list_snapshots,
@@ -981,6 +1012,11 @@ EXPECTED_STATUS: dict[tuple[str, str], int] = {
     ("POST", "/refresh"): 200,
     ("POST", "/logout"): 204,
     ("GET", "/me"): 200,
+    # A nonexistent session id is a 404 on the owner's DELETE; the admin list
+    # names a real user, and the admin DELETE is never issued by a permitted
+    # caller in the sweeps because no spec targets a live session.
+    ("GET", "/me/sessions"): 200,
+    ("DELETE", "/me/sessions/{session_id}"): 404,
     ("GET", "/library/scan"): 200,
     ("GET", "/imports/runs"): 200,
     ("GET", "/imports/runs/{run_id}"): 200,
@@ -1028,6 +1064,8 @@ EXPECTED_STATUS: dict[tuple[str, str], int] = {
     ("POST", "/users"): 201,
     ("GET", "/users"): 200,
     ("PATCH", "/users/{user_id}"): 200,
+    ("GET", "/users/{user_id}/sessions"): 200,
+    ("DELETE", "/sessions/{session_id}"): 404,
     ("GET", "/audit"): 200,
     ("POST", "/trash/purge"): 200,
     ("GET", "/snapshots"): 200,
@@ -1170,10 +1208,10 @@ def test_a_route_declared_on_the_app_instead_of_a_router_is_caught() -> None:
 
 
 def test_the_matrix_is_the_documented_size() -> None:
-    """The matrix is pinned at 78 routes; a new route means updating this and docs/PERMISSIONS.md."""
+    """The matrix is pinned at 82 routes; a new route means updating this and docs/PERMISSIONS.md."""
     counts = {level: len(keys_at(level)) for level in (permissions.PUBLIC, permissions.READ, permissions.WRITE, permissions.ADMIN)}
-    assert len(permissions.ROUTE_PERMISSIONS) == 78, counts
-    assert counts == {permissions.PUBLIC: 8, permissions.READ: 25, permissions.WRITE: 32, permissions.ADMIN: 13}, counts
+    assert len(permissions.ROUTE_PERMISSIONS) == 82, counts
+    assert counts == {permissions.PUBLIC: 8, permissions.READ: 27, permissions.WRITE: 32, permissions.ADMIN: 15}, counts
 
 
 def test_every_guarded_route_has_a_call_spec() -> None:
@@ -1355,5 +1393,9 @@ def test_the_503_set_is_exactly_the_documented_endpoints() -> None:
         ("GET", "/auth/oidc/start"),
         ("GET", "/auth/oidc/callback"),
         ("POST", "/auth/oidc/exchange"),
+        ("GET", "/me/sessions"),
+        ("DELETE", "/me/sessions/{session_id}"),
+        ("GET", "/users/{user_id}/sessions"),
+        ("DELETE", "/sessions/{session_id}"),
     }
     assert DISABLED_503_KEYS <= set(permissions.ROUTE_PERMISSIONS)

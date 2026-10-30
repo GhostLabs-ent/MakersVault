@@ -49,6 +49,14 @@ export default function SettingsRootMenu({ onOpen, role = null }: Props) {
         <div className="text-lg font-semibold">Model Previews</div>
         <div className="text-sm opacity-70">Choose automatic, on-demand, or disabled preview generation.</div>
       </button>
+      <button
+        className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
+        onClick={() => onOpen("sessions")}
+      >
+        <div className="text-xs uppercase tracking-wide text-muted">Security</div>
+        <div className="text-lg font-semibold">Sessions</div>
+        <div className="text-sm opacity-70">See the devices signed in to this account and sign them out.</div>
+      </button>
       {roleAtLeast(role, "admin") && (
         <button
           className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"

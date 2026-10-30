@@ -199,18 +199,30 @@ def test_created_user_can_log_in_and_see_itself(client: TestClient) -> None:
     assert client.get("/assets", headers=bearer(alice["token"])).status_code == 200
 
 
-def test_refresh_rotates_and_the_old_token_dies(client: TestClient) -> None:
+def test_refresh_rotates_and_the_old_token_gets_one_grace(client: TestClient) -> None:
     tokens = bootstrap_admin(client)
+    original = tokens["refresh_token"]
 
-    refreshed = client.post("/refresh", json={"refresh_token": tokens["refresh_token"]})
+    refreshed = client.post("/refresh", json={"refresh_token": original})
 
     assert refreshed.status_code == 200, refreshed.text
     rotated = refreshed.json()
-    assert rotated["refresh_token"] and rotated["refresh_token"] != tokens["refresh_token"]
+    assert rotated["refresh_token"] and rotated["refresh_token"] != original
     assert rotated["expires_in"] == 900
     assert client.get("/assets", headers=bearer(rotated["token"])).status_code == 200
 
-    assert client.post("/refresh", json={"refresh_token": tokens["refresh_token"]}).status_code == 401
+    # Inside the grace window the superseded token is interchangeable ONCE:
+    # that is what lets two tabs sharing one browser session survive a race.
+    graced = client.post("/refresh", json={"refresh_token": original})
+    assert graced.status_code == 200, graced.text
+    assert graced.json()["refresh_token"] not in {original, rotated["refresh_token"]}
+
+    # The grace consumed the one generation of history this row keeps, so the
+    # same original is now a hash older than that and is a plain 401.
+    assert client.post("/refresh", json={"refresh_token": original}).status_code == 401
+
+    # The token minted by the first rotation is still accepted: only the
+    # replayed generation was superseded, and the session stayed live.
     assert client.post("/refresh", json={"refresh_token": rotated["refresh_token"]}).status_code == 200
 
 

@@ -80,6 +80,11 @@ class UserSession(SQLModel, table=True):
   access_expires_at: int
   refresh_expires_at: int
   revoked_at: Optional[int] = None
+  # Migration 011 keeps exactly one superseded refresh hash so a tab can
+  # survive one rotation; the column is not unique because it only ever holds
+  # a hash that has already been replaced.
+  previous_refresh_token_hash: Optional[str] = None
+  rotated_at: Optional[int] = None
 
 
 # audit_events is created by migration 006; this class only describes it for

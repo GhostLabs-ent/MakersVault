@@ -19,3 +19,4 @@ export { type MountImportSettings, type StorageSettings, getMountImportSettings,
 export { type Snapshot, type SnapshotList, type SnapshotCreated, type SnapshotPrune, type SnapshotEntry, type SnapshotBrowse, type SnapshotRestore, type SnapshotDeleteResult, type SnapshotRetention, listSnapshots, takeSnapshot, getSnapshotRetention, updateSnapshotRetention, browseSnapshot, restoreSnapshot, deleteSnapshot } from "./snapshots";
 export { type AuthTokens, login, refreshToken, type Me, getMe, logout, type OidcStatus, type OidcExchangeResult, getOidcStatus, oidcStartUrl, exchangeOidcCode, OidcExchangeError, SSO_ERROR_COPY, ssoErrorCopy } from "./auth";
 export { type AuditEvent, type AuditQuery, type AuditPage, listAuditEvents } from "./audit";
+export { type UserSession, listSessions, revokeSession, listUserSessions, revokeUserSession } from "./sessions";
