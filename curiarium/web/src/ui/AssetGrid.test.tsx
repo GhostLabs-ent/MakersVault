@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createRef, type ReactElement } from "react";
 
-import type { Asset, AssetFile, Folder } from "../lib/api";
+import { UnauthorizedError, type Asset, type AssetFile, type Folder } from "../lib/api";
+import { AssetNotFoundError } from "../lib/api/assets";
 import {
   ESTIMATED_ROW_HEIGHT,
   GRID_GAP_PX,
@@ -1555,6 +1556,7 @@ describe("AssetGrid shared dialogs and toasts", () => {
     reorderAssetFilesMock.mockReset();
     uploadAssetFileMock.mockReset();
     updateAssetMetaMock.mockReset();
+    setTagsMock.mockReset();
     uploadAssetMock.mockReset();
     createFolderMock.mockReset();
     createFolderMock.mockImplementation(async (name: string) => ({ id: `folder-${name}` }));
@@ -1702,6 +1704,200 @@ describe("AssetGrid shared dialogs and toasts", () => {
     // The card reverts to the server-side name (the catch only resets the field).
     await waitFor(() => expect(screen.queryByDisplayValue("Renamed cube")).toBeNull());
     expect(screen.getByText("Calibration cube")).toBeTruthy();
+  });
+
+  it("renaming an item on a later page keeps the loaded window and paging cursor", async () => {
+    let pageSize = 0;
+    let callCount = 0;
+    let firstBatch: Asset[] = [];
+    let secondBatch: Asset[] = [];
+
+    listAssetsMock.mockImplementation(async params => {
+      callCount += 1;
+      const limit = params?.limit ?? 0;
+      const offset = params?.offset ?? 0;
+      if (callCount === 1) {
+        // Page size is derived from the viewport, so take it from the request.
+        pageSize = limit;
+        firstBatch = makeBatch(1, pageSize);
+        return { items: firstBatch, hasMore: true };
+      }
+      if (callCount === 2) {
+        secondBatch = makeBatch(2, pageSize);
+        return { items: secondBatch, hasMore: true };
+      }
+      // Paged fallback for every later request: an out-of-range offset (the
+      // cursor is already at the end of the loaded window) yields an empty page.
+      return {
+        items: [...firstBatch, ...secondBatch].slice(offset, offset + limit),
+        hasMore: false,
+      };
+    });
+
+    const { scroller } = renderHarness();
+
+    await waitFor(() => expect(listAssets).toHaveBeenCalledTimes(1));
+    await screen.findByText("Page 1 item 1");
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+    await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(2));
+    expect(callQuery(1).offset).toBe(pageSize);
+
+    // The grid is virtualized, so scroll to the end to mount the second page.
+    const cols = colsForWidth(window.innerWidth);
+    const rows = Math.ceil((pageSize * 2) / cols);
+    const contentHeight = rows * ESTIMATED_ROW_HEIGHT + (rows - 1) * GRID_GAP_PX;
+    stubGridRect(scroller);
+    scrollGrid(scroller, contentHeight);
+
+    const targetName = `Page 2 item ${pageSize}`;
+    const targetRow = secondBatch[pageSize - 1];
+    expect(targetRow.name).toBe(targetName);
+    const newName = `Renamed ${targetName}`;
+    updateAssetMetaMock.mockResolvedValue({ ...targetRow, name: newName });
+
+    const targetText = await screen.findByText(targetName);
+
+    // A page-2 card that is mounted right now must still be mounted after.
+    const siblingName = screen
+      .getAllByText(/^Page 2 item /)
+      .map(element => element.textContent ?? "")
+      .find(name => name !== targetName);
+    if (!siblingName) throw new Error("no page-2 sibling was mounted");
+
+    fireEvent.doubleClick(targetText);
+    const input = screen.getByDisplayValue(targetName);
+    fireEvent.change(input, { target: { value: newName } });
+    fireEvent.blur(input);
+
+    await waitFor(() => expect(updateAssetMetaMock).toHaveBeenCalledTimes(1));
+    expect(updateAssetMetaMock).toHaveBeenCalledWith(targetRow.id, { name: newName });
+
+    // No refetch at all, and never a page-1 request after the load-more.
+    expect(listAssetsMock.mock.calls.length).toBe(2);
+    expect(
+      listAssetsMock.mock.calls.slice(1).every(([params]) => (params?.offset ?? 0) !== 0),
+    ).toBe(true);
+
+    await waitFor(() => expect(screen.getByText(newName)).toBeTruthy());
+    // The window did not reset: a page-2 sibling is still mounted beside it.
+    expect(screen.getByText(siblingName)).toBeTruthy();
+    expect(screen.queryByText("Page 1 item 1")).toBeNull();
+
+    // A rename cannot change the row's filter membership, so `offsetDelta` is 0
+    // and the cursor must still point at the end of the loaded window. Proving
+    // it takes one more request: it starts at 2 * pageSize, never rewinded to 0.
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+    await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(3));
+    expect(callQuery(2).offset).toBe(pageSize * 2);
+    await waitFor(() => expect(screen.getByText(newName)).toBeTruthy());
+  });
+
+  it("a single tag save updates the row in place without a refetch", async () => {
+    listAssetsMock.mockResolvedValue({ items: [assets[0]], hasMore: false });
+    setTagsMock.mockResolvedValue({ ...assets[0], tags: ["pla", "strong"] });
+
+    render(<AssetGrid canWrite theme="dark" />);
+    await waitForGrid();
+    const callsBefore = listAssetsMock.mock.calls.length;
+
+    const card = screen.getByText("Calibration cube").closest("[data-asset-id]") as HTMLElement;
+    const cardScope = within(card);
+    fireEvent.click(cardScope.getByRole("button", { name: "Edit tags" }));
+    const tagInput = cardScope.getByRole("textbox");
+    fireEvent.change(tagInput, { target: { value: "strong" } });
+    fireEvent.keyDown(tagInput, { key: "Enter" });
+    fireEvent.click(cardScope.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(setTagsMock).toHaveBeenCalledTimes(1));
+    expect(setTagsMock).toHaveBeenCalledWith("a1", ["pla", "strong"]);
+    // The server row is reconciled into the loaded window: no page-1 refetch.
+    await waitFor(() => expect(within(card).getAllByText("strong").length).toBeGreaterThan(0));
+    expect(listAssetsMock.mock.calls.length).toBe(callsBefore);
+  });
+
+  it("a 401 on a single mutation keeps the optimistic row and signs the user out", async () => {
+    listAssetsMock.mockResolvedValue({ items: [assets[0]], hasMore: false });
+    setTagsMock.mockRejectedValue(new UnauthorizedError());
+    const onUnauthorized = vi.fn();
+
+    renderWithToaster(<AssetGrid canWrite theme="dark" onUnauthorized={onUnauthorized} />);
+    await waitForGrid();
+
+    const card = screen.getByText("Calibration cube").closest("[data-asset-id]") as HTMLElement;
+    const cardScope = within(card);
+    fireEvent.click(cardScope.getByRole("button", { name: "Edit tags" }));
+    const tagInput = cardScope.getByRole("textbox");
+    fireEvent.change(tagInput, { target: { value: "strong" } });
+    fireEvent.keyDown(tagInput, { key: "Enter" });
+    fireEvent.click(cardScope.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(setTagsMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(onUnauthorized).toHaveBeenCalledTimes(1));
+    // Bulk parity: a sign-out is not a rollback (the write may have landed) and
+    // is not toasted, so the optimistic tag survives.
+    expect(within(card).getAllByText("strong").length).toBeGreaterThan(0);
+    // `Toaster` renders nothing at all until a toast exists, so this proves the
+    // 401 was not reported as one.
+    expect(screen.queryByTestId("toaster")).toBeNull();
+  });
+
+  it("a failed single delete restores the row and the paging cursor", async () => {
+    const loaded = makeSyntheticBatch(5);
+    listAssetsMock.mockImplementation(async params =>
+      (params?.offset ?? 0) === 0
+        ? { items: loaded, hasMore: true }
+        : { items: [], hasMore: false },
+    );
+    deleteAssetMock.mockRejectedValue(new Error("storage exploded"));
+
+    render(<AssetGrid canWrite theme="dark" />);
+    await screen.findByText("Asset 1");
+    const callsBefore = listAssetsMock.mock.calls.length;
+
+    fireEvent.click(cardDeleteButton());
+    const dialog = within(screen.getByRole("dialog", { name: /Delete/ }));
+    fireEvent.change(dialog.getByLabelText("Type the file name to confirm"), {
+      target: { value: loaded[0].filename },
+    });
+    fireEvent.click(dialog.getByRole("button", { name: "Delete asset" }));
+
+    await waitFor(() => expect(deleteAssetMock).toHaveBeenCalledTimes(1));
+    // Rollback is local: the row returns without a refetch.
+    await waitFor(() => expect(screen.getByText("Asset 1")).toBeTruthy());
+    expect(listAssetsMock.mock.calls.length).toBe(callsBefore);
+
+    const failures = await dialog.findByTestId("asset-delete-failures");
+    expect(within(failures).getByText(/storage exploded/)).toBeTruthy();
+    fireEvent.click(dialog.getByRole("button", { name: "Close" }));
+
+    // The cursor was rewound optimistically and restored, so the next page still
+    // starts where the loaded window ends.
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+    await waitFor(() => expect(listAssetsMock.mock.calls.length).toBe(2));
+    expect(callQuery(1).offset).toBe(loaded.length);
+  });
+
+  it("a single delete of an already-deleted row keeps it gone and closes the dialog", async () => {
+    listAssetsMock.mockResolvedValue({ items: assets, hasMore: false });
+    deleteAssetMock.mockRejectedValue(new AssetNotFoundError("Asset not found"));
+
+    render(<AssetGrid canWrite theme="dark" />);
+    await waitForGrid();
+    const callsBefore = listAssetsMock.mock.calls.length;
+
+    fireEvent.click(cardDeleteButton());
+    const dialog = within(screen.getByRole("dialog", { name: /Delete/ }));
+    fireEvent.change(dialog.getByLabelText("Type the file name to confirm"), {
+      target: { value: assets[0].filename },
+    });
+    fireEvent.click(dialog.getByRole("button", { name: "Delete asset" }));
+
+    await waitFor(() => expect(deleteAssetMock).toHaveBeenCalledTimes(1));
+    // Already gone server-side: the optimistic drop is the correct end state.
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.queryByText("Calibration cube")).toBeNull();
+    expect(screen.getByText("Spool holder")).toBeTruthy();
+    expect(listAssetsMock.mock.calls.length).toBe(callsBefore);
   });
 
   it("a failed drop toasts the filename with a retry that re-uploads only that file", async () => {
@@ -1959,21 +2155,18 @@ describe("AssetGrid shared dialogs and toasts", () => {
   });
 
   it("the details editor offers no Collection field and saves only notes and creator", async () => {
-    listAssetsMock.mockResolvedValue({
-      items: [
-        {
-          ...assets[0],
-          notes: "Old notes",
-          creator: "Old creator",
-          collection: "Tabletop",
-        },
-      ],
-      hasMore: false,
-    });
-    updateAssetMetaMock.mockResolvedValue(undefined);
+    const row: Asset = {
+      ...assets[0],
+      notes: "Old notes",
+      creator: "Old creator",
+      collection: "Tabletop",
+    };
+    listAssetsMock.mockResolvedValue({ items: [row], hasMore: false });
+    updateAssetMetaMock.mockResolvedValue({ ...row, notes: "New notes", creator: "New creator" });
 
     render(<AssetGrid canWrite theme="dark" />);
     await waitForGrid();
+    const callsBefore = listAssetsMock.mock.calls.length;
 
     fireEvent.click(screen.getByRole("button", { name: "Expand" }));
 
@@ -2005,17 +2198,22 @@ describe("AssetGrid shared dialogs and toasts", () => {
     // stored legacy value can never be clobbered by an empty string.
     expect(Object.keys(payload as object).sort()).toEqual(["creator", "notes"]);
     expect(payload).toEqual({ notes: "New notes", creator: "New creator" });
+
+    // The server row is reconciled in place: the card shows the saved values
+    // and the grid never refetches page 1.
+    await waitFor(() => expect(cardScope.getByText("By New creator")).toBeTruthy());
+    expect(cardScope.getByText("New notes")).toBeTruthy();
+    expect(listAssetsMock.mock.calls.length).toBe(callsBefore);
   });
 
   it("clearing creator and notes sends empty strings so the server clears them", async () => {
-    listAssetsMock.mockResolvedValue({
-      items: [{ ...assets[0], notes: "Old notes", creator: "Old creator" }],
-      hasMore: false,
-    });
-    updateAssetMetaMock.mockResolvedValue(undefined);
+    const row: Asset = { ...assets[0], notes: "Old notes", creator: "Old creator" };
+    listAssetsMock.mockResolvedValue({ items: [row], hasMore: false });
+    updateAssetMetaMock.mockResolvedValue({ ...row, notes: "", creator: "" });
 
     render(<AssetGrid canWrite theme="dark" />);
     await waitForGrid();
+    const callsBefore = listAssetsMock.mock.calls.length;
 
     fireEvent.click(screen.getByRole("button", { name: "Expand" }));
     const editButton = screen.getByRole("button", { name: "Edit details" });
@@ -2036,6 +2234,11 @@ describe("AssetGrid shared dialogs and toasts", () => {
     // The single-asset endpoint treats null as "unchanged"; only a blank
     // string clears, so the card must not send null for an emptied field.
     expect(payload).toEqual({ notes: "", creator: "" });
+
+    // Cleared in place from the server row, again without a refetch.
+    await waitFor(() => expect(cardScope.getByText("Not set")).toBeTruthy());
+    expect(cardScope.getByText("Add notes")).toBeTruthy();
+    expect(listAssetsMock.mock.calls.length).toBe(callsBefore);
   });
 });
 

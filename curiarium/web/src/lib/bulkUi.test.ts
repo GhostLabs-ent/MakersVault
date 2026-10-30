@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import type { Asset, BatchFailure } from "./api";
 import {
+  type ViewFilter,
   applyBatchOutcome,
   applyFolderLocally,
   applyMetaLocally,
+  applySingleOutcome,
   applyTagsLocally,
   dropIds,
   failureLines,
@@ -332,6 +334,70 @@ describe("applyBatchOutcome meta", () => {
     });
     expect(items.map(item => item.id)).toEqual(["a1"]);
     expect(offsetDelta).toBe(0);
+  });
+});
+
+describe("applySingleOutcome", () => {
+  const view: ViewFilter = { folderId: null, activeTags: [] };
+
+  it("is a no-op for an id that is not in the snapshot", () => {
+    const before = [asset("a1")];
+    const { items, offsetDelta } = applySingleOutcome(before, asset("zz"), view);
+    expect(items).toBe(before);
+    expect(offsetDelta).toBe(0);
+  });
+
+  it("replaces a plain metadata change in place and rewinds nothing", () => {
+    const before = [asset("a1", { name: "Old" }), asset("b2")];
+    const { items, offsetDelta } = applySingleOutcome(before, asset("a1", { name: "New" }), view);
+    expect(items.map(item => item.id)).toEqual(["a1", "b2"]);
+    expect(items[0].name).toBe("New");
+    expect(offsetDelta).toBe(0);
+  });
+
+  it("drops a row that lost an active tag and rewinds by one", () => {
+    const before = [asset("a1", { tags: ["pla"] }), asset("b2")];
+    const { items, offsetDelta } = applySingleOutcome(
+      before,
+      asset("a1", { tags: [] }),
+      { folderId: null, activeTags: ["pla"] },
+    );
+    expect(items.map(item => item.id)).toEqual(["b2"]);
+    expect(offsetDelta).toBe(1);
+  });
+
+  it("drops a row that left the active creator facet, case-insensitively", () => {
+    const before = [asset("a1", { creator: "ADA" }), asset("b2", { creator: "Ada" })];
+    const { items, offsetDelta } = applySingleOutcome(
+      before,
+      asset("a1", { creator: "Grace" }),
+      { folderId: null, activeTags: [], activeCreator: " ada " },
+    );
+    expect(items.map(item => item.id)).toEqual(["b2"]);
+    expect(offsetDelta).toBe(1);
+  });
+
+  it("drops a row that moved out of the viewed folder and keeps one that stays", () => {
+    const before = [asset("a1", { folder_id: "f1" }), asset("b2", { folder_id: "f1" })];
+    const folderView: ViewFilter = { folderId: "f1", activeTags: [] };
+
+    const moved = applySingleOutcome(before, asset("a1", { folder_id: "f2" }), folderView);
+    expect(moved.items.map(item => item.id)).toEqual(["b2"]);
+    expect(moved.offsetDelta).toBe(1);
+
+    const stayed = applySingleOutcome(before, asset("b2", { folder_id: "f1" }), folderView);
+    expect(stayed.items.map(item => item.id)).toEqual(["a1", "b2"]);
+    expect(stayed.offsetDelta).toBe(0);
+    expect(stayed.items[1]).not.toBe(before[1]);
+  });
+
+  it("never mutates the snapshot array", () => {
+    const before = [asset("a1", { name: "Old" }), asset("b2")];
+    const snapshot = [...before];
+    const { items } = applySingleOutcome(before, asset("a1", { name: "New" }), view);
+    expect(items).not.toBe(before);
+    expect(before).toEqual(snapshot);
+    expect(before[0].name).toBe("Old");
   });
 });
 

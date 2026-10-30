@@ -17,6 +17,13 @@ import {
   updateAssetFolder,
   updateAssetMeta,
 } from "../../lib/api";
+import {
+  applyFolderLocally,
+  applyMetaLocally,
+  applySingleOutcome,
+  applyTagsLocally,
+  unionTags,
+} from "../../lib/bulkUi";
 import { saveResponseToDisk } from "../../lib/download";
 import { primeGrants } from "../../lib/fileGrants";
 import type {
@@ -43,6 +50,18 @@ type AssetActionsOptions = {
   engravingSettings?: EngravingSettings;
   selectedIds: Set<string>;
   bulkSetTags: (add: string[], remove: string[]) => Promise<void>;
+  /**
+   * The live paging cursor and the view facets, so a single mutation can be
+   * reconciled in place instead of refetching page 1. Optional only because
+   * harnesses mount this hook without a grid behind it; `AssetGrid` always
+   * passes all of them.
+   */
+  offset?: number;
+  setOffset?: Dispatch<SetStateAction<number>>;
+  setAllTags?: Dispatch<SetStateAction<string[]>>;
+  folderId?: string | null;
+  activeTags?: string[];
+  activeCreator?: string | null;
   /** Opens the grid's delete dialog for exactly these targets. */
   onRequestDelete: (assets: Asset[]) => void;
   onAddToProject: (ids: string[]) => void;
@@ -91,6 +110,12 @@ export function useAssetActions({
   engravingSettings,
   selectedIds,
   bulkSetTags,
+  offset = 0,
+  setOffset,
+  setAllTags,
+  folderId,
+  activeTags = [],
+  activeCreator,
   onRequestDelete,
   onAddToProject,
 }: AssetActionsOptions): AssetActionsApi {
@@ -109,8 +134,24 @@ export function useAssetActions({
     return map;
   }, [items]);
 
+  // File-level changes (supporting-file add/remove, prepared-print clear) can
+  // never change which rows the active filters return, so they keep the plain
+  // map replace and never touch the paging cursor.
   const replaceAsset = useStableCallback((updated: Asset) => {
     setItems(current => current.map(item => item.id === updated.id ? updated : item));
+    setPreviewItem(current => current?.id === updated.id ? updated : current);
+  });
+
+  // One mutation's server row, replayed over the pre-mutation snapshot exactly
+  // like a batch of one: the row is replaced or dropped, and the cursor rewinds
+  // by the rows that left the result set (absolute, never relative, or it would
+  // double-count across a page boundary).
+  const reconcileAsset = useStableCallback((updated: Asset, before: Asset[], startOffset: number) => {
+    const view = { folderId, activeTags, activeCreator };
+    const { items: next, offsetDelta } = applySingleOutcome(before, updated, view);
+    setItems(next);
+    setOffset?.(Math.max(0, startOffset - offsetDelta));
+    // Bulk parity: a reconcile never touches preview state beyond this id match.
     setPreviewItem(current => current?.id === updated.id ? updated : current);
   });
 
@@ -146,40 +187,75 @@ export function useAssetActions({
       await bulkSetTags(add, remove);
       return;
     }
+    const before = items;
+    const startOffset = offset;
+    // A card outside the loaded window has nothing to paint, so it waits for
+    // the server row instead of guessing at one.
+    if (item) {
+      const add = tags.filter(tag => !item.tags.includes(tag));
+      const remove = item.tags.filter(tag => !tags.includes(tag));
+      setItems(applyTagsLocally(before, [id], add, remove));
+      setOffset?.(startOffset);
+    }
     try {
-      await setTags(id, tags);
-      await refresh({ keepLoadedPages: true });
+      const updated = await setTags(id, tags);
+      reconcileAsset(updated, before, startOffset);
+      setAllTags?.(prev => unionTags(prev, [updated]));
     } catch (err) {
-      handleApiError(err, "Tag update failed.");
+      // A 401 already called `onUnauthorized` and is not a rollback: the write
+      // may still have landed, exactly like the bulk paths.
+      if (handleApiError(err, "Tag update failed.")) return;
+      setItems(before);
+      setOffset?.(startOffset);
     }
   });
 
   const onSaveDetails = useStableCallback(async (id: string, payload: { notes: string; creator: string }) => {
+    const before = items;
+    const startOffset = offset;
+    setItems(applyMetaLocally(before, [id], payload));
+    setOffset?.(startOffset);
     try {
-      await updateAssetMeta(id, payload);
-      await refresh();
+      const updated = await updateAssetMeta(id, payload);
+      reconcileAsset(updated, before, startOffset);
     } catch (err) {
-      handleApiError(err, err instanceof Error ? err.message : "Failed to save model details.");
+      if (handleApiError(err, err instanceof Error ? err.message : "Failed to save model details.")) return;
+      setItems(before);
+      setOffset?.(startOffset);
     }
   });
 
   const onRename = useStableCallback(async (id: string, name: string) => {
+    // Response-only: the server row is the only truth for a name. No optimistic
+    // paint, and a failure still rethrows so the card's inline field reverts.
+    const before = items;
+    const startOffset = offset;
     try {
-      await updateAssetMeta(id, { name });
-      await refresh();
+      const updated = await updateAssetMeta(id, { name });
+      reconcileAsset(updated, before, startOffset);
     } catch (err) {
-      handleApiError(err, err instanceof Error ? err.message : "Rename failed. Please try again.");
+      if (handleApiError(err, err instanceof Error ? err.message : "Rename failed. Please try again.")) return;
       throw err;
     }
   });
 
   const onMoveFolder = useStableCallback(async (id: string, folder_id: string | null) => {
+    const before = items;
+    const startOffset = offset;
+    setMovingId(id);
+    // The optimistic phase only repaints: the row leaves the window at
+    // reconcile, so a move out of the viewed folder drops the card once the
+    // server confirms and rewinds the cursor by one.
+    setItems(applyFolderLocally(before, [id], folder_id));
+    setOffset?.(startOffset);
     try {
-      setMovingId(id);
-      await updateAssetFolder(id, folder_id);
-      await refresh();
+      const updated = await updateAssetFolder(id, folder_id);
+      // A move never introduces a tag, so there is nothing to union here.
+      reconcileAsset(updated, before, startOffset);
     } catch (err) {
-      handleApiError(err, err instanceof Error ? err.message : "Folder update failed. Please try again.");
+      if (handleApiError(err, err instanceof Error ? err.message : "Folder update failed. Please try again.")) return;
+      setItems(before);
+      setOffset?.(startOffset);
     } finally {
       setMovingId(null);
     }

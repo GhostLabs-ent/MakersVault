@@ -139,6 +139,28 @@ export function applyBatchOutcome(
   return { items, offsetDelta };
 }
 
+/**
+ * One asset's server-answered mutation, reconciled exactly like a batch of one:
+ * the server row replaces the snapshot row when it still matches the active
+ * view, and leaves the loaded window when the change took it out of the
+ * filtered result set. `offsetDelta` is 0 or 1 and is the absolute rewind the
+ * paging cursor owes. An id that is not in the snapshot reconciles to a no-op.
+ */
+export function applySingleOutcome(
+  before: Asset[],
+  updated: Asset,
+  view: ViewFilter,
+): { items: Asset[]; offsetDelta: number } {
+  const index = before.findIndex(item => item.id === updated.id);
+  if (index < 0) return { items: before, offsetDelta: 0 };
+  if (!matchesView(updated, view)) {
+    return { items: before.filter(item => item.id !== updated.id), offsetDelta: 1 };
+  }
+  const items = [...before];
+  items[index] = updated;
+  return { items, offsetDelta: 0 };
+}
+
 /** Per-asset failure lines for the UI: filename when known, else the id. */
 export function failureLines(
   failed: BatchFailure[],
