@@ -142,7 +142,8 @@ def test_fresh_database_reaches_v12(tmp_path: Path) -> None:
     assert run_migrations(database_engine) == MIGRATIONS[-1].version
     migration = migration_012()
     assert migration.name == NAME
-    assert MIGRATIONS[-1].version == VERSION
+    # Presence is already pinned by `migration_012()` and `ledger[VERSION] == NAME`;
+    # a `MIGRATIONS[-1]` pin here would go red for every later migration.
     ledger = applied_migrations(database_engine)
     assert {version: ledger[version] for version in SHIPPED_LEDGER} == SHIPPED_LEDGER
     assert ledger[VERSION] == NAME

@@ -26,6 +26,7 @@ from uuid import uuid4
 from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import aliased
 from sqlmodel import Session, delete, select
 
 import audit
@@ -73,20 +74,41 @@ def require_project(project_id: str) -> str:
         return get_project(session, project_id).id
 
 
-def member_stats(session: Session, project_id: str) -> Tuple[int, int]:
-    """(member count, summed member size) of one project in one aggregate statement.
+def member_stats(session: Session, project_id: str) -> Tuple[int, int, int]:
+    """(member count, summed member size, cover version) of one project, one statement.
 
-    Both numbers are needed by every response that serializes a project, so they
-    are fetched together: two queries for one row is an N+1 with N=1.
+    All three numbers are needed by every response that serializes a project,
+    so they are fetched together: extra queries for one row is an N+1 with N=1.
+    The cover version commutes in the same statement, so a cover thumbnail never
+    costs a second round trip.
+
+    The aggregate keeps `select_from(ProjectAsset)` with no group by: it must
+    return exactly one row even for a project with no members, which
+    `project_with_stats` relies on. The cover version is a scalar subquery, and
+    its `Asset` is aliased because the outer query joins `Asset` unaliased - an
+    unaliased inner reference would be auto-correlated away and read the wrong
+    row.
     """
+    cover = aliased(Asset)
+    cover_version = (
+        select(func.coalesce(cover.thumb_version, 0))
+        .select_from(Project)
+        .outerjoin(cover, cover.id == Project.cover_asset_id)
+        .where(Project.id == project_id)
+        .scalar_subquery()
+    )
     statement = (
-        select(func.count(ProjectAsset.asset_id), func.coalesce(func.sum(Asset.size), 0))
+        select(
+            func.count(ProjectAsset.asset_id),
+            func.coalesce(func.sum(Asset.size), 0),
+            cover_version,
+        )
         .select_from(ProjectAsset)
         .outerjoin(Asset, Asset.id == ProjectAsset.asset_id)
         .where(ProjectAsset.project_id == project_id)
     )
-    count, total_size = session.exec(statement).one()
-    return int(count), int(total_size)
+    count, total_size, cover_thumb_version = session.exec(statement).one()
+    return int(count), int(total_size), int(cover_thumb_version)
 
 
 def create_project(
@@ -206,21 +228,34 @@ def delete_project(session: Session, project: Project, *, audit_ctx: Optional[au
     session.commit()
 
 
-def list_projects(session: Session) -> List[Tuple[Project, int, int]]:
-    """Every project with its member count and summed member size, in one statement.
+def list_projects(session: Session) -> List[Tuple[Project, int, int, int]]:
+    """Every project with its member count, summed size and cover version, one statement.
 
-    Both aggregates come from the same query, so listing N projects costs one
-    statement instead of 1 + 2N; the ordering is case-insensitive by name, then
+    All aggregates come from the same query, so listing N projects costs one
+    statement instead of 1 + 3N; the ordering is case-insensitive by name, then
     by id so two projects that differ only in case still page deterministically.
+    The cover version is folded in through an aliased outer join - `max` over the
+    group is right because it is constant per project, and `coalesce` makes "no
+    cover" and "cover with no thumbnail" both 0.
     """
+    cover = aliased(Asset)
     statement = (
-        select(Project, func.count(ProjectAsset.asset_id), func.coalesce(func.sum(Asset.size), 0))
+        select(
+            Project,
+            func.count(ProjectAsset.asset_id),
+            func.coalesce(func.sum(Asset.size), 0),
+            func.coalesce(func.max(cover.thumb_version), 0),
+        )
         .outerjoin(ProjectAsset, ProjectAsset.project_id == Project.id)
         .outerjoin(Asset, Asset.id == ProjectAsset.asset_id)
+        .outerjoin(cover, cover.id == Project.cover_asset_id)
         .group_by(Project.id)
         .order_by(func.lower(Project.name), Project.id)
     )
-    return [(project, int(count), int(total_size)) for project, count, total_size in session.exec(statement)]
+    return [
+        (project, int(count), int(total_size), int(cover_version))
+        for project, count, total_size, cover_version in session.exec(statement)
+    ]
 
 
 def find_project_by_source(session: Session, source_url: Optional[str]) -> Optional[Project]:
@@ -377,17 +412,18 @@ def set_project_metadata_marker(project_id: str, marker: dict) -> None:
         session.commit()
 
 
-def project_with_stats(project_id: str) -> Tuple[Project, int, int]:
-    """One project plus its member count and size, safe to serialize after close.
+def project_with_stats(project_id: str) -> Tuple[Project, int, int, int]:
+    """One project plus its member count, size and cover version, safe after close.
 
     This exists so a handler can serialize a project from a session that has
     already been closed: nothing here commits, so no attribute is expired and
-    the detached row still has every column it was loaded with.
+    the detached row still has every column it was loaded with. The cover
+    version commutes in the same statement as the two aggregates.
     """
     with Session(engine) as session:
         project = get_project(session, project_id)
-        asset_count, total_size = member_stats(session, project.id)
-    return project, asset_count, total_size
+        asset_count, total_size, cover_thumb_version = member_stats(session, project.id)
+    return project, asset_count, total_size, cover_thumb_version
 
 
 def _failure(asset_id: str) -> dict:

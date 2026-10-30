@@ -13,6 +13,7 @@ from zipfile import BadZipFile, ZipFile
 
 from fastapi import HTTPException
 from PIL import Image
+from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
@@ -50,6 +51,10 @@ STORAGE_TEMPLATE_TOKENS = ("folder", "collection", "tags", "creator", "model", "
 # keep working, and old clients must keep getting a usable path. Only the
 # advertised list shrinks - never the valid-token set.
 DEPRECATED_STORAGE_TEMPLATE_TOKENS = ("collection",)
+# How many ids one `reconcile_thumb_versions` UPDATE touches. SQLite caps bound
+# parameters, and one `IN (...)` over a large library would hold a single write
+# transaction long enough to starve uploads.
+THUMB_VERSION_RECONCILE_CHUNK = 500
 _TOKEN_RE = re.compile(r"\{([a-z_]+)\}")
 _INVALID_SEGMENT_RE = re.compile(r'[<>:"|?*\x00-\x1f]')
 
@@ -534,6 +539,23 @@ def save_thumb_image(asset_id: str, image: Image.Image) -> Optional[str]:
             tmp_path = Path(tmp.name)
         image.save(tmp_path, format="JPEG", quality=88, optimize=True)
         tmp_path.replace(thumb)
+        # Bump after the publish, in its own session and its own catch: a DB
+        # fault here must not turn a healthy JPEG upload into a 500 (the
+        # blanket catch below returns None), and a fixture without a database
+        # is not a reason to lose the file. Invariant: every ingress (upload,
+        # zip import, library scan, the 3MF extractor and the
+        # thumbnail-generated route) has committed its Asset row before this
+        # runs, so the UPDATE always finds a row.
+        try:
+            with Session(engine) as session:
+                session.execute(
+                    update(Asset)
+                    .where(Asset.id == asset_id)
+                    .values(thumb_version=Asset.thumb_version + 1)
+                )
+                session.commit()
+        except Exception:
+            log.exception("thumb_version bump failed for asset %s", asset_id)
         return f"/thumb/{asset_id}.jpg"
     except Exception:
         return None
@@ -600,6 +622,59 @@ def inspect_asset_prepared_print(asset: Asset, src: Optional[Path] = None) -> Op
     if not candidate.exists() and asset.source_path:
         candidate = Path(asset.source_path)
     return inspect_prepared_print(candidate, asset.filename) if candidate.exists() else None
+
+
+def reconcile_thumb_versions() -> int:
+    """Repair `asset.thumb_version` for rows written before migration 013.
+
+    Migration 013 gives every existing row 0, which means "no thumbnail" -
+    correct for a row that never had one, wrong for the rows whose
+    `THUMBS/<id>.jpg` already exists. This walks the directory once by name
+    (one names-only `scandir`, no stat per entry) and bumps exactly the rows
+    still at 0, so the listing stops statting as soon as boot finishes.
+
+    It runs in its own daemon thread rather than inside
+    `backfill_embedded_thumbnails`: that one only inspects `.3mf` assets and
+    may be a no-op for an install without any, while this repair applies to
+    every thumbnail on disk. Coupling them would make one silently dependent
+    on the other.
+
+    The updates are chunked because a single `IN (...)` over a 100k-entry
+    library would hold one long SQLite write transaction and starve uploads,
+    and SQLite caps bound parameters anyway. The `thumb_version = 0` guard is
+    load-bearing: it makes this commute with a concurrent 3MF backfill, whose
+    fresh bumps must never be reset or double-counted.
+
+    A missing or unreadable `THUMBS` is logged and returns 0, never raised -
+    this runs in a daemon thread. The repair is one-time; if it cannot finish,
+    the only symptom is a cosmetic `thumb_url: null` until the next boot. A
+    failing chunk stops the sweep the same way, because a lock timeout repeats
+    for every later chunk and the sweep is idempotent, so the next boot retries.
+    """
+    try:
+        with os.scandir(THUMBS) as entries:
+            names = [entry.name for entry in entries]
+    except OSError:
+        log.exception("thumb_version reconcile could not read %s", THUMBS)
+        return 0
+    asset_ids = [name[: -len(".jpg")] for name in names if name.endswith(".jpg")]
+    repaired = 0
+    for start in range(0, len(asset_ids), THUMB_VERSION_RECONCILE_CHUNK):
+        chunk = asset_ids[start : start + THUMB_VERSION_RECONCILE_CHUNK]
+        try:
+            with Session(engine) as session:
+                result = session.execute(
+                    update(Asset)
+                    .where(Asset.id.in_(chunk), Asset.thumb_version == 0)
+                    .values(thumb_version=Asset.thumb_version + 1)
+                )
+                session.commit()
+            repaired += result.rowcount
+        except Exception:
+            log.exception("thumb_version reconcile could not update a chunk of %s row(s)", len(chunk))
+            break
+    log.info("thumb_version reconcile repaired %s asset row(s)", repaired)
+    return repaired
 
 
 def backfill_embedded_thumbnails() -> None:

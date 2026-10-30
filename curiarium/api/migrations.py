@@ -660,6 +660,38 @@ def _migration_012_mfa_totp(conn: Connection) -> None:
     )
 
 
+def _migration_013_asset_thumb_version(conn: Connection) -> None:
+    """A monotonic thumbnail version, so listings never stat the thumbs tree.
+
+    `asset.thumb_version` is an INTEGER counter bumped on every thumbnail write.
+    It is deliberately a counter and not the file's `st_mtime_ns`: filesystem
+    timestamp granularity is coarse enough that two regenerations inside the
+    same tick would produce the same token, which is a real stale-cache bug
+    (last year's image served for a year under an immutable Cache-Control) and
+    a flaky test; a counter is monotonic by construction.
+
+    0 means "no thumbnail", so `thumb_url_for` can answer None from the row
+    alone. That is the whole point: `to_out` in `routers/presenters.py` used to
+    call a helper that `exists()`ed and `stat()`ed every thumbnail, which on
+    network storage (CephFS) is 1000 round trips for a 1000-asset page.
+
+    The counter is bumped by `asset_service.save_thumb_image`, the sole writer
+    of `THUMBS/<id>.jpg`, after the atomic publish - never before it, so a
+    failed write cannot leave a version pointing at an image that never
+    shipped. Pre-v13 rows are repaired by
+    `asset_service.reconcile_thumb_versions` at boot, which is why this
+    migration itself does no filesystem work and touches no thumbnails.
+
+    The column cannot see an out-of-band restore of `storage/` without the
+    database: the bytes change, the row does not, and a browser keeps the old
+    year-immutable URL. The runbook documents the operator remedy.
+
+    The column is added through `_add_column` (guarded by `PRAGMA table_info`),
+    so re-applying 013 is harmless, like 004-012.
+    """
+    _add_column(conn, "asset", "thumb_version", "INTEGER NOT NULL DEFAULT 0")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
@@ -673,6 +705,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(10, "oidc_identities", _migration_010_oidc_identities),
     Migration(11, "session_rotation_history", _migration_011_session_rotation_history),
     Migration(12, "mfa_totp", _migration_012_mfa_totp),
+    Migration(13, "asset_thumb_version", _migration_013_asset_thumb_version),
 )
 
 

@@ -45,6 +45,15 @@ SHIPPED_LEDGER = {
     7: "projects",
 }
 
+# Migration 013 appends `asset.thumb_version` after this upgrade path, so "the
+# existing rows are kept" is asserted over the columns a v7 database had.
+# `SELECT *` would compare 19 columns against 20 and fail on an unchanged row.
+ASSET_V7_COLUMNS_SELECT = (
+    "SELECT id, filename, mime, size, tags_json, title, notes, folder_id, source_path, name, "
+    "creator, collection, storage_path, supporting_file_count, prepared_file_id, "
+    "prepared_metadata_json, missing_since, disk_mtime, is_reference FROM asset ORDER BY id"
+)
+
 
 def sqlite_engine(path: Path) -> Engine:
     return create_engine(f"sqlite:///{path}", connect_args={"check_same_thread": False})
@@ -117,12 +126,12 @@ def test_v7_database_upgrades_and_keeps_existing_rows(tmp_path: Path) -> None:
         insert_asset(conn, "a-1")
         insert_asset(conn, "a-2")
     with database_engine.connect() as conn:
-        assets_before = tuple(conn.exec_driver_sql("SELECT * FROM asset ORDER BY id").fetchall())
+        assets_before = tuple(conn.exec_driver_sql(ASSET_V7_COLUMNS_SELECT).fetchall())
 
     assert run_migrations(database_engine) == MIGRATIONS[-1].version
 
     with database_engine.connect() as conn:
-        assert tuple(conn.exec_driver_sql("SELECT * FROM asset ORDER BY id").fetchall()) == assets_before
+        assert tuple(conn.exec_driver_sql(ASSET_V7_COLUMNS_SELECT).fetchall()) == assets_before
     assert row_count(database_engine, "import_run") == 0
 
 

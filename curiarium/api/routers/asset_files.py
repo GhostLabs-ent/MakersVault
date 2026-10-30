@@ -337,6 +337,16 @@ async def save_generated_thumbnail(
                 raise HTTPException(404)
             if not save_thumb(asset_id, staged.path):
                 raise HTTPException(status_code=400, detail="Invalid thumbnail image")
+            # The bump commits in another session. On this engine a SELECT runs
+            # in autocommit (pysqlite's legacy isolation only begins a
+            # transaction before DML), so today this ends no snapshot and is a
+            # no-op. It stays because the failure it prevents is unrecoverable:
+            # `/thumb/` is served year-immutable, so one stale `?v=` pins the
+            # old image in a client for a year. It becomes load-bearing as soon
+            # as a read snapshot does span the bump - sqlite with begin-on-read
+            # (`autocommit=False` or an `isolation_level` change in `db.py`), or
+            # a non-sqlite `DB_URL` at REPEATABLE READ or stricter.
+            s.rollback()
             s.refresh(asset)
             return to_out(asset)
     except multipart_stream.UnsupportedContentType:
