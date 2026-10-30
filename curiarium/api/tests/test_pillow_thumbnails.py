@@ -1,4 +1,4 @@
-"""Pillow thumbnail contract, pinned across the 10.4 -> 12.3 bump (Mf-xzei).
+"""Pillow thumbnail contract, pinned across the 10.4 -> 12.3 -> 13.0 bumps (Mf-xzei, Mf-w0q3).
 
 ``asset_service`` is the only runtime PIL importer, and its three thumbnail
 entry points (``save_thumb_image``, ``save_thumb_bytes``, ``extract_3mf_thumbnail``

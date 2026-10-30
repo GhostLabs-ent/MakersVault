@@ -39,7 +39,7 @@ that keeps these forwards and fallbacks honest is
 | `DB_URL` | `sqlite:///./curiarium.db` in code | SQLAlchemy database URL; Compose uses `/app/data/curiarium.db`. |
 | `AUTH_USERNAME` | `admin` | Username of the break-glass admin, accepted only while the users table is empty, so a real user account always disables it. |
 | `AUTH_PASSWORD` | `super-secret` | Single-admin bootstrap secret; the API refuses to start while this published sample value is still active. |
-| `AUTH_SECRET` | `changeme-secret` | JWT signing secret; the API refuses to start while this published sample value is still active. |
+| `AUTH_SECRET` | `changeme-secret` | JWT signing secret; the API refuses to start while this published sample value is still active. At least 32 bytes is needed for a warning-free HMAC key - PyJWT logs `InsecureKeyLengthWarning` for anything shorter. |
 | `AUTH_ALLOW_INSECURE_DEFAULTS` | unset (false) | Opts out of the startup guard that refuses the published sample credentials while auth is enabled. |
 | `AUTH_ACCESS_TOKEN_TTL` | `900` | Access-token (JWT) lifetime in seconds; the token also stops working as soon as its session row stops being live. |
 | `AUTH_REFRESH_TTL_SECONDS` | `2592000` | Refresh-token lifetime in seconds (30 days). Only the sha256 of the opaque token is stored, and rotation is single-use. |
@@ -74,6 +74,14 @@ Owned by `api/auth.py` and `api/sessions.py`.
   password form and changes nothing about the local path: password accounts,
   the break-glass environment admin, the login throttle and the signed
   file-grant path keep working exactly as documented here, with SSO on or off.
+
+PyJWT 2.15 warns `InsecureKeyLengthWarning` on every mint and every verify while
+the HMAC key is under 32 bytes. The shipped default `changeme-secret` is 15
+bytes, so a development deployment logs that warning on every token operation;
+it is a warning, not a failure, and nothing here suppresses it. The operator
+action is to set `AUTH_SECRET` to at least 32 bytes, for example
+`openssl rand -hex 32`. A secret shaped like a PEM, SSH, or JWK key is not a
+usable HMAC secret: PyJWT rejects it with `InvalidKeyError`.
 
 ## OIDC / SSO settings
 
