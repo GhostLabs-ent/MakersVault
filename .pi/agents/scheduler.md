@@ -247,7 +247,7 @@ or only one ticket is ready. It costs nothing: a one-lane wave is v1.
 
 ## Phase 3 — worktrees + lane bootstrap
 
-From the repo root, `/home/mal/fuck_it_ill_do_it_myself/MakersVault-fork`:
+From the repo root:
 
 ```bash
 git worktree add .lanes/<ticket> -b ticket/<ticket>
@@ -266,7 +266,7 @@ warm `~/.cache/uv`; `npm ci` about 4 s with a warm npm cache and 235 MB of
 python/ruff/bridge half only:
 
 ```bash
-make verify-fast VENV=/home/mal/fuck_it_ill_do_it_myself/MakersVault-fork/.venv
+make verify-fast            # uses <repo>/.venv when present
 ```
 
 That saves the two `uv` commands (under 2 s) and is safe for that half. It does
@@ -310,13 +310,13 @@ Pass each orchestrator this brief, filled in:
 
 > **Lane brief — ticket `<ticket>`.**
 > You are one lane of a wave. Work **only** inside
-> `/home/mal/fuck_it_ill_do_it_myself/MakersVault-fork/.lanes/<ticket>`
+> `.lanes/<ticket>`
 > (branch `ticket/<ticket>`). Never `cd` out of it, never touch `main`, never
 > touch `.lanes/<other-ticket>`, never merge, never rebase, never push, never
 > delete a worktree.
 >
 > **First action - the delta check.** Before anything else, run:
-> `python3 curiarium/scripts/wave_plan.py --check-delta /home/mal/fuck_it_ill_do_it_myself/MakersVault-fork/.plans/batch-<n>/<ticket>.json`
+> `python3 curiarium/scripts/wave_plan.py --check-delta .plans/batch-<n>/<ticket>.json`
 > - the **absolute** path of the plan file in the main checkout, run from the
 > lane's own cwd. `.lanes/<ticket>/` is a separate working directory, so
 > `.plans/` is invisible from inside it; the worktree shares `.git/objects`, so

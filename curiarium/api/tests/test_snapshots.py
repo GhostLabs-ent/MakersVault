@@ -4,7 +4,7 @@ Every snapshot here is a real directory in a temporary root: the CephFS provider
 is exercised against a plain ``tmp_path/.snap`` (where ``rmdir`` behaves the same
 way and the "can never remove a real tree" guarantee is directly observable),
 and the round trip runs through ``LocalCopyProvider``, which is the CI test
-double and needs no snapshottable filesystem. No test names ``/mnt/ceph``, reads
+double and needs no snapshottable filesystem. No test names a real CephFS mount, reads
 the real storage root, or touches the live deployment; the one test that needs a
 real mount lives in ``test_snapshots_integration.py`` behind ``SNAPSHOT_INTEGRATION``.
 

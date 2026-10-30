@@ -8,7 +8,7 @@ modules with ``importlib`` rather than importing them, because they are not on
 the API's import path by design: the sidecar must never depend on the API's
 package layout, and the API never imports the helper.
 
-Everything here is hermetic: no Docker, no real btrfs, no ``/mnt/ceph``, no
+Everything here is hermetic: no Docker, no real btrfs, no real CephFS mount, no
 privileged operation and no socket. The mount is a ``tmp_path`` directory and
 every command goes to an injected runner that records the argv instead of
 running it, which is how the command shape, the containment rules and the

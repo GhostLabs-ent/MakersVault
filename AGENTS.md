@@ -70,8 +70,8 @@ integrated `main`, before the release/publish step. No per-change full gates.
 3. **Any test that reads repo-root files needs the module-skip idiom.** The API image's
    build context is `curiarium/api`, so `parents[3]` raises in-container. This defect has
    shipped three times.
-4. **Destructive-path tests use temp directories.** Never `/mnt/ceph`, never the real
-   storage root, never the live deployment.
+4. **Destructive-path tests use temp directories.** Never a real network mount, never
+   the real storage root, never a live deployment.
 5. **Never merge, rebase or cherry-pick upstream.** The trees diverged deliberately (see
    `Mf-n60k` in the ticket store). Port by hand, one change at a time.
 6. **Two serialisers decide whether work can run in parallel**: `curiarium/scripts/` entry

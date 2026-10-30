@@ -152,7 +152,7 @@ deep, and neither the library root nor an ancestor nor a descendant of it.
 
 ```bash
 cd curiarium/api
-scratch=/mnt/ceph/scratch/curiarium-snapshot-scratch-$(date +%s)
+scratch=$(mktemp -d -t curiarium-snapshot-XXXXXX)
 mkdir -p "$scratch"
 SNAPSHOT_INTEGRATION=1 SNAPSHOT_INTEGRATION_ROOT="$scratch" \
   python -m pytest -q tests/test_snapshots_integration.py

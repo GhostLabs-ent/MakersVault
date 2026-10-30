@@ -4,9 +4,8 @@ This project completes work tickets through a **scheduler → orchestrator →
 oracle** pipeline so every ticket gets an Oracle plan-gate and commit-gate,
 independent verification, and a clean one-commit-per-ticket landing.
 
-Adapted from `~/ggreq_agent/docs/project_notes/TICKET_WORKFLOW.md` and
-`~/card_event_tracker/.pi/agents/scheduler.md`, which in turn use the global
-`oracle-gated-ticket-batch` skill.
+Distilled from the scheduler/orchestrator pattern the author uses on their own
+projects, and from the global `oracle-gated-ticket-batch` skill.
 
 ## Roles
 - **scheduler** (`.pi/agents/scheduler.md`) — the **wave planner**: packs 2
@@ -385,10 +384,10 @@ deliberately diverged line: they built overlapping features their own way and ou
 migrations/permissions/audit differ. Port features by hand into our idioms, one
 ticket at a time (see the fork-stance ticket), never with `git cherry-pick` or
 `git merge`.
-- **Never touch the live deployment** (`root@192.168.0.197`, `/opt/curiarium`,
-  the Cosmos app, `/mnt/ceph/3D_models`) unless the ticket says so. Tests must use
-  temp directories.
-- **Do not modify migrations that have already shipped** (versions 1-9).
+- **Never touch a live deployment** — the host, the app that fronts it, or the
+  storage mount — unless the ticket says so explicitly. Tests use temp directories,
+  never a real network mount.
+- **Do not modify migrations that have already shipped** (versions 1-12).
   Migrations are append-only and immutable — add a new version.
 - **Stop before destructive behaviour.** Recursive folder deletion
   (`Mf-5gh0`) needs the owner's explicit go-ahead; until then folder DELETE keeps

@@ -3,7 +3,7 @@
 The magics below are test fixtures, not host facts: every detection test drives
 ``storage_capabilities.statfs_magic`` with a constant (or a path-keyed map) and
 ``MOUNTS_PATH`` with a fake mount table under ``tmp_path``. No test names
-``/mnt/ceph``, reads the real storage root, or creates a ``.snap`` directory
+a real CephFS mount, reads the real storage root, or creates a ``.snap`` directory
 outside the temporary tree that synthesises the CephFS case. The single host
 smoke test at the bottom is the exception; it skips when there is no mount
 table and never writes.
