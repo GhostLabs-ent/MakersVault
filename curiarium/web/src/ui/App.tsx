@@ -6,7 +6,6 @@ import ModeSwitch from "./ModeSwitch";
 import ProjectSidebar from "./ProjectSidebar";
 import ProjectView from "./ProjectView";
 import Login from "./Login";
-import Settings from "./settings/Settings";
 import AuditLog from "./AuditLog";
 import NotPermitted from "./NotPermitted";
 import UploadQueuePanel from "./UploadQueuePanel";
@@ -42,6 +41,19 @@ import { useSessionRole } from "./useSessionRole";
 import { OidcExchangeError, exchangeOidcCode } from "../lib/api/auth";
 
 const DEFAULT_REFRESH_SECONDS = 900; // 15 minutes: the access token lifetime
+
+// Settings is not needed to render the library, so it is fetched on demand and
+// lands in its own chunk.
+const Settings = React.lazy(() => import("./settings/Settings"));
+
+/** Visible stand-in while the lazily loaded Settings chunk is on the wire. */
+export function SettingsLoading() {
+  return (
+    <div className="flex h-full w-full items-center justify-center text-sm text-muted p-6">
+      Loading settings…
+    </div>
+  );
+}
 
 /**
  * The API returns the browser to the web app with the handoff code in the URL
@@ -535,15 +547,17 @@ export default function App() {
           </div>
         )}
         {activeView === "settings" && (
-          <Settings
-            settings={settings}
-            onChange={setSettings}
-            onAssetsChanged={handleAssetsChanged}
-            onFoldersChanged={handleFoldersChanged}
-            onUnauthorized={handleUnauthorized}
-            onSelectFolder={handleSelectFolder}
-            role={role}
-          />
+          <React.Suspense fallback={<SettingsLoading />}>
+            <Settings
+              settings={settings}
+              onChange={setSettings}
+              onAssetsChanged={handleAssetsChanged}
+              onFoldersChanged={handleFoldersChanged}
+              onUnauthorized={handleUnauthorized}
+              onSelectFolder={handleSelectFolder}
+              role={role}
+            />
+          </React.Suspense>
         )}
         {activeView === "audit" && !roleAtLeast(role, "admin") && <NotPermitted />}
         {activeView === "audit" && roleAtLeast(role, "admin") && (

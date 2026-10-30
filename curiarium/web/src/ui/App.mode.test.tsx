@@ -89,7 +89,7 @@ vi.mock("./UploadBar", () => ({ default: () => null }));
 vi.mock("./UploadQueuePanel", () => ({ default: () => null }));
 vi.mock("./Login", () => ({ default: () => null }));
 
-import App from "./App";
+import App, { SettingsLoading } from "./App";
 import { listProjects } from "../lib/api";
 import { storeToken } from "../lib/auth";
 import { MODE_STORAGE_KEY } from "../lib/mode";
@@ -165,6 +165,28 @@ describe("App library mode switch", () => {
     expect(screen.getByText("Projects list")).toBeTruthy();
   });
 
+  it("renders a visible fallback while the lazy Settings chunk loads", () => {
+    // Settings sits behind `React.lazy`, so on a cold load the route shows the
+    // Suspense fallback. Racing that fallback inside App is order-dependent:
+    // React keeps a resolved lazy component cached for the whole module, so any
+    // earlier test that opened Settings makes the next mount render it
+    // synchronously. Pinning the fallback's own output is deterministic.
+    render(<SettingsLoading />);
+
+    expect(screen.getByText("Loading settings…")).toBeTruthy();
+  });
+
+  it("replaces the fallback with the Settings view once the chunk resolves", async () => {
+    window.localStorage.setItem(MODE_STORAGE_KEY, "projects");
+
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open settings" }));
+
+    expect(await screen.findByText("Settings view")).toBeTruthy();
+    expect(screen.queryByText("Loading settings…")).toBeNull();
+  });
+
   it("keeps Settings reachable while projects mode is active", async () => {
     window.localStorage.setItem(MODE_STORAGE_KEY, "projects");
 
@@ -172,7 +194,7 @@ describe("App library mode switch", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Open settings" }));
 
-    expect(screen.getByText("Settings view")).toBeTruthy();
+    expect(await screen.findByText("Settings view")).toBeTruthy();
   });
 
   it("returns to files mode when Settings selects a folder", async () => {
@@ -181,7 +203,9 @@ describe("App library mode switch", () => {
     render(<App />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Open settings" }));
-    fireEvent.click(screen.getByRole("button", { name: "Scan now" }));
+    // Settings is a lazy chunk now: its contents only exist once the module
+    // has resolved.
+    fireEvent.click(await screen.findByRole("button", { name: "Scan now" }));
 
     expect(window.localStorage.getItem(MODE_STORAGE_KEY)).toBe("files");
     expect(screen.getByRole("complementary", { name: "Files" })).toBeTruthy();
