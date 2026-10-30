@@ -13,6 +13,10 @@ services:
       - AUTH_USERNAME=${AUTH_USERNAME:-admin}
       - AUTH_PASSWORD=${AUTH_PASSWORD:-super-secret}
       - AUTH_SECRET=${AUTH_SECRET:-changeme-secret}
+      # Which login paths exist: auto (legacy: auth is on iff AUTH_USERNAME and
+      # AUTH_PASSWORD are both set), local (password only), both, oidc (SSO
+      # required) or off. Empty means auto; an unknown value refuses the boot.
+      - AUTH_MODE=${AUTH_MODE:-auto}
       # AUTH_TOKEN_TTL is deprecated and ignored (a no-op since the access/refresh
       # split), so it is deliberately not forwarded. An old .env that still sets
       # it still starts, but the value does nothing.

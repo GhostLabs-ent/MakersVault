@@ -140,7 +140,8 @@ upgrade to be a decision rather than a side effect.
 1. **Local users** — create them in Settings → Users, or via `POST /users` as an admin.
 2. **OIDC** — set `OIDC_ENABLED` and friends; see [CONFIGURATION.md](curiarium/docs/architecture/CONFIGURATION.md).
 3. **Break-glass** — `AUTH_USERNAME` / `AUTH_PASSWORD` from the environment work **only while
-   the users table is empty**. Create a user and they stop working; that is deliberate.
+   both are genuinely set and the users table is empty**. Create a user and they stop working;
+   that is deliberate.
 
 The API refuses to start with the published sample credentials (`super-secret` /
 `changeme-secret`) unless you explicitly set `AUTH_ALLOW_INSECURE_DEFAULTS=1`.
@@ -167,6 +168,7 @@ actually touch:
 | `PUBLIC_URL` | — | Public origin, e.g. `https://vault.example.com`. The web container derives `<PUBLIC_URL>/api` from it. |
 | `CORS_ORIGINS` | — | Comma-separated extra origins for direct/LAN access. |
 | `AUTH_USERNAME` / `AUTH_PASSWORD` | — | Break-glass admin, only while no user exists. |
+| `AUTH_MODE` | `auto` | Which login paths exist: `auto` (legacy — on iff the env pair is set), `local`, `both`, `oidc` (SSO required, no local passwords), `off`. |
 | `AUTH_ACCESS_TOKEN_TTL` | `900` | Access-token lifetime (seconds). Refresh tokens live 30 days and are revocable. |
 | `MAX_UPLOAD_MB` | `4096` | Direct upload cap. Your reverse proxy needs a matching body limit. |
 | `IMPORT_MAX_MB` / `IMPORT_ZIP_MAX_MB` | `512` / `2048` | Remote import size and cumulative ZIP budget. |

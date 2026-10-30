@@ -100,6 +100,7 @@ MINIMUM_KEY_COUNTS = {
 # AUTH_USERNAME/AUTH_PASSWORD/AUTH_SECRET intentionally default to the published
 # sample values so the API fails loudly.
 NEW_KEYS: set[str] = {
+    "AUTH_MODE",
     "AUTH_ACCESS_TOKEN_TTL",
     "AUTH_REFRESH_TTL_SECONDS",
     "AUTH_ALLOW_INSECURE_DEFAULTS",

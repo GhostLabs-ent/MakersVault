@@ -37,6 +37,7 @@ that keeps these forwards and fallbacks honest is
 | `CHOWN_MODE` | `minimal` | API entrypoint; `recursive` opts into a full data-tree ownership repair. |
 | `FILE_STORAGE` | `./storage` in code; `/app/storage` in Compose | Managed primary, thumbnail, and bundle root. |
 | `DB_URL` | `sqlite:///./curiarium.db` in code | SQLAlchemy database URL; Compose uses `/app/data/curiarium.db`. |
+| `AUTH_MODE` | `auto` | Which login paths exist: `auto` (legacy: on iff the `AUTH_USERNAME`/`AUTH_PASSWORD` pair is set), `local` (password only, SSO refused), `both`, `oidc` (SSO required, local passwords refused), `off`. Empty means `auto`; an unknown value refuses the boot. |
 | `AUTH_USERNAME` | `admin` | Username of the break-glass admin, accepted only while the users table is empty, so a real user account always disables it. |
 | `AUTH_PASSWORD` | `super-secret` | Single-admin bootstrap secret; the API refuses to start while this published sample value is still active. |
 | `AUTH_SECRET` | `changeme-secret` | JWT signing secret; the API refuses to start while this published sample value is still active. At least 32 bytes is needed for a warning-free HMAC key - PyJWT logs `InsecureKeyLengthWarning` for anything shorter. |
@@ -64,8 +65,9 @@ Owned by `api/auth.py` and `api/sessions.py`.
   expires after 30 days (`AUTH_REFRESH_TTL_SECONDS`, default `2592000`
   seconds).
 - The `AUTH_USERNAME`/`AUTH_PASSWORD` environment admin is break-glass only: it
-  is accepted while the users table is empty, so a real user account always wins
-  over the published sample credentials.
+  is accepted while the users table is empty **and** the environment pair is
+  genuinely set, so a real user account always wins over the published sample
+  credentials and a blank pair is never a login, in any mode.
 - At startup, `validate_auth_configuration()` refuses to run while
   `AUTH_PASSWORD` or `AUTH_SECRET` are still the published sample values, unless
   `AUTH_ALLOW_INSECURE_DEFAULTS` is set. `AUTH_TOKEN_TTL` is deprecated and
@@ -74,6 +76,67 @@ Owned by `api/auth.py` and `api/sessions.py`.
   password form and changes nothing about the local path: password accounts,
   the break-glass environment admin, the login throttle and the signed
   file-grant path keep working exactly as documented here, with SSO on or off.
+
+### Auth modes (`AUTH_MODE`)
+
+`AUTH_MODE` decides which login paths exist; it does not decide whether the API
+is guarded. "Auth is on" no longer means "password login exists": in `oidc`
+mode the API still requires a principal, but `POST /login` refuses a password and
+the break-glass pair is the only local way to bootstrap an administrator.
+
+`AUTH_MODE` is read once at import from `os.getenv("AUTH_MODE", "auto")`; unset
+and empty both mean `auto`. The accepted values are `auto` (the default),
+`local`, `both`, `oidc` and `off`. Any other value fails closed (`AUTH_ENABLED`
+is false) and refuses the boot, naming the accepted values.
+
+| mode | auth on | password login for user rows | break-glass | OIDC boot |
+|---|---|---|---|---|
+| `auto` (default/unset/empty) | iff `AUTH_USERNAME` and `AUTH_PASSWORD` are both set (the legacy rule, verbatim) | iff auth on | iff the pair is set and matches and the users table is empty | permitted iff auth on |
+| `local` | yes | always | iff the pair is set and matches and the table is empty | refused when `OIDC_ENABLED` is true |
+| `both` | yes | always | same as `local` | permitted |
+| `oidc` | yes | refused (401; the route stays live) | same as `local` - this is the bootstrap door, because `oidc.provision_or_link` refuses to provision while `accounts.count_enabled_admins() == 0`, so SSO cannot create the first admin | permitted and required: refused when `OIDC_ENABLED` is false |
+| `off` | no | refused (503) | never | refused when `OIDC_ENABLED` is true |
+
+In every mode the break-glass door requires a non-empty configured pair: a blank
+`AUTH_USERNAME`/`AUTH_PASSWORD` is never a login, because a blank form would
+otherwise match blank credentials. `auth.AUTH_ENABLED` is still the mode-derived
+"the API requires a principal" attribute, with no rename;
+`auth.password_login_allowed()`, `auth.oidc_login_allowed()` and
+`auth.break_glass_configured()` are the seams the routes and `oidc.is_enabled()`
+read. Only `/mfa/verify` changed its gate, to
+`AUTH_ENABLED and password_login_allowed()`.
+
+**A mode that forces auth on with a blank pair and an empty users table has no
+way in.** `local`, `oidc` and `both` set `AUTH_ENABLED` regardless of the
+environment pair, so a set pair and an empty table are both needed to bootstrap.
+Set the pair back, restart, and the door reopens: the table is still empty, so
+break-glass is accepted again. The boot cannot detect this state, because both
+`auth.validate_auth_configuration()` and `oidc.validate_oidc_configuration()` run
+before `run_migrations` and must not read the database.
+
+**Migrating a pair-only deployment straight to `oidc` locks the local admin out.**
+That mode refuses password sign-in for user rows, and SSO can only provision a
+non-admin (`sso_error=no_admin_bootstrap`), so there is no way to create the first
+admin. The documented path is `both` -> sign in through SSO -> promote that
+account to `admin` -> then `oidc`.
+
+**Modes gate login paths, not live sessions.** Existing `PASSWORD_KIND` sessions
+and their 30-day refresh tokens keep working across a mode flip; a token already
+minted is a session, not a login, and the mode decides only which doors can mint
+one.
+
+To move a pair-only deployment to a mode, in order:
+
+1. **Upgrade with `AUTH_MODE` unset.** Behaviour is identical to the old
+   pair-only rule: auth is on iff `AUTH_USERNAME` and `AUTH_PASSWORD` are both
+   set.
+2. **Create the real administrator** (Settings -> Users, or `POST /users`) while
+   break-glass is still valid.
+3. **Set `AUTH_MODE=both`** (or `oidc` once SSO is configured) and restart.
+4. **Delete `AUTH_USERNAME` and `AUTH_PASSWORD`.** A real admin row now exists, so
+   break-glass was already closed.
+5. **Confirm `/health` still reports `auth_required: true` and `/login` still
+   answers** - with a user row's password in `both`/`local`, or a 401 in `oidc`.
 
 PyJWT 2.15 warns `InsecureKeyLengthWarning` on every mint and every verify while
 the HMAC key is under 32 bytes. The shipped default `changeme-secret` is 15
@@ -124,10 +187,14 @@ partial configuration (any of issuer, client id or client secret missing while
 the others are set), on a boot where neither allow-list is populated, on a
 non-`https` issuer, on a non-empty `OIDC_ADMIN_GROUPS`, on
 `OIDC_DEFAULT_ROLE=admin` (and on any value that names no grantable role), on
-`OIDC_ENABLED` with `AUTH_ENABLED=false`, and on
-`OIDC_ENABLED` with an empty `PUBLIC_URL`. A half-configured sign-in path that
-quietly authenticates nobody is a support ticket; the interesting failure is the
-one that authenticates everybody, so the answer is to not boot.
+`OIDC_ENABLED` with an auth mode that leaves SSO no door (`AUTH_MODE=off`,
+`AUTH_MODE=local`, or the legacy default with a blank pair), and on
+`OIDC_ENABLED` with an empty `PUBLIC_URL`. The opposite contradiction -
+`AUTH_MODE=oidc` without `OIDC_ENABLED` - is refused by
+`auth.validate_auth_configuration()` rather than here, because it is the auth
+mode that has no login path. A half-configured sign-in path that quietly
+authenticates nobody is a support ticket; the interesting failure is the one that
+authenticates everybody, so the answer is to not boot.
 
 **`OIDC_DEFAULT_ROLE` is provisioning-only.** It is read once, when the account
 is created, and never applied again to that account: a re-login returns the
@@ -216,9 +283,12 @@ disagreement shows up here as a boot refusal or a login that stalls.
 The order below is enforced by the code, not a preference.
 
 1. **Deploy with a break-glass admin and SSO on.** Set `AUTH_USERNAME` /
-   `AUTH_PASSWORD` to a strong environment admin **and** `OIDC_ENABLED=1`.
-   `OIDC_ENABLED` with auth disabled is a fail-closed boot condition, so the
-   environment admin is not optional.
+   `AUTH_PASSWORD` to a strong environment admin **and** `OIDC_ENABLED=1`, and
+   set `AUTH_MODE=both` (or leave `AUTH_MODE` unset for the legacy pair-only
+   rule). The first admin still comes from break-glass or a pre-existing admin
+   row: SSO cannot create it (`no_admin_bootstrap`). `OIDC_ENABLED` with an auth
+   mode that leaves SSO no door is a fail-closed boot condition, so the pair -
+   or an `AUTH_MODE` that forces auth on - is not optional.
 2. **Sign in as break-glass and create a real admin** (Settings → Users, or
    `POST /users`). Break-glass is hard-rejected and its sessions are revoked as
    soon as the first `users` row exists, so create the administrator you will

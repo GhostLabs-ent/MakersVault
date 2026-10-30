@@ -308,8 +308,8 @@ def redirect_uri() -> str:
 
 
 def is_enabled() -> bool:
-    """SSO is live only when it is switched on AND auth itself is on."""
-    return bool(config.OIDC_ENABLED and auth.AUTH_ENABLED)
+    """SSO is live only when it is switched on AND this mode allows SSO."""
+    return bool(config.OIDC_ENABLED and auth.oidc_login_allowed())
 
 
 def allowed_groups() -> frozenset[str]:
@@ -338,8 +338,17 @@ def validate_oidc_configuration() -> None:
     problems: list[str] = []
     if not auth.AUTH_ENABLED:
         problems.append(
-            "OIDC_ENABLED is set while AUTH_ENABLED is false: every route would be "
-            "unauthenticated, so SSO would be a login page for a door with no lock"
+            "OIDC_ENABLED is set while AUTH_ENABLED is false (AUTH_MODE=off, or the "
+            "default mode with an empty AUTH_USERNAME/AUTH_PASSWORD): every route "
+            "would be unauthenticated, so SSO would be a login page for a door with "
+            "no lock. Set AUTH_MODE=both (or 'oidc') and keep a real login path, or "
+            "unset OIDC_ENABLED"
+        )
+    elif auth.AUTH_MODE == auth.AUTH_MODE_LOCAL:
+        problems.append(
+            "OIDC_ENABLED is set while AUTH_MODE=local: this mode forbids SSO, so no "
+            "sign-in could ever reach the provider. Set AUTH_MODE=both (or 'oidc'), "
+            "or unset OIDC_ENABLED"
         )
     missing = [
         name

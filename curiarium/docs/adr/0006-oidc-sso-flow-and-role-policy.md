@@ -61,6 +61,17 @@ Verified facts at the time of this decision:
    (`auth.require_auth_or_file_grant`) are untouched by this ticket and keep
    working with SSO on or off.
 
+   **Amended (2026-10-31, Mf-k35g):** SSO can now be the only front door, and
+   can also be a second door, decided by `AUTH_MODE`. With `AUTH_MODE=oidc` SSO
+   is required and local password sign-in is refused; with `AUTH_MODE=both` both
+   doors are live; `local` forbids SSO and `off` disables auth entirely. The
+   "second front door" framing above is therefore stale in letter only: the
+   guarded route set, the break-glass admin and the signed file-grant path are
+   all unchanged, and `AUTH_ENABLED` remains the mode-derived "the API requires a
+   principal" flag with no rename - what moved is which login can mint a session,
+   not what a session may do. No claim gained a role it could not reach, which is
+   why this is a dated amendment rather than a new record.
+
 2. **The flow is Authorization Code with PKCE, server-side, and the code never
    reaches the browser.** `GET /auth/oidc/start` mints a `state`, a `nonce` and
    a PKCE `code_verifier` in `api/oidc.py`, stores them in a pending-state dict
@@ -220,11 +231,24 @@ Verified facts at the time of this decision:
     `OIDC_ENABLED` is true, and it refuses when any of `OIDC_ISSUER`,
     `OIDC_CLIENT_ID` or `OIDC_CLIENT_SECRET` is missing; when both allow-lists
     are empty; when `OIDC_ISSUER` is not `https://`; when `OIDC_ADMIN_GROUPS` is
-    non-empty; when `AUTH_ENABLED` is false; and when `PUBLIC_URL` is empty.
+    non-empty; when the auth mode leaves SSO no door; and when `PUBLIC_URL` is
+    empty.
     Each refusal names the variable at fault. A partially
     configured sign-in path that silently authenticates nobody is a support
     ticket; one that silently authenticates *everybody* is an incident, so the
     answer is to not boot.
+
+    **Amended (2026-10-31, Mf-k35g):** the auth-side refusal is now
+    **mode-driven**, not a bare `AUTH_ENABLED` check. The mode-vs-SSO
+    contradictions - `AUTH_MODE=off`, `AUTH_MODE=local`, or the legacy default
+    with a blank pair, each with `OIDC_ENABLED` set - live in
+    `oidc.validate_oidc_configuration()`; the opposite contradiction,
+    `AUTH_MODE=oidc` without `OIDC_ENABLED`, lives in
+    `auth.validate_auth_configuration()`. Both compose with the existing
+    `OIDC_DEFAULT_ROLE` / `OIDC_ADMIN_GROUPS` / allow-list / https / `PUBLIC_URL`
+    checks in this validator rather than duplicating them, so it is still one
+    boot gate over the same variables; what changed is that the "auth is off"
+    half is now expressed as an auth mode that leaves SSO no door.
 
 15. **The pending-state store and the handoff store are in-process dicts, and
     that is a stated contract, not an implementation detail.** They live in
