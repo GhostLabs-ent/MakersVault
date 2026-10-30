@@ -1,5 +1,7 @@
 
-<img width="612" height="408" alt="curiariumlogoneon-removebg-preview" src="https://github.com/user-attachments/assets/32e7faae-23e3-41bb-a188-376ad2fa68df" />
+<img width="520" alt="Curiarium" src="docs/brand/curiarium-lockup.png" />
+
+<sub>Mark and wordmark are generated from one source: <code>docs/brand/build.py</code> (SVG in, every icon and theme variant out).</sub>
 
 ![Status](https://img.shields.io/badge/status-Beta%20release-brightgreen)
 ![Version](https://img.shields.io/badge/version-5.2.0--rc.1-blue)
