@@ -1,31 +1,112 @@
 version: 2
+
+# Dependabot, tuned for a solo repo where every change is gated by the ticket
+# loop (Oracle plan/commit gates + ~1840 API tests + web suite + container
+# smoke). History: the untuned config produced 15 open PRs on the upstream fork
+# for months, one of which (fastapi 0.141) would have silently broken the
+# route-classification boot guard, and another (node 25) was a non-LTS line.
+#
+# Policy:
+#   * monthly, not weekly - this is not a company with a security team
+#   * minor+patch are GROUPED into one PR per ecosystem, so the noise is a PR a
+#     month instead of fifteen
+#   * majors stay individual (a CI failure must be attributable to one bump) but
+#     the ones already scheduled as tickets are ignored until those land
+#   * open-pull-requests-limit caps the worst case
 updates:
   - package-ecosystem: pip
     directory: /curiarium/api
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: deps
+      include: scope
+    groups:
+      python-minor-and-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+    ignore:
+      # deferred as tickets: pytest 8 -> 9 (Mf-xezm, landed separately),
+      # pillow 10 -> 12 (Mf-xzei, landed separately). Kept out until revisited.
+      - dependency-name: pytest
+        update-types: ["version-update:semver-major"]
+      - dependency-name: pillow
+        update-types: ["version-update:semver-major"]
+
   - package-ecosystem: npm
     directory: /curiarium/web
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: deps
+      include: scope
+    groups:
+      js-minor-and-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+    ignore:
+      # deferred as tickets: Tailwind 4 and React 19 (Mf-chp6), vitest 4 ->
+      # vite 7 (Mf-qj7j). Re-proposing them before those land is pure noise.
+      - dependency-name: tailwindcss
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react-dom
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: vitest
+        update-types: ["version-update:semver-major"]
+
   - package-ecosystem: gomod
     directory: /curiarium/slicer-bridge
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: deps
+      include: scope
+    groups:
+      go-minor-and-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+
   - package-ecosystem: docker
     directory: /curiarium/api
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: deps
+      include: scope
+
   # Floats `N-alpine` on a supported Node LTS major. Dependabot only proposes
-  # same-precision tags, so it proposes newer-major float tags, never 24.x
-  # patch PRs (those arrive by tag re-resolution at build time). Node 25 was
-  # the last non-LTS line and is EOL; from 27 every annual major is LTS, so a
-  # major PR is an LTS: the reviewed accept-or-reject decision.
+  # same-precision tags, so it proposes newer-major float tags, never 24.x patch
+  # PRs (those arrive by tag re-resolution at build time). Node 25 was the last
+  # non-LTS line and is EOL; from 27 every annual major is LTS, so a major PR is
+  # an LTS and lands as a reviewed accept-or-reject decision.
   - package-ecosystem: docker
     directory: /curiarium/web
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: deps
+      include: scope
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: deps
+      include: scope
+    groups:
+      actions-minor-and-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
