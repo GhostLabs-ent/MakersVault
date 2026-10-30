@@ -1,10 +1,10 @@
+import React from "react";
 import { type Asset, type PreparedPrint, fileUrl } from "../../lib/api";
 import { formatBytes } from "../../lib/format";
 import type { PreviewSettings, ResolvedTheme } from "../../lib/settings";
 import { useFileGrants } from "../../lib/useFileGrants";
 import FileDownloadLink from "../FileDownloadLink";
 import LightBurnPreview from "../LightBurnPreview";
-import ModelViewer, { ModelSnapshot } from "../ModelViewer";
 import TagBadge from "../TagBadge";
 import {
   LIGHTBURN_EXTS,
@@ -12,6 +12,20 @@ import {
   extOf,
   type PreviewVariant,
 } from "./assetGridMeta";
+
+// Three.js is the single largest dependency in the app and only 3D assets need
+// it, so the viewer and the snapshot renderer are fetched on demand. Both live
+// in `../ModelViewer`; the named export is adapted to `lazy`'s default-export
+// contract.
+const ModelViewer = React.lazy(() => import("../ModelViewer"));
+const ModelSnapshot = React.lazy(() =>
+  import("../ModelViewer").then((module) => ({ default: module.ModelSnapshot })),
+);
+
+/** Visible stand-in while a lazily loaded 3D chunk is on the wire. */
+export function PreviewLoading({ label = "Loading 3D preview…" }: { label?: string }) {
+  return <div className="flex h-full w-full items-center justify-center text-xs text-muted">{label}</div>;
+}
 
 function formatPreparedDuration(totalSeconds?: number | null) {
   if (!totalSeconds || totalSeconds < 1) return null;
@@ -118,7 +132,11 @@ export function renderPreviewContent(
       if (previewMode === "disabled") {
         return <div className="flex h-full w-full items-center justify-center text-xs text-muted">Preview generation disabled</div>;
       }
-      return <ModelSnapshot url={assetUrl} ext={ext} assetId={asset.id} theme={theme} mode={previewMode} />;
+      return (
+        <React.Suspense fallback={<PreviewLoading />}>
+          <ModelSnapshot url={assetUrl} ext={ext} assetId={asset.id} theme={theme} mode={previewMode} />
+        </React.Suspense>
+      );
     }
     if (isLightBurn) {
       return (
@@ -141,7 +159,11 @@ export function renderPreviewContent(
   }
 
   if (is3d) {
-    return <ModelViewer key={`${variant}-${asset.id}`} url={assetUrl} ext={ext} assetId={asset.id} theme={theme} />;
+    return (
+      <React.Suspense fallback={<PreviewLoading />}>
+        <ModelViewer key={`${variant}-${asset.id}`} url={assetUrl} ext={ext} assetId={asset.id} theme={theme} />
+      </React.Suspense>
+    );
   }
   if (thumbUrl || ext === "svg") {
     const src = thumbUrl || assetUrl;

@@ -163,6 +163,30 @@ compose manifest. Only the manifest half is guarded: a forwarded key that nothin
 reads fails `tests/test_deploy_manifest_env.py`. An extra `.env.example` key
 fails nothing, so that half is documentation discipline, not a gate.
 
+## Build warnings in the web bundle
+
+`npm run build` in `curiarium/web` is expected to emit exactly the warnings below,
+nothing else. Anything else is new and needs a disposition before it ships.
+
+| Warning | Disposition |
+| --- | --- |
+| `[baseline-browser-mapping] The data in this module is over two months old.` | Informational. Comes from a dev dependency used by the Browserslist toolchain; no application code is shipped from it. Update with `npm i baseline-browser-mapping@latest -D` when it gets noisy. |
+| `Browserslist: browsers data (caniuse-lite) is 12 months old.` | Dev-time staleness notice from Browserslist; not shipped. The fix is `npx update-browserslist-db@latest`. |
+| `node_modules/lucide-react/dist/esm/context.mjs (2:0): Module level directives cause errors when bundled, "use client" ... was ignored.` and the same line for `Icon.mjs`. | Accepted. A `"use client"` directive is meaningless in an ESM browser build; the only consumer is the Vite client bundle, which has no server/client boundary. |
+| `Module "path" has been externalized for browser compatibility, imported by ".../node_modules/occt-import-js/dist/occt-import-js.js"` (and the same for `crypto`). | Filtered by `build.rollupOptions.onwarn` in `curiarium/web/vite.config.js`. `occt-import-js` ships an emscripten bundle that contains Node-only code paths for `path`/`crypto`; only its WASM entry point is used, and it runs inside a worker, so the externalized browser stubs are never touched at runtime. The filter matches only these two messages from that one importer and forwards every other warning to Vite's default handler. |
+| The Rollup chunk-size warning. | Not expected: `build.chunkSizeWarningLimit` is 600 kB. The entry measured react-dom ~129.8 kB + app shell ~262 kB + markdown stack (`react-markdown` + `rehype-sanitize` + `remark-gfm`) ~178.9 kB + `lucide-react` ~22 kB, i.e. just under the limit. If the entry crosses 600 kB again, split it rather than raising the limit. |
+
+Three.js and the settings page are not in the entry chunk. `preview.tsx`
+reaches the viewer and the snapshot renderer through `React.lazy(() => import(...))`,
+and `App.tsx` does the same for `./settings/Settings`, so they build into their own
+chunks (`ModelViewer-*.js`, `Settings-*.js`) and are fetched only when a 3D asset or
+the Settings view is first rendered. Those chunks are deliberately **not**
+`modulepreload`-ed: a preloaded split chunk still costs the same network transfer on
+first load, so preloading it would only buy parse time while making every visitor pay
+for three.js again. `dist/index.html` therefore carries no
+`<link rel="modulepreload">` at all — if one appears, something started eagerly
+importing the split modules again.
+
 ## Schema migration rules
 
 - Add the next immutable `Migration` entry in `api/migrations.py`.

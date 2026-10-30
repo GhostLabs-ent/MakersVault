@@ -58,8 +58,40 @@ const resolvedAllowedHosts = parseAllowedHosts(
   apiUrlHost ? [apiUrlHost] : []
 );
 
+/**
+ * Only the occt-import-js `path`/`crypto` externalization warnings are dropped.
+ * That package ships an emscripten bundle whose Node-only code paths reference
+ * `path`/`crypto`; only its WASM entry point is used, and it runs inside a
+ * worker, so the externalized browser stubs are never touched at runtime. Every
+ * other warning goes to Vite's default handler unmodified.
+ */
+function isAcceptedOcctExternalization(warning) {
+  const message = typeof warning === "string" ? warning : warning?.message;
+  if (typeof message !== "string") return false;
+  // Vite's plugin warnings arrive with the plugin name already prepended, so
+  // tolerate the `[plugin vite:resolve] ` prefix as well as the bare sentence.
+  return (
+    /^(?:\[plugin vite:resolve\] )?Module "(path|crypto)" has been externalized for browser compatibility/.test(
+      message,
+    ) && message.includes("occt-import-js")
+  );
+}
+
 export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
+  build: {
+    // Entry chunk composition at the time of writing: react-dom 129.8 kB +
+    // app shell ~262 kB + markdown stack 178.9 kB + lucide 22 kB. Three.js and
+    // the settings page are dynamic imports, so they are not part of it. See
+    // curiarium/docs/DEVELOPMENT.md for the full list of accepted warnings.
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      onwarn(warning, defaultHandler) {
+        if (isAcceptedOcctExternalization(warning)) return;
+        defaultHandler(warning);
+      },
+    },
+  },
   server: {
     host: true,
     allowedHosts: resolvedAllowedHosts,
