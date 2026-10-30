@@ -138,6 +138,15 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("POST", "/login"): PUBLIC,
     ("POST", "/refresh"): PUBLIC,
     ("POST", "/logout"): PUBLIC,
+    # OIDC / SSO (Mf-4c24). All four are public because they run before a
+    # session exists, and all four 503 when auth is disabled, exactly like
+    # /login. `status` only reports whether SSO is on; `start` and `callback`
+    # mint and spend a single-use state; `exchange` is the one mutation and it
+    # is audited (`login.oidc.succeeded`).
+    ("GET", "/auth/oidc/status"): PUBLIC,
+    ("GET", "/auth/oidc/start"): PUBLIC,
+    ("GET", "/auth/oidc/callback"): PUBLIC,
+    ("POST", "/auth/oidc/exchange"): PUBLIC,
     # read: any authenticated principal, including viewers.
     ("GET", "/me"): READ,
     ("GET", "/library/scan"): READ,

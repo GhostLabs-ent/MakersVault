@@ -67,6 +67,11 @@ USER_DISABLE = "user.disable"
 USER_ENABLE = "user.enable"
 LIBRARY_SCAN_START = "library.scan.start"
 LOGIN_SUCCEEDED = "login.succeeded"
+# An SSO login is its own action pair rather than a `kind` on login.succeeded:
+# the exchange route is the only mutation, and the callback is the only place a
+# rejection can be recorded, so both need a name an operator can filter on.
+LOGIN_OIDC_SUCCEEDED = "login.oidc.succeeded"
+LOGIN_OIDC_FAILED = "login.oidc.failed"
 SNAPSHOT_CREATE = "snapshot.create"
 SNAPSHOT_PRUNE = "snapshot.prune"
 SNAPSHOT_DELETE = "snapshot.delete"
@@ -103,6 +108,8 @@ ACTIONS: frozenset[str] = frozenset({
     USER_ENABLE,
     LIBRARY_SCAN_START,
     LOGIN_SUCCEEDED,
+    LOGIN_OIDC_SUCCEEDED,
+    LOGIN_OIDC_FAILED,
     SNAPSHOT_CREATE,
     SNAPSHOT_PRUNE,
     SNAPSHOT_DELETE,
@@ -273,6 +280,10 @@ def list_events(
 # permission matrix without guessing.
 ROUTE_ACTIONS: dict[tuple[str, str], tuple[str, ...]] = {
     ("POST", "/login"): (LOGIN_SUCCEEDED,),
+    # The one mutating OIDC route. `GET /auth/oidc/callback` also writes
+    # `login.oidc.failed`, but it is a GET and records through `audit.record`
+    # with its own transaction, so it has no entry here by design.
+    ("POST", "/auth/oidc/exchange"): (LOGIN_OIDC_SUCCEEDED,),
     ("DELETE", "/asset/{asset_id}"): (ASSET_DELETE,),
     ("POST", "/assets/batch/delete"): (ASSET_DELETE, DESTRUCTIVE_SNAPSHOT_TAKEN, DESTRUCTIVE_SNAPSHOT_MISSED),
     ("POST", "/asset/{asset_id}/rename"): (ASSET_RENAME,),

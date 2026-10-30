@@ -1391,6 +1391,140 @@
       "summary": "List Audit Events"
     }
   },
+  "/auth/oidc/callback": {
+    "get": {
+      "description": "Verify the provider's answer and park a single-use handoff code.\n\nThis route writes no user, session or identity row. A rejected attempt is the\nonly thing it records, through `audit.record`.",
+      "operationId": "oidc_callback_auth_oidc_callback_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "state",
+          "required": false,
+          "schema": {
+            "default": "",
+            "title": "State",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "code",
+          "required": false,
+          "schema": {
+            "default": "",
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "error",
+          "required": false,
+          "schema": {
+            "default": "",
+            "title": "Error",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Oidc Callback"
+    }
+  },
+  "/auth/oidc/exchange": {
+    "post": {
+      "description": "The one mutation: provision/link, open a session, stage the audit event.",
+      "operationId": "oidc_exchange_auth_oidc_exchange_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/OidcExchangeRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginResponse"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Oidc Exchange"
+    }
+  },
+  "/auth/oidc/start": {
+    "get": {
+      "description": "Begin the flow: mint state/nonce/PKCE and redirect to the provider.",
+      "operationId": "oidc_start_auth_oidc_start_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Oidc Start"
+    }
+  },
+  "/auth/oidc/status": {
+    "get": {
+      "description": "Tell the web client whether to offer the SSO button; no other detail.",
+      "operationId": "oidc_status_auth_oidc_status_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OidcStatusOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Oidc Status"
+    }
+  },
   "/creators": {
     "get": {
       "description": "Distinct non-empty creators, deduped and sorted case-insensitively.\n\nTakes the same scoping filters as `GET /assets` and `GET /tags`, so the\nfacet works in library mode, folder mode and project mode. An unknown\nproject is a 404 like every other project route.",

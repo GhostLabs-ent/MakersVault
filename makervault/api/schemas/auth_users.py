@@ -8,6 +8,8 @@ __all__ = [
   "LoginRequest",
   "LoginResponse",
   "MeOut",
+  "OidcExchangeRequest",
+  "OidcStatusOut",
   "RefreshRequest",
   "UserCreate",
   "UserOut",
@@ -73,3 +75,19 @@ class MeOut(BaseModel):
   role: str
   disabled: bool
   kind: str
+
+
+class OidcStatusOut(BaseModel):
+  """Whether the client should offer the SSO button; nothing else.
+
+  Deliberately carries no provider name, issuer or error text: this route is
+  public, and the only decision the browser has to make is whether to draw a
+  second button.
+  """
+  enabled: bool
+
+
+class OidcExchangeRequest(BaseModel):
+  """The single-use handoff code the callback parked, taken from the fragment."""
+  model_config = ConfigDict(extra="forbid")
+  code: str

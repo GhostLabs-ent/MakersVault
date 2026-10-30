@@ -23,6 +23,19 @@ services:
       - LOGIN_FAILURE_WINDOW_SECONDS=${LOGIN_FAILURE_WINDOW_SECONDS:-900}
       - LOGIN_LOCKOUT_SECONDS=${LOGIN_LOCKOUT_SECONDS:-300}
       - LOGIN_MAX_LOCKOUT_SECONDS=${LOGIN_MAX_LOCKOUT_SECONDS:-3600}
+      # OIDC / SSO is opt-in and off by default; local password login keeps
+      # working when it is on. A half-configuration refuses to boot. See
+      # api/.env.example for the keys and the validator's rules.
+      - OIDC_ENABLED=${OIDC_ENABLED:-false}
+      - OIDC_ISSUER=${OIDC_ISSUER:-}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-}
+      - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET:-}
+      - OIDC_SCOPES=${OIDC_SCOPES:-openid profile email}
+      - OIDC_GROUPS_CLAIM=${OIDC_GROUPS_CLAIM:-groups}
+      - OIDC_ALLOWED_GROUPS=${OIDC_ALLOWED_GROUPS:-}
+      - OIDC_ALLOWED_DOMAINS=${OIDC_ALLOWED_DOMAINS:-}
+      - OIDC_EDITOR_GROUPS=${OIDC_EDITOR_GROUPS:-}
+      - OIDC_ADMIN_GROUPS=${OIDC_ADMIN_GROUPS:-}
     volumes:
       - ./data/storage:/app/storage
       - ./data/db:/app/data

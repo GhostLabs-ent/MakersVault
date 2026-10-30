@@ -34,7 +34,57 @@ import {
 import { type AppSettings, type ResolvedTheme, loadSettings, resolveTheme, saveSettings } from "../lib/settings";
 import { type LibraryMode, loadMode, saveMode } from "../lib/mode";
 import { useSessionRole } from "./useSessionRole";
+// Imported from the domain module, not the `../lib/api` barrel: `App.role.test.tsx`
+// and `App.mode.test.tsx` replace that barrel with a fixed object, so a new named
+// import from it would throw "No export is defined on the mock" in files outside
+// this ticket's touch-set. `ui/deferredFileGrants.test.tsx` sets the same precedent
+// by importing `../lib/api/grants` directly.
+import { OidcExchangeError, exchangeOidcCode } from "../lib/api/auth";
+
 const DEFAULT_REFRESH_SECONDS = 900; // 15 minutes: the access token lifetime
+
+/**
+ * The API returns the browser to the web app with the handoff code in the URL
+ * fragment (`#sso_code=...`, or `#sso_error=...` on a rejection), never the
+ * query string: a fragment is not sent to the server nor written to the API's
+ * access log. Read synchronously so the very first render already knows a
+ * handoff is in flight.
+ */
+export function readSsoFragment(): { code: string | null; error: string | null } {
+  if (typeof window === "undefined") return { code: null, error: null };
+  const hash = window.location.hash.replace(/^#/, "");
+  if (!hash) return { code: null, error: null };
+  let code: string | null = null;
+  let error: string | null = null;
+  for (const part of hash.split("&")) {
+    const separator = part.indexOf("=");
+    if (separator < 0) continue;
+    const key = part.slice(0, separator);
+    if (key !== "sso_code" && key !== "sso_error") continue;
+    let value = part.slice(separator + 1);
+    try {
+      value = decodeURIComponent(value);
+    } catch {
+      // A malformed escape is not a usable value: keep it raw and let the
+      // exchange fail rather than throwing on a hostile URL.
+    }
+    if (!value) continue;
+    if (key === "sso_code") code = value;
+    else error = value;
+  }
+  return { code, error };
+}
+
+function hasSsoFragment(): boolean {
+  const { code, error } = readSsoFragment();
+  return Boolean(code || error);
+}
+
+/** Drops the fragment while keeping path and query, without a navigation. */
+function clearSsoFragment(): void {
+  if (typeof window === "undefined") return;
+  window.history.replaceState(null, "", window.location.pathname + window.location.search);
+}
 
 const logoForTheme = (theme: ResolvedTheme) => {
   switch (theme) {
@@ -72,6 +122,14 @@ export default function App() {
   const [health, setHealth] = React.useState<HealthInfo | null>(null);
   const [tokenTtl, setTokenTtl] = React.useState<number | null>(null);
   const [sessionExpired, setSessionExpired] = React.useState(false);
+  // SSO handoff. `ssoPending` starts true when the URL carries a handoff
+  // fragment, so the gate below shows a placeholder instead of the login form
+  // while the code is exchanged: the form must never flash.
+  const [ssoError, setSsoError] = React.useState<string | null>(null);
+  const [ssoPending, setSsoPending] = React.useState<boolean>(() => hasSsoFragment());
+  // The handoff code is single-use server-side, so the exchange must run once
+  // even though React.StrictMode invokes effects twice.
+  const ssoHandled = React.useRef<boolean>(false);
   const [activeView, setActiveView] = React.useState<"library" | "settings" | "audit">("library");
   const [settings, setSettings] = React.useState<AppSettings>(() => loadSettings());
   const [confirmingLogout, setConfirmingLogout] = React.useState(false);
@@ -105,7 +163,9 @@ export default function App() {
   const apiUp = health?.ok ?? null;
   const authRequired = health?.auth_required ?? true;
 
-  const handleLogin = (tok: string, ttl: number, refresh: string) => {
+  // Stable identity so the SSO effect can depend on it without re-running on
+  // every render; it only touches setters and token storage.
+  const handleLogin = React.useCallback((tok: string, ttl: number, refresh: string) => {
     storeToken(tok);
     // Never leave a refresh token from a previous sign-in paired with the new
     // access token: store the new one, or drop whatever was stored before.
@@ -117,7 +177,7 @@ export default function App() {
     setToken(tok);
     setTokenTtl(ttl);
     setSessionExpired(false);
-  };
+  }, []);
 
   const handleUnauthorized = React.useCallback(() => {
     if (sessionExpired) return;
@@ -290,10 +350,55 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [token, tokenTtl, refreshSession, handleUnauthorized]);
 
+  React.useEffect(() => {
+    if (ssoHandled.current) return;
+    const { code, error } = readSsoFragment();
+    if (!code && !error) return;
+    ssoHandled.current = true;
+    // Strip the fragment *before* the first await. The handoff code must not
+    // survive a reload, a back-navigation or a screenshot, and a re-invoked
+    // effect that finds nothing can no longer spend it a second time.
+    clearSsoFragment();
+    if (error) {
+      setSsoError(error);
+      setSsoPending(false);
+      return;
+    }
+    if (!code) {
+      setSsoPending(false);
+      return;
+    }
+    const handoff = code;
+    void (async () => {
+      try {
+        const res = await exchangeOidcCode(handoff);
+        handleLogin(res.token, res.expires_in, res.refresh_token ?? "");
+      } catch (err) {
+        // The API's message is for the console only: the screen gets a frozen
+        // copy value, never server or IdP free text. A 409 is the persistent
+        // "no administrator has signed in locally yet" condition, where "please
+        // try again" would be actively wrong advice, so it gets its own line.
+        console.error(err);
+        setSsoError(err instanceof OidcExchangeError && err.status === 409 ? "no_admin_bootstrap" : "exchange_failed");
+      } finally {
+        setSsoPending(false);
+      }
+    })();
+  }, [handleLogin]);
+
   if (authRequired && !token) {
+    // A handoff in flight renders a placeholder rather than <Login>, so the
+    // local password form never flashes before the exchange lands.
+    if (ssoPending) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <p className="text-sm text-muted">Signing you in...</p>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Login onSuccess={handleLogin} apiUp={apiUp} theme={resolvedTheme} />
+        <Login onSuccess={handleLogin} apiUp={apiUp} theme={resolvedTheme} ssoError={ssoError} />
       </div>
     );
   }

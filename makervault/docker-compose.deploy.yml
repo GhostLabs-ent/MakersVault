@@ -19,6 +19,23 @@ services:
       - AUTH_ACCESS_TOKEN_TTL=${AUTH_ACCESS_TOKEN_TTL:-900}
       - AUTH_REFRESH_TTL_SECONDS=${AUTH_REFRESH_TTL_SECONDS:-2592000}
       - AUTH_ALLOW_INSECURE_DEFAULTS=${AUTH_ALLOW_INSECURE_DEFAULTS:-false}
+      # OIDC / SSO is opt-in and off by default. The boot validator refuses a
+      # half-configuration: issuer, client id and client secret must all be set,
+      # at least one allow-list must be populated, OIDC_ISSUER must be https://,
+      # OIDC_ENABLED needs a non-empty PUBLIC_URL, and OIDC_ADMIN_GROUPS must stay
+      # empty because claims can never grant admin. The redirect URI is derived
+      # as ${PUBLIC_URL}/auth/oidc/callback. The fallbacks below must match the
+      # code defaults in config.py; tests/test_deploy_manifest_env.py pins them.
+      - OIDC_ENABLED=${OIDC_ENABLED:-false}
+      - OIDC_ISSUER=${OIDC_ISSUER:-}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-}
+      - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET:-}
+      - OIDC_SCOPES=${OIDC_SCOPES:-openid profile email}
+      - OIDC_GROUPS_CLAIM=${OIDC_GROUPS_CLAIM:-groups}
+      - OIDC_ALLOWED_GROUPS=${OIDC_ALLOWED_GROUPS:-}
+      - OIDC_ALLOWED_DOMAINS=${OIDC_ALLOWED_DOMAINS:-}
+      - OIDC_EDITOR_GROUPS=${OIDC_EDITOR_GROUPS:-}
+      - OIDC_ADMIN_GROUPS=${OIDC_ADMIN_GROUPS:-}
       - FILE_STORAGE=/app/storage
       - DB_URL=sqlite:////app/data/app.db
       - PUBLIC_URL=${PUBLIC_URL:-}

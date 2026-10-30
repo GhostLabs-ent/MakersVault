@@ -21,7 +21,11 @@ disclosed in the rows below: `ASSET_FILE_MAX_MB` is forwarded empty so it keeps
 following `IMPORT_MAX_MB` (the cap in force is the smaller of the two), the
 deprecated `AUTH_TOKEN_TTL` is not forwarded at all because it is a no-op, and
 the `SNAPSHOT_BTRFS_SIDECAR_*` keys are forwarded nowhere because they belong to
-the opt-in sidecar and its override, not to the shipped manifests. The guard
+the opt-in sidecar and its override, not to the shipped manifests. The ten
+`OIDC_*` keys ARE forwarded, each with its code default as the fallback, so
+`OIDC_ENABLED` defaults to `false` and every other OIDC key defaults to empty or
+to the value in the table below; an unconfigured deployment is therefore
+unchanged by this ticket. The guard
 that keeps these forwards and fallbacks honest is
 `makervault/api/tests/test_deploy_manifest_env.py`.
 
@@ -66,6 +70,62 @@ Owned by `api/auth.py` and `api/sessions.py`.
   `AUTH_PASSWORD` or `AUTH_SECRET` are still the published sample values, unless
   `AUTH_ALLOW_INSECURE_DEFAULTS` is set. `AUTH_TOKEN_TTL` is deprecated and
   ignored; it is read only so an existing environment keeps starting.
+- SSO is opt-in and off by default. Enabling it adds an OIDC login next to the
+  password form and changes nothing about the local path: password accounts,
+  the break-glass environment admin, the login throttle and the signed
+  file-grant path keep working exactly as documented here, with SSO on or off.
+
+## OIDC / SSO settings
+
+Owned by `makervault/api/oidc.py` (the flow and the claim policy),
+`makervault/api/routers/oidc.py` (the four routes) and `makervault/api/config.py`
+(the keys below). SSO is opt-in: `OIDC_ENABLED=false` is the shipped default and
+leaves every existing deployment exactly as it was, with the four routes
+answering 503 just as `/login` does when auth is disabled.
+
+| Variable | Current default | Owner and effect |
+|---|---|---|
+| `OIDC_ENABLED` | `false` | Master switch for SSO. Off means the four `OIDC` routes answer 503 and local password login is the only way in. |
+| `OIDC_ISSUER` | empty | The IdP's issuer URL; it must start with `https://` and it is what `iss` is compared against. Empty means SSO is not configured. |
+| `OIDC_CLIENT_ID` | empty | Client id registered with the IdP; also the expected `aud` of the `id_token`. |
+| `OIDC_CLIENT_SECRET` | empty | Client secret for the server-side token exchange. Used only in the API process, never logged, never sent to the browser. |
+| `OIDC_SCOPES` | `openid profile email` | Space-separated scopes requested at `/auth/oidc/start`. |
+| `OIDC_GROUPS_CLAIM` | `groups` | Which `id_token`/userinfo claim carries group membership. |
+| `OIDC_ALLOWED_GROUPS` | empty | CSV allow-list of groups. Empty means this axis restricts nothing; a boot with **both** allow-lists empty is refused. |
+| `OIDC_ALLOWED_DOMAINS` | empty | CSV allow-list of email domains. Empty means this axis restricts nothing. When both lists are set, a principal must satisfy both. |
+| `OIDC_EDITOR_GROUPS` | empty | CSV of groups that grant `editor`. This is the only escalation a claim set can produce. |
+| `OIDC_ADMIN_GROUPS` | empty | Must stay empty. A non-empty value refuses the boot: claims can never grant `admin`. |
+
+The redirect URI is not a setting. It is derived as
+`${PUBLIC_URL}/auth/oidc/callback`, which is why `PUBLIC_URL` becomes
+load-bearing the moment SSO is on and why the boot validator refuses
+`OIDC_ENABLED` with an empty `PUBLIC_URL` rather than guessing an origin.
+
+**The boot validator fails closed.** Importing `config` refuses to start on a
+partial configuration (any of issuer, client id or client secret missing while
+the others are set), on a boot where neither allow-list is populated, on a
+non-`https` issuer, on a non-empty `OIDC_ADMIN_GROUPS`, on `OIDC_ENABLED` with
+`AUTH_ENABLED=false`, and on `OIDC_ENABLED` with an empty `PUBLIC_URL`. A
+half-configured sign-in path that quietly authenticates nobody is a support
+ticket; the interesting failure is the one that authenticates everybody, so the
+answer is to not boot.
+
+**The two allow-lists compose with AND.** With `OIDC_ALLOWED_GROUPS` and
+`OIDC_ALLOWED_DOMAINS` both set, a principal must be in a listed group *and*
+carry a verified email in a listed domain. A security control composes
+restrictively: OR would mean that an operator who adds a domain list to an
+existing group list has silently widened the gate the group list was narrowing.
+
+**SSO is correct for a single uvicorn process only.** The pending-state store
+(state, nonce, PKCE verifier) and the handoff-code store are in-process dicts in
+`api/oidc.py`. They die with the process, which costs an in-flight login a retry
+after a restart, and they are not shared between workers. The API runs one
+uvicorn process with no `--workers`, so today that is correct; raising the worker
+count would split `/auth/oidc/start` and `/auth/oidc/callback` across processes
+that cannot see each other's state and the flow would fail at random. A shared
+store (a table with an expiry, or Redis) is a prerequisite for multiple workers,
+not a follow-up. The design and its residual risks are in
+[ADR 0006](../adr/0006-oidc-sso-flow-and-role-policy.md).
 
 ## Login throttle settings
 

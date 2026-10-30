@@ -97,6 +97,35 @@
     "title": "MeOut",
     "type": "object"
   },
+  "OidcExchangeRequest": {
+    "additionalProperties": false,
+    "description": "The single-use handoff code the callback parked, taken from the fragment.",
+    "properties": {
+      "code": {
+        "title": "Code",
+        "type": "string"
+      }
+    },
+    "required": [
+      "code"
+    ],
+    "title": "OidcExchangeRequest",
+    "type": "object"
+  },
+  "OidcStatusOut": {
+    "description": "Whether the client should offer the SSO button; nothing else.\n\nDeliberately carries no provider name, issuer or error text: this route is\npublic, and the only decision the browser has to make is whether to draw a\nsecond button.",
+    "properties": {
+      "enabled": {
+        "title": "Enabled",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "enabled"
+    ],
+    "title": "OidcStatusOut",
+    "type": "object"
+  },
   "RefreshRequest": {
     "properties": {
       "refresh_token": {

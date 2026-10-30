@@ -105,6 +105,12 @@ DISABLED_503_KEYS = {
     ("GET", "/users"),
     ("POST", "/users"),
     ("PATCH", "/users/{user_id}"),
+    # OIDC / SSO (Mf-4c24): an SSO endpoint that kept answering on an
+    # auth-disabled deployment would be a second, unaudited door.
+    ("GET", "/auth/oidc/status"),
+    ("GET", "/auth/oidc/start"),
+    ("GET", "/auth/oidc/callback"),
+    ("POST", "/auth/oidc/exchange"),
 }
 
 
@@ -860,11 +866,34 @@ def call_remove_project_assets(client: TestClient, headers: dict[str, str], ids:
     )
 
 
+# SSO is off in this module (the matrix tests never configure a provider), so
+# these three answer 503 rather than redirecting. What is under test here is the
+# permission level, and a public route is public either way.
+def call_oidc_status(client, headers, ids, monkeypatch) -> Response:
+    return client.get("/auth/oidc/status", headers=headers)
+
+
+def call_oidc_start(client, headers, ids, monkeypatch) -> Response:
+    return client.get("/auth/oidc/start", headers=headers, follow_redirects=False)
+
+
+def call_oidc_callback(client, headers, ids, monkeypatch) -> Response:
+    return client.get("/auth/oidc/callback", headers=headers, follow_redirects=False)
+
+
+def call_oidc_exchange(client, headers, ids, monkeypatch) -> Response:
+    return client.post("/auth/oidc/exchange", json={"code": "not-a-real-code"}, headers=headers)
+
+
 CALLS: dict[tuple[str, str], CallSpec] = {
     ("GET", "/health"): call_health,
     ("POST", "/login"): call_login,
     ("POST", "/refresh"): call_refresh,
     ("POST", "/logout"): call_logout,
+    ("GET", "/auth/oidc/status"): call_oidc_status,
+    ("GET", "/auth/oidc/start"): call_oidc_start,
+    ("GET", "/auth/oidc/callback"): call_oidc_callback,
+    ("POST", "/auth/oidc/exchange"): call_oidc_exchange,
     ("GET", "/me"): call_me,
     ("GET", "/library/scan"): call_scan_status,
     ("GET", "/file/{asset_id}/{name}"): call_file,
@@ -942,6 +971,12 @@ CALLS: dict[tuple[str, str], CallSpec] = {
 # they are pinned at "not 403" instead (see the module docstring).
 EXPECTED_STATUS: dict[tuple[str, str], int] = {
     ("GET", "/health"): 200,
+    # SSO is not configured in these tests, so everything but `status` is a 503.
+    # The route is still PUBLIC, which is what the sweeps assert.
+    ("GET", "/auth/oidc/status"): 200,
+    ("GET", "/auth/oidc/start"): 503,
+    ("GET", "/auth/oidc/callback"): 503,
+    ("POST", "/auth/oidc/exchange"): 503,
     ("POST", "/login"): 200,
     ("POST", "/refresh"): 200,
     ("POST", "/logout"): 204,
@@ -1135,10 +1170,10 @@ def test_a_route_declared_on_the_app_instead_of_a_router_is_caught() -> None:
 
 
 def test_the_matrix_is_the_documented_size() -> None:
-    """The matrix is pinned at 74 routes; a new route means updating this and docs/PERMISSIONS.md."""
+    """The matrix is pinned at 78 routes; a new route means updating this and docs/PERMISSIONS.md."""
     counts = {level: len(keys_at(level)) for level in (permissions.PUBLIC, permissions.READ, permissions.WRITE, permissions.ADMIN)}
-    assert len(permissions.ROUTE_PERMISSIONS) == 74, counts
-    assert counts == {permissions.PUBLIC: 4, permissions.READ: 25, permissions.WRITE: 32, permissions.ADMIN: 13}, counts
+    assert len(permissions.ROUTE_PERMISSIONS) == 78, counts
+    assert counts == {permissions.PUBLIC: 8, permissions.READ: 25, permissions.WRITE: 32, permissions.ADMIN: 13}, counts
 
 
 def test_every_guarded_route_has_a_call_spec() -> None:
@@ -1316,5 +1351,9 @@ def test_the_503_set_is_exactly_the_documented_endpoints() -> None:
         ("GET", "/users"),
         ("POST", "/users"),
         ("PATCH", "/users/{user_id}"),
+        ("GET", "/auth/oidc/status"),
+        ("GET", "/auth/oidc/start"),
+        ("GET", "/auth/oidc/callback"),
+        ("POST", "/auth/oidc/exchange"),
     }
     assert DISABLED_503_KEYS <= set(permissions.ROUTE_PERMISSIONS)
