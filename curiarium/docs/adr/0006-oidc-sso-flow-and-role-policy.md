@@ -92,6 +92,21 @@ Verified facts at the time of this decision:
    `OIDC_EDITOR_GROUPS` is provisioned as `editor`. Nothing else about a claim
    set changes a role.
 
+   **Amended (2026-10-30, Mf-sg2t):** the role a newly provisioned SSO account
+   gets is now `oidc.default_role()` — `OIDC_DEFAULT_ROLE`, default `viewer`, whose
+   accepted set is **derived** as every role in `accounts.ROLES` except `admin`
+   (`oidc.claim_grantable_roles()`), with `admin` refused at boot exactly like
+   `OIDC_ADMIN_GROUPS` — while an `editor` group match still wins over that
+   default. This **supersedes the provisioned-role enumerations elsewhere in this
+   record**: Decision 7 ("an OIDC-provisioned user is a `viewer` or an `editor`")
+   and the threat-table row about first-provisioning lockout are stale in letter
+   only, because both arguments are about which roles a claim can reach and
+   neither depends on the default being `viewer`. The *Superseding conditions*
+   clause that sends "a different default" to a new ADR is read as the
+   claim-mapping default fixed in this decision, not as this operator knob: no
+   claim gained a role it could not reach before, which is why this is a dated
+   amendment rather than a new record.
+
 5. **`admin` is structurally unreachable from claims, and a stored role is never
    rewritten.** `OIDC_ADMIN_GROUPS` exists only to be refused: a non-empty value
    fails the boot validator, so a deployment cannot ask for claim-based admin
@@ -428,6 +443,16 @@ API:
   identity/session/user row; a successful exchange writes
   `login.oidc.succeeded` with the three-key detail; and no token, secret or
   claim set appears in a log record.
+
+  **Amended (2026-10-30, Mf-sg2t):** the `viewer` in that list is now the
+  configured `OIDC_DEFAULT_ROLE`, and every non-admin role is exercised
+  parametrically rather than `viewer` alone; an `editor` still comes only from
+  `OIDC_EDITOR_GROUPS`, never an `admin`, and an existing `users.role` is still
+  never rewritten. The same file proves the bootstrap refusal from an empty users
+  table: `POST /auth/oidc/exchange` answers 409 with
+  `An administrator must sign in locally before SSO can create accounts`, writes
+  no `users` row and no `oidc_identities` row, and succeeds once an admin exists.
+
 - `api/tests/test_migration_010.py` — migration 10 creates `oidc_identities`
   with the unique `(issuer, subject)` constraint, is idempotent, and appends
   exactly one ledger row.

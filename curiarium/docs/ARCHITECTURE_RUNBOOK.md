@@ -727,7 +727,9 @@ release gate.
 **Exit evidence:** deny-by-default authorization tests cover every resource path;
 ownership migration is explicit; account recovery and last-admin safety are
 documented; audit records avoid secrets; security review covers sharing, imports,
-exports, bridge grants, and backups.
+exports, bridge grants, and backups. The sign-in bootstrap order — break-glass,
+the first admin, then SSO — is documented, and proven by `api/tests/test_oidc.py`
+from an empty users table.
 
 **Owner checkpoint:** approve tenancy, sharing, registration, account-recovery, and
 administrator policies before schema work.
@@ -911,6 +913,40 @@ A release candidate is immutable. If its evidence fails, create another candidat
 For each candidate record source revision, dependency locks, container digests,
 bridge checksums, schema range, supported upgrade origins, test results, known
 limitations, and recovery instructions.
+
+### 9.7 Sign-in bootstrap: break-glass, the first admin, then SSO
+
+The three ways in have a fixed order, and the API enforces it.
+
+1. Deploy with `AUTH_USERNAME` / `AUTH_PASSWORD` set to a strong break-glass
+   admin **and** `OIDC_ENABLED=1`. `OIDC_ENABLED` with auth disabled is a
+   fail-closed boot condition, so the environment admin is not optional.
+2. Sign in as break-glass and create the real admin account (Settings → Users, or
+   `POST /users`). Break-glass is hard-rejected and its sessions are revoked as
+   soon as the first user row exists, so create the administrator you will
+   actually use in this step.
+3. Only then do provider users provision on their first SSO login, at
+   `OIDC_DEFAULT_ROLE` (default `viewer`; `admin` is refused at boot). Grant more
+   later with `PATCH /users/{user_id}`: a claim never rewrites a stored role.
+
+Running step 3 before step 2 fails closed and says so. With **zero admin user
+rows**, `POST /auth/oidc/exchange` answers **HTTP 409** with the detail
+`An administrator must sign in locally before SSO can create accounts` (the
+client renders `sso_error=no_admin_bootstrap`), and it writes no `users` row and
+no `oidc_identities` row. The reason is that `accounts.count_enabled_admins()`
+counts **user rows**, while break-glass is a **session kind** — a working
+break-glass login does not satisfy it. Recovery: sign in as break-glass (still
+valid while the users table is empty), create the admin, then retry the SSO
+sign-in **from the start**; the refused exchange consumed the handoff code, so
+the flow must be restarted rather than resumed.
+
+Reachability caveat: the bundled web Nginx proxies only `/api/`
+(`curiarium/web/nginx.conf:81-84`), while the callback is
+`${PUBLIC_URL}/auth/oidc/callback`. The front proxy must forward `/auth/` to the
+API, or `PUBLIC_URL` must be an origin that does; otherwise the SPA answers the
+callback and the login stalls silently, with no error and no audit row. The gap
+is deferred to deployment tickets `Mf-lh1z` / `Mf-60nl`, and the provider
+specifics are in [architecture/CONFIGURATION.md](architecture/CONFIGURATION.md).
 
 ## 10. Evidence matrix
 

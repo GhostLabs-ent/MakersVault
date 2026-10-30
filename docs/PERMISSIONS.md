@@ -11,7 +11,7 @@ still refused by the API.
 | `admin`       | the operator of the deployment        | `admin` (everything)            |
 | `editor`      | someone who manages the library       | `write` (rename/move/delete)    |
 | `contributor` | family members who add to and organise the library but must never destroy it | `contribute` (upload/edit, no destroy) |
-| `viewer`      | read-only access (default for new accounts) | `read`                    |
+| `viewer`      | read-only access (default for new accounts; the SSO default is `OIDC_DEFAULT_ROLE`) | `read`                    |
 
 Levels are ranked: `public` (0) < `read` (1) < `contribute` (2) < `write` (3) <
 `admin` (4). A principal may use every level at or below its own. A role that is
@@ -194,30 +194,38 @@ becomes a permission:
   resolves an SSO login by it and nothing else. A `preferred_username` or an
   `email` claim is display material: neither is looked up, so neither can be used
   to take over an existing local account.
-* **A new SSO user is a `viewer`** (`accounts.DEFAULT_ROLE`) with
-  `password_hash = NULL`, so the account cannot be replayed against
-  `POST /login`.
-* **`editor` is the only escalation, and it comes only from
+* **A new SSO user gets the configured default role** (`OIDC_DEFAULT_ROLE`,
+  default `viewer`) with `password_hash = NULL`, so the account cannot be
+  replayed against `POST /login`. The accepted set is every role in
+  `accounts.ROLES` except `admin`, derived at call time rather than listed
+  twice, and `admin` is refused at boot.
+* **`editor` is the highest a group match can grant, and it comes only from
   `OIDC_EDITOR_GROUPS`** — a group match on the claim named by
-  `OIDC_GROUPS_CLAIM`.
-* **A claim cannot mint a `contributor` either.** The claim mapping is binary — a
-  group match promotes to `editor`, no match leaves `viewer` — so `contributor`
-  is a **local-only** grant: an admin sets it on the account with `POST /users` or
-  `PATCH /users/{user_id}`, and a later SSO login never rewrites it. Adding a
-  third tier to the claim mapping would hand an authorization decision to the
-  IdP.
+  `OIDC_GROUPS_CLAIM`. It beats a lower `OIDC_DEFAULT_ROLE` at provisioning time.
+* **A claim cannot mint a `contributor` per principal.** The role a non-matching
+  principal is provisioned with is **operator configuration**, not an IdP
+  decision: it is `OIDC_DEFAULT_ROLE` (`viewer` unless the deployment says
+  otherwise), read once when the account is created. Only an `editor` group match
+  is honoured, so no claim can choose `contributor` for one person and not for
+  another. A stored role is never rewritten on re-login, so a role set locally
+  survives every later sign-in, and a later `PATCH /users/{user_id}` overrides
+  whatever the default provisioned. A third *claim* tier (an
+  `OIDC_CONTRIBUTOR_GROUPS`) would hand an authorization decision to the IdP,
+  which is exactly why there is none.
 * **`admin` is unreachable from claims.** `OIDC_ADMIN_GROUPS` is refused at boot
-  if it is non-empty, and an existing account's `users.role` is **never**
-  rewritten by a claim on re-login. Promotion is `PATCH /users/{user_id}` by an
-  admin, with the last-admin invariant and a `user.role_change` audit row.
+  if it is non-empty, `OIDC_DEFAULT_ROLE=admin` is refused the same way, and an
+  existing account's `users.role` is **never** rewritten by a claim on re-login.
+  Promotion is `PATCH /users/{user_id}` by an admin, with the last-admin
+  invariant and a `user.role_change` audit row.
 * **The two allow-lists compose with AND.** When `OIDC_ALLOWED_GROUPS` and
   `OIDC_ALLOWED_DOMAINS` are both set a principal must satisfy both; a security
   control composes restrictively, and OR would fail open. A boot with neither set
   is refused.
 * **Provisioning needs an enabled admin first.** `POST /auth/oidc/exchange`
   refuses to create the first SSO account unless an enabled `admin` already
-  exists (`sso_error=no_admin_bootstrap`), because a provisioned `viewer` empties
-  the users table's break-glass path while leaving zero admins.
+  exists (`sso_error=no_admin_bootstrap`), because a provisioned account of any
+  default role empties the users table's break-glass path while leaving zero
+  admins.
 * **The handoff code is a URL fragment, single-use, and lives 120 seconds.**
   The callback redirects with `#sso_code=`, never `?sso_code=`, so the code never
   reaches browser history, `Referer`, the access log or the proxy; the exchange

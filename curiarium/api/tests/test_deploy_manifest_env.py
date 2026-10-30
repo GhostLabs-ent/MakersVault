@@ -123,7 +123,7 @@ NEW_KEYS: set[str] = {
     "SNAPSHOT_SCHEDULE_HOURS",
     "SNAPSHOT_SCHEDULE_CHECK_SECONDS",
     "SNAPSHOT_SCHEDULE_START_DELAY_SECONDS",
-    # OIDC / SSO (Mf-4c24). All ten are read by config.py and forwarded by the
+    # OIDC / SSO (Mf-4c24). All eleven are read by config.py and forwarded by the
     # deploy manifest, so they carry the same fallback-equality contract.
     "OIDC_ENABLED",
     "OIDC_ISSUER",
@@ -135,6 +135,7 @@ NEW_KEYS: set[str] = {
     "OIDC_ALLOWED_DOMAINS",
     "OIDC_EDITOR_GROUPS",
     "OIDC_ADMIN_GROUPS",
+    "OIDC_DEFAULT_ROLE",
 }
 
 PYTHON_SOURCES = ("config.py", "auth.py", "db.py", "main.py", "import_resolvers.py")
