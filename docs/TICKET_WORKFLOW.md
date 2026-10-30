@@ -8,7 +8,8 @@ Distilled from the scheduler/orchestrator pattern the author uses on their own
 projects, and from the global `oracle-gated-ticket-batch` skill.
 
 ## Roles
-- **scheduler** (`.pi/agents/scheduler.md`) — the **wave planner**: packs 2
+- **scheduler** (a local agent definition, kept in `.pi/agents/` and deliberately
+  **not committed** — see "The scheduler definition" below) — the **wave planner**: packs 2
   tickets (max 3) whose plan-gate touch-sets are disjoint into lanes, dispatches
   those lanes in parallel into git worktrees, merges them into `main` one at a
   time with the fast gate after each merge, then trust-but-verifies each ticket
@@ -61,7 +62,7 @@ reason on stderr (shared path, serialiser hit, over max lanes, malformed path):
 drop the last candidate and run it sequentially in the next wave. A warning that
 two lanes work in the same directory is still an acceptance, but the review is
 what costs, so prefer a candidate elsewhere. A single-lane wave is legal and is
-the fallback; `.pi/agents/scheduler.md` is the executable version of this
+the fallback; the local scheduler definition is the executable version of this
 section, including the full serialiser table.
 
 ### Plan-ahead
@@ -204,7 +205,7 @@ it is an assumption rather than a measurement.
 ### Serialisers — never in a lane
 
 `curiarium/scripts/wave_plan.py --list-serialisers` prints this set and
-`.pi/agents/scheduler.md` quotes it; `curiarium/api/tests/test_wave_plan.py`
+the scheduler definition quotes it; `curiarium/api/tests/test_wave_plan.py`
 pins both documents to the ledger, so every value below is the exact spelling the
 helper matches.
 
@@ -296,7 +297,7 @@ planner notes its decision per lane (`tk add-note <ticket>` with the helper's
 accept/refuse output and the merge order), so a wave can be audited afterwards.
 
 A scheduler that is already running is unaffected by an edit to
-`.pi/agents/scheduler.md`: its instructions are in its context, and the change
+the scheduled batch: its instructions are in its context, and the change
 governs the next invocation.
 
 ## Tickets
@@ -407,3 +408,20 @@ candidates' oracle plan-gates in parallel and writes each approved plan to
 [Plan-ahead](#plan-ahead)), and merges serially; each lane re-checks its plan
 with `--check-delta` before it starts. It needs nothing beyond this doc and
 `.pi/agents/scheduler.md` to do that.
+
+
+## The scheduler definition
+
+The scheduler is a pi custom agent defined in `.pi/agents/scheduler.md`, and that path is
+**gitignored along with the rest of `.pi/`**: it is the author's local operating
+procedure, not part of the shipped project. A fresh clone has the workflow (this
+document), the wave helper (`curiarium/scripts/wave_plan.py`) and the gates, but not the
+agent file.
+
+If you want to run the loop yourself, treat this document plus the helper as the spec and
+write your own `.pi/agents/scheduler.md`: the roles above, the wave algorithm, the
+serialiser ledger from `wave_plan.py`, and the hard rules are all that the file adds.
+
+`curiarium/api/tests/test_wave_plan.py` checks the shipped document against the ledger,
+and checks the local scheduler file too **when it exists** — so a divergence is caught on
+the author's machine and CI stays green on a clone.

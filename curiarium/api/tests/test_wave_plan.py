@@ -170,10 +170,15 @@ def test_every_serialiser_entry_resolves_to_an_existing_path() -> None:
 
 
 def test_docs_quote_every_serialiser() -> None:
+    # The scheduler definition is a local agent file (.pi/ is gitignored), so it is
+    # absent in CI and in a fresh clone; the shipped workflow doc is the one that
+    # must stay in sync, and it is always present.
     documents = {
         "docs/TICKET_WORKFLOW.md": document_section(REPO_ROOT / "docs/TICKET_WORKFLOW.md", "### Serialisers"),
-        ".pi/agents/scheduler.md": document_section(REPO_ROOT / ".pi/agents/scheduler.md", "## Hard serialisers"),
     }
+    local_scheduler = REPO_ROOT / ".pi" / "agents" / "scheduler.md"
+    if local_scheduler.exists():
+        documents[".pi/agents/scheduler.md"] = document_section(local_scheduler, "## Hard serialisers")
     for name, section in documents.items():
         for _, value, _ in wave_plan.SERIALISERS:
             assert f"`{value}`" in section, f"{name} is missing serialiser `{value}`"

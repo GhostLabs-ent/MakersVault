@@ -9,14 +9,9 @@
 # would ride a lane's diff and defeat the touch-set check in Phase 5.
 .plans/
 
-# pi agent workspace. The project's scheduler definition is shared on purpose - it
-# is how a batch lands, and docs/TICKET_WORKFLOW.md points at it - but anything
-# else a pi session drops in here (local overrides, per-user agents, caches) is
-# not repo content.
-.pi/*
-!.pi/agents/
-.pi/agents/*
-!.pi/agents/scheduler.md
+# pi agent workspace: local only. The scheduler definition, per-user agents and
+# their caches live here and are deliberately not published.
+.pi/
 
 # Local secrets and environment overrides
 .env
