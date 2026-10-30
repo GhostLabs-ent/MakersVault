@@ -10,6 +10,29 @@ by ADR 0005 and ticket `M3-7bb7`. Decision 3 (the import-cookie threat model,
 MV-SEC-017) and the `localStorage` risk acceptance for MV-SEC-008 still stand,
 and the record below is what was decided on 2026-10-29.
 
+**Path note (2026-10-30):** The file paths quoted in this record are accurate as
+written on 2026-10-29 and are left unchanged; two of them have since moved.
+Batch 15 landed that same evening, after this ADR was accepted: `Mf-h8kp`
+(`fcbe4e0`, 2026-10-29) split `web/src/lib/api.ts` into
+`makervault/web/src/lib/api/`, and `Mf-avo9` (`29330d6`, 2026-10-29) split
+`api/schemas.py` into `makervault/api/schemas/`. The import-cookie citation
+`api/schemas.py:21-22` now lives at
+`makervault/api/schemas/imports.py:30-31` (`makerworld_cookie`,
+`thingiverse_cookie` on `ImportRequest`), re-exported through the
+`makervault/api/schemas/__init__.py` barrel. The client citations
+`web/src/lib/api.ts:876-880` (`fileUrl`), `:886-888` (`assetFilePreviewUrl`) and
+`:901-904` (`stableFileUrl`) now live in
+`makervault/web/src/lib/api/mediaUrls.ts` at `:15`, `:27` and `:42`, behind the
+`makervault/web/src/lib/api/index.ts` barrel. The remaining citation,
+`:918-922` (`renderFileUrl`), was *not* moved by the split: `ae076cf`
+(`Mf-dhtm`, 2026-10-28) added it and `d7f72bd` (`M3-7bb7`, 2026-10-29) removed it
+with the rest of the `?token=` file-URL machinery, before the split ran, so that
+citation has no live counterpart — `web/src/lib/fileUrl.test.ts:182-183` pins
+its absence from the `api` barrel. That same commit retired `appendTokenToUrl`,
+the other client citation at `web/src/lib/auth.ts:96-107`, pinned by
+`web/src/lib/fileGrants.test.ts:261-263`; the file itself still exists, without
+that helper.
+
 ## Context
 
 v5.1 has two credential flows that carry secrets outside an `Authorization`
