@@ -919,8 +919,13 @@ limitations, and recovery instructions.
 The three ways in have a fixed order, and the API enforces it.
 
 1. Deploy with `AUTH_USERNAME` / `AUTH_PASSWORD` set to a strong break-glass
-   admin **and** `OIDC_ENABLED=1`. `OIDC_ENABLED` with auth disabled is a
-   fail-closed boot condition, so the environment admin is not optional.
+   admin **and** `OIDC_ENABLED=1`, and set `AUTH_MODE=both` (or leave `AUTH_MODE`
+   unset for the legacy pair-only rule). The first admin still comes from
+   break-glass or a pre-existing admin row - SSO cannot create it
+   (`no_admin_bootstrap`). `OIDC_ENABLED` with an auth mode that leaves SSO no
+   door (`AUTH_MODE=off`, `AUTH_MODE=local`, or the default with a blank pair) is
+   a fail-closed boot condition, so the pair - or an `AUTH_MODE` that forces auth
+   on - is not optional.
 2. Sign in as break-glass and create the real admin account (Settings → Users, or
    `POST /users`). Break-glass is hard-rejected and its sessions are revoked as
    soon as the first user row exists, so create the administrator you will

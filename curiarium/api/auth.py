@@ -28,6 +28,7 @@ from jwt.exceptions import InvalidTokenError
 from sqlmodel import Session
 
 import accounts
+import config
 import sessions
 from config import env_bool
 from db import engine
@@ -35,6 +36,9 @@ from models import UserSession
 
 AUTH_USERNAME = os.getenv("AUTH_USERNAME", "admin")
 AUTH_PASSWORD = os.getenv("AUTH_PASSWORD", "super-secret")
+# Which login paths exist. Read once at import; empty and unset both mean the
+# legacy `auto` default.
+AUTH_MODE = (os.getenv("AUTH_MODE", "auto") or "auto").strip().lower()
 AUTH_SECRET = os.getenv("AUTH_SECRET", "changeme-secret")
 # Deprecated: only the access token TTL is used now. Kept so an existing
 # environment that still sets AUTH_TOKEN_TTL keeps starting.
@@ -42,7 +46,54 @@ AUTH_TOKEN_TTL = int(os.getenv("AUTH_TOKEN_TTL", "43200"))
 AUTH_ACCESS_TOKEN_TTL = int(os.getenv("AUTH_ACCESS_TOKEN_TTL", "900"))
 AUTH_REFRESH_TTL_SECONDS = int(os.getenv("AUTH_REFRESH_TTL_SECONDS", str(30 * 24 * 60 * 60)))
 AUTH_ALGO = "HS256"
-AUTH_ENABLED = bool(AUTH_USERNAME and AUTH_PASSWORD)
+
+AUTH_MODE_AUTO = "auto"
+AUTH_MODE_BOTH = "both"
+AUTH_MODE_LOCAL = "local"
+AUTH_MODE_OFF = "off"
+AUTH_MODE_OIDC = "oidc"
+AUTH_MODES = (AUTH_MODE_AUTO, AUTH_MODE_BOTH, AUTH_MODE_LOCAL, AUTH_MODE_OFF, AUTH_MODE_OIDC)
+
+
+def resolve_auth_enabled(mode: str, username: str, password: str) -> bool:
+  """The single derivation of "the API requires a principal" from the auth mode.
+
+  `auto` keeps the legacy rule exactly - the pair is set or auth is off - with no
+  stripping or normalisation, so `AUTH_USERNAME=' '` keeps whatever meaning it
+  has today. Any unknown value fails closed.
+  """
+  if mode in (AUTH_MODE_LOCAL, AUTH_MODE_OIDC, AUTH_MODE_BOTH):
+    return True
+  if mode == AUTH_MODE_AUTO:
+    return bool(username and password)
+  return False
+
+
+# Mode-derived, not an environment variable: every guard reads this attribute,
+# and the test suites monkeypatch it, so the name stays stable even though the
+# value is now computed from AUTH_MODE.
+AUTH_ENABLED = resolve_auth_enabled(AUTH_MODE, AUTH_USERNAME, AUTH_PASSWORD)
+
+
+def password_login_allowed() -> bool:
+  """True when a local password may open a session (the break-glass door included)."""
+  return AUTH_ENABLED and AUTH_MODE != AUTH_MODE_OIDC
+
+
+def oidc_login_allowed() -> bool:
+  """True when an SSO sign-in could reach a provider at all in this mode."""
+  return AUTH_ENABLED and AUTH_MODE not in (AUTH_MODE_LOCAL, AUTH_MODE_OFF)
+
+
+def break_glass_configured() -> bool:
+  """True when the environment password pair is actually set, not merely blank.
+
+  A blank pair still matches blank credentials in `credentials_match`, so this is
+  what keeps an empty form from being a valid login in a mode that forces auth on.
+  """
+  return bool(AUTH_USERNAME and AUTH_PASSWORD)
+
+
 # Escape hatch for throwaway/dev deployments that intentionally keep the
 # published sample credentials. Never set this on a reachable host.
 AUTH_ALLOW_INSECURE_DEFAULTS = env_bool("AUTH_ALLOW_INSECURE_DEFAULTS", False)
@@ -118,11 +169,30 @@ def validate_auth_configuration() -> None:
   """Refuse to start with the published sample credentials still in place.
 
   The sample values are documented in the README, so leaving them active turns
-  "auth enabled" into "publicly writable". Only enforced when auth is on.
+  "auth enabled" into "publicly writable". "auth on" no longer means "password
+  login exists": `AUTH_MODE` decides which login paths exist. The mode checks
+  come first because an unusable mode is worse than a sample credential.
   """
+  # Position is load-bearing: this function is reached before the early return
+  # below. conftest sets AUTH_ALLOW_INSECURE_DEFAULTS=1, so anything after that
+  # line never fires in the suite, and an unknown mode yields AUTH_ENABLED=False
+  # and would early-return anyway.
+  problems = []
+  if AUTH_MODE not in AUTH_MODES:
+    problems.append(
+      f"AUTH_MODE is {AUTH_MODE!r}: it must be one of {list(AUTH_MODES)}, or unset for the legacy default (auth on when AUTH_USERNAME and AUTH_PASSWORD are both set)"
+    )
+  if AUTH_MODE == AUTH_MODE_OIDC and not config.OIDC_ENABLED:
+    problems.append(
+      "AUTH_MODE=oidc leaves no login path: OIDC_ENABLED is false, so SSO is not "
+      "configured and this mode refuses local password sign-in. Set OIDC_ENABLED=1 "
+      "and finish the OIDC configuration, or set AUTH_MODE=both to allow local "
+      "passwords as well."
+    )
+  if problems:
+    raise RuntimeError("; ".join(problems))
   if not AUTH_ENABLED or AUTH_ALLOW_INSECURE_DEFAULTS:
     return
-  problems = []
   if AUTH_PASSWORD == INSECURE_DEFAULT_PASSWORD:
     problems.append("AUTH_PASSWORD is the published sample value")
   if AUTH_SECRET in {"", INSECURE_DEFAULT_SECRET}:
@@ -282,10 +352,12 @@ def mfa_required(user) -> bool:
 
   A stored seed alone is not enough: an SSO-only account has no local password
   to check first, so its identity provider owns the second factor and the
-  challenge check must not fire. Kept here (not imported from `mfa`, which
-  imports this module) so `auth.login` can stay completely untouched.
+  challenge check must not fire. A second factor only exists on a password
+  login path, so a mode that refuses password sign-in never mints a challenge.
+  Kept here (not imported from `mfa`, which imports this module) so
+  `auth.login` can stay completely untouched.
   """
-  return bool(user is not None and user.totp_secret and user.password_hash)
+  return bool(user is not None and user.totp_secret and user.password_hash) and password_login_allowed()
 
 
 def login(
@@ -298,11 +370,18 @@ def login(
 ) -> Optional[LoginResult]:
   """Open a session for these credentials, or return None when they do not match.
 
-  The env break-glass admin is only accepted while the users table is empty: a
-  real account always wins over the published sample credentials.
+  The env break-glass admin is only accepted while the users table is empty AND
+  the environment password pair is actually configured: a real account always
+  wins over the published sample credentials.
   """
   user = accounts.get_user_by_username(db, username)
   if user is None:
+    # Order is load-bearing: `credentials_match('', '')` is True, so a blank
+    # environment pair would accept an empty form in any mode that forces auth
+    # on. The pair must be genuinely set before it is even compared.
+    if not break_glass_configured():
+      accounts.dummy_verify()
+      return None
     if not accounts.users_table_empty(db):
       accounts.dummy_verify()
       return None
@@ -312,6 +391,9 @@ def login(
     kind = sessions.BREAK_GLASS_KIND
     session_username = AUTH_USERNAME
   else:
+    if not password_login_allowed():
+      accounts.dummy_verify()
+      return None
     if user.disabled or not accounts.verify_password(user.password_hash, password):
       return None
     if accounts.needs_rehash(user.password_hash or ""):

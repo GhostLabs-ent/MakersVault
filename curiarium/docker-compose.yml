@@ -15,6 +15,9 @@ services:
       - AUTH_USERNAME=${AUTH_USERNAME:-admin}
       - AUTH_PASSWORD=${AUTH_PASSWORD:-super-secret}
       - AUTH_SECRET=${AUTH_SECRET:-changeme-secret}
+      # Which login paths exist: auto (legacy: auth is on iff the pair is set),
+      # local, both, oidc or off. Empty means auto.
+      - AUTH_MODE=${AUTH_MODE:-auto}
       - AUTH_ALLOW_INSECURE_DEFAULTS=${AUTH_ALLOW_INSECURE_DEFAULTS:-1}
       # Login throttling. Repeated failed logins lock the single admin account
       # out with escalating backoff.

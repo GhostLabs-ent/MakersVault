@@ -55,6 +55,9 @@ run_root.mkdir(parents=True, exist_ok=True)
 os.environ.setdefault("DB_URL", f"{_SQLITE_PREFIX}{run_root / 'test.db'}")
 os.environ.setdefault("FILE_STORAGE", str(run_root / "storage"))
 os.environ.setdefault("IMPORT_MOUNT_ON_STARTUP", "false")
+# The login paths under test are the legacy ones; a developer's AUTH_MODE must
+# not change which suite behaviour is being asserted.
+os.environ.setdefault("AUTH_MODE", "auto")
 # The scheduled-snapshot thread is opt-in in production and must never start
 # inside the suite: a hard assignment, not setdefault, so an exported
 # SNAPSHOT_SCHEDULE_ENABLED=true cannot make a test tick behind its back.

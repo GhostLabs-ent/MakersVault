@@ -388,24 +388,44 @@ still proves the client is deleting exactly the rows it showed the user.
 
 ## Authentication modes
 
-* **Auth enabled** (`AUTH_USERNAME` and `AUTH_PASSWORD` set): every guarded route
-  needs a bearer token in the `Authorization` header - there is no `?token=`
-  fallback on any route; `require_auth` re-reads the session row and the account
-  on every request, so a revoked session or a disabled account stops working
-  immediately. The four file routes additionally accept a `?sig=` grant (see
-  "File grants" above). Session lifecycle (rotation, the 60-second grace window
-  and refresh replay) is described in
+`AUTH_MODE` decides which login paths exist: `auto` (default, and the legacy
+rule), `local`, `both`, `oidc` and `off`. "Auth on" is now a property of the
+mode, not of the `AUTH_USERNAME`/`AUTH_PASSWORD` pair.
+
+| Mode | Auth on | Password login for user rows | Break-glass | OIDC |
+|---|---|---|---|---|
+| `auto` (default) | iff the env pair is set | iff auth on | iff the pair is set and the users table is empty | iff auth on |
+| `local` | yes | always | iff the pair is set and the users table is empty | refused at boot |
+| `both` | yes | always | iff the pair is set and the users table is empty | permitted |
+| `oidc` | yes | refused (401) | iff the pair is set and the users table is empty | required |
+| `off` | no | refused (503) | never | refused at boot |
+
+* **Auth enabled** (`AUTH_ENABLED`, derived from `AUTH_MODE`): every guarded
+  route needs a bearer token in the `Authorization` header - there is no
+  `?token=` fallback on any route; `require_auth` re-reads the session row and
+  the account on every request, so a revoked session or a disabled account stops
+  working immediately. The four file routes additionally accept a `?sig=` grant
+  (see "File grants" above). Session lifecycle (rotation, the 60-second grace
+  window and refresh replay) is described in
   [ADR 0007](../curiarium/docs/adr/0007-session-lifecycle-and-refresh-replay.md).
 * **Break-glass admin**: the env credentials authenticate as the `admin` role -
-  but only while the users table is **empty**. The first `POST /users` revokes
-  the break-glass sessions in the same transaction as the insert, and after that
-  the env credentials are refused. This is why the last-admin invariant below is
-  enforced in code rather than relying on an escape hatch.
-* **Auth disabled**: `auth.require_auth` returns `None` and
+  but only while the users table is **empty** and only when `AUTH_USERNAME` and
+  `AUTH_PASSWORD` are genuinely set (a blank pair is never a login, in any
+  mode). The first `POST /users` revokes the break-glass sessions in the same
+  transaction as the insert, and after that the env credentials are refused.
+  This is why the last-admin invariant below is enforced in code rather than
+  relying on an escape hatch. In `oidc` mode break-glass is the bootstrap door -
+  SSO cannot create the first admin - so the pair stays the way in.
+* **Auth disabled** (`AUTH_MODE=off`): `auth.require_auth` returns `None` and
   `permissions.authorize` treats `None` as "no authentication on this
   deployment", so every route stays open exactly as it was before authorization
   existed. `/login`, `/refresh` and `/logout` answer 503 in that mode, and so do
   `/me`, the `/users` routes and all eight `/mfa*` routes.
+
+In `oidc` mode `/login` answers **401, never 503**: the break-glass bootstrap door
+is genuinely open there, so "auth is not configured" would be a lie. The route
+matrix's `(503 when auth is disabled)` wording holds for `off` and for the legacy
+default with a blank pair, which is exactly when auth is disabled.
 
 ## Multi-factor authentication
 

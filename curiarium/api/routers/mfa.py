@@ -227,7 +227,9 @@ def confirm_enrolment(
 
 @router.post("/mfa/verify", response_model=LoginResponse)
 def verify_mfa(body: MfaVerifyRequest, request: Request, response: Response):
-    if not auth.AUTH_ENABLED:
+    # A mode flip to `oidc` after the challenge was minted must not let the
+    # challenge be spent: the challenge proves a password login that mode refuses.
+    if not auth.AUTH_ENABLED or not auth.password_login_allowed():
         raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
     client_host = _client_ip(request)
     # An unparseable token is a 400 (a bad request), not a 401: a *valid*
