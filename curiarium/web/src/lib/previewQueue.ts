@@ -11,11 +11,13 @@
  *  - (a) refuses to start queued jobs whose owner (card) is gone;
  *  - (b) aborts at await boundaries: the `fetch()` for STEP/3MF downloads and a
  *        job waiting in this queue observe the abort signal where the platform
- *        allows. The preview-renderer lock in ModelViewer does not: it is a
- *        plain promise chain whose wait is not interruptible, so the signal is
- *        only checked immediately before and after acquisition — a cancelled
- *        waiter still acquires the lock, then releases a freshly built
- *        renderer without rendering anything;
+ *        allows. The preview-renderer lock (`SnapshotRendererPool` in
+ *        `lib/snapshotRenderer`) does not: it is still a plain promise chain
+ *        whose wait is not interruptible, so the signal is only checked
+ *        immediately before and after acquisition — a cancelled waiter still
+ *        acquires the lock, but it reuses the one persistent renderer (built
+ *        lazily only if there is none), renders nothing, and releases the lock
+ *        after disposing the per-job render lists;
  *  - (c) discards results whose owner unmounted — they are never delivered;
  *  - (d) refuses new submissions once the per-session time budget is spent.
  *        Jobs already queued or running when the budget trips are not
