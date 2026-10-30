@@ -127,6 +127,7 @@ DOCUMENTED_SERIALISERS: list[tuple[str, str]] = [
     ("glob", "**/conftest.py"),
     ("path", "makervault/scripts/container-smoke.sh"),
     ("path", "makervault/scripts/wave_plan.py"),
+    ("path", "makervault/scripts/check_version.py"),
     ("path", "makervault/api/Dockerfile"),
     ("path", "makervault/web/Dockerfile"),
     ("path", "makervault/docker-compose.yml"),
@@ -198,6 +199,7 @@ def test_entry_files_still_serialise() -> None:
     for path in (
         "makervault/scripts/container-smoke.sh",
         "makervault/scripts/wave_plan.py",
+        "makervault/scripts/check_version.py",
         "makervault/api/schemas/__init__.py",
         "makervault/web/src/ui/asset-grid/AssetGrid.tsx",
         "makervault/web/src/ui/settings/Settings.tsx",

@@ -213,18 +213,17 @@ helper matches.
 |---|---|---|
 | schema | `makervault/api/migrations.py`, `**/migration_*.py`, `makervault/api/migrations` (directory) | a new migration is a schema change: covered by the single end-of-batch full gate plus a boot-guard recheck, and migrations are append-only |
 | locks | `makervault/api/requirements*.txt`, `makervault/api/requirements*.lock`, `**/package.json`, `**/package-lock.json` | dependency locks: never covered by the fast gate, and two lanes bumping one lock cannot be reconciled by git |
-| the gate | `Makefile`, `.github/workflows/*`, `makervault/scripts/container-smoke.sh`, `makervault/scripts/wave_plan.py` | the gate, the one CI workflow, the smoke recipe `verify-smoke` runs and the wave validator itself: an edit changes the commands every lane runs or how every future wave is judged |
+| the gate | `Makefile`, `.github/workflows/*`, `makervault/scripts/container-smoke.sh`, `makervault/scripts/wave_plan.py`, `makervault/scripts/check_version.py` | the gate, the one CI workflow, the smoke recipe `verify-smoke` runs, the wave validator itself and the version drift guard `verify-version` runs (`verify-version` is a prerequisite of the fast gate and of the api/web gates): an edit changes the commands every lane runs, how every future wave is judged, or breaks every gate at once |
 | config | `**/nginx.conf`, `makervault/web/security-headers.conf`, `makervault/api/Dockerfile`, `makervault/web/Dockerfile`, `makervault/docker-compose.yml`, `makervault/docker-compose.deploy.yml`, `makervault/docker-compose.smoke.yml`, `makervault/docker-deploy.yml` | proxy and security-header config plus the container manifests: no unit test covers it, verified by the single end-of-batch full gate |
 | fixtures | `**/conftest.py` | fixtures for every API test module: a change re-baselines the whole suite |
 | training wheels: API contracts | `makervault/api/main.py`, `makervault/api/models.py`, `makervault/api/schemas/__init__.py` | shared wiring and contracts: two lanes merge cleanly, then fail semantically; the schema package's per-domain modules are lane-able, which is what the split was for, but its barrel is not |
 | training wheels: UI shell | `makervault/web/src/lib/api/index.ts`, `makervault/web/src/ui/App.tsx`, `makervault/web/src/ui/Sidebar.tsx`, `makervault/web/src/ui/asset-grid/AssetGrid.tsx`, `makervault/web/src/ui/settings/Settings.tsx` | the barrel the UI imports by name plus the components every view mounts through |
 | training wheels: UI transport | `makervault/web/src/lib/api/baseUrl.ts`, `makervault/web/src/lib/api/http.ts`, `makervault/web/src/lib/api/grantPriming.ts` | the api transport core every domain client imports |
 
-Two gaps are accepted. A new file beside an entry point no longer serialises:
-the entry point itself does not change, and an unreferenced module is inert until
+One gap is accepted. A new file beside an entry point no longer serialises: the
+entry point itself does not change, and an unreferenced module is inert until
 something imports it, at which point whoever imports it edits a serialised entry
-file. And `makervault/scripts/check_version.py` is a known gap, not yet
-serialised, pending a follow-up ticket.
+file.
 
 The three training-wheels groups are what the router, component and transport
 splits were for; they stay serialised until nothing hot hangs off a single entry

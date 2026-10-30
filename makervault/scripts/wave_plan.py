@@ -86,8 +86,15 @@ SERIALISERS: list[Serialiser] = [
         ("path", "makervault/scripts/wave_plan.py"),
         reason=(
             "container-smoke.sh is the recipe verify-smoke executes and wave_plan.py is the wave validator itself, "
-            "so an edit changes how every future wave is judged; a new sibling file under scripts/ is lane-able, and "
-            "makervault/scripts/check_version.py is a known gap - not yet serialised - pending a follow-up ticket"
+            "so an edit changes how every future wave is judged; a new sibling file under scripts/ is lane-able"
+        ),
+    ),
+    (
+        "path",
+        "makervault/scripts/check_version.py",
+        (
+            "the version drift guard: verify-version runs it and verify-version is a prerequisite of verify-fast and "
+            "of verify-api/verify-web, so an edit breaks every gate at once, and nothing tests the script itself"
         ),
     ),
     *entry_group(

@@ -569,6 +569,7 @@ is here so you can explain a refusal, and
 | `**/conftest.py` | fixtures for every API test module: a change re-baselines the whole suite |
 | `makervault/scripts/container-smoke.sh` | the recipe `verify-smoke` executes: an edit changes what the smoke gate checks |
 | `makervault/scripts/wave_plan.py` | the wave validator itself: an edit changes how every future wave is judged |
+| `makervault/scripts/check_version.py` | the version drift guard: `verify-version` runs it, and `verify-version` is a prerequisite of `verify-fast` and of `verify-api`/`verify-web`, so an edit can break every gate at once and no test covers the script itself |
 | `makervault/api/Dockerfile` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
 | `makervault/web/Dockerfile` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
 | `makervault/docker-compose.yml` | no unit test covers them, and they are verified by the single end-of-batch `make verify`, so they still cannot ride in a lane |
@@ -587,11 +588,10 @@ is here so you can explain a refusal, and
 | `makervault/web/src/ui/asset-grid/AssetGrid.tsx` | the entry points are serialised and the same-stem rule keeps AssetGrid.test.tsx and Settings.test.tsx serialised with them; non-entry siblings in those directories are lane-able because an unreferenced module is inert until an entry file imports it |
 | `makervault/web/src/ui/settings/Settings.tsx` | the entry points are serialised and the same-stem rule keeps AssetGrid.test.tsx and Settings.test.tsx serialised with them; non-entry siblings in those directories are lane-able because an unreferenced module is inert until an entry file imports it |
 
-Two gaps are accepted. A new file beside an entry point no longer serialises:
-the entry point itself does not change, and an unreferenced module is inert until
+One gap is accepted. A new file beside an entry point no longer serialises: the
+entry point itself does not change, and an unreferenced module is inert until
 something imports it, at which point whoever imports it edits a serialised entry
-file. And `makervault/scripts/check_version.py` is a known gap, not yet
-serialised, pending a follow-up ticket.
+file.
 
 The helper also serialises a **same-directory sibling with the same stem**
 (`makervault/web/src/ui/Sidebar.test.tsx` matches `makervault/web/src/ui/Sidebar.tsx`), because a test-only
