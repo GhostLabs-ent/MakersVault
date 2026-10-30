@@ -46,8 +46,9 @@ Three things v3 states explicitly, because they are the traps:
   `replans` and `oracle_calls`, so the spend is counted rather than assumed.
   Never start two lanes on the same files - that rule is unchanged. Batch 16
   corrected the economics: the delta check arbitrates one ticket deep, but a
-  batch-wide shared surface turns that into one re-plan per ticket - 7 of 7
-  tickets re-planned, 25,800 s measured. `--check-shape` is what withholds the
+  batch-wide shared surface turns that into a re-plan per ticket - 8 of 8
+  declared candidates shared a 23-path surface, 7 of them re-planned, and the
+  15 recorded plan gates cost 25,800 s. `--check-shape` is what withholds the
   queue when the declared candidates share a surface, so that spend is not paid
   again.
 - **`oracle_calls` is a self-reported ledger, not a trace.** There is no
@@ -621,9 +622,9 @@ tests.
 ## State of the repo at v3
 
 Schema version 9 (migrations 1-9 are immutable; the snapshots batch added none).
-1590 API tests collected on the host -- 1589 passed plus the opt-in skip
+1601 API tests collected on the host -- 1600 passed plus the opt-in skip
 (`test_snapshots_integration.py`, which needs `SNAPSHOT_INTEGRATION=1`) -- and
-1406 passed plus 23 skipped in-container. The in-container skips are an artifact
+1414 passed plus 23 skipped in-container. The in-container skips are an artifact
 of the image build context being `makervault/api`, so repo-root files are absent
 there: eight whole modules skip at import (the ADR, auth-docs, log-hygiene, zfs
 docs and sidecar guards plus the two scheduler-tooling modules), then six tests
@@ -631,8 +632,8 @@ in `test_deploy_manifest_env.py`, one docs/manifest invariant in
 `test_snapshot_btrfs.py`, three docs pins in `test_snapshot_schedule.py`, three
 in `test_snapshots.py`, one in `test_storage_capabilities.py`, and the opt-in
 integration module -- each one a `pytest.skip`, never a fixed-index
-`parents[3]` walk, because that index is an `IndexError` in the image. 933 web
-tests in 85 files; the permission matrix is pinned at 74 routes (4 public / 25
+`parents[3]` walk, because that index is an `IndexError` in the image. 962 web
+tests in 88 files; the permission matrix is pinned at 74 routes (4 public / 25
 read / 32 write / 13 admin), and `assert_routes_classified()` plus
 `assert_audit_coverage()` are green. Product version 5.2.0-rc.1, with the drift
 guard in `make verify` (`makervault/scripts/check_version.py`).

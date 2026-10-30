@@ -1,4 +1,4 @@
-"""Tests for the plan-ahead delta check and the plan-gate timing report.
+"""Tests for the plan-ahead delta check, the batch shape check and the timing report.
 
 The script lives in makervault/scripts, outside the API test image, so the
 module skips itself there instead of failing the container gate. The delta
