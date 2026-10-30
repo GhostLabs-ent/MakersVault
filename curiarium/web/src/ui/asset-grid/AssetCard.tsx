@@ -24,7 +24,8 @@ import type { AssetCardProps } from "./assetCardProps";
 
 const AssetCard = React.memo(function AssetCard({
   item,
-  canWrite,
+  canContribute,
+  canDelete,
   onSaveTags,
   onSaveDetails,
   onRename,
@@ -345,9 +346,9 @@ const AssetCard = React.memo(function AssetCard({
     }
   };
 
-  // A viewer keeps the name as plain text: rename mode is never entered.
+  // A role below editor keeps the name as plain text: rename mode is never entered.
   const handleNameDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!canWrite) return;
+    if (!canDelete) return;
     e.stopPropagation();
     setRenaming(true);
   };
@@ -416,7 +417,7 @@ const AssetCard = React.memo(function AssetCard({
             Not found in storage since {formatMissingSince(item.missing_since)}.
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
-            {canWrite && (
+            {canDelete && (
               <>
                 <button
                   className="text-sm px-2 py-1 rounded-md border border-panel-strong disabled:opacity-60"
@@ -440,7 +441,7 @@ const AssetCard = React.memo(function AssetCard({
         {item.prepared_print && (
           <PreparedPrintSummary
             prepared={item.prepared_print}
-            onClear={canWrite && item.prepared_print.removable ? clearPreparedPrint : undefined}
+            onClear={canDelete && item.prepared_print.removable ? clearPreparedPrint : undefined}
             clearing={preparedClearing}
           />
         )}
@@ -495,7 +496,7 @@ const AssetCard = React.memo(function AssetCard({
             )}
           </div>
         )}
-        {canWrite && showFolderControls && (
+        {canDelete && showFolderControls && (
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold uppercase text-muted">
               {moving ? "Updating..." : "Folder"}
@@ -518,9 +519,9 @@ const AssetCard = React.memo(function AssetCard({
           className="text-sm font-medium truncate cursor-text"
           title={`${item.name} · ${item.filename}`}
           onDoubleClick={handleNameDoubleClick}
-          onClick={e => canWrite && renaming && e.stopPropagation()}
+          onClick={e => canDelete && renaming && e.stopPropagation()}
         >
-          {canWrite && renaming ? (
+          {canDelete && renaming ? (
             <>
               <input
                 ref={nameInputRef}
@@ -572,7 +573,7 @@ const AssetCard = React.memo(function AssetCard({
                 {fileCountLabel}
               </span>
             </button>
-            {canWrite && (
+            {canContribute && (
               <>
                 <input
                   ref={relatedInputRef}
@@ -661,7 +662,11 @@ const AssetCard = React.memo(function AssetCard({
                             >
                               Download
                             </FileDownloadLink>
-                            {canWrite && (
+                            {/* Reordering and the display-only rename are
+                                contribute surfaces: they rewrite list order and
+                                a label, never the bytes. Remove deletes a file,
+                                so it keeps the narrower `canDelete` gate. */}
+                            {canContribute && (
                               <>
                                 <button
                                   type="button"
@@ -688,13 +693,15 @@ const AssetCard = React.memo(function AssetCard({
                                 >
                                   Rename
                                 </button>
-                                <button
-                                  type="button"
-                                  className="text-red-700 dark:text-red-300"
-                                  onClick={() => removeRelatedFile(file)}
-                                >
-                                  Remove
-                                </button>
+                                {canDelete && (
+                                  <button
+                                    type="button"
+                                    className="text-red-700 dark:text-red-300"
+                                    onClick={() => removeRelatedFile(file)}
+                                  >
+                                    Remove
+                                  </button>
+                                )}
                               </>
                             )}
                           </div>
@@ -729,7 +736,7 @@ const AssetCard = React.memo(function AssetCard({
           </div>
           {!notesCollapsed && (
             <>
-              {canWrite && editingNotes ? (
+              {canContribute && editingNotes ? (
                 <>
                   <label className="flex flex-col gap-1">
                     <span className="text-[10px] uppercase tracking-wide text-muted">Creator</span>
@@ -781,7 +788,7 @@ const AssetCard = React.memo(function AssetCard({
                   <div className={`text-sm whitespace-pre-wrap ${noteText ? "text-foreground" : "opacity-60"}`}>
                     {noteText || "Add notes"}
                   </div>
-                  {canWrite && (
+                  {canContribute && (
                     <button
                       className="self-start text-xs px-2 py-1 rounded-md border border-panel-strong"
                       onClick={() => setEditingNotes(true)}
@@ -802,9 +809,11 @@ const AssetCard = React.memo(function AssetCard({
           )}
         </div>
 
-        {/* Both the tag editor and the row that opens it are write surfaces;
-            a demotion mid-edit therefore drops the editor with the buttons. */}
-        {canWrite && (editingTags ? (
+        {/* The tag editor, the row that opens it, and the project picker are
+            contribute surfaces; the Delete beside them is a destroy, so it
+            keeps the narrower `canDelete` gate. A demotion mid-edit therefore
+            drops the editor with the buttons. */}
+        {canContribute && (editingTags ? (
           <div className="flex flex-col gap-2">
             <TagInput
               value={tagList}
@@ -825,12 +834,14 @@ const AssetCard = React.memo(function AssetCard({
             >
               Add to project…
             </button>
-            <button
-              className="text-sm px-2 py-1 rounded-md border border-red-300 text-red-700 dark:text-red-300 disabled:opacity-60"
-              onClick={() => onDelete(item)}
-            >
-              Delete
-            </button>
+            {canDelete && (
+              <button
+                className="text-sm px-2 py-1 rounded-md border border-red-300 text-red-700 dark:text-red-300 disabled:opacity-60"
+                onClick={() => onDelete(item)}
+              >
+                Delete
+              </button>
+            )}
           </div>
         ))}
       </div>

@@ -13,8 +13,12 @@ import LicenceChip from "./LicenceChip";
 import ProjectLanding from "./ProjectLanding";
 
 type Props = {
-  /** Required, not defaulted: the compiler is what keeps the gating airtight. */
-  canWrite: boolean;
+  /**
+   * Contribute and delete capabilities of the current role, required, not
+   * defaulted: the compiler is what keeps the gating airtight.
+   */
+  canContribute: boolean;
+  canDelete: boolean;
   /** `null` while the project list is loading. */
   projects: Project[] | null;
   selectedProjectId: string | null;
@@ -52,7 +56,8 @@ const SOURCE_CHIP =
  * closing returns focus to the card that was opened.
  */
 export default function ProjectView({
-  canWrite,
+  canContribute,
+  canDelete,
   projects,
   selectedProjectId,
   onOpenProject,
@@ -128,7 +133,8 @@ export default function ProjectView({
           </button>
         </div>
         <ProjectLanding
-          canWrite={canWrite}
+          canContribute={canContribute}
+          canDelete={canDelete}
           project={selectedProject}
           assetsVersion={assetsVersion}
           onProjectUpdated={onProjectUpdated}

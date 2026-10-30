@@ -7,17 +7,22 @@ reviewer of the table below can see every level in one place:
 
 * `PUBLIC`  - no authentication at all (`/health`, the token endpoints).
 * `READ`    - any authenticated principal, whatever its role. Viewers live here.
-* `WRITE`   - editors and administrators: every route that mutates the library.
+* `CONTRIBUTE` - any authenticated principal at contributor or above: upload,
+  import, tag and metadata edits, create folders and projects, add or remove
+  project membership, add supporting files - everything that does not destroy
+  or rename on disk.
+* `WRITE`   - editors and administrators: every route that destroys or renames
+  library content on disk.
 * `ADMIN`   - administrators only: settings, user administration, purge.
 
 Enforcement is the *route declaration*: each guarded route names
-`Depends(require_read | require_write | require_admin)`, which is the only way to
-express a level. `ROUTE_PERMISSIONS` is the audited matrix; it changes no
-behaviour on its own, it is cross-checked against the real routes by
-`assert_routes_classified()` at startup (see `main.lifespan`) and by the test
-sweeps, so a route cannot ship with a level the matrix does not know about and
-the matrix cannot keep an entry for a route that no longer exists. The caller
-hands the checker the routes enumerated from the routers we own
+`Depends(require_read | require_contribute | require_write | require_admin)`,
+which is the only way to express a level. `ROUTE_PERMISSIONS` is the audited
+matrix; it changes no behaviour on its own, it is cross-checked against the real
+routes by `assert_routes_classified()` at startup (see `main.lifespan`) and by
+the test sweeps, so a route cannot ship with a level the matrix does not know about
+and the matrix cannot keep an entry for a route that no longer exists. The
+caller hands the checker the routes enumerated from the routers we own
 (`permissions.router_routes(*main.API_ROUTERS)`), because `app.routes` is no
 longer a complete view: fastapi 0.137+ wraps `include_router` in a lazy tree, so
 the included routes never appear there.
@@ -50,18 +55,20 @@ from db import engine
 
 PUBLIC = "public"
 READ = "read"
+CONTRIBUTE = "contribute"
 WRITE = "write"
 ADMIN = "admin"
 
 # Ranked so the comparison is a single `<`; adding a level later means giving it
 # a rank here and a role mapping below, nowhere else.
-LEVEL_RANK = {PUBLIC: 0, READ: 1, WRITE: 2, ADMIN: 3}
+LEVEL_RANK = {PUBLIC: 0, READ: 1, CONTRIBUTE: 2, WRITE: 3, ADMIN: 4}
 
 # A role maps to the highest level it may use. Accounts are stored normalised
 # (`accounts._clean_role`), so the keys are the canonical role strings.
 ROLE_LEVELS = {
     accounts.ADMIN_ROLE: ADMIN,
     accounts.EDITOR_ROLE: WRITE,
+    accounts.CONTRIBUTOR_ROLE: CONTRIBUTE,
     accounts.DEFAULT_ROLE: READ,
 }
 
@@ -70,6 +77,7 @@ ROLE_LEVELS = {
 # `auth.require_admin` used to raise and is kept verbatim.
 DENY_DETAIL = {
     READ: "Authentication required",
+    CONTRIBUTE: "Contributor, editor or administrator access required",
     WRITE: "Editor or administrator access required",
     ADMIN: "Administrator access required",
 }
@@ -164,11 +172,29 @@ def require_permission(level: str, authenticate: Callable = require_auth) -> Cal
 
 
 require_read = require_permission(READ)
+require_contribute = require_permission(CONTRIBUTE)
 require_write = require_permission(WRITE)
 require_admin = require_permission(ADMIN)
 # Same READ level, different authenticator: attached only to the four file
 # routes, so a grant can never reach a list, write or admin route.
 require_file_read = require_permission(READ, require_auth_or_file_grant)
+
+# The metadata fields whose edit renames the asset's file on disk.
+RENAME_FIELDS: frozenset[str] = frozenset({"name", "title"})
+
+
+def authorize_metadata_edit(request: Request, context: Optional[AuthContext], fields: set[str]) -> None:
+    """Escalate `POST /asset/{asset_id}/meta` to WRITE when the edit renames on disk.
+
+    The route declares CONTRIBUTE because notes/creator/collection are
+    reversible and touch no bytes, but `name`/`title` rename the file, which is
+    WRITE. `assert_routes_classified()` refuses a route that declares two
+    levels, so the escalation is an explicit `authorize()` call from the
+    handler - still the single decision point - and it must run before the
+    404 lookup so the answer cannot become an existence oracle.
+    """
+    if fields & RENAME_FIELDS:
+        authorize(request, context, WRITE)
 
 
 # The audited matrix. Path strings are the FastAPI templates exactly as declared
@@ -243,38 +269,45 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("GET", "/snapshots"): READ,
     # A browse is a read of one snapshot view, and creates nothing either.
     ("GET", "/snapshots/{name}/browse"): READ,
-    # write: create, mutate or delete library content.
-    ("POST", "/upload"): WRITE,
-    ("POST", "/import"): WRITE,
+    # contribute: upload, import, organise and edit metadata - everything that
+    # does not destroy or rename library content on disk.
+    ("POST", "/upload"): CONTRIBUTE,
+    ("POST", "/import"): CONTRIBUTE,
     # Also an outbound-fetch oracle, like /import/inspect, and it mutates a project.
-    ("POST", "/import/project"): WRITE,
-    # No mutation, but both are outbound-fetch oracles (arbitrary URL in, remote
-    # response out), so a viewer must not have them.
-    ("POST", "/import/inspect"): WRITE,
-    ("POST", "/import/zip/entries"): WRITE,
-    ("POST", "/import/zip"): WRITE,
-    ("POST", "/asset/{asset_id}/files"): WRITE,
+    ("POST", "/import/project"): CONTRIBUTE,
+    # No mutation and no library bytes, but both are outbound-fetch oracles
+    # (arbitrary URL in, remote response out), so a viewer must not have them;
+    # a contributor needs them for link and zip import in the client.
+    ("POST", "/import/inspect"): CONTRIBUTE,
+    ("POST", "/import/zip/entries"): CONTRIBUTE,
+    ("POST", "/import/zip"): CONTRIBUTE,
+    ("POST", "/asset/{asset_id}/files"): CONTRIBUTE,
+    ("PATCH", "/asset/{asset_id}/files/{file_id}"): CONTRIBUTE,
+    ("PUT", "/asset/{asset_id}/files/order"): CONTRIBUTE,
+    ("POST", "/asset/{asset_id}/thumbnail-generated"): CONTRIBUTE,
+    # Tag and metadata edits are reversible and touch no bytes.
+    ("POST", "/assets/batch/tags"): CONTRIBUTE,
+    ("POST", "/assets/batch/meta"): CONTRIBUTE,
+    ("POST", "/asset/{asset_id}/tags"): CONTRIBUTE,
+    # Escalates to WRITE in the handler when name/title are present, because
+    # those rename the file on disk (see `authorize_metadata_edit`).
+    ("POST", "/asset/{asset_id}/meta"): CONTRIBUTE,
+    ("POST", "/folders"): CONTRIBUTE,
+    ("POST", "/projects"): CONTRIBUTE,
+    ("PATCH", "/project/{project_id}"): CONTRIBUTE,
+    ("POST", "/project/{project_id}/assets"): CONTRIBUTE,
+    # Removes membership, not the asset: the join row goes, the bytes stay.
+    ("DELETE", "/project/{project_id}/assets"): CONTRIBUTE,
+    # write: destroy or rename library content on disk.
     ("DELETE", "/asset/{asset_id}/files/{file_id}"): WRITE,
-    ("PATCH", "/asset/{asset_id}/files/{file_id}"): WRITE,
-    ("PUT", "/asset/{asset_id}/files/order"): WRITE,
     ("DELETE", "/asset/{asset_id}/prepared-print"): WRITE,
-    ("POST", "/asset/{asset_id}/thumbnail-generated"): WRITE,
-    ("POST", "/assets/batch/tags"): WRITE,
     ("POST", "/assets/batch/folder"): WRITE,
     ("POST", "/assets/batch/delete"): WRITE,
-    ("POST", "/assets/batch/meta"): WRITE,
-    ("POST", "/asset/{asset_id}/tags"): WRITE,
-    ("POST", "/asset/{asset_id}/meta"): WRITE,
     ("POST", "/asset/{asset_id}/rename"): WRITE,
     ("DELETE", "/asset/{asset_id}"): WRITE,
-    ("POST", "/folders"): WRITE,
     ("PATCH", "/folder/{folder_id}"): WRITE,
     ("DELETE", "/folder/{folder_id}"): WRITE,
-    ("POST", "/projects"): WRITE,
-    ("PATCH", "/project/{project_id}"): WRITE,
     ("DELETE", "/project/{project_id}"): WRITE,
-    ("POST", "/project/{project_id}/assets"): WRITE,
-    ("DELETE", "/project/{project_id}/assets"): WRITE,
     ("POST", "/asset/{asset_id}/folder"): WRITE,
     # Registering files found on disk is library work, not administration, and
     # the missing-file banner offers Re-scan to editors; the audit event stays.

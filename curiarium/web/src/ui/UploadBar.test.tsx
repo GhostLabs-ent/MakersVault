@@ -58,7 +58,7 @@ function renderUploadBar() {
   const onUploaded = vi.fn();
   render(
     <>
-      <UploadBar canWrite onUploaded={onUploaded} />
+      <UploadBar canContribute onUploaded={onUploaded} />
       <Toaster />
     </>,
   );
@@ -192,7 +192,7 @@ describe("UploadBar role capability", () => {
   const WRITE_BUTTONS = ["Upload", "Upload folder", "Import link"];
 
   it("shows the whole write bar to an editor", () => {
-    render(<UploadBar canWrite onUploaded={vi.fn()} />);
+    render(<UploadBar canContribute onUploaded={vi.fn()} />);
 
     for (const name of WRITE_BUTTONS) {
       expect(screen.getByRole("button", { name })).toBeTruthy();
@@ -203,7 +203,7 @@ describe("UploadBar role capability", () => {
   });
 
   it("renders no bar and no write control for a viewer", () => {
-    const { container } = render(<UploadBar canWrite={false} onUploaded={vi.fn()} />);
+    const { container } = render(<UploadBar canContribute={false} onUploaded={vi.fn()} />);
 
     expect(container.innerHTML).toBe("");
     for (const name of WRITE_BUTTONS) {

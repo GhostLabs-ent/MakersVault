@@ -2,10 +2,10 @@ const TOKEN_KEY = "curiarium_auth_token";
 const REFRESH_TOKEN_KEY = "curiarium_auth_refresh_token";
 const ROLE_KEY = "curiarium_auth_role";
 
-export type Role = "admin" | "editor" | "viewer";
+export type Role = "admin" | "editor" | "contributor" | "viewer";
 
-/** Mirror of `api/permissions.py` ROLE_LEVELS: viewer=read=1, editor=write=2, admin=3. */
-const ROLE_RANK: Record<Role, number> = { viewer: 1, editor: 2, admin: 3 };
+/** Mirror of `api/permissions.py` ROLE_LEVELS: viewer=read=1, contributor=contribute=2, editor=write=3, admin=4. */
+const ROLE_RANK: Record<Role, number> = { viewer: 1, contributor: 2, editor: 3, admin: 4 };
 
 function getStorage(): Storage | null {
   if (typeof window === "undefined") return null;
@@ -64,7 +64,9 @@ export function clearRefreshToken() {
  * letting a typo rank above the server's answer.
  */
 export function parseRole(value: unknown): Role | null {
-  if (value === "admin" || value === "editor" || value === "viewer") return value;
+  if (value === "admin" || value === "editor" || value === "contributor" || value === "viewer") {
+    return value;
+  }
   return null;
 }
 

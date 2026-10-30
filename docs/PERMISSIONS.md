@@ -1,42 +1,56 @@
 # Roles and permissions (Mf-2nbc)
 
-Curiarium enforces three roles server-side, on every route. The web client is
+Curiarium enforces four roles server-side, on every route. The web client is
 not part of the security boundary: anything it hides (or forgets to hide) is
 still refused by the API.
 
 ## Roles
 
-| Role     | Intended for                          | Usable level                       |
-|----------|---------------------------------------|------------------------------------|
-| `admin`  | the operator of the deployment        | `admin` (everything)               |
-| `editor` | someone who manages the library       | `write` (create/mutate/delete)     |
-| `viewer` | read-only access (default for new accounts) | `read`                       |
+| Role          | Intended for                          | Usable level                    |
+|---------------|---------------------------------------|---------------------------------|
+| `admin`       | the operator of the deployment        | `admin` (everything)            |
+| `editor`      | someone who manages the library       | `write` (rename/move/delete)    |
+| `contributor` | family members who add to and organise the library but must never destroy it | `contribute` (upload/edit, no destroy) |
+| `viewer`      | read-only access (default for new accounts) | `read`                    |
 
-Levels are ranked: `public` (0) < `read` (1) < `write` (2) < `admin` (3). A
-principal may use every level at or below its own. A role that is unknown or
-blank ranks as `public`, i.e. it is denied even reads - fail closed.
+Levels are ranked: `public` (0) < `read` (1) < `contribute` (2) < `write` (3) <
+`admin` (4). A principal may use every level at or below its own. A role that is
+unknown or blank ranks as `public`, i.e. it is denied even reads - fail closed.
 
-| Capability                                   | admin | editor | viewer |
-|----------------------------------------------|:-----:|:------:|:------:|
-| Browse assets, folders, tags, trash          |  yes  |  yes   |  yes   |
-| Browse projects and their member assets      |  yes  |  yes   |  yes   |
-| Download files, thumbnails, prepared prints  |  yes  |  yes   |  yes   |
-| Download a zip of a selection/folder/tag     |  yes  |  yes   |  yes   |
-| Poll library scan status                     |  yes  |  yes   |  yes   |
-| Upload / import / rename / edit metadata     |  yes  |  yes   |   no   |
-| Delete assets, folders (to the trash), supporting files |  yes  |  yes   |   no   |
-| Bulk tag / move / delete / metadata          |  yes  |  yes   |   no   |
-| Create / edit / delete projects, edit membership |  yes  |  yes   |   no   |
-| Start a library scan                         |  yes  |  yes   |   no   |
-| View and browse snapshots                    |  yes  |  yes   |  yes   |
-| Take or restore a snapshot                   |  yes  |  yes   |   no   |
-| Manage retention, delete a snapshot, read scheduler status |  yes  |   no   |   no   |
-| Change storage / mount-import settings       |  yes  |   no   |   no   |
-| List and revoke own sessions (devices)       |  yes  |  yes   |  yes   |
-| List and revoke any user's sessions          |  yes  |   no   |   no   |
-| Create users, set roles, disable accounts    |  yes  |   no   |   no   |
-| Read the audit log                           |  yes  |   no   |   no   |
-| Purge the trash                              |  yes  |   no   |   no   |
+| Capability                                           | admin | editor | contributor | viewer |
+|------------------------------------------------------|:-----:|:------:|:-----------:|:------:|
+| Browse assets, folders, tags, trash                  |  yes  |  yes   |     yes     |  yes   |
+| Browse projects and their member assets              |  yes  |  yes   |     yes     |  yes   |
+| Download files, thumbnails, prepared prints          |  yes  |  yes   |     yes     |  yes   |
+| Download a zip of a selection/folder/tag             |  yes  |  yes   |     yes     |  yes   |
+| Poll library scan status                             |  yes  |  yes   |     yes     |  yes   |
+| View and browse snapshots                            |  yes  |  yes   |     yes     |  yes   |
+| List and revoke own sessions (devices)               |  yes  |  yes   |     yes     |  yes   |
+| Upload, and import from a URL, a zip or a project    |  yes  |  yes   |     yes     |   no   |
+| Tag / notes / creator / collection edits             |  yes  |  yes   |     yes     |   no   |
+| Add a supporting file, generate a thumbnail          |  yes  |  yes   |     yes     |   no   |
+| Rename or reorder supporting files (display only)    |  yes  |  yes   |     yes     |   no   |
+| Create folders                                       |  yes  |  yes   |     yes     |   no   |
+| Create a project, edit its details, add/remove members |  yes  |  yes   |     yes     |   no   |
+| Rename an asset on disk                             |  yes  |  yes   |     no      |   no   |
+| Move an asset between folders                        |  yes  |  yes   |     no      |   no   |
+| Rename or move a folder (it carries its tags)        |  yes  |  yes   |     no      |   no   |
+| Delete assets, folders (to the trash), supporting files or prepared prints |  yes  |  yes   |     no      |   no   |
+| Bulk move or bulk delete of assets                   |  yes  |  yes   |     no      |   no   |
+| Start a library scan                                 |  yes  |  yes   |     no      |   no   |
+| Take or restore a snapshot                           |  yes  |  yes   |     no      |   no   |
+| Manage retention, delete a snapshot, read scheduler status |  yes  |   no   |     no      |   no   |
+| Change storage / mount-import settings               |  yes  |   no   |     no      |   no   |
+| List and revoke any user's sessions                  |  yes  |   no   |     no      |   no   |
+| Create users, set roles, disable accounts            |  yes  |   no   |     no      |   no   |
+| Read the audit log                                   |  yes  |   no   |     no      |   no   |
+| Purge the trash                                      |  yes  |   no   |     no      |   no   |
+
+The rows are split so that no single row spans the contribute/write line: one
+row that conflated an upload with a rename would make the `contributor` column
+unreadable, which is the whole point of the column. Everything reversible that
+adds to or organises the library is `contribute`; anything that destroys or
+renames a file on disk is `write`.
 
 The Settings snapshot card is **admin-only in the UI** -- the storage section that
 mounts it is shown to admins -- while `POST /snapshots` and
@@ -55,8 +69,9 @@ its level in the signature:
 def list_assets(..., _: Optional[AuthContext] = Depends(require_read)):
 ```
 
-`require_read` / `require_write` / `require_admin` wrap `auth.require_auth` and
-then call `permissions.authorize(request, context, level)`, which raises 403
+`require_read` / `require_contribute` / `require_write` / `require_admin` wrap
+`auth.require_auth` and then call `permissions.authorize(request, context, level)`,
+which raises 403
 when the principal's role does not reach the level. `require_auth` reads the
 `Authorization: Bearer` header and nothing else: `?token=` was retired with the
 file grants, so a session token in the query string is a 401 on every route,
@@ -75,7 +90,8 @@ file-serving routes - `GET /file/{asset_id}/{name}`,
 `GET /asset/{asset_id}/prepared-print`. The level is unchanged, so a grant is
 read-only through the ordinary rank ladder; the scope is what keeps it away
 from every list, write and admin route, because those carry plain
-`require_read` / `require_write` / `require_admin` and never consult `?sig=`.
+`require_read` / `require_contribute` / `require_write` / `require_admin` and
+never consult `?sig=`.
 
 Because a per-route dependency is easy to forget, `ROUTE_PERMISSIONS` in the same
 module records the audited matrix, and `assert_routes_classified(routes)` proves
@@ -102,7 +118,8 @@ The startup check reports all drift at once:
   (no stale entries).
 
 403 details are per level and say what was needed, not what exists:
-`read` -> "Authentication required", `write` -> "Editor or administrator access
+`read` -> "Authentication required", `contribute` -> "Contributor, editor or
+administrator access required", `write` -> "Editor or administrator access
 required", `admin` -> "Administrator access required".
 
 **Authorization is not auditing (Mf-s3z0).** `permissions.authorize()` decides;
@@ -183,6 +200,12 @@ becomes a permission:
 * **`editor` is the only escalation, and it comes only from
   `OIDC_EDITOR_GROUPS`** — a group match on the claim named by
   `OIDC_GROUPS_CLAIM`.
+* **A claim cannot mint a `contributor` either.** The claim mapping is binary — a
+  group match promotes to `editor`, no match leaves `viewer` — so `contributor`
+  is a **local-only** grant: an admin sets it on the account with `POST /users` or
+  `PATCH /users/{user_id}`, and a later SSO login never rewrites it. Adding a
+  third tier to the claim mapping would hand an authorization decision to the
+  IdP.
 * **`admin` is unreachable from claims.** `OIDC_ADMIN_GROUPS` is refused at boot
   if it is non-empty, and an existing account's `users.role` is **never**
   rewritten by a claim on re-login. Promotion is `PATCH /users/{user_id}` by an
@@ -207,7 +230,7 @@ are in
 ## The route matrix
 
 Paths are FastAPI templates exactly as declared. 90 routes: 9 public, 33 read,
-32 write, 16 admin.
+19 contribute, 13 write, 16 admin.
 
 The collection/instance templates are deliberately asymmetric: the collection is
 `/projects` while one project is `/project/{project_id}`, exactly like `/folders`
@@ -265,39 +288,53 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | GET    | `/snapshots`                           | lists the snapshots this volume has; reads the provider view, creates nothing |
 | GET    | `/snapshots/{name}/browse`             | browses one snapshot read-only; creates nothing |
 
-### write (editor or admin)
+### contribute (contributor, editor or admin)
+
+Everything here adds to or organises the library and is reversible from the
+library's point of view: it creates rows, writes metadata, or uploads new bytes.
+Nothing in this table deletes or renames anything already on disk - that is the
+`write` table below - which is exactly the line the `contributor` role is built
+on.
 
 | Method | Path                                        | Why |
 |--------|---------------------------------------------|-----|
-| POST   | `/upload`                                   | creates an asset |
+| POST   | `/upload`                                   | creates an asset: new bytes in, nothing existing touched |
 | POST   | `/import`                                   | creates an asset from a URL |
 | POST   | `/import/project`                           | import a URL into a new or existing project (one step) |
-| POST   | `/import/inspect`                           | no mutation, but an outbound-fetch oracle (URL in, remote response out) |
-| POST   | `/import/zip/entries`                       | same: outbound fetch, no mutation |
+| POST   | `/import/inspect`                           | no mutation, but an outbound-fetch oracle (URL in, remote response out). Contribute rather than read because the client's link-import flow calls it immediately before `/import`: whoever may start an import needs it, and nobody below contributor starts one |
+| POST   | `/import/zip/entries`                       | same: outbound fetch, no mutation, and the zip-import dialog calls it to list entries before `/import/zip` |
 | POST   | `/import/zip`                               | creates assets from a zip |
-| POST   | `/asset/{asset_id}/files`                   | uploads a supporting file |
-| DELETE | `/asset/{asset_id}/files/{file_id}`         | deletes a supporting file |
+| POST   | `/asset/{asset_id}/files`                   | uploads a supporting file next to an asset; removes nothing |
 | PATCH  | `/asset/{asset_id}/files/{file_id}`         | renames a supporting file (display only; the bytes never move) |
-| PUT    | `/asset/{asset_id}/files/order`             | rewrites the supporting-file display order |
-| DELETE | `/asset/{asset_id}/prepared-print`          | deletes a prepared print |
+| PUT    | `/asset/{asset_id}/files/order`             | rewrites the supporting-file display order (display only; the bytes never move) |
 | POST   | `/asset/{asset_id}/thumbnail-generated`     | writes a thumbnail |
 | POST   | `/assets/batch/tags`                        | bulk tag mutation |
+| POST   | `/assets/batch/meta`                        | bulk creator/notes edit; the route has no title/name field, so no batch can rename on disk |
+| POST   | `/asset/{asset_id}/tags`                    | metadata mutation |
+| POST   | `/asset/{asset_id}/meta`                    | notes/creator/collection edits do not touch the file; the route **escalates to write when `name` or `title` is in the body**, because those rename the asset on disk (`permissions.authorize_metadata_edit`) |
+| POST   | `/folders`                                  | create a folder |
+| POST   | `/projects`                                 | create a project (a row set, no files) |
+| PATCH  | `/project/{project_id}`                     | rename / describe / set the cover of a project: its rows, not its assets |
+| POST   | `/project/{project_id}/assets`              | add project memberships |
+| DELETE | `/project/{project_id}/assets`              | removes a membership row, not an asset; the bytes stay (the one DELETE with a JSON body) |
+
+### write (editor or admin)
+
+Destroy or rename on disk - the editor line. Every route here either moves bytes
+out of the library, renames a file the library owns, or rescans the volume.
+
+| Method | Path                                        | Why |
+|--------|---------------------------------------------|-----|
+| POST   | `/asset/{asset_id}/rename`                  | rename on disk |
+| POST   | `/asset/{asset_id}/folder`                  | move an asset into a folder |
 | POST   | `/assets/batch/folder`                      | bulk move |
 | POST   | `/assets/batch/delete`                      | bulk delete (to trash; confirmed by item count) |
-| POST   | `/assets/batch/meta`                        | bulk creator/notes metadata edit |
-| POST   | `/asset/{asset_id}/tags`                    | metadata mutation |
-| POST   | `/asset/{asset_id}/meta`                    | metadata mutation (may rename on disk) |
-| POST   | `/asset/{asset_id}/rename`                  | rename on disk |
 | DELETE | `/asset/{asset_id}`                         | delete an asset (to trash; the file name must be confirmed) |
-| POST   | `/folders`                                  | create a folder |
-| PATCH  | `/folder/{folder_id}`                       | rename/move/retag a folder |
+| DELETE | `/asset/{asset_id}/files/{file_id}`         | deletes a supporting file |
+| DELETE | `/asset/{asset_id}/prepared-print`          | deletes a prepared print |
+| PATCH  | `/folder/{folder_id}`                       | rename/move a folder - and it carries the folder's tags in the same body, which is why a contributor cannot retag one (see "Known consequences") |
 | DELETE | `/folder/{folder_id}`                       | delete a folder (to trash) |
-| POST   | `/asset/{asset_id}/folder`                  | move an asset into a folder |
-| POST   | `/projects`                                 | create a project (a row set, no files) |
-| PATCH  | `/project/{project_id}`                     | rename / describe / set the cover of a project |
 | DELETE | `/project/{project_id}`                     | delete a project and its memberships (never an asset) |
-| POST   | `/project/{project_id}/assets`              | add project memberships |
-| DELETE | `/project/{project_id}/assets`              | remove project memberships (the one DELETE with a JSON body) |
 | POST   | `/library/scan`                             | starts a scan: registers files found on disk and refreshes `missing_since`; audited as `library.scan.start` |
 | POST   | `/snapshots`                                | takes a snapshot of the library; an editor's library action |
 | POST   | `/snapshots/{name}/restore`                 | copies snapshot bytes into `recovered/`; never overwrites |
@@ -426,8 +463,9 @@ vice versa.
 
 `PATCH /users/{user_id}` (admin only):
 
-* body: `{"disabled": true|false}` and/or `{"role": "admin"|"editor"|"viewer"}`;
-  unknown fields are rejected (`extra="forbid"`);
+* body: `{"disabled": true|false}` and/or
+  `{"role": "admin"|"editor"|"contributor"|"viewer"}`; unknown fields are
+  rejected (`extra="forbid"`);
 * both fields are optional, but an empty patch is a **422**
   ("provide disabled and/or role") rather than a silent no-op;
 * an unknown role is a **422** from the same validator that guards
@@ -469,8 +507,10 @@ sessions stay valid.
   is library work - it walks storage, registers files found on disk and
   refreshes `missing_since` - not an administration job, so editors may start
   one and it is still audited as `library.scan.start`. The GET stays read
-  because every client polls the status. A viewer clicking the same "Re-scan"
-  action still gets a 403: starting a scan is not a viewer action.
+  because every client polls the status. A viewer *or a contributor* clicking
+  the same "Re-scan" action still gets a 403: starting a scan is not a
+  contribute action, and the missing-file banner only offers Re-scan to
+  editors.
 * **`GET /library/scan` returns `errors: List[str]`** that may contain storage
   filenames. That is the same disclosure class as `storage_path` on `AssetOut`
   and `FolderOut`, which viewers already receive, so it is not a new leak.
@@ -486,9 +526,16 @@ sessions stay valid.
   `useStorageSettings`/`useMountImportSettings`). The storage section still
   renders a not-permitted state if reached directly, but the menu does not offer
   it. That is honest: they cannot change it either.
+* **A contributor cannot retag a folder.** `PATCH /folder/{folder_id}` carries
+  the name, the parent and the tags in one body, and renaming or moving a folder
+  is `write`, so the whole route is `write` and the tag half goes with it. A
+  contributor therefore has no way to edit a folder's tags even though tags on
+  an *asset* are theirs. Splitting that route into a tag-only `contribute` call
+  and a name/parent `write` call is deliberately out of scope for Mf-01f0: it is
+  a second route, not a permission change.
 * **Editors act on every asset.** There is no per-asset ownership in this
   ticket; Mf-arm6 owns that, and it will need a per-record check inside the
-  handlers (the level stays `write`).
+  handlers (the level stays `write`). A contributor acts on every asset too.
 * **The web client** maps a 403 to "Your role does not allow this action."
   (`lib/api/http.ts`, `assertOk`) and gates the admin-only surfaces on the role
   `GET /me` reports: the sidebar "Audit log" entry, the Storage Structure
@@ -499,20 +546,25 @@ sessions stay valid.
   `ui/settings/Settings.tsx`). That is honesty, not enforcement: the API
   remains the control, and every hidden or ungated control is still refused by
   it.
-* **Write surfaces are gated client-side as of Mf-3r90.** The write capability
-  is `roleAtLeast(role, "editor")` (`lib/auth.ts`), derived once in
-  `ui/App.tsx` from the same `/me` role cache and threaded down as a
-  **required** `canWrite` prop to `ui/UploadBar.tsx`, `ui/asset-grid/*`
-  (including `AssetCard` and `useAssetDrop`), `ui/BulkActionBar.tsx`,
-  `ui/ProjectView.tsx`, `ui/ProjectLanding.tsx`,
-  `ui/project-attach/useAttachDrop.ts`, and `ui/UploadQueuePanel.tsx` is
-  rendered by `App` only when the capability is present (its only action is a
-  retry, which is a write). `ui/Sidebar.tsx`
-  and `ui/settings/Settings.tsx` keep receiving `role` and derive the same
-  capability internally, so there is one threshold in one helper rather than a
-  second comparison per surface. `role` is `null` until `/me` answers, so an
-  unknown role has no write access (fail closed), and a demotion lands on the
-  next `/me` refresh.
+* **Write surfaces are gated client-side, as two capabilities since Mf-01f0.**
+  The `contribute` and `write` thresholds live in one helper,
+  `roleAtLeast(role, ...)` (`lib/auth.ts`), and the app shell derives both once
+  in `ui/App.tsx` from the same `/me` role cache:
+  `canContribute = roleAtLeast(role, "contributor")` and
+  `canDelete = roleAtLeast(role, "editor")`. Both are threaded as **required**
+  props: `ui/UploadBar.tsx` receives only `canContribute` (its only write is an
+  upload/import), while `ui/asset-grid/*` (`AssetGrid`, `AssetCard`,
+  `useAssetDrop`), `ui/BulkActionBar.tsx`, `ui/ProjectView.tsx`,
+  `ui/ProjectLanding.tsx` and `ui/project-attach/useAttachDrop.ts` receive
+  both. `ui/UploadQueuePanel.tsx` is rendered by `App` only when
+  `canContribute` is set. `ui/Sidebar.tsx` receives `role` and derives both
+  capabilities locally, and `ui/settings/Settings.tsx` (which passes it on to
+  `ui/settings/ImportsSection.tsx`) deliberately keeps a single
+  `canWrite = roleAtLeast(role, "editor")`: its one mutating control is the
+  folder-scan card (`POST /library/scan`), which is still `write`. One threshold
+  in one helper rather than a comparison per surface. `role` is `null` until
+  `/me` answers, so an unknown role has neither capability (fail closed), and a
+  demotion lands on the next `/me` refresh.
   A viewer loses the upload bar, drag-and-drop upload, folder
   create/rename/delete, asset edit/tags/move/delete/add-to-project, per-file
   mutation/re-scan/forget, the bulk write actions, project
@@ -520,15 +572,25 @@ sessions stay valid.
   upload-queue panel. A viewer keeps search, sort and filters, breadcrumbs,
   subfolder tiles, downloads (including folder ZIP export), preview, the
   slicer, project browsing, the read-only mount-import run history and the
-  cookie preferences (client-side settings, not API writes). The upload-queue
-  panel is gated too because its only action is a retry: a queued upload still
-  running when the role drops would otherwise leave a visible control whose
-  click answers with a raw 403.
-  The client is still not the boundary: a stale or tampered role cache only
-  hides or shows a button, it cannot change what the API allows.
-* **No direct-visit not-permitted state is needed for the WRITE surfaces.**
-  There is no client router and no write-only view or route, so there is
-  nothing to visit directly: the only mixed section is Settings → Imports,
+  cookie preferences (client-side settings, not API writes).
+  A contributor sits between the two, and the UI shows it: they gain the upload
+  bar, drag-and-drop upload (grid and sidebar), link/zip/project import, asset
+  tag and notes/creator/collection edits, folder create and subfolder create,
+  project create/edit/add-member/remove-member, attaching files to a project,
+  adding a supporting file, the display-only supporting-file rename and
+  reorder, thumbnail generation, the contribute half of the bulk bar (tags and
+  metadata) and the upload-queue panel (a retry of an upload is a contribute,
+  not a write). They still lose folder rename and move (and therefore folder
+  retagging), asset rename, moving an asset between folders, folder delete,
+  asset delete, supporting-file delete, prepared-print delete, batch move and
+  batch delete, the local folder-scan card and snapshot actions. The client is
+  still not the boundary: a stale or tampered role cache only hides or shows a
+  button, it cannot change what the API allows.
+* **No direct-visit not-permitted state is needed for the contribute or write
+  surfaces.** Both capabilities only show or hide controls inside views every
+  role may open. There is no client router and no contribute-only or write-only
+  view or route, so there is nothing to visit directly: the only mixed section
+  is Settings → Imports,
   which hides the scan card while the read-only import-run history and the
   cookie cards stay. The audit and storage `NotPermitted` states from Mf-5tyz
   are unchanged.

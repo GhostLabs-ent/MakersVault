@@ -29,7 +29,7 @@ from auth import AuthContext
 from db import engine
 from file_utils import sanitize_filename
 from models import Asset, AssetFile
-from permissions import require_write
+from permissions import require_contribute
 from routers.presenters import to_out
 from schemas import AssetOut
 
@@ -84,7 +84,7 @@ def multipart_form_openapi(*text_fields: str) -> dict:
 
 
 @router.post("/upload", response_model=AssetOut, openapi_extra=multipart_form_openapi("title", "notes", "tags", "folder_id"))
-async def upload(request: Request, _: Optional[AuthContext] = Depends(require_write)):
+async def upload(request: Request, _: Optional[AuthContext] = Depends(require_contribute)):
     staging = asset_service.new_staging_path()
     asset: Optional[Asset] = None
     try:
@@ -140,7 +140,7 @@ async def upload(request: Request, _: Optional[AuthContext] = Depends(require_wr
 async def upload_related_file(
     asset_id: str,
     request: Request,
-    _: Optional[AuthContext] = Depends(require_write),
+    _: Optional[AuthContext] = Depends(require_contribute),
 ):
     staging = asset_service.new_staging_path()
     limit = seams.asset_file_upload_max_bytes()

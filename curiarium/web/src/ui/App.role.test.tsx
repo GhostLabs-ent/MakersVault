@@ -57,7 +57,7 @@ vi.mock("./ProjectSidebar", async () => {
       onOpenSettings,
       onOpenAudit,
     }: {
-      role?: "admin" | "editor" | "viewer" | null;
+      role?: "admin" | "editor" | "contributor" | "viewer" | null;
       onOpenSettings?: () => void;
       onOpenAudit?: () => void;
     }) =>
@@ -70,20 +70,28 @@ vi.mock("./ProjectSidebar", async () => {
   };
 });
 
-// Both write-bearing panes render the `canWrite` they received, so the role
-// gating is asserted from the DOM instead of from a prop spy.
+// Both write-bearing panes render the two capabilities they received, so the
+// role gating is asserted from the DOM instead of from a prop spy.
 vi.mock("./ProjectView", async () => {
   const react = await import("react");
   return {
-    default: ({ canWrite }: { canWrite: boolean }) =>
-      react.createElement("div", { "data-testid": "project-view", "data-can-write": String(canWrite) }),
+    default: ({ canContribute, canDelete }: { canContribute: boolean; canDelete: boolean }) =>
+      react.createElement("div", {
+        "data-testid": "project-view",
+        "data-can-contribute": String(canContribute),
+        "data-can-delete": String(canDelete),
+      }),
   };
 });
 vi.mock("./asset-grid/AssetGrid", async () => {
   const react = await import("react");
   return {
-    default: ({ canWrite }: { canWrite: boolean }) =>
-      react.createElement("div", { "data-testid": "asset-grid", "data-can-write": String(canWrite) }),
+    default: ({ canContribute, canDelete }: { canContribute: boolean; canDelete: boolean }) =>
+      react.createElement("div", {
+        "data-testid": "asset-grid",
+        "data-can-contribute": String(canContribute),
+        "data-can-delete": String(canDelete),
+      }),
   };
 });
 vi.mock("./settings/Settings", () => ({ default: () => null }));
@@ -91,14 +99,14 @@ vi.mock("./AuditLog", async () => {
   const react = await import("react");
   return { default: () => react.createElement("div", null, "Audit view") };
 });
-// The real UploadBar hides itself when it receives `canWrite: false`, so the
-// mock does the same: the marker is present only when App threaded a write
-// capability down. (UploadQueuePanel is gated by App itself.)
+// The real UploadBar hides itself when it receives `canContribute: false`, so
+// the mock does the same: the marker is present only when App threaded a
+// contribute capability down. (UploadQueuePanel is gated by App itself.)
 vi.mock("./UploadBar", async () => {
   const react = await import("react");
   return {
-    default: ({ canWrite }: { canWrite: boolean }) =>
-      canWrite ? react.createElement("div", null, "Upload bar") : null,
+    default: ({ canContribute }: { canContribute: boolean }) =>
+      canContribute ? react.createElement("div", null, "Upload bar") : null,
   };
 });
 vi.mock("./UploadQueuePanel", async () => {
@@ -216,8 +224,27 @@ describe("App write gating by role", () => {
 
     expect(screen.queryByText("Upload bar")).toBeNull();
     expect(screen.queryByText("Upload queue")).toBeNull();
-    expect(screen.getByTestId("asset-grid").dataset.canWrite).toBe("false");
-    expect(screen.getByTestId("project-view").dataset.canWrite).toBe("false");
+    expect(screen.getByTestId("asset-grid").dataset.canContribute).toBe("false");
+    expect(screen.getByTestId("asset-grid").dataset.canDelete).toBe("false");
+    expect(screen.getByTestId("project-view").dataset.canContribute).toBe("false");
+    expect(screen.getByTestId("project-view").dataset.canDelete).toBe("false");
+  });
+
+  // The persona this ticket exists for. An editor and a viewer both pass with
+  // a single flag, so neither proves the split: a contributor is the only role
+  // whose two capabilities differ. It must keep the upload surface and lose
+  // the destructive one.
+  it("gives a contributor the upload surface but not the destructive capability", async () => {
+    getMeMock.mockResolvedValue(me("contributor"));
+
+    await visitBothPanes();
+
+    expect(screen.getByText("Upload bar")).toBeTruthy();
+    expect(screen.getByText("Upload queue")).toBeTruthy();
+    expect(screen.getByTestId("asset-grid").dataset.canContribute).toBe("true");
+    expect(screen.getByTestId("asset-grid").dataset.canDelete).toBe("false");
+    expect(screen.getByTestId("project-view").dataset.canContribute).toBe("true");
+    expect(screen.getByTestId("project-view").dataset.canDelete).toBe("false");
   });
 
   it("gives an editor the upload bar, the upload queue panel and write capability", async () => {
@@ -227,7 +254,9 @@ describe("App write gating by role", () => {
 
     expect(screen.getByText("Upload bar")).toBeTruthy();
     expect(screen.getByText("Upload queue")).toBeTruthy();
-    expect(screen.getByTestId("asset-grid").dataset.canWrite).toBe("true");
-    expect(screen.getByTestId("project-view").dataset.canWrite).toBe("true");
+    expect(screen.getByTestId("asset-grid").dataset.canContribute).toBe("true");
+    expect(screen.getByTestId("asset-grid").dataset.canDelete).toBe("true");
+    expect(screen.getByTestId("project-view").dataset.canContribute).toBe("true");
+    expect(screen.getByTestId("project-view").dataset.canDelete).toBe("true");
   });
 });

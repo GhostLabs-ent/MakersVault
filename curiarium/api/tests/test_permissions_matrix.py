@@ -69,6 +69,8 @@ ADMIN_USERNAME = "root"
 ADMIN_PASSWORD = "root-password-1"
 EDITOR_USERNAME = "editor"
 EDITOR_PASSWORD = "editor-password-1"
+CONTRIBUTOR_USERNAME = "contributor"
+CONTRIBUTOR_PASSWORD = "contributor-password-1"
 VIEWER_USERNAME = "viewer"
 VIEWER_PASSWORD = "viewer-password-1"
 BREAK_GLASS = {"username": "admin", "password": "super-secret"}
@@ -143,11 +145,13 @@ class Ids:
 
     admin_token: str = ""
     editor_token: str = ""
+    contributor_token: str = ""
     viewer_token: str = ""
     admin_refresh_token: str = ""
     viewer_refresh_token: str = ""
     admin_id: str = ""
     editor_id: str = ""
+    contributor_id: str = ""
     viewer_id: str = ""
     folder_id: str = ""
     trash_folder_id: str = ""
@@ -379,7 +383,7 @@ def seed_library(client: TestClient, headers: dict[str, str]) -> Ids:
 
 @pytest.fixture()
 def ids(client: TestClient) -> Ids:
-    """An admin, an editor, a viewer and a seeded library, all per test.
+    """An admin, an editor, a contributor, a viewer and a seeded library, all per test.
 
     Break-glass creates the first admin; that insert revokes the break-glass
     session in the same transaction, so everything after it signs in as the real
@@ -390,18 +394,22 @@ def ids(client: TestClient) -> Ids:
     admin_session = login(client, ADMIN_USERNAME, ADMIN_PASSWORD)
     editor = create_user(client, admin_session["token"], EDITOR_USERNAME, EDITOR_PASSWORD, "editor")
     viewer = create_user(client, admin_session["token"], VIEWER_USERNAME, VIEWER_PASSWORD, "viewer")
+    contributor = create_user(client, admin_session["token"], CONTRIBUTOR_USERNAME, CONTRIBUTOR_PASSWORD, "contributor")
     editor_session = login(client, EDITOR_USERNAME, EDITOR_PASSWORD)
     viewer_session = login(client, VIEWER_USERNAME, VIEWER_PASSWORD)
+    contributor_session = login(client, CONTRIBUTOR_USERNAME, CONTRIBUTOR_PASSWORD)
     run_id = import_runs.skip_run("/seed-mount", "copy", "seeded for the permission sweep")
     return replace(
         seed_library(client, bearer(admin_session["token"])),
         admin_token=admin_session["token"],
         editor_token=editor_session["token"],
+        contributor_token=contributor_session["token"],
         viewer_token=viewer_session["token"],
         admin_refresh_token=admin_session["refresh_token"],
         viewer_refresh_token=viewer_session["refresh_token"],
         admin_id=admin["id"],
         editor_id=editor["id"],
+        contributor_id=contributor["id"],
         viewer_id=viewer["id"],
         import_run_id=run_id,
     )
@@ -437,6 +445,11 @@ def admin_headers(ids: Ids) -> dict[str, str]:
 @pytest.fixture()
 def editor_headers(ids: Ids) -> dict[str, str]:
     return bearer(ids.editor_token)
+
+
+@pytest.fixture()
+def contributor_headers(ids: Ids) -> dict[str, str]:
+    return bearer(ids.contributor_token)
 
 
 @pytest.fixture()
@@ -936,6 +949,7 @@ def call_delete_session(client: TestClient, headers: dict[str, str], ids: Ids, m
 CALLER_PASSWORDS = {
     ADMIN_USERNAME: ADMIN_PASSWORD,
     EDITOR_USERNAME: EDITOR_PASSWORD,
+    CONTRIBUTOR_USERNAME: CONTRIBUTOR_PASSWORD,
     VIEWER_USERNAME: VIEWER_PASSWORD,
 }
 PROBE_SEED = bytes(mfa.SECRET_BYTES)
@@ -1216,7 +1230,7 @@ def route_id(key: tuple[str, str]) -> str:
     return f"{key[0]} {key[1]}"
 
 
-NON_PUBLIC_KEYS = keys_at(permissions.READ, permissions.WRITE, permissions.ADMIN)
+NON_PUBLIC_KEYS = keys_at(permissions.READ, permissions.CONTRIBUTE, permissions.WRITE, permissions.ADMIN)
 
 
 def call(key: tuple[str, str], client, headers, ids, monkeypatch) -> Response:
@@ -1329,26 +1343,41 @@ def test_a_route_declared_on_the_app_instead_of_a_router_is_caught() -> None:
 
 
 def test_the_matrix_is_the_documented_size() -> None:
-    """The matrix is pinned at 90 routes; a new route means updating this and docs/PERMISSIONS.md."""
-    counts = {level: len(keys_at(level)) for level in (permissions.PUBLIC, permissions.READ, permissions.WRITE, permissions.ADMIN)}
+    """The matrix is pinned at 90 routes - 9 public / 33 read / 19 contribute / 13 write / 16 admin.
+
+    A new route means updating this pin and docs/PERMISSIONS.md together. The
+    per-level counts are pinned as well as the total on purpose: a route that
+    only moves between levels would otherwise keep the total and slip past.
+    """
+    counts = {
+        level: len(keys_at(level))
+        for level in (permissions.PUBLIC, permissions.READ, permissions.CONTRIBUTE, permissions.WRITE, permissions.ADMIN)
+    }
     assert len(permissions.ROUTE_PERMISSIONS) == 90, counts
-    assert counts == {permissions.PUBLIC: 9, permissions.READ: 33, permissions.WRITE: 32, permissions.ADMIN: 16}, counts
+    assert counts == {
+        permissions.PUBLIC: 9,
+        permissions.READ: 33,
+        permissions.CONTRIBUTE: 19,
+        permissions.WRITE: 13,
+        permissions.ADMIN: 16,
+    }, counts
 
 
 def test_every_guarded_route_has_a_call_spec() -> None:
     """A new mutating route cannot escape the sweeps.
 
-    The equality is over the WRITE/ADMIN half of the matrix, so adding a guarded
-    route without a call spec fails here rather than silently skipping the
-    viewer/editor sweeps for it.
+    The equality is over the CONTRIBUTE/WRITE/ADMIN half of the matrix, so
+    adding a guarded route without a call spec fails here rather than silently
+    skipping the viewer/contributor/editor sweeps for it.
     """
     matrix = permissions.ROUTE_PERMISSIONS
 
     unknown = set(CALLS) - set(matrix)
     assert unknown == set(), f"call specs for routes that are not in the matrix: {sorted(unknown)}"
 
-    guarded_in_matrix = {key for key, level in matrix.items() if level in (permissions.WRITE, permissions.ADMIN)}
-    guarded_in_table = {key for key in CALLS if matrix[key] in (permissions.WRITE, permissions.ADMIN)}
+    guarded = (permissions.CONTRIBUTE, permissions.WRITE, permissions.ADMIN)
+    guarded_in_matrix = {key for key, level in matrix.items() if level in guarded}
+    guarded_in_table = {key for key in CALLS if matrix[key] in guarded}
     assert guarded_in_table == guarded_in_matrix, (
         "the call table must cover exactly the guarded routes; "
         f"missing {sorted(guarded_in_matrix - guarded_in_table)}, "
@@ -1360,9 +1389,10 @@ def test_every_guarded_route_has_a_call_spec() -> None:
 
 
 def test_the_level_dependencies_and_deny_details_agree() -> None:
-    """The three factories, the rank ladder and the one-detail-per-level table."""
+    """The four factories, the rank ladder and the one-detail-per-level table."""
     for level, dependency in (
         (permissions.READ, permissions.require_read),
+        (permissions.CONTRIBUTE, permissions.require_contribute),
         (permissions.WRITE, permissions.require_write),
         (permissions.ADMIN, permissions.require_admin),
     ):
@@ -1370,10 +1400,12 @@ def test_the_level_dependencies_and_deny_details_agree() -> None:
         assert level in permissions.DENY_DETAIL
 
     assert permissions.LEVEL_RANK[permissions.PUBLIC] < permissions.LEVEL_RANK[permissions.READ]
-    assert permissions.LEVEL_RANK[permissions.READ] < permissions.LEVEL_RANK[permissions.WRITE]
+    assert permissions.LEVEL_RANK[permissions.READ] < permissions.LEVEL_RANK[permissions.CONTRIBUTE]
+    assert permissions.LEVEL_RANK[permissions.CONTRIBUTE] < permissions.LEVEL_RANK[permissions.WRITE]
     assert permissions.LEVEL_RANK[permissions.WRITE] < permissions.LEVEL_RANK[permissions.ADMIN]
     assert permissions.level_for_role("admin") == permissions.ADMIN
     assert permissions.level_for_role("editor") == permissions.WRITE
+    assert permissions.level_for_role("contributor") == permissions.CONTRIBUTE
     assert permissions.level_for_role("viewer") == permissions.READ
     assert permissions.level_for_role("owner") == permissions.PUBLIC
     assert permissions.level_for_role(None) == permissions.PUBLIC
@@ -1382,12 +1414,50 @@ def test_the_level_dependencies_and_deny_details_agree() -> None:
 # --- denials ----------------------------------------------------------------
 
 
+@pytest.mark.parametrize("key", keys_at(permissions.CONTRIBUTE), ids=route_id)
+def test_viewer_is_denied_every_contribute_route(client, ids, viewer_headers, key, monkeypatch) -> None:
+    """A viewer stays read-only, over exactly the route set that used to be write.
+
+    AC-3: introducing the contribute level moved nineteen routes down a rank so
+    a contributor could use them; this is the proof that none of them opened to
+    a viewer in the process. Parametrised from the matrix, so a route that lands
+    on the wrong level is caught here rather than hand-checked.
+    """
+    response = call(key, client, viewer_headers, ids, monkeypatch)
+
+    assert response.status_code == 403, f"{route_id(key)} let a viewer through: {response.status_code} {response.text}"
+    assert response.json()["detail"] == permissions.DENY_DETAIL[permissions.CONTRIBUTE]
+
+
 @pytest.mark.parametrize("key", keys_at(permissions.WRITE), ids=route_id)
 def test_viewer_is_denied_every_write_route(client, ids, viewer_headers, key, monkeypatch) -> None:
     response = call(key, client, viewer_headers, ids, monkeypatch)
 
     assert response.status_code == 403, f"{route_id(key)} let a viewer through: {response.status_code} {response.text}"
     assert response.json()["detail"] == permissions.DENY_DETAIL[permissions.WRITE]
+
+
+@pytest.mark.parametrize("key", keys_at(permissions.WRITE), ids=route_id)
+def test_contributor_is_denied_every_write_route(client, ids, contributor_headers, key, monkeypatch) -> None:
+    """AC-2: a contributor is denied all thirteen destructive routes, by sweep.
+
+    The point of the level is that contributing creates and organises while
+    destroying stays an editor's move, so this asserts the whole WRITE half of
+    the matrix rather than a hand-picked spot check.
+    """
+    response = call(key, client, contributor_headers, ids, monkeypatch)
+
+    assert response.status_code == 403, f"{route_id(key)} let a contributor through: {response.status_code} {response.text}"
+    assert response.json()["detail"] == permissions.DENY_DETAIL[permissions.WRITE]
+
+
+@pytest.mark.parametrize("key", keys_at(permissions.ADMIN), ids=route_id)
+def test_contributor_is_denied_every_admin_route(client, ids, contributor_headers, key, monkeypatch) -> None:
+    """Contributing is not administering: every admin route is still a 403."""
+    response = call(key, client, contributor_headers, ids, monkeypatch)
+
+    assert response.status_code == 403, f"{route_id(key)} let a contributor through: {response.status_code} {response.text}"
+    assert response.json()["detail"] == permissions.DENY_DETAIL[permissions.ADMIN]
 
 
 @pytest.mark.parametrize("key", keys_at(permissions.ADMIN), ids=route_id)
@@ -1424,8 +1494,27 @@ def test_viewer_is_allowed_every_read_route(client, ids, viewer_headers, key, mo
     assert response.status_code == EXPECTED_STATUS[key], f"{route_id(key)} answered {response.status_code}: {response.text}"
 
 
-@pytest.mark.parametrize("key", keys_at(permissions.WRITE), ids=route_id)
-def test_editor_is_allowed_every_write_route(client, ids, editor_headers, key, monkeypatch) -> None:
+@pytest.mark.parametrize("key", keys_at(permissions.CONTRIBUTE), ids=route_id)
+def test_contributor_is_allowed_every_contribute_route(client, ids, contributor_headers, key, monkeypatch) -> None:
+    """A contributor holds every contribute power, not just the routes a test names.
+
+    The five `/import*` keys have no pinned status on purpose (their handlers
+    reach the network, which the stubs refuse), so the shape is "never 403, and
+    the pinned status when there is one" - the same tolerant shape as the editor
+    sweep. `test_every_route_has_an_expectation_or_a_documented_reason` still
+    pins that those five are the only keys allowed to be absent.
+    """
+    response = call(key, client, contributor_headers, ids, monkeypatch)
+
+    assert response.status_code != 403, f"{route_id(key)} refused a contributor: {response.text}"
+    expected = EXPECTED_STATUS.get(key)
+    if expected is not None:
+        assert response.status_code == expected, f"{route_id(key)} answered {response.status_code}: {response.text}"
+
+
+@pytest.mark.parametrize("key", keys_at(permissions.CONTRIBUTE, permissions.WRITE), ids=route_id)
+def test_editor_is_allowed_every_contribute_and_write_route(client, ids, editor_headers, key, monkeypatch) -> None:
+    """An editor holds every contribute and write power: the ranks are nested."""
     response = call(key, client, editor_headers, ids, monkeypatch)
 
     assert response.status_code != 403, f"{route_id(key)} refused an editor: {response.text}"
@@ -1444,13 +1533,16 @@ def test_admin_is_never_denied(client, ids, admin_headers, key, monkeypatch) -> 
         assert response.status_code == expected, f"{route_id(key)} answered {response.status_code}: {response.text}"
 
 
-def test_starting_a_scan_is_editor_work(client, ids, editor_headers, viewer_headers, monkeypatch) -> None:
-    """`POST /library/scan` is write, not admin: the missing-file banner offers it.
+def test_starting_a_scan_is_editor_work(client, ids, editor_headers, contributor_headers, viewer_headers, monkeypatch) -> None:
+    """`POST /library/scan` is write, not admin or contribute: the banner offers it.
 
     This guards the re-scan affordance: the asset grid's "Re-scan" button calls
     the POST, so classifying it as admin turns an offered action into a 403 for
-    every editor. The GET stays read because every client polls the status. The
-    audit event on the POST is covered by `test_audit_log.py`.
+    every editor. A contributor is refused it because registering files found on
+    disk rewrites `missing_since` on rows they may not destroy - the banner's
+    Re-scan is an editor affordance. The GET stays read because every client
+    polls the status. The audit event on the POST is covered by
+    `test_audit_log.py`.
     """
     key = ("POST", "/library/scan")
     assert permissions.ROUTE_PERMISSIONS[key] == permissions.WRITE
@@ -1459,6 +1551,12 @@ def test_starting_a_scan_is_editor_work(client, ids, editor_headers, viewer_head
     from_editor = call(key, client, editor_headers, ids, monkeypatch)
     assert from_editor.status_code != 403, f"an editor was refused the scan they are offered: {from_editor.text}"
     assert from_editor.status_code == EXPECTED_STATUS[key], f"{route_id(key)} answered {from_editor.status_code}: {from_editor.text}"
+
+    from_contributor = call(key, client, contributor_headers, ids, monkeypatch)
+    assert from_contributor.status_code == 403, (
+        f"a contributor started a scan: {from_contributor.status_code} {from_contributor.text}"
+    )
+    assert from_contributor.json()["detail"] == permissions.DENY_DETAIL[permissions.WRITE]
 
     from_viewer = call(key, client, viewer_headers, ids, monkeypatch)
     assert from_viewer.status_code == 403, f"a viewer started a scan: {from_viewer.status_code} {from_viewer.text}"

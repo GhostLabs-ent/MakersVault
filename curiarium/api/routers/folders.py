@@ -15,7 +15,7 @@ import trash_service
 from auth import AuthContext
 from db import engine
 from models import Asset, Folder
-from permissions import require_read, require_write
+from permissions import require_contribute, require_read, require_write
 from routers.presenters import folder_to_out
 from schemas import FolderDeletePreviewOut, FolderIn, FolderOut
 from zip_service import zip_assets_response
@@ -34,7 +34,7 @@ def list_folders(_: Optional[AuthContext] = Depends(require_read)):
 
 
 @router.post("/folders", response_model=FolderOut)
-def create_folder(body: FolderIn, _: Optional[AuthContext] = Depends(require_write)):
+def create_folder(body: FolderIn, _: Optional[AuthContext] = Depends(require_contribute)):
     with Session(engine) as s:
         f = folder_service.create_folder(s, body.name, json.dumps(body.tags), body.parent_id)
     return folder_to_out(f)

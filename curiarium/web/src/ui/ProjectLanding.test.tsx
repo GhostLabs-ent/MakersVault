@@ -127,7 +127,8 @@ type Props = ComponentProps<typeof ProjectLanding>;
 
 function landingProps(overrides: Partial<Props> = {}): Props {
   return {
-    canWrite: true,
+    canContribute: true,
+    canDelete: true,
     project: makeProject(),
     assetsVersion: 0,
     onProjectUpdated: vi.fn(),
@@ -452,7 +453,7 @@ describe("ProjectLanding files", () => {
 
 describe("ProjectLanding viewer role", () => {
   it("hides every write control and keeps the read surfaces", async () => {
-    renderLanding({ canWrite: false, project: makeProject({ cover_asset_id: "a3" }) });
+    renderLanding({ canContribute: false, canDelete: false, project: makeProject({ cover_asset_id: "a3" }) });
     await screen.findByText("Body");
 
     expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
@@ -484,7 +485,7 @@ describe("ProjectLanding viewer role", () => {
 
   it("keeps the empty state readable without offering add or attach controls", async () => {
     listProjectAssetsMock.mockResolvedValue({ items: [], hasMore: false });
-    renderLanding({ canWrite: false, project: makeProject({ asset_count: 0 }) });
+    renderLanding({ canContribute: false, canDelete: false, project: makeProject({ asset_count: 0 }) });
     await screen.findByText("This project has no files yet.");
 
     expect(screen.queryByRole("button", { name: "Add files" })).toBeNull();
@@ -493,7 +494,7 @@ describe("ProjectLanding viewer role", () => {
   });
 
   it("shows the no-description placeholder without the edit affordance", async () => {
-    renderLanding({ canWrite: false, project: makeProject({ description: null }) });
+    renderLanding({ canContribute: false, canDelete: false, project: makeProject({ description: null }) });
     await screen.findByText("Body");
 
     expect(screen.getByText("No description yet.")).toBeTruthy();
@@ -502,7 +503,8 @@ describe("ProjectLanding viewer role", () => {
 
   it("drops the attach instruction from the gated-import note", async () => {
     renderLanding({
-      canWrite: false,
+      canContribute: false,
+      canDelete: false,
       project: makeProject({ origin: "imported", metadata_json: { _files: "user-supplied" } }),
     });
     await screen.findByText("Body");
@@ -514,7 +516,7 @@ describe("ProjectLanding viewer role", () => {
   });
 
   it("is not a drop target, so a dropped file attaches nothing", async () => {
-    renderLanding({ canWrite: false });
+    renderLanding({ canContribute: false, canDelete: false });
     await screen.findByText("Body");
 
     const section = screen.getByRole("heading", { name: "Files" }).closest("section");
@@ -534,7 +536,7 @@ describe("ProjectLanding viewer role", () => {
   });
 
   it("reaches no write API by clicking any visible control", async () => {
-    renderLanding({ canWrite: false });
+    renderLanding({ canContribute: false, canDelete: false });
     await screen.findByText("Body");
 
     const controls = screen.getAllByRole("button");
@@ -582,7 +584,7 @@ describe("ProjectLanding editor role", () => {
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
     expect(screen.getByRole("textbox", { name: "Project name" })).toBeTruthy();
 
-    view.rerender(<ProjectLanding {...landingProps({ canWrite: false })} />);
+    view.rerender(<ProjectLanding {...landingProps({ canContribute: false, canDelete: false })} />);
 
     expect(screen.queryByRole("textbox", { name: "Project name" })).toBeNull();
     expect(screen.queryByRole("textbox", { name: "Licence" })).toBeNull();

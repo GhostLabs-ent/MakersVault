@@ -129,11 +129,14 @@ describe("role helpers", () => {
     expect(readRole()).toBeNull();
   });
 
-  it("parses only the three roles the API knows", () => {
+  it("parses only the roles the API knows", () => {
     expect(parseRole("admin")).toBe("admin");
     expect(parseRole("editor")).toBe("editor");
+    expect(parseRole("contributor")).toBe("contributor");
     expect(parseRole("viewer")).toBe("viewer");
     expect(parseRole("Admin")).toBeNull();
+    expect(parseRole("Contributor")).toBeNull();
+    expect(parseRole("owner")).toBeNull();
     expect(parseRole(null)).toBeNull();
     expect(parseRole(undefined)).toBeNull();
     expect(parseRole(3)).toBeNull();
@@ -147,6 +150,20 @@ describe("role helpers", () => {
     expect(roleAtLeast("editor", "admin")).toBe(false);
     expect(roleAtLeast("admin", "admin")).toBe(true);
     expect(roleAtLeast(null, "viewer")).toBe(false);
+  });
+
+  it("ranks a contributor above a viewer and below an editor", () => {
+    // The rung this ticket adds: a contributor reaches contribute but not write.
+    expect(roleAtLeast("contributor", "viewer")).toBe(true);
+    expect(roleAtLeast("contributor", "contributor")).toBe(true);
+    expect(roleAtLeast("contributor", "editor")).toBe(false);
+    expect(roleAtLeast("contributor", "admin")).toBe(false);
+
+    // Every rung above it passes, every rung below it fails.
+    expect(roleAtLeast("editor", "contributor")).toBe(true);
+    expect(roleAtLeast("admin", "contributor")).toBe(true);
+    expect(roleAtLeast("viewer", "contributor")).toBe(false);
+    expect(roleAtLeast(null, "contributor")).toBe(false);
   });
 
   it("does not clear the role when only the refresh token goes", () => {

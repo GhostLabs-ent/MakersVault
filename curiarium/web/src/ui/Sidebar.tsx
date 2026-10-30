@@ -53,8 +53,12 @@ export default function Sidebar({
   role = null,
 }: Props) {
   // Derived here rather than passed in so the threshold stays in `roleAtLeast`:
-  // `role` is null until `/me` answers, and an unknown role has no write access.
-  const canWrite = roleAtLeast(role, "editor");
+  // `role` is null until `/me` answers, and an unknown role has neither
+  // capability. Two capabilities, not one: a contributor may upload, import,
+  // tag and organise, while destroy/rename/move stays editor-only. Mirrors the
+  // API's CONTRIBUTE / WRITE split.
+  const canContribute = roleAtLeast(role, "contributor");
+  const canDelete = roleAtLeast(role, "editor");
   const [folders, setFolders] = useState<Folder[]>([]);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
@@ -480,8 +484,8 @@ export default function Sidebar({
           data-tree-row={folder.id}
           tabIndex={folder.id === rovingFolderId ? 0 : -1}
           ref={setRowElement(folder.id)}
-          onDragOver={canWrite ? handleDragOverTarget(folder.id) : undefined}
-          onDrop={canWrite ? handleDropFiles(folder.id) : undefined}
+          onDragOver={canContribute ? handleDragOverTarget(folder.id) : undefined}
+          onDrop={canContribute ? handleDropFiles(folder.id) : undefined}
         >
           {hasChildren ? (
             <button
@@ -517,7 +521,7 @@ export default function Sidebar({
                 <MoreHorizontal className="h-4 w-4" />
               </summary>
               <div className="sidebar-folder-menu">
-                {canWrite && (
+                {canContribute && (
                   <button
                     className="sidebar-menu-item"
                     disabled={busy}
@@ -526,7 +530,7 @@ export default function Sidebar({
                     <FolderPlus className="h-4 w-4" /> Subfolder
                   </button>
                 )}
-                {canWrite && (
+                {canDelete && (
                   <button
                     className="sidebar-menu-item"
                     disabled={busy}
@@ -542,7 +546,7 @@ export default function Sidebar({
                 >
                   <Download className="h-4 w-4" /> Download ZIP
                 </button>
-                {canWrite && (
+                {canDelete && (
                   <button
                     className="sidebar-menu-item sidebar-menu-danger"
                     disabled={busy}
@@ -571,9 +575,9 @@ export default function Sidebar({
     <aside
       className="sidebar-shell"
       aria-label="Files"
-      onDragOver={canWrite ? handleSidebarDragOver : undefined}
-      onDragLeave={canWrite ? handleSidebarDragLeave : undefined}
-      onDrop={canWrite ? handleSidebarDrop : undefined}
+      onDragOver={canContribute ? handleSidebarDragOver : undefined}
+      onDragLeave={canContribute ? handleSidebarDragLeave : undefined}
+      onDrop={canContribute ? handleSidebarDrop : undefined}
     >
       <div className="sidebar-header">
         <div className="min-w-0">
@@ -583,7 +587,7 @@ export default function Sidebar({
             <span className="sidebar-count" title={`${folders.length} folders`}>{folders.length}</span>
           </div>
         </div>
-        {canWrite && (
+        {canContribute && (
           <button className="sidebar-new-button" onClick={() => startCreate(null)} title="New folder">
             <Plus className="h-4 w-4" />
             <span>New</span>
@@ -616,8 +620,8 @@ export default function Sidebar({
             event.preventDefault();
             focusTreeRow(treeRows[0]?.id ?? null);
           }}
-          onDragOver={canWrite ? handleDragOverTarget(DROP_ALL_ID) : undefined}
-          onDrop={canWrite ? handleDropFiles(null) : undefined}
+          onDragOver={canContribute ? handleDragOverTarget(DROP_ALL_ID) : undefined}
+          onDrop={canContribute ? handleDropFiles(null) : undefined}
         >
           <span className="sidebar-all-icon"><Layers3 className="h-4 w-4" /></span>
           <span className="flex-1 text-left">All files</span>
@@ -640,7 +644,7 @@ export default function Sidebar({
             <div className="sidebar-empty" role="none">
               <FolderPlus className="h-5 w-5" />
               <span>No folders yet</span>
-              {canWrite && <button onClick={() => startCreate(null)}>Create your first folder</button>}
+              {canContribute && <button onClick={() => startCreate(null)}>Create your first folder</button>}
             </div>
           )}
           {!!folders.length && visibleFolderIds?.size === 0 && (
@@ -655,7 +659,7 @@ export default function Sidebar({
 
       {/* Wrapped too: a demotion mid-edit must not leave a Create/Save dialog
           on screen whose submit the API will refuse. */}
-      {canWrite && creating && (
+      {canContribute && creating && (
         <div className="sidebar-editor" role="dialog" aria-label="Create folder">
           <div className="sidebar-editor-heading">
             <span className="sidebar-editor-icon"><FolderPlus className="h-4 w-4" /></span>
@@ -690,7 +694,7 @@ export default function Sidebar({
         </div>
       )}
 
-      {canWrite && editing && (
+      {canDelete && editing && (
         <div className="sidebar-editor" role="dialog" aria-label="Edit folder">
           <div className="sidebar-editor-heading">
             <span className="sidebar-editor-icon"><Pencil className="h-4 w-4" /></span>

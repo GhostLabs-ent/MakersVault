@@ -3,9 +3,11 @@ import React, { useState } from "react";
 import type { BatchFailure } from "../lib/api";
 
 export type BulkActionBarProps = {
-  /** Write capability of the current role: a viewer only sees the read-out.
+  /** Contribute capability: tags, metadata and project membership.
    * `Download zip`, `Select all`, `Clear` and the failure reports stay. */
-  canWrite: boolean;
+  canContribute: boolean;
+  /** Delete capability: move and destroy. */
+  canDelete: boolean;
   count: number;
   folderOptions: { id: string | null; name: string }[];
   /** Project mode hides the move control: projects have no folders. */
@@ -50,7 +52,8 @@ function parseTagList(raw: string): string[] {
  * (and the typed name on the single-asset path) lives there, never in the bar.
  */
 export default function BulkActionBar({
-  canWrite,
+  canContribute,
+  canDelete,
   count,
   folderOptions,
   showFolderControls = true,
@@ -102,7 +105,7 @@ export default function BulkActionBar({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        {canWrite && showFolderControls && (
+        {canDelete && showFolderControls && (
           <>
             <select
               aria-label="Target folder"
@@ -128,7 +131,7 @@ export default function BulkActionBar({
           </>
         )}
 
-        {canWrite && (
+        {canContribute && (
           <>
             <input
               aria-label="Tags"
@@ -184,7 +187,7 @@ export default function BulkActionBar({
           Download zip
         </button>
 
-        {canWrite && (
+        {canDelete && (
           <button
             type="button"
             onClick={onDelete}

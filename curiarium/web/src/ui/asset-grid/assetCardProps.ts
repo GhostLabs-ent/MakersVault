@@ -4,8 +4,16 @@ import type { ConfirmRequest } from "../ConfirmDialog";
 
 export type AssetCardProps = {
   item: Asset;
-  /** Write capability of the current role: a viewer keeps reads, loses every write control. */
-  canWrite: boolean;
+  /**
+   * Contribute capability: upload, import, tag and organise. Required, no
+   * default, so a missed call site is a type error rather than a silent false.
+   */
+  canContribute: boolean;
+  /**
+   * Delete capability: destroy, rename and move. Separate from
+   * `canContribute` because the API splits CONTRIBUTE from WRITE.
+   */
+  canDelete: boolean;
   onSaveTags: (id: string, tags: string[]) => void;
   onSaveDetails: (id: string, payload: { notes: string; creator: string }) => void;
   onRename: (id: string, filename: string) => void;

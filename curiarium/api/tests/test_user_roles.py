@@ -46,6 +46,8 @@ ADMIN_USERNAME = "root"
 ADMIN_PASSWORD = "root-password-1"
 EDITOR_USERNAME = "editor"
 EDITOR_PASSWORD = "editor-password-1"
+CONTRIBUTOR_USERNAME = "contributor"
+CONTRIBUTOR_PASSWORD = "contributor-password-1"
 VIEWER_USERNAME = "viewer"
 VIEWER_PASSWORD = "viewer-password-1"
 BREAK_GLASS = {"username": "admin", "password": "super-secret"}
@@ -183,7 +185,7 @@ def test_admin_promotes_a_viewer_to_editor(client: TestClient) -> None:
 
     denied = create_folder(client, viewer["token"], "Viewer Denied")
     assert denied.status_code == 403, denied.text
-    assert denied.json()["detail"] == permissions.DENY_DETAIL[permissions.WRITE]
+    assert denied.json()["detail"] == permissions.DENY_DETAIL[permissions.CONTRIBUTE]
 
     promoted = patch_user(client, admin["token"], viewer_user["id"], {"role": "editor"})
 
@@ -211,7 +213,7 @@ def test_admin_demotes_an_editor_and_the_live_session_loses_write_access(client:
 
     write = create_folder(client, editor["token"], "After Demotion")
     assert write.status_code == 403, write.text
-    assert write.json()["detail"] == permissions.DENY_DETAIL[permissions.WRITE]
+    assert write.json()["detail"] == permissions.DENY_DETAIL[permissions.CONTRIBUTE]
     # Reads still work, and the identity still resolves: the session is alive and
     # only the role it carries changed.
     assert client.get("/assets", headers=bearer(editor["token"])).status_code == 200
@@ -220,6 +222,38 @@ def test_admin_demotes_an_editor_and_the_live_session_loses_write_access(client:
     refreshed = client.post("/refresh", json={"refresh_token": editor["refresh_token"]})
     assert refreshed.status_code == 200, refreshed.text
     assert client.post("/logout", json={"refresh_token": refreshed.json()["refresh_token"]}).status_code == 204
+
+
+def test_a_contributor_is_demoted_to_viewer_on_its_next_request(client: TestClient) -> None:
+    """The contributor rank is real: creating folders works until the role drops.
+
+    A contributor is the newest rung on the ladder, so the two failure modes
+    worth pinning are (a) that it actually grants contribute rather than merely
+    being accepted by `POST /users`, and (b) that demoting it to viewer removes
+    the power from the session it is already holding - `require_auth` re-reads
+    `users.role` per request, so the same token is the proof and no re-login is
+    needed.
+    """
+    admin, _ = bootstrap_admin(client)
+    contributor_user = create_user(
+        client, admin["token"], CONTRIBUTOR_USERNAME, CONTRIBUTOR_PASSWORD, "contributor"
+    )
+    contributor = login(client, CONTRIBUTOR_USERNAME, CONTRIBUTOR_PASSWORD)
+    assert client.get("/me", headers=bearer(contributor["token"])).json()["role"] == "contributor"
+
+    allowed = create_folder(client, contributor["token"], "Contributor Folder")
+    assert allowed.status_code == 200, allowed.text
+
+    demoted = patch_user(client, admin["token"], contributor_user["id"], {"role": "viewer"})
+
+    assert demoted.status_code == 200, demoted.text
+    assert demoted.json()["role"] == "viewer"
+
+    # Same token, no re-login: the demotion is read from the database per request.
+    denied = create_folder(client, contributor["token"], "After Demotion")
+    assert denied.status_code == 403, denied.text
+    assert denied.json()["detail"] == permissions.DENY_DETAIL[permissions.CONTRIBUTE]
+    assert client.get("/me", headers=bearer(contributor["token"])).json()["role"] == "viewer"
 
 
 def test_only_an_admin_may_change_a_role(client: TestClient) -> None:

@@ -508,12 +508,23 @@ That is honesty, not enforcement: the API answers 403 "Administrator access
 required" and remains the control, `AuditLog.tsx` keeps its inline 403 handling
 as the race handler, and the role cache is only a cache - a stale or tampered
 value can hide or reveal a button but cannot change what the API allows. Write
-surfaces are gated the same way as of Mf-3r90: `roleAtLeast(role, "editor")` is
-derived once in `ui/App.tsx` and threaded down as a required `canWrite` prop,
-`role === null` fails closed until `/me` answers, and the upload-queue panel is
-gated too because its only action is a retry - that closes the demotion-race
-path where a queued upload still running when the role drops leaves a visible
-control that answers with a raw 403.
+surfaces are gated the same way and since Mf-01f0 as *two* capabilities: the
+thresholds stay in `roleAtLeast(role, ...)`, `ui/App.tsx` derives both once from
+the same `/me` role cache and threads them down as required props -
+`canContribute` from `contributor` (upload, import, tag and metadata edits,
+folder and project create/edit, membership, supporting-file add and display
+reorder) and `canDelete` from `editor` (rename, move, delete, library scan) -
+and `role === null` fails closed until `/me` answers. The upload-queue panel is
+gated on `canContribute`, not on the delete capability, because its only action
+is a retry of an upload; that still closes the demotion-race path where a queued
+upload running when the role drops leaves a visible control answering with a raw
+403. The split is a client capability split only - the audited surface is
+unchanged - but it does change what `actor_role` can say: it is whatever
+`sessions.role_for` reports at write time, so it can now read `contributor`, and
+a contribute action that *is* audited records it. A supporting-file rename
+(`asset.file.rename`, `PATCH /asset/{asset_id}/files/{file_id}`) by a
+contributor writes `actor_role = "contributor"`, not `"editor"`. `POST /upload`
+emits nothing (it is exempt), so an upload alone is not the row to look for.
 
 ## Scope and follow-ups
 

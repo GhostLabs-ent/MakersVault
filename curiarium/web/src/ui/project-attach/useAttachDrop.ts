@@ -15,12 +15,13 @@ export type AttachDropApi = {
  * asset grid's drop hook: enter/leave pairs nest, so only every leave that is
  * not answered by an enter clears the active state.
  *
- * A viewer gets an inert hook: every handler bails before `preventDefault()`,
- * so no drop overlay ever appears and a drop is left to the browser.
+ * Roles below contributor get an inert hook: every handler bails before
+ * `preventDefault()`, so no drop overlay ever appears and a drop is left to the
+ * browser.
  */
 export function useAttachDrop(
   onEntries: (entries: UploadEntry[]) => void | Promise<void>,
-  canWrite: boolean,
+  canContribute: boolean,
 ): AttachDropApi {
   const dragDepth = useRef(0);
   const [dragActive, setDragActive] = useState(false);
@@ -31,7 +32,7 @@ export function useAttachDrop(
   };
 
   const handleDragEnter = (e: DragEvent<HTMLElement>): void => {
-    if (!canWrite) return;
+    if (!canContribute) return;
     if (!isFileDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
@@ -40,14 +41,14 @@ export function useAttachDrop(
   };
 
   const handleDragOver = (e: DragEvent<HTMLElement>): void => {
-    if (!canWrite) return;
+    if (!canContribute) return;
     if (!isFileDrag(e)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "copy";
   };
 
   const handleDragLeave = (e: DragEvent<HTMLElement>): void => {
-    if (!canWrite) return;
+    if (!canContribute) return;
     if (!isFileDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
@@ -59,7 +60,7 @@ export function useAttachDrop(
   };
 
   const handleDrop = async (e: DragEvent<HTMLElement>): Promise<void> => {
-    if (!canWrite) return;
+    if (!canContribute) return;
     if (!isFileDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
