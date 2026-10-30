@@ -408,7 +408,12 @@ def test_list_projects_orders_names_case_insensitively() -> None:
 
 
 def test_list_projects_is_one_statement_for_many_projects() -> None:
-    """The N+1 requirement: the member count comes from the same aggregate query."""
+    """The N+1 requirement: both aggregates and the cover version are one query.
+
+    The member count, the summed size and the cover thumbnail version all come
+    out of the same statement, so listing N projects costs one round trip and
+    the cover costs no second one either.
+    """
     with TestClient(main.app) as client:
         headers = auth_header(client)
         asset = upload(client, headers, "member.stl")
@@ -419,8 +424,7 @@ def test_list_projects_is_one_statement_for_many_projects() -> None:
         statements: list[str] = []
 
         def record(_conn, _cursor, statement, _parameters, _context, _executemany) -> None:
-            if "FROM project" in statement:
-                statements.append(statement)
+            statements.append(statement)
 
         event.listen(engine, "before_cursor_execute", record)
         try:
@@ -430,11 +434,15 @@ def test_list_projects_is_one_statement_for_many_projects() -> None:
 
         assert response.status_code == 200, response.text
         assert len(response.json()) >= 4
-        assert len(statements) == 1, statements
+        project_statements = [statement for statement in statements if "FROM project" in statement]
+        assert len(project_statements) == 1, statements
+        # A bare `FROM asset` would be a second round trip for the cover; both
+        # `JOIN asset` and `JOIN asset AS cover` live in the one statement.
+        assert not [statement for statement in statements if re.search(r"\bFROM\s+asset\b", statement)], statements
         # Both aggregates live in that one statement, not behind a second query
         # per project (which would be an N+1 for the size as well as the count).
-        assert "count(project_asset.asset_id)" in statements[0].lower(), statements[0]
-        assert "sum(asset.size)" in statements[0].lower(), statements[0]
+        assert "count(project_asset.asset_id)" in project_statements[0].lower(), project_statements[0]
+        assert "sum(asset.size)" in project_statements[0].lower(), project_statements[0]
 
 
 def test_list_projects_starts_empty() -> None:
@@ -464,6 +472,33 @@ def test_cover_thumb_url_is_versioned_only_once_the_thumbnail_exists() -> None:
 
         listed = project_listing(client, headers)[project["id"]]
         assert re.fullmatch(rf"/thumb/{asset['id']}\.jpg\?v=\d+", listed["cover_thumb_url"] or ""), listed
+
+
+def test_patch_response_carries_the_cover_thumb_version() -> None:
+    """A PATCH serializes inside the session, so it must read the same version.
+
+    Nothing regenerates the thumbnail between the two PATCHes, so the token has
+    to be stable - not freshly invented by a stat() of the file.
+    """
+    with TestClient(main.app) as client:
+        headers = auth_header(client)
+        asset = upload(client, headers, "patched-cover.stl")
+        project = create_project(client, headers, cover_asset_id=asset["id"])
+        generated = client.post(
+            f"/asset/{asset['id']}/thumbnail-generated",
+            files={"file": ("thumb.png", png_bytes(), "image/png")},
+            headers=headers,
+        )
+        assert generated.status_code == 200, generated.text
+
+        first = client.patch(f"/project/{project['id']}", json={"description": "one"}, headers=headers)
+        second = client.patch(f"/project/{project['id']}", json={"description": "two"}, headers=headers)
+
+        assert first.status_code == 200, first.text
+        assert second.status_code == 200, second.text
+        pattern = rf"/thumb/{asset['id']}\.jpg\?v=\d+"
+        assert re.fullmatch(pattern, first.json()["cover_thumb_url"] or ""), first.json()
+        assert second.json()["cover_thumb_url"] == first.json()["cover_thumb_url"], (first.json(), second.json())
 
 
 # --- GET /project/{project_id}/assets ---------------------------------------

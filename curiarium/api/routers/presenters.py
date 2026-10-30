@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import quote
 
-import db
 import project_service
 from models import Asset, AssetFile, Folder, Project
 from prepared_print import prepared_filename
@@ -23,19 +22,21 @@ def folder_to_out(f: Folder) -> "FolderOut":
     )
 
 
-def thumb_url_for(asset_id: Optional[str]) -> Optional[str]:
+def thumb_url_for(asset_id: Optional[str], thumb_version: int) -> Optional[str]:
     """The versioned thumbnail URL for an asset, or None when nothing was generated.
 
-    One helper for every `thumb_url`/`cover_thumb_url` field, so the versioned form
-    (`?v=<st_mtime_ns>`, which makes the URL change when the thumbnail does) cannot
-    drift between the asset and project serializers.
+    The `?v=` token is the row's `thumb_version` (opaque to clients, still `\\d+`,
+    so `AssetOut`/`ProjectOut` are unchanged), bumped on every thumbnail write.
+    Version 0 means "no thumbnail", so the absence is a row fact and this helper
+    can never do I/O - the old version `exists()`ed and `stat()`ed the file,
+    which is 1000 network-filesystem round trips for a 1000-asset page.
+
+    One helper for every `thumb_url`/`cover_thumb_url` field, so the versioned
+    form cannot drift between the asset and project serializers.
     """
-    if not asset_id:
+    if not asset_id or thumb_version <= 0:
         return None
-    path = db.THUMBS / f"{asset_id}.jpg"
-    if not path.exists():
-        return None
-    return f"/thumb/{asset_id}.jpg?v={path.stat().st_mtime_ns}"
+    return f"/thumb/{asset_id}.jpg?v={thumb_version}"
 
 
 def prepared_print_payload(raw: Optional[str]) -> Optional[dict]:
@@ -85,7 +86,8 @@ def to_out(a: Asset) -> AssetOut:
         collection=a.collection,
         tags=tags,
         url=primary_url,
-        thumb_url=thumb_url_for(a.id),
+        # A None/absent column reads as 0 = no thumbnail.
+        thumb_url=thumb_url_for(a.id, int(a.thumb_version or 0)),
         folder_id=a.folder_id,
         storage_path=a.storage_path,
         missing_since=a.missing_since,
@@ -106,7 +108,7 @@ def project_metadata(raw: Optional[str]) -> dict:
     return parsed if isinstance(parsed, dict) else {}
 
 
-def project_to_out(project: Project, asset_count: int, total_size: int) -> ProjectOut:
+def project_to_out(project: Project, asset_count: int, total_size: int, cover_thumb_version: int) -> ProjectOut:
     return ProjectOut(
         id=project.id,
         name=project.name,
@@ -117,7 +119,7 @@ def project_to_out(project: Project, asset_count: int, total_size: int) -> Proje
         licence_url=project.licence_url,
         origin=project.origin,
         cover_asset_id=project.cover_asset_id,
-        cover_thumb_url=thumb_url_for(project.cover_asset_id),
+        cover_thumb_url=thumb_url_for(project.cover_asset_id, cover_thumb_version),
         asset_count=asset_count,
         total_size=total_size,
         metadata_json=project_metadata(project.metadata_json),
@@ -130,12 +132,12 @@ def import_project_to_out(outcome: ImportOutcome) -> ImportProjectOut:
     """One import outcome as the route's response body.
 
     The project row is re-read through `project_service.project_with_stats`, so
-    the response carries the member count and size *after* the import instead of
-    a snapshot from before it.
+    the response carries the member count, size and cover version *after* the
+    import instead of a snapshot from before it.
     """
-    project, asset_count, total_size = project_service.project_with_stats(outcome.project_id)
+    project, asset_count, total_size, cover_thumb_version = project_service.project_with_stats(outcome.project_id)
     return ImportProjectOut(
-        project=project_to_out(project, asset_count, total_size),
+        project=project_to_out(project, asset_count, total_size, cover_thumb_version),
         created=outcome.created,
         assets=[to_out(asset) for asset in outcome.assets],
         added=outcome.added,

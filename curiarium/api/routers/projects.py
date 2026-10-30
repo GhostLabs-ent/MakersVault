@@ -37,7 +37,10 @@ router = APIRouter()
 def list_projects(_: Optional[AuthContext] = Depends(require_read)):
     with Session(engine) as s:
         rows = project_service.list_projects(s)
-    return [project_to_out(project, count, total_size) for project, count, total_size in rows]
+    projects = []
+    for project, count, total_size, cover_thumb_version in rows:
+        projects.append(project_to_out(project, count, total_size, cover_thumb_version))
+    return projects
 
 
 @router.post("/projects", response_model=ProjectOut, status_code=201)
@@ -54,8 +57,8 @@ def create_project(body: ProjectIn, _: Optional[AuthContext] = Depends(require_w
             licence_url=body.licence_url,
             origin=body.origin,
         )
-        asset_count, total_size = project_service.member_stats(s, project.id)
-    return project_to_out(project, asset_count, total_size)
+        asset_count, total_size, cover_thumb_version = project_service.member_stats(s, project.id)
+    return project_to_out(project, asset_count, total_size, cover_thumb_version)
 
 
 @router.patch("/project/{project_id}", response_model=ProjectOut)
@@ -79,8 +82,8 @@ def update_project(
             body.licence_url,
             audit_ctx=audit.context_for(request, context),
         )
-        asset_count, total_size = project_service.member_stats(s, project.id)
-        result = project_to_out(project, asset_count, total_size)
+        asset_count, total_size, cover_thumb_version = project_service.member_stats(s, project.id)
+        result = project_to_out(project, asset_count, total_size, cover_thumb_version)
     return result
 
 

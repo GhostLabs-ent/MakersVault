@@ -228,6 +228,11 @@ Until a later gate changes them deliberately:
 - Mounted no-copy content remains outside the vault backup unless separately
   captured by the operator.
 - `storage_path` and `source_path` behavior must remain compatible through v5.1.
+- `asset.thumb_version` is the thumbnail cache-bust token behind `?v=`; it lives
+  in SQLite, so it is blind to an out-of-band restore of `storage/` without the
+  database and browsers keep the old year-immutable URL. Operator remedy:
+  `UPDATE asset SET thumb_version = thumb_version + 1;` (regeneration through
+  the API bumps it automatically).
 
 ## 6. Target architecture direction
 

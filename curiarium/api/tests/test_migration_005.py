@@ -62,6 +62,15 @@ NEW_INDEXES = {
     "idx_sessions_refresh_expires_at",
 }
 
+# Migration 013 appends `asset.thumb_version` after this upgrade path, so "the
+# existing rows are kept" is asserted over the columns a v4 database had.
+# `SELECT *` would compare 19 columns against 20 and fail on an unchanged row.
+ASSET_V4_COLUMNS_SELECT = (
+    "SELECT id, filename, mime, size, tags_json, title, notes, folder_id, source_path, name, "
+    "creator, collection, storage_path, supporting_file_count, prepared_file_id, "
+    "prepared_metadata_json, missing_since, disk_mtime, is_reference FROM asset ORDER BY id"
+)
+
 
 def shipped_ledger_entries(database_engine: Engine) -> dict[int, str]:
     applied = applied_migrations(database_engine)
@@ -175,11 +184,15 @@ def test_v4_database_upgrades_and_keeps_existing_rows(tmp_path: Path) -> None:
         insert_folder(conn, "f-prints", "Prints")
         insert_asset(conn, "a-cube")
         insert_asset(conn, "a-sphere")
-    before = table_snapshot(database_engine, "folder", "asset")
+    folders_before = table_snapshot(database_engine, "folder")
+    with database_engine.connect() as conn:
+        assets_before = tuple(conn.exec_driver_sql(ASSET_V4_COLUMNS_SELECT).fetchall())
 
     assert run_migrations(database_engine) == MIGRATIONS[-1].version
 
-    assert table_snapshot(database_engine, "folder", "asset") == before
+    assert table_snapshot(database_engine, "folder") == folders_before
+    with database_engine.connect() as conn:
+        assert tuple(conn.exec_driver_sql(ASSET_V4_COLUMNS_SELECT).fetchall()) == assets_before
     assert shipped_ledger_entries(database_engine) == SHIPPED_LEDGER
 
 

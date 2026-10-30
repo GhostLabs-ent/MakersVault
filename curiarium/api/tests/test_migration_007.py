@@ -194,6 +194,13 @@ USERS_V6_COLUMNS_SELECT = (
     "SELECT id, username, email, password_hash, role, disabled, created_at, updated_at "
     "FROM users ORDER BY id"
 )
+# Same reason again, and migration 013 appends `asset.thumb_version`:
+# "the existing rows are kept" is asserted over the columns a v6 database had.
+ASSET_V6_COLUMNS_SELECT = (
+    "SELECT id, filename, mime, size, tags_json, title, notes, folder_id, source_path, name, "
+    "creator, collection, storage_path, supporting_file_count, prepared_file_id, "
+    "prepared_metadata_json, missing_since, disk_mtime, is_reference FROM asset ORDER BY id"
+)
 
 
 def test_v6_database_upgrades_and_keeps_existing_rows(tmp_path: Path) -> None:
@@ -210,14 +217,14 @@ def test_v6_database_upgrades_and_keeps_existing_rows(tmp_path: Path) -> None:
         insert_asset(conn, "a-1")
         insert_asset_file(conn, "f-1", "a-1")
     with database_engine.connect() as conn:
-        assets_before = tuple(conn.exec_driver_sql("SELECT * FROM asset ORDER BY id").fetchall())
+        assets_before = tuple(conn.exec_driver_sql(ASSET_V6_COLUMNS_SELECT).fetchall())
         files_before = tuple(conn.exec_driver_sql(ASSETFILE_V6_COLUMNS_SELECT).fetchall())
         users_before = tuple(conn.exec_driver_sql(USERS_V6_COLUMNS_SELECT).fetchall())
 
     assert run_migrations(database_engine) == MIGRATIONS[-1].version
 
     with database_engine.connect() as conn:
-        assert tuple(conn.exec_driver_sql("SELECT * FROM asset ORDER BY id").fetchall()) == assets_before
+        assert tuple(conn.exec_driver_sql(ASSET_V6_COLUMNS_SELECT).fetchall()) == assets_before
         assert tuple(conn.exec_driver_sql(ASSETFILE_V6_COLUMNS_SELECT).fetchall()) == files_before
         assert tuple(conn.exec_driver_sql(USERS_V6_COLUMNS_SELECT).fetchall()) == users_before
     assert row_count(database_engine, "project") == 0

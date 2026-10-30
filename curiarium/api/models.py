@@ -32,6 +32,7 @@ class Asset(SQLModel, table=True):
   missing_since: Optional[str] = None
   disk_mtime: Optional[int] = None
   is_reference: int = 0
+  thumb_version: int = Field(default=0)
 
 
 class AssetFile(SQLModel, table=True):

@@ -21,7 +21,7 @@ import login_throttle as login_throttle_module
 import oidc
 import permissions
 from asset_file_service import backfill_prepared_print_metadata
-from asset_service import backfill_embedded_thumbnails
+from asset_service import backfill_embedded_thumbnails, reconcile_thumb_versions
 from auth import validate_auth_configuration
 from config import (
     ASSET_FILE_MAX_BYTES,
@@ -118,6 +118,11 @@ async def lifespan(_app: FastAPI):
     # cannot have an in-flight upload for the sweep to race.
     asset_service.sweep_staging_dir()
     threading.Thread(target=backfill_embedded_thumbnails, daemon=True).start()
+    # The counter has to be repaired for pre-v13 rows before listings stop
+    # statting; one names-only scandir plus chunked updates, so it is cheap and
+    # must never block the boot. After `run_migrations`, because it writes the
+    # new column.
+    threading.Thread(target=reconcile_thumb_versions, daemon=True).start()
     threading.Thread(target=backfill_prepared_print_metadata, daemon=True).start()
     if mount_import_should_run():
         threading.Thread(target=scan_mount_imports, daemon=True).start()
