@@ -6,6 +6,7 @@ import EngravingSection from "./EngravingSection";
 import ImportsSection from "./ImportsSection";
 import NetworkSection from "./NetworkSection";
 import PreviewsSection from "./PreviewsSection";
+import SessionsSection from "./SessionsSection";
 import SettingsRootMenu from "./SettingsRootMenu";
 import SlicerSection from "./SlicerSection";
 import StorageSection from "./StorageSection";
@@ -141,6 +142,12 @@ export default function Settings({
 
   if (section === "previews") {
     return <PreviewsSection settings={settings} onChange={onChange} onBack={() => setSection("root")} />;
+  }
+
+  if (section === "sessions") {
+    return (
+      <SessionsSection onBack={() => setSection("root")} onUnauthorized={onUnauthorized} />
+    );
   }
 
   if (section === "imports") {

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import SettingsRootMenu from "./SettingsRootMenu";
 
@@ -34,5 +34,24 @@ describe("SettingsRootMenu", () => {
     render(<SettingsRootMenu onOpen={vi.fn()} />);
 
     expect(screen.queryByRole("button", { name: /Storage Structure/ })).toBeNull();
+  });
+
+  // Revoking your own devices is a read-level action, so no role gate here.
+  it.each(["viewer", "editor", "admin"] as const)(
+    "offers the sessions section to a %s",
+    role => {
+      render(<SettingsRootMenu onOpen={vi.fn()} role={role} />);
+
+      expect(screen.getByRole("button", { name: /Sessions/ })).toBeTruthy();
+    },
+  );
+
+  it("opens the sessions section", () => {
+    const onOpen = vi.fn();
+    render(<SettingsRootMenu onOpen={onOpen} role="viewer" />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Sessions/ }));
+
+    expect(onOpen).toHaveBeenCalledWith("sessions");
   });
 });

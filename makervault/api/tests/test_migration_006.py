@@ -105,15 +105,26 @@ def test_v5_database_upgrades_and_keeps_existing_rows(tmp_path: Path) -> None:
             "INSERT INTO sessions(id, user_id, username, refresh_token_hash, created_at, last_used_at, "
             "access_expires_at, refresh_expires_at) VALUES ('s-1', 'u-1', 'alice', 'hash-1', 0, 0, 0, 0)"
         )
+    # Compare the columns 005 shipped, not `SELECT *`: later append-only
+    # migrations add columns to `sessions` (011 adds the rotation history), and
+    # this test is about the existing row surviving the upgrade untouched.
+    shipped_sessions = (
+        "id, user_id, username, kind, refresh_token_hash, device, user_agent, "
+        "client_ip, created_at, last_used_at, access_expires_at, refresh_expires_at, revoked_at"
+    )
     with database_engine.connect() as conn:
         users_before = tuple(conn.exec_driver_sql("SELECT * FROM users ORDER BY id").fetchall())
-        sessions_before = tuple(conn.exec_driver_sql("SELECT * FROM sessions ORDER BY id").fetchall())
+        sessions_before = tuple(
+            conn.exec_driver_sql(f"SELECT {shipped_sessions} FROM sessions ORDER BY id").fetchall()
+        )
 
     assert run_migrations(database_engine) == MIGRATIONS[-1].version
 
     with database_engine.connect() as conn:
         assert tuple(conn.exec_driver_sql("SELECT * FROM users ORDER BY id").fetchall()) == users_before
-        assert tuple(conn.exec_driver_sql("SELECT * FROM sessions ORDER BY id").fetchall()) == sessions_before
+        assert tuple(
+            conn.exec_driver_sql(f"SELECT {shipped_sessions} FROM sessions ORDER BY id").fetchall()
+        ) == sessions_before
         assert conn.exec_driver_sql("SELECT COUNT(*) FROM audit_events").scalar_one() == 0
 
 

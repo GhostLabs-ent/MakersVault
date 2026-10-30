@@ -32,6 +32,8 @@ blank ranks as `public`, i.e. it is denied even reads - fail closed.
 | Take or restore a snapshot                   |  yes  |  yes   |   no   |
 | Manage retention, delete a snapshot, read scheduler status |  yes  |   no   |   no   |
 | Change storage / mount-import settings       |  yes  |   no   |   no   |
+| List and revoke own sessions (devices)       |  yes  |  yes   |  yes   |
+| List and revoke any user's sessions          |  yes  |   no   |   no   |
 | Create users, set roles, disable accounts    |  yes  |   no   |   no   |
 | Read the audit log                           |  yes  |   no   |   no   |
 | Purge the trash                              |  yes  |   no   |   no   |
@@ -204,8 +206,8 @@ are in
 
 ## The route matrix
 
-Paths are FastAPI templates exactly as declared. 78 routes: 8 public, 25 read,
-32 write, 13 admin.
+Paths are FastAPI templates exactly as declared. 82 routes: 8 public, 27 read,
+32 write, 15 admin.
 
 The collection/instance templates are deliberately asymmetric: the collection is
 `/projects` while one project is `/project/{project_id}`, exactly like `/folders`
@@ -229,6 +231,8 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | Method | Path                                   | Why |
 |--------|----------------------------------------|-----|
 | GET    | `/me`                                  | own profile |
+| GET    | `/me/sessions`                         | own active sessions; ownership scoping is a data constraint |
+| DELETE | `/me/sessions/{session_id}`            | revoke one of your own sessions; a foreign id is a 404, never a 403 |
 | GET    | `/library/scan`                        | status poll every client uses; no secrets |
 | GET    | `/imports/runs`                         | mount-import history; same disclosure class as scan errors |
 | GET    | `/imports/runs/{run_id}`                | one run with its bounded per-file errors |
@@ -303,6 +307,8 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | POST   | `/users`                       | user administration |
 | GET    | `/users`                       | user administration |
 | PATCH  | `/users/{user_id}`             | user administration (including role changes) |
+| GET    | `/users/{user_id}/sessions`    | session administration over another principal |
+| DELETE | `/sessions/{session_id}`       | revoking another principal's device is administration |
 | POST   | `/trash/purge`                 | destroying deleted data is irreversible |
 | GET    | `/snapshots/retention`         | retention decides what history survives; admin namespace |
 | POST   | `/snapshots/retention`         | mutates retention |
@@ -334,7 +340,9 @@ still proves the client is deleting exactly the rows it showed the user.
   fallback on any route; `require_auth` re-reads the session row and the account
   on every request, so a revoked session or a disabled account stops working
   immediately. The four file routes additionally accept a `?sig=` grant (see
-  "File grants" above).
+  "File grants" above). Session lifecycle (rotation, the 60-second grace window
+  and refresh replay) is described in
+  [ADR 0007](../makervault/docs/adr/0007-session-lifecycle-and-refresh-replay.md).
 * **Break-glass admin**: the env credentials authenticate as the `admin` role -
   but only while the users table is **empty**. The first `POST /users` revokes
   the break-glass sessions in the same transaction as the insert, and after that
@@ -471,7 +479,6 @@ sessions stay valid.
 
 * Mf-arm6 - per-asset ownership (editors act on all assets until then).
 * Mf-lg02 - MFA.
-* Mf-7op4 - session UI (device list, revoke-this-session).
 
 ## Migrations
 
@@ -487,3 +494,11 @@ constraint, the local `user_id`, and the timestamps — which is what makes an
 external identity a persisted fact rather than a claim compared at login time.
 No role is stored there: the account's role stays on `users.role`, so a claim
 set can never be the authority for what an SSO user may do.
+
+Migration 011 (`session_rotation_history`) belongs to Mf-7op4 and adds no
+permission column. It appends two nullable columns to `sessions` —
+`previous_refresh_token_hash` (one superseded hash, never a token) and
+`rotated_at` — plus a non-unique index on the former. They back the one-
+generation grace window in ADR 0007; the session routes themselves needed no
+schema change, because `device`, `user_agent` and `client_ip` have been recorded
+since migration 005.

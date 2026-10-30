@@ -2543,6 +2543,70 @@
       "summary": "Me"
     }
   },
+  "/me/sessions": {
+    "get": {
+      "operationId": "list_my_sessions_me_sessions_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/SessionOut"
+                },
+                "title": "Response List My Sessions Me Sessions Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "List My Sessions"
+    }
+  },
+  "/me/sessions/{session_id}": {
+    "delete": {
+      "operationId": "revoke_my_session_me_sessions__session_id__delete",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "session_id",
+          "required": true,
+          "schema": {
+            "title": "Session Id",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Revoke My Session"
+    }
+  },
   "/project/{project_id}": {
     "delete": {
       "operationId": "delete_project_project__project_id__delete",
@@ -3034,6 +3098,43 @@
         }
       ],
       "summary": "Refresh Token"
+    }
+  },
+  "/sessions/{session_id}": {
+    "delete": {
+      "operationId": "revoke_user_session_sessions__session_id__delete",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "session_id",
+          "required": true,
+          "schema": {
+            "title": "Session Id",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Revoke User Session"
     }
   },
   "/settings/mount-import": {
@@ -3902,6 +4003,54 @@
         }
       ],
       "summary": "Update User"
+    }
+  },
+  "/users/{user_id}/sessions": {
+    "get": {
+      "operationId": "list_user_sessions_users__user_id__sessions_get",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "user_id",
+          "required": true,
+          "schema": {
+            "title": "User Id",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/SessionOut"
+                },
+                "title": "Response List User Sessions Users  User Id  Sessions Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "List User Sessions"
     }
   }
 }

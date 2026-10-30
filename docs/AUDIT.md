@@ -67,7 +67,7 @@ could honestly reconstruct.
 
 ## The action taxonomy
 
-`audit.ACTIONS` holds exactly these 32 strings. Action names are stable and
+`audit.ACTIONS` holds exactly these 37 strings. Action names are stable and
 `namespace.verb`; a reader of a row does not need the code to know what it means.
 
 | Action | Route(s) that emit it | `target` | `detail` | Failure |
@@ -104,6 +104,11 @@ could honestly reconstruct.
 | `destructive.snapshot_missed` | the same three routes, when no snapshot was taken | the same subject | `{"reason", "policy", "cause", "error"}` - `cause` is `"unavailable"` or `"failed"`, `error` is the exception text or `null` | fail-loud |
 | `snapshot.schedule.skipped` | written by `snapshot_schedule.run_once` when the scheduled tick was due but the volume cannot snapshot; no route emits it | `"snapshot_schedule"` | `{"cause", "method", "hours"}` | logged; the tick continues |
 | `snapshot.schedule.failed` | the same tick, when taking the snapshot raised; no route emits it | `"snapshot_schedule"` | `{"cause", "method", "hours"}` | logged; the tick continues |
+| `session.revoke` | `DELETE /me/sessions/{session_id}` | session id | `{"username", "kind"}` | fail-closed |
+| `session.admin_revoke` | `DELETE /sessions/{session_id}` | session id | `{"username", "kind"}` | fail-closed |
+| `session.refresh_graced` | `POST /refresh` (only when a superseded token is presented inside the 60-second grace window) | session id | `{"client_ip"}` | fail-closed |
+| `session.refresh_replayed` | `POST /refresh` (only when a previous-generation token is presented after the window; the session is revoked in the same transaction) | session id | `{"client_ip"}` | fail-closed |
+| `session.prune` | no route emits it; written by `session_prune.run_once` | `"session_prune"` | `{"count"}` | fail-closed; a failed tick is logged and the thread continues |
 
 The snapshot actions are route actions now that `POST /snapshots` and
 `DELETE /snapshots/{name}` exist. Those two routes hand the provider an audit
@@ -173,8 +178,8 @@ snapshot: the trash keeps it restorable, so it stays `asset.delete` alone.
 The rule `assert_audit_coverage()` enforces: **every route in
 `permissions.ROUTE_PERMISSIONS` whose method is not `GET` must be in
 `ROUTE_ACTIONS` or in `EXEMPT_ROUTES` with a non-empty reason.** `GET` routes are
-out of scope by construction: they change nothing. The matrix has 78 routes, 33
-of them `GET`; the remaining 45 split into 26 audited keys and 19 exempt keys.
+out of scope by construction: they change nothing. The matrix has 82 routes, 35
+of them `GET`; the remaining 47 split into 29 audited keys and 18 exempt keys.
 
 The guard also refuses stale keys (an entry for a route that no longer exists), a
 key in both tables, an action that is not in `ACTIONS`, and an exemption without
@@ -200,7 +205,6 @@ Exempt routes and why:
 | `POST /projects` | creates a project |
 | `POST /project/{project_id}/assets` | membership edit; deletes no files or asset rows |
 | `DELETE /project/{project_id}/assets` | membership edit; deletes no files or asset rows |
-| `POST /refresh` | session-token bookkeeping; the abusable surface is `POST /login` |
 | `POST /logout` | session-token bookkeeping |
 | `POST /download/zip` | streams a temp zip; stores nothing |
 | `POST /file-grants` | mints a short-lived read-only file grant; mutates nothing |
@@ -210,11 +214,20 @@ the object that gets created can be destroyed later, and that destruction is wha
 is recorded), **derived artifacts** (a thumbnail is a cache; losing it costs a
 regeneration), **outbound fetch** (the two `/import` inspectors read a remote URL
 and write nothing), **metadata that is not rename or move** (tags are a label
-list, not identity or location), **session-token bookkeeping** (`/refresh` and
-`/logout` rotate or revoke a token; the surface worth watching is the credential
-check on `POST /login`), and **credential minting** (`/file-grants` signs a
-60-second read-only URL for one existing file; it writes no row, changes no row
-and grants nothing a viewer could not already read).
+list, not identity or location), **session-token bookkeeping** (`/logout` revokes
+a token; the surface worth watching is the credential check on `POST /login`),
+and **credential minting** (`/file-grants` signs a 60-second read-only URL for
+one existing file; it writes no row, changes no row and grants nothing a viewer
+could not already read).
+
+`POST /refresh` is no longer exempt, but it is audited only on the two paths
+that decide something: `session.refresh_graced` when a superseded token is
+presented inside the 60-second grace window, and `session.refresh_replayed`
+when a previous-generation token is presented after it. A normal rotation
+changes nothing worth a row - the same session, a fresh token - so it writes
+nothing. The replay row and the revoke it describes are committed before the
+handler raises its 401, so the failure is a fact in the log rather than a
+rolled-back exception. Neither row ever carries a token or a hash.
 
 ## A request that changes nothing writes nothing
 
@@ -427,7 +440,7 @@ administration).
 | Parameter | Type | Semantics |
 |---|---|---|
 | `actor` | string | exact match, case-insensitive (both sides lowered, value stripped) |
-| `action` | string | exact match, case-sensitive - one of the 32 names above |
+| `action` | string | exact match, case-sensitive - one of the 37 names above |
 | `target` | string | case-sensitive substring match; `%`, `_` and `\` are escaped, so it is a literal substring |
 | `since` | string | `created_at >= value` |
 | `until` | string | `created_at <= value` |

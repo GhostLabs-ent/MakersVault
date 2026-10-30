@@ -16,7 +16,7 @@ from auth import AuthContext
 from db import engine
 from models import User
 from permissions import require_admin, require_read
-from schemas import LoginRequest, LoginResponse, MeOut, RefreshRequest, UserCreate, UserOut, UserUpdate
+from schemas import LoginRequest, LoginResponse, MeOut, RefreshRequest, SessionOut, UserCreate, UserOut, UserUpdate
 
 log = logging.getLogger(__name__)
 AUTH_NOT_CONFIGURED = "Authentication is not configured on the server"
@@ -85,6 +85,7 @@ def presented_refresh_token(
 
 @router.post("/refresh", response_model=LoginResponse)
 def refresh_token(
+    request: Request,
     body: Optional[RefreshRequest] = None,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(auth.auth_scheme),
 ):
@@ -95,16 +96,38 @@ def refresh_token(
         raise HTTPException(status_code=401, detail="Unauthorized")
     token_hash = sessions.hash_refresh_token(presented)
     with Session(engine) as s:
-        session_row = sessions.find_by_refresh_hash(s, token_hash)
+        session_row = sessions.find_by_presented_hash(s, token_hash)
         user = accounts.get_user(s, session_row.user_id) if session_row is not None else None
         if session_row is None or not sessions.is_refreshable(session_row, user):
             raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
-        refresh_token_value = sessions.rotate(s, session_row, access_ttl=auth.AUTH_ACCESS_TOKEN_TTL)
-        if refresh_token_value is None:
+        rotation = sessions.rotate(
+            s, session_row, presented_hash=token_hash, access_ttl=auth.AUTH_ACCESS_TOKEN_TTL
+        )
+        actor = audit.Actor(session_row.username, sessions.role_for(session_row, user), session_row.kind, session_row.user_id)
+        if rotation.outcome == sessions.ROTATE_REPLAYED:
+            # The revoke and the row it explains must be one fact, so stage the
+            # row and COMMIT before raising. `HTTPException` unwinds this `with`
+            # block, and raising first would roll the revoke and the audit row
+            # back together - a replay would then cost the attacker nothing and
+            # leave the victim's session live.
+            audit.stage(
+                s,
+                audit.context_for_actor(request, actor),
+                audit.Event(audit.SESSION_REFRESH_REPLAYED, session_row.id, {"client_ip": session_row.client_ip}),
+            )
+            s.commit()
             raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+        if rotation.refresh_token is None:
+            raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+        if rotation.outcome == sessions.ROTATE_GRACED:
+            audit.stage(
+                s,
+                audit.context_for_actor(request, actor),
+                audit.Event(audit.SESSION_REFRESH_GRACED, session_row.id, {"client_ip": session_row.client_ip}),
+            )
         token = auth.create_access_token(session_row, sessions.role_for(session_row, user))
         s.commit()
-    return LoginResponse(token=token, expires_in=auth.AUTH_ACCESS_TOKEN_TTL, refresh_token=refresh_token_value)
+    return LoginResponse(token=token, expires_in=auth.AUTH_ACCESS_TOKEN_TTL, refresh_token=rotation.refresh_token)
 
 
 @router.post("/logout", status_code=204)
@@ -148,6 +171,95 @@ def user_out(user: User) -> UserOut:
         created_at=user.created_at,
         updated_at=user.updated_at,
     )
+
+
+def session_out(session_row: sessions.UserSession, *, current: bool) -> SessionOut:
+    """One session row as the API reports it; never a refresh hash.
+
+    `SessionOut` has no field for either hash, so there is nothing to remember
+    to strip here: the model is the boundary.
+    """
+    return SessionOut(
+        id=session_row.id,
+        username=session_row.username,
+        kind=session_row.kind,
+        device=session_row.device,
+        user_agent=session_row.user_agent,
+        client_ip=session_row.client_ip,
+        created_at=int(session_row.created_at),
+        last_used_at=int(session_row.last_used_at),
+        current=current,
+    )
+
+
+@router.get("/me/sessions", response_model=List[SessionOut])
+def list_my_sessions(context: Optional[AuthContext] = Depends(require_read)):
+    if not auth.AUTH_ENABLED or context is None:
+        raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
+    with Session(engine) as s:
+        rows = sessions.list_for_user(s, user_id=context.user_id, username=context.username)
+        return [session_out(row, current=row.id == context.session_id) for row in rows]
+
+
+@router.delete("/me/sessions/{session_id}", status_code=204)
+def revoke_my_session(
+    session_id: str,
+    request: Request,
+    context: Optional[AuthContext] = Depends(require_read),
+):
+    if not auth.AUTH_ENABLED or context is None:
+        raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
+    with Session(engine) as s:
+        row = sessions.get(s, session_id)
+        # A foreign id is a 404, never a 403: ownership scoping must not become
+        # an enumeration oracle that says somebody else's session exists.
+        if row is None or row.user_id != context.user_id:
+            raise HTTPException(status_code=404, detail="Session not found")
+        sessions.revoke(s, row)
+        audit.stage(
+            s,
+            audit.context_for(request, context),
+            audit.Event(audit.SESSION_REVOKE, row.id, {"username": row.username, "kind": row.kind}),
+        )
+        s.commit()
+    return Response(status_code=204)
+
+
+@router.get("/users/{user_id}/sessions", response_model=List[SessionOut])
+def list_user_sessions(user_id: str, context: Optional[AuthContext] = Depends(require_admin)):
+    if not auth.AUTH_ENABLED or context is None:
+        raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
+    with Session(engine) as s:
+        user = accounts.get_user(s, user_id)
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        rows = sessions.list_for_user(s, user_id=user.id, username=user.username)
+        return [session_out(row, current=row.id == context.session_id) for row in rows]
+
+
+@router.delete("/sessions/{session_id}", status_code=204)
+def revoke_user_session(
+    session_id: str,
+    request: Request,
+    context: Optional[AuthContext] = Depends(require_admin),
+):
+    if not auth.AUTH_ENABLED or context is None:
+        raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
+    with Session(engine) as s:
+        row = sessions.get(s, session_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail="Session not found")
+        sessions.revoke(s, row)
+        # The row carries both the target username and the sid, so the audit
+        # entry names the account without a second lookup and without trusting
+        # the caller's path parameter.
+        audit.stage(
+            s,
+            audit.context_for(request, context),
+            audit.Event(audit.SESSION_ADMIN_REVOKE, row.id, {"username": row.username, "kind": row.kind}),
+        )
+        s.commit()
+    return Response(status_code=204)
 
 
 @router.post("/users", response_model=UserOut, status_code=201)

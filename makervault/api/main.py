@@ -118,6 +118,14 @@ async def lifespan(_app: FastAPI):
     threading.Thread(target=backfill_prepared_print_metadata, daemon=True).start()
     if mount_import_should_run():
         threading.Thread(target=scan_mount_imports, daemon=True).start()
+    # Unconditional, unlike the snapshot scheduler: expired and long-revoked
+    # session rows are dead weight that must not accumulate, and there is no
+    # deployment that wants them kept. The stop event is ours so the thread
+    # exits on shutdown instead of leaking for the process lifetime.
+    import session_prune
+
+    session_prune_stop = threading.Event()
+    threading.Thread(target=session_prune.run_forever, args=(session_prune_stop,), daemon=True).start()
     # Last in the boot sequence on purpose: the scheduled-snapshot thread is
     # provably started after migrations and after both boot guards, and the
     # function-local import keeps the snapshot stack out of every `import main`
@@ -127,6 +135,9 @@ async def lifespan(_app: FastAPI):
     if snapshot_schedule.should_run():
         threading.Thread(target=snapshot_schedule.run_forever, args=(threading.Event(),), daemon=True).start()
     yield
+    # The snapshot scheduler leaks its event, so its thread lives until process
+    # exit; this one is held precisely so shutdown can stop it.
+    session_prune_stop.set()
 
 
 app = FastAPI(title="MakerVault API", version=__version__, lifespan=lifespan)
