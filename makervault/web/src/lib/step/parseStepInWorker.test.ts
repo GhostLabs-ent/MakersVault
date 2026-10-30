@@ -249,8 +249,11 @@ describe("parseStepInWorker", () => {
 
   it("serves the modal path and the snapshot path from one worker", async () => {
     vi.stubGlobal("Worker", FakeWorker);
-    // The snapshot generator owns its own queue; the worker is module scope, so
-    // the two paths must end up on one instance and both wait for one reply.
+    // The worker is module scope, so the two paths must end up on one instance
+    // and both wait for one reply. The second queue stands in for a caller that
+    // owns one: production injects none (ModelViewer.tsx:962 passes only a
+    // signal), so both of its paths share the default STEP queue, where a
+    // second caller is parked rather than live.
     const snapshotQueue = new PreviewQueue({
       maxPending: 2,
       jobBudgetMs: 120_000,
@@ -281,7 +284,9 @@ describe("parseStepInWorker", () => {
     // `PreviewQueue` is strictly single-flight, so a second job on the default
     // queue would only be parked and would cold-start after the discard. Two
     // live pendings need two queues, and this injection is what makes the proof
-    // non-vacuous.
+    // non-vacuous - it is also the only way to reach the fail-on-discard path
+    // today, because the app builds one default STEP queue and a second caller
+    // there is parked, never live.
     const snapshotQueue = new PreviewQueue({
       maxPending: 2,
       jobBudgetMs: 120_000,
