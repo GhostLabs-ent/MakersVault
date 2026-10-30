@@ -158,7 +158,8 @@ while [ "$attempt" -le 60 ]; do
   if curl --fail --silent --show-error "http://localhost:$api_port/health" >/dev/null 2>&1 \
     && curl --fail --silent --show-error "http://localhost:$web_port/" >/dev/null 2>&1 \
     && curl --fail --silent --show-error "http://localhost:$web_port/runtime-config.js" >/dev/null 2>&1 \
-    && curl --fail --silent --show-error "http://localhost:$web_port/api/health" >/dev/null 2>&1; then
+    && curl --fail --silent --show-error "http://localhost:$web_port/api/health" >/dev/null 2>&1 \
+    && curl --fail --silent --show-error "http://localhost:$web_port/auth/oidc/status" >/dev/null 2>&1; then
     break
   fi
   if [ "$attempt" -eq 60 ]; then
