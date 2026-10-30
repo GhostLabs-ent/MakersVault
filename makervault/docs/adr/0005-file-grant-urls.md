@@ -234,6 +234,15 @@ matrix is now 64 routes: 4 public, 21 read, 30 write, 9 admin. It is exempt from
 auditing with the reason "mints a short-lived read-only file grant; mutates
 nothing", so the exempt set is 19 keys and the audited set stays 21.
 
+**Matrix note (2026-10-30):** The figures in the paragraph above are the
+2026-10-29 snapshot and are left as written. The matrix has grown since: it is
+74 routes today - 4 public, 25 read, 32 write, 13 admin
+(`docs/PERMISSIONS.md`). The audit tables grew with it: 30 of the 74 routes are
+`GET`, and the remaining 44 split into 25 audited keys (`audit.ROUTE_ACTIONS`,
+whose values name 25 of the 30 action strings in `audit.ACTIONS`) and the same
+19 exempt keys (`audit.EXEMPT_ROUTES`) (`docs/AUDIT.md`). `POST /file-grants` is
+still READ and still exempt with the reason quoted above.
+
 Costs paid deliberately:
 
 - **One extra round trip per fetch.** `primeGrants` mints before a list
@@ -369,7 +378,7 @@ API:
   canary, and the retirement of the `token=` query credential. It also pins
   `error_log /dev/null` (request-time error logging disabled) and the query-free
   `$upstream_addr`/`$upstream_status` access fields.
-- `api/tests/test_permissions_matrix.py` — pins the 64-route matrix as the
+- `api/tests/test_permissions_matrix.py` — pins the 74-route matrix as the
   documented size, adds `POST /file-grants` to the READ sweep (a viewer is
   allowed, an anonymous caller is refused, a viewer is still denied every write
   and admin route), and pins the 200 the mint answers when auth is disabled.
