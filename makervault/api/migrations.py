@@ -550,6 +550,37 @@ def _migration_009_asset_file_order(conn: Connection) -> None:
     )
 
 
+def _migration_010_oidc_identities(conn: Connection) -> None:
+    """Bind an external identity to a local account (Mf-4c24).
+
+    `(issuer, subject)` is the only binding key, and it is unique: the pair is
+    the provider's immutable principal id, so two rows for one principal would
+    let the same person accumulate accounts, and matching on username or email
+    instead would let a claim claim an existing local account. `user_id` is a
+    plain foreign key with no cascade, matching `sessions` in migration 005: an
+    account that still has an identity must not be silently deletable.
+
+    Pure `CREATE ... IF NOT EXISTS`, so re-applying 010 is harmless, like
+    004-009.
+    """
+    conn.exec_driver_sql(
+        """CREATE TABLE IF NOT EXISTS oidc_identities (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            issuer VARCHAR NOT NULL,
+            subject VARCHAR NOT NULL,
+            user_id VARCHAR NOT NULL,
+            created_at VARCHAR NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id))"""
+    )
+    conn.exec_driver_sql(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_oidc_identities_issuer_subject_unique "
+        "ON oidc_identities(issuer, subject)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_oidc_identities_user_id ON oidc_identities(user_id)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
@@ -560,6 +591,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(7, "projects", _migration_007_projects),
     Migration(8, "import_run_history", _migration_008_import_run_history),
     Migration(9, "asset_file_order", _migration_009_asset_file_order),
+    Migration(10, "oidc_identities", _migration_010_oidc_identities),
 )
 
 

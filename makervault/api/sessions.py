@@ -32,6 +32,9 @@ from models import User, UserSession
 
 PASSWORD_KIND = "password"
 BREAK_GLASS_KIND = "break-glass"
+# An SSO login is a real account session, so unlike break-glass it reads the
+# stored role rather than asserting admin.
+OIDC_KIND = "oidc"
 BREAK_GLASS_ROLE = ADMIN_ROLE
 REFRESH_TOKEN_BYTES = 32
 

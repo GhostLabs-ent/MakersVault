@@ -1,11 +1,13 @@
 import React from "react";
-import { login } from "../lib/api";
+import { getOidcStatus, login, oidcStartUrl, ssoErrorCopy } from "../lib/api";
 import { ResolvedTheme } from "../lib/settings";
 
 type Props = {
   onSuccess: (token: string, expires_in: number, refresh_token: string) => void;
   apiUp: boolean | null;
   theme: ResolvedTheme;
+  /** A frozen `sso_error` value from the redirect fragment, or null. */
+  ssoError?: string | null;
 };
 
 const logoForTheme = (theme: ResolvedTheme) => {
@@ -23,11 +25,28 @@ const logoForTheme = (theme: ResolvedTheme) => {
   }
 };
 
-export default function Login({ onSuccess, apiUp, theme }: Props) {
+export default function Login({ onSuccess, apiUp, theme, ssoError }: Props) {
   const [username, setUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  // SSO is racked only once the API confirms it: a deployment without an IdP
+  // must not offer a button that dead-ends at a 503.
+  const [ssoEnabled, setSsoEnabled] = React.useState(false);
+  // The SSO failure is a separate channel from the password `error`: a failed
+  // handoff and a mistyped password can both be true at the same time.
+  const ssoMessage = ssoErrorCopy(ssoError ?? null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const status = await getOidcStatus();
+      if (!cancelled) setSsoEnabled(status.enabled);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,7 +118,25 @@ export default function Login({ onSuccess, apiUp, theme }: Props) {
         >
           {loading ? "Signing in..." : "Sign in"}
         </button>
+        {ssoEnabled && (
+          // Secondary, not `bg-accent`: the local password form stays the
+          // primary path and the only one that works offline.
+          <button
+            type="button"
+            onClick={() => window.location.assign(oidcStartUrl())}
+            className="w-full px-3 py-2 rounded-md border border-panel-strong bg-panel-strong font-medium"
+          >
+            Sign in with SSO
+          </button>
+        )}
       </form>
+      {/* Only the frozen copy table above can reach here; the API's own error
+          detail is never rendered. */}
+      {ssoMessage && (
+        <div className="mt-4 rounded-md bg-red-100 text-red-900 dark:bg-red-900/30 dark:text-red-100 px-3 py-2 text-sm">
+          {ssoMessage}
+        </div>
+      )}
     </div>
   );
 }

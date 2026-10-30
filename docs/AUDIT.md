@@ -17,8 +17,10 @@ One mechanism, in three parts:
 the actions whose effect is outside the database (`trash.purge`,
 `library.scan.start`, `snapshot.create`, `snapshot.prune`, `snapshot.delete`,
 `snapshot.restore`, the two `snapshot.schedule.*` actions the scheduler thread
-writes, and the two `destructive.snapshot_*` actions the snapshot guard writes);
-it opens its own session and commits. There is no third way to write a row.
+writes, the two `destructive.snapshot_*` actions the snapshot guard writes, and
+`login.oidc.failed`, which is written from a `GET` that has no transaction to
+join); it opens its own session and commits. There is no third way to write a
+row.
 
 **The emission point is the action site, not `permissions.authorize()`.**
 Authorization and events are different facts. `permissions.authorize()` decides
@@ -65,7 +67,7 @@ could honestly reconstruct.
 
 ## The action taxonomy
 
-`audit.ACTIONS` holds exactly these 30 strings. Action names are stable and
+`audit.ACTIONS` holds exactly these 32 strings. Action names are stable and
 `namespace.verb`; a reader of a row does not need the code to know what it means.
 
 | Action | Route(s) that emit it | `target` | `detail` | Failure |
@@ -92,6 +94,8 @@ could honestly reconstruct.
 | `user.enable` | `PATCH /users/{user_id}` (only when `disabled` goes true -> false) | username | `{"from", "to"}` booleans | fail-closed |
 | `library.scan.start` | `POST /library/scan` | `"library"` | none | fail-loud |
 | `login.succeeded` | `POST /login` | the real username | `{"kind", "client_ip"}` | fail-closed |
+| `login.oidc.succeeded` | `POST /auth/oidc/exchange` | the real username | `{"kind", "client_ip", "issuer"}` | fail-closed |
+| `login.oidc.failed` | no route: written by `GET /auth/oidc/callback` through `audit.record` when the IdP response is rejected | the issuer | `{"kind", "client_ip", "issuer", "sso_error"}` | fail-loud |
 | `snapshot.create` | `POST /snapshots` (the route hands the provider an audit context, so the provider writes the row) | snapshot name | `{"reason", "method", "pruned"}` | fail-loud |
 | `snapshot.prune` | `POST /snapshots` (emitted by retention inside `create()` in `snapshots.py`, one row per pruned snapshot) | pruned snapshot name | `{"rule", "trigger"}` | fail-loud |
 | `snapshot.delete` | `DELETE /snapshots/{name}` | snapshot name | `{"method"}` | fail-loud |
@@ -169,8 +173,8 @@ snapshot: the trash keeps it restorable, so it stays `asset.delete` alone.
 The rule `assert_audit_coverage()` enforces: **every route in
 `permissions.ROUTE_PERMISSIONS` whose method is not `GET` must be in
 `ROUTE_ACTIONS` or in `EXEMPT_ROUTES` with a non-empty reason.** `GET` routes are
-out of scope by construction: they change nothing. The matrix has 74 routes, 30
-of them `GET`; the remaining 44 split into 25 audited keys and 19 exempt keys.
+out of scope by construction: they change nothing. The matrix has 78 routes, 33
+of them `GET`; the remaining 45 split into 26 audited keys and 19 exempt keys.
 
 The guard also refuses stale keys (an entry for a route that no longer exists), a
 key in both tables, an action that is not in `ACTIONS`, and an exemption without
@@ -423,7 +427,7 @@ administration).
 | Parameter | Type | Semantics |
 |---|---|---|
 | `actor` | string | exact match, case-insensitive (both sides lowered, value stripped) |
-| `action` | string | exact match, case-sensitive - one of the 30 names above |
+| `action` | string | exact match, case-sensitive - one of the 32 names above |
 | `target` | string | case-sensitive substring match; `%`, `_` and `\` are escaped, so it is a literal substring |
 | `since` | string | `created_at >= value` |
 | `until` | string | `created_at <= value` |
@@ -469,11 +473,23 @@ control that answers with a raw 403.
 
 ## Scope and follow-ups
 
-* **`login.succeeded` only.** Failed logins are not audited in this ticket. The
-  failure path is already throttled (`login_throttle`) and logs loudly with the
-  username and client IP, and writing a row before a 401 would make an audit
-  failure a 500 on the *rejection* path. A `login.failed` action is the obvious
-  follow-up, not something forgotten.
+* **`login.succeeded` is the local password action.** Failed password logins are
+  not audited in this ticket. The failure path is already throttled
+  (`login_throttle`) and logs loudly with the username and client IP, and writing
+  a row before a 401 would make an audit failure a 500 on the *rejection* path.
+* **OIDC failures ARE audited (`login.oidc.failed`), and the difference is
+  deliberate.** A rejected SSO response arrives at `GET /auth/oidc/callback`
+  with no session to attribute, no local username to throttle on, and a
+  rejection reason (a bad signature, a wrong issuer, a replayed state, a domain
+  outside the allow-list, `no_admin_bootstrap`) that is itself the security
+  signal: it is the only evidence that somebody tried to get in with an identity
+  this deployment refuses. The row is written through `audit.record`, which
+  opens and commits its own transaction, so the callback still mutates no user,
+  session or identity row; a failed audit write there is fail-loud and returns
+  an error rather than a silently successful redirect. Its `detail` carries the
+  frozen `sso_error` code and never IdP free text: the provider's `error`
+  parameter, its error body and the exception strings are attacker-influenced,
+  so they are neither rendered into a URL nor recorded.
 * **No per-record ownership.** Every actor can act on every asset until Mf-arm6
   lands; the audit row records who did it, not who was allowed to.
 * **No export, no retention policy.** Nothing rotates, archives or prunes audit

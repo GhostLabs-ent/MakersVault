@@ -142,3 +142,30 @@ SNAPSHOT_SCHEDULE_START_DELAY_SECONDS = env_int("SNAPSHOT_SCHEDULE_START_DELAY_S
 SNAPSHOT_BTRFS_SIDECAR_URL = os.getenv("SNAPSHOT_BTRFS_SIDECAR_URL", "")
 SNAPSHOT_BTRFS_SIDECAR_TOKEN = os.getenv("SNAPSHOT_BTRFS_SIDECAR_TOKEN", "")
 SNAPSHOT_BTRFS_TIMEOUT_SECONDS = 1
+
+# External identity provider (OIDC / SSO, Mf-4c24). Opt-in: `OIDC_ENABLED`
+# defaults to false and local password login keeps working either way. These are
+# plain strings here and are parsed (CSV allow-lists, https-only issuer) by
+# `oidc.validate_oidc_configuration()`, which refuses to boot on a partial or
+# fail-open configuration. The redirect URI is derived from PUBLIC_URL rather
+# than exposed as another knob, so the callback cannot drift from the origin the
+# browser actually uses.
+OIDC_ENABLED = env_bool("OIDC_ENABLED", False)
+OIDC_ISSUER = os.getenv("OIDC_ISSUER", "").strip()
+OIDC_CLIENT_ID = os.getenv("OIDC_CLIENT_ID", "").strip()
+# Server-side only: it is never sent to the browser, never logged, and never
+# written to an audit row.
+OIDC_CLIENT_SECRET = os.getenv("OIDC_CLIENT_SECRET", "")
+OIDC_SCOPES = os.getenv("OIDC_SCOPES", "openid profile email").strip()
+OIDC_GROUPS_CLAIM = os.getenv("OIDC_GROUPS_CLAIM", "groups").strip()
+# Allow-lists. Empty means "no restriction from this list", but the validator
+# refuses to boot when BOTH are empty: an empty allow-list would admit every
+# account the provider will authenticate. When both are set they compose with
+# AND, so adding one can only narrow the door.
+OIDC_ALLOWED_GROUPS = os.getenv("OIDC_ALLOWED_GROUPS", "").strip()
+OIDC_ALLOWED_DOMAINS = os.getenv("OIDC_ALLOWED_DOMAINS", "").strip()
+# The only escalation a claim may grant. `admin` has no slot: a group claim must
+# never be able to mint an administrator, so `OIDC_ADMIN_GROUPS` exists only to
+# be refused at boot rather than silently ignored.
+OIDC_EDITOR_GROUPS = os.getenv("OIDC_EDITOR_GROUPS", "").strip()
+OIDC_ADMIN_GROUPS = os.getenv("OIDC_ADMIN_GROUPS", "").strip()

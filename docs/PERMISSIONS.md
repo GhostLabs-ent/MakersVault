@@ -161,9 +161,50 @@ failing if the canary, `?token=` or `?sig=` appears in any container log. The
 design, its residual risks and its rollback are in
 [ADR 0005](../makervault/docs/adr/0005-file-grant-urls.md).
 
+### OIDC / external identity (Mf-4c24)
+
+SSO is a second front door, not a replacement for the first: with
+`OIDC_ENABLED=false` (the default) the four routes below answer 503 and local
+password login, the break-glass environment admin, the login throttle and the
+file-grant path are exactly as they were. With it on, the provider says *who you
+are* and the local `users` row still says *what you may do* — no claim ever
+becomes a permission:
+
+* **Identity binds only on `(issuer, subject)`.** The new `oidc_identities`
+  table (migration 10) has a unique constraint on that pair and `api/oidc.py`
+  resolves an SSO login by it and nothing else. A `preferred_username` or an
+  `email` claim is display material: neither is looked up, so neither can be used
+  to take over an existing local account.
+* **A new SSO user is a `viewer`** (`accounts.DEFAULT_ROLE`) with
+  `password_hash = NULL`, so the account cannot be replayed against
+  `POST /login`.
+* **`editor` is the only escalation, and it comes only from
+  `OIDC_EDITOR_GROUPS`** — a group match on the claim named by
+  `OIDC_GROUPS_CLAIM`.
+* **`admin` is unreachable from claims.** `OIDC_ADMIN_GROUPS` is refused at boot
+  if it is non-empty, and an existing account's `users.role` is **never**
+  rewritten by a claim on re-login. Promotion is `PATCH /users/{user_id}` by an
+  admin, with the last-admin invariant and a `user.role_change` audit row.
+* **The two allow-lists compose with AND.** When `OIDC_ALLOWED_GROUPS` and
+  `OIDC_ALLOWED_DOMAINS` are both set a principal must satisfy both; a security
+  control composes restrictively, and OR would fail open. A boot with neither set
+  is refused.
+* **Provisioning needs an enabled admin first.** `POST /auth/oidc/exchange`
+  refuses to create the first SSO account unless an enabled `admin` already
+  exists (`sso_error=no_admin_bootstrap`), because a provisioned `viewer` empties
+  the users table's break-glass path while leaving zero admins.
+* **The handoff code is a URL fragment, single-use, and lives 120 seconds.**
+  The callback redirects with `#sso_code=`, never `?sso_code=`, so the code never
+  reaches browser history, `Referer`, the access log or the proxy; the exchange
+  pops it before looking it up, so it cannot be redeemed twice.
+
+The flow, the claim policy, the threat model and the in-process-store limitation
+are in
+[ADR 0006](../makervault/docs/adr/0006-oidc-sso-flow-and-role-policy.md).
+
 ## The route matrix
 
-Paths are FastAPI templates exactly as declared. 74 routes: 4 public, 25 read,
+Paths are FastAPI templates exactly as declared. 78 routes: 8 public, 25 read,
 32 write, 13 admin.
 
 The collection/instance templates are deliberately asymmetric: the collection is
@@ -178,6 +219,10 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | POST   | `/login`   | issues tokens (503 when auth is disabled) |
 | POST   | `/refresh` | rotates tokens (503 when auth is disabled) |
 | POST   | `/logout`  | revokes by refresh token (503 when auth is disabled) |
+| GET    | `/auth/oidc/status` | reports whether SSO is enabled (503 when auth is disabled) |
+| GET    | `/auth/oidc/start` | begins the Authorization Code + PKCE flow (503 when auth is disabled) |
+| GET    | `/auth/oidc/callback` | IdP redirect target; parks a single-use handoff code (503 when auth is disabled) |
+| POST   | `/auth/oidc/exchange` | the only mutation: provisions/links, opens a session, writes the audit row (503 when auth is disabled) |
 
 ### read (any authenticated role, viewers included)
 
@@ -425,14 +470,20 @@ sessions stay valid.
 ## Non-goals (owned by other tickets)
 
 * Mf-arm6 - per-asset ownership (editors act on all assets until then).
-* Mf-4c24 - OIDC / external identity.
 * Mf-lg02 - MFA.
 * Mf-7op4 - session UI (device list, revoke-this-session).
 
 ## Migrations
 
-None. `users.role` and `users.disabled` already exist (migration 005); this
-ticket adds enforcement and the mutation path, not schema.
+None for roles. `users.role` and `users.disabled` already exist (migration 005);
+the roles ticket adds enforcement and the mutation path, not schema.
 
 Migration 006 (`audit_events`) belongs to Mf-s3z0 and adds no permission column;
 it is described in [`AUDIT.md`](AUDIT.md).
+
+Migration 010 (`oidc_identities`) belongs to Mf-4c24 and adds no permission
+column either. It adds one table — `(issuer, subject)` under a unique
+constraint, the local `user_id`, and the timestamps — which is what makes an
+external identity a persisted fact rather than a claim compared at login time.
+No role is stored there: the account's role stays on `users.role`, so a claim
+set can never be the authority for what an SSO user may do.

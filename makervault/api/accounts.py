@@ -183,6 +183,45 @@ def create_user(
     return user
 
 
+def create_sso_user(
+    session: Session,
+    username: str,
+    email: Optional[str] = None,
+    role: Optional[str] = DEFAULT_ROLE,
+) -> User:
+    """Insert an SSO-provisioned account. It has no password, ever.
+
+    `password_hash` stays NULL, so `verify_password(None, ...)` fails closed and
+    the account cannot be signed into locally - the identity provider is its only
+    door. The role is clamped to what a claim may grant, and an `admin` role is
+    refused here as well as in `oidc.role_for_claims`, so a future caller cannot
+    reach the escalation this function deliberately has no path to.
+    """
+    cleaned_username = _clean_username(username)
+    cleaned_role = _clean_role(role)
+    if cleaned_role == ADMIN_ROLE:
+        raise InvalidAccount("an SSO account cannot be an administrator")
+    cleaned_email = _clean_email(email)
+    now = _now_iso()
+    user = User(
+        id=str(uuid.uuid4()),
+        username=cleaned_username,
+        email=cleaned_email,
+        password_hash=None,
+        role=cleaned_role,
+        disabled=0,
+        created_at=now,
+        updated_at=now,
+    )
+    session.add(user)
+    try:
+        session.flush()
+    except IntegrityError:
+        session.rollback()
+        raise DuplicateAccount("that username or email already exists") from None
+    return user
+
+
 def is_viable_admin(user: User) -> bool:
     """True when this account can still administer the deployment."""
     return user.role == ADMIN_ROLE and not user.disabled

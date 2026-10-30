@@ -18,6 +18,7 @@ import asset_service
 import audit
 import import_runs
 import login_throttle as login_throttle_module
+import oidc
 import permissions
 from asset_file_service import backfill_prepared_print_metadata
 from asset_service import backfill_embedded_thumbnails
@@ -56,6 +57,9 @@ from routers import (
     trash,
     uploads,
 )
+from routers import (
+    oidc as oidc_routes,
+)
 from routers.import_runs import router as import_runs_router
 from routers.uploads import delete_asset_row_only
 from url_utils import normalize_import_url
@@ -78,6 +82,7 @@ API_ROUTERS = (
     asset_files.router,
     assets.router,
     folders.router,
+    oidc_routes.router,
     projects.router,
     trash.router,
 )
@@ -86,6 +91,12 @@ API_ROUTERS = (
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     validate_auth_configuration()
+    # The same fail-closed contract one feature over: a half-configured or
+    # fail-open SSO setup must stop the boot, not surface as a login that
+    # breaks on its first request. Clears the in-process state and handoff
+    # stores too, so a restarted process never inherits a spent state.
+    oidc.validate_oidc_configuration()
+    oidc.reset()
     # Fail at boot, not at the first request: a route that forgot its permission
     # level (or drifted from ROUTE_PERMISSIONS) is a security bug, so this check
     # refuses to start serving until it is fixed. The routes come from the
@@ -190,6 +201,7 @@ __all__ = (
     "download_import_to_temp",
     # the ones it calls directly, plus the app object it drives
     "delete_asset_row_only",
+    "oidc",
     "arcname_for_asset",
     "lifespan",
     "app",

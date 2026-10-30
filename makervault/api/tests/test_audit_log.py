@@ -30,18 +30,32 @@ import asset_file_service
 import asset_service
 import audit
 import auth
+import config
 import db
 import library_scan
 import login_throttle as login_throttle_module
 import main
+import oidc
 import permissions
+import sessions
 import settings_service
 import snapshot_guard
 import snapshots
 from config import MOUNT_IMPORT_COPY, MOUNT_IMPORT_ENABLED
 from db import engine
 from migrations import run_migrations
-from models import AppConfig, Asset, AssetFile, AuditEvent, Folder, Project, ProjectAsset, User, UserSession
+from models import (
+    AppConfig,
+    Asset,
+    AssetFile,
+    AuditEvent,
+    Folder,
+    OidcIdentity,
+    Project,
+    ProjectAsset,
+    User,
+    UserSession,
+)
 
 ADMIN_USERNAME = "root"
 ADMIN_PASSWORD = "root-password-1"
@@ -64,6 +78,9 @@ RETENTION_KEYS = (
 
 def truncate_accounts() -> None:
     with Session(engine) as db_session:
+        # Identities first: they hold a foreign key onto users, and the OIDC
+        # exchange sweep provisions one.
+        db_session.execute(delete(OidcIdentity))
         db_session.execute(delete(UserSession))
         db_session.execute(delete(User))
         db_session.commit()
@@ -305,6 +322,20 @@ def call_login(client, headers, ids, monkeypatch) -> Response:
     return client.post("/login", json={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD}, headers=headers)
 
 
+def call_oidc_exchange(client, headers, ids, monkeypatch) -> Response:
+    """Spend a parked handoff code; the callback is what talks to the provider.
+
+    Parking the code directly exercises exactly this route, so the sweep needs no
+    provider mock and opens no socket. `ids` has already seeded an enabled admin,
+    which is what the provisioning gate requires.
+    """
+    monkeypatch.setattr(config, "OIDC_ENABLED", True)
+    monkeypatch.setattr(config, "OIDC_ISSUER", "https://idp.example.com")
+    monkeypatch.setenv("PUBLIC_URL", "https://vault.example.com")
+    code = oidc.park_handoff({"sub": "audit-sweep-subject", "preferred_username": "sso-sweep", "groups": []})
+    return client.post("/auth/oidc/exchange", json={"code": code}, headers=headers)
+
+
 def call_delete_asset(client, headers, ids, monkeypatch) -> Response:
     return client.delete(
         f"/asset/{ids.spare_asset_id}", params={"confirm_name": ids.spare_asset_filename}, headers=headers
@@ -466,6 +497,7 @@ def call_delete_project(client, headers, ids, monkeypatch) -> Response:
 
 CALLS: dict[tuple[str, str], CallSpec] = {
     ("POST", "/login"): call_login,
+    ("POST", "/auth/oidc/exchange"): call_oidc_exchange,
     ("DELETE", "/asset/{asset_id}"): call_delete_asset,
     ("POST", "/assets/batch/delete"): call_batch_delete,
     ("POST", "/asset/{asset_id}/rename"): call_rename_asset,
@@ -497,6 +529,13 @@ def route_id(key: tuple[str, str]) -> str:
     return f"{key[0]} {key[1]}"
 
 
+# `POST /auth/oidc/exchange` is a login, not an action taken *by* the caller: the
+# audited actor is the account the identity provider just authenticated, so the
+# sweep's shared "the admin did it" assertions describe a caller who already has a
+# session and do not apply. It is named here and asserted in its own test below.
+ACTOR_SELF_ROUTES = {("POST", "/auth/oidc/exchange")}
+
+
 def test_the_call_table_covers_every_audited_route() -> None:
     assert set(CALLS) == set(audit.ROUTE_ACTIONS)
 
@@ -514,12 +553,15 @@ def test_every_audited_route_emits_one_of_its_actions(client, ids, key, monkeypa
     assert actions & set(audit.ROUTE_ACTIONS[key]), sorted(actions)
     assert actions <= audit.ACTIONS, sorted(actions)
     row = rows[0]
+    assert row.method == key[0]
+    assert row.target
+    if key in ACTOR_SELF_ROUTES:
+        assert row.actor_kind == sessions.OIDC_KIND
+        return
     assert row.actor == ADMIN_USERNAME
     assert row.actor_user_id == ids.admin_id
     assert row.actor_role == "admin"
     assert row.actor_kind == "password"
-    assert row.method == key[0]
-    assert row.target
 
 
 # --- what the row says ---------------------------------------------------------
@@ -665,6 +707,43 @@ def test_login_row_names_the_real_user_and_never_the_secret(client: TestClient, 
     assert row.actor_role == "admin"
     assert ADMIN_PASSWORD not in (row.detail_json or "")
     assert "refresh" not in (row.detail_json or "").lower()
+
+
+def test_oidc_exchange_row_names_the_sso_principal_and_no_secret(
+    client: TestClient, ids: Ids, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The one mutating OIDC route names the account the provider authenticated.
+
+    The actor is the SSO account, not the caller of the request (there is no
+    caller: the route runs before a session exists). The detail carries only the
+    three documented keys - a client secret, a handoff code or a token must never
+    reach the row.
+    """
+    value = request_id_for("oidc-exchange")
+    monkeypatch.setattr(config, "OIDC_ENABLED", True)
+    monkeypatch.setattr(config, "OIDC_ISSUER", "https://idp.example.com")
+    monkeypatch.setattr(config, "OIDC_CLIENT_SECRET", "super-secret-client-value")
+    monkeypatch.setenv("PUBLIC_URL", "https://vault.example.com")
+    code = oidc.park_handoff({"sub": "row-subject", "preferred_username": "sso-row", "groups": []})
+
+    response = client.post(
+        "/auth/oidc/exchange",
+        json={"code": code},
+        headers={REQUEST_ID_HEADER: value, "Authorization": f"Bearer {ids.admin_token}"},
+    )
+    assert response.status_code == 200, response.text
+
+    row = one_event(value)
+    assert row.action == audit.LOGIN_OIDC_SUCCEEDED
+    assert row.target == "sso-row"
+    assert row.actor == "sso-row"
+    assert row.actor_kind == sessions.OIDC_KIND
+    assert row.actor_role == "viewer"
+    detail = json.loads(row.detail_json or "{}")
+    assert set(detail) == {"kind", "client_ip", "issuer"}
+    assert detail["issuer"] == "https://idp.example.com"
+    assert "super-secret-client-value" not in (row.detail_json or "")
+    assert code not in (row.detail_json or "")
 
 
 def test_break_glass_login_row_is_the_env_admin(client: TestClient) -> None:

@@ -149,3 +149,17 @@ class ImportRun(SQLModel, table=True):
   rejected: int = Field(default=0)
   reason: Optional[str] = None
   errors_json: str = Field(default="[]")
+
+
+# oidc_identities is created by migration 010; this class only describes it for
+# typed queries and must never create the table itself. The unique (issuer,
+# subject) index is the only thing that binds a provider principal to an
+# account: matching on username or email instead would be an account-takeover
+# path, so there is deliberately no other lookup key.
+class OidcIdentity(SQLModel, table=True):
+  __tablename__ = "oidc_identities"
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  issuer: str
+  subject: str
+  user_id: str = Field(foreign_key="users.id", index=True)
+  created_at: str
