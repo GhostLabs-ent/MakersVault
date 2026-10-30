@@ -279,8 +279,16 @@ Residual risks, stated plainly:
   (a remounted grid row, a preview dialog opened late, a download link
   clicked minutes after the list fetch) re-mints on mount and again five
   seconds before each expiry (decision 10), so an element that is already
-  on screen is no longer left holding an unsigned URL. The lifetime is not
-  widened anywhere: an element that outlives its grant is refreshed, never
+  on screen is no longer left holding an unsigned URL. Two limits remain, and
+  they are what decision 10 trades for a usable dialog. A card that remounts
+  against a cold cache still fires one unsigned `<img src>` — the cache is a
+  synchronous miss on that first paint, the browser requests it, and the mount
+  mint repaints it a moment later — because only the dialogs gate their body on
+  the first mint. And a mint that never settles holds a gated dialog on
+  `Preparing preview...` for as long as the request hangs: `mintFileGrants` has
+  no client timeout. A *rejected* mint does not: `primeGrants` never rejects, so
+  the gate opens on the plain URL exactly as a miss always did. The lifetime is
+  not widened anywhere: an element that outlives its grant is refreshed, never
   extended. `evictGrant(rel)` stays the invalidation seam for a URL that
   expired before it could be refreshed; nothing calls it automatically
   outside `useGrantedFileUrl`'s own timer.

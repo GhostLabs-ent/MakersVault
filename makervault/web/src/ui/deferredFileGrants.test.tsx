@@ -217,10 +217,14 @@ afterAll(() => {
 });
 
 describe("deferred file grants", () => {
-  it("a virtualized-grid row remount re-mints instead of rendering an unsigned thumbnail", async () => {
+  it("a virtualized-grid row remount mints for itself and ends up signed", async () => {
     // `AssetGridBody` keys rows by index, so a row that scrolls out unmounts its
     // cards and a row that scrolls back mounts them fresh — a remount, not a
-    // re-render. That new mount has to mint for itself.
+    // re-render. That new mount has to mint for itself. The remount's first
+    // paint is genuinely unsigned (the cache is empty and `fileUrl` is a
+    // synchronous miss) and the browser does fire that request; this asserts the
+    // end state, which is the contract. Only the two dialogs gate their body on
+    // the first mint (ADR 0005, decision 10).
     const first = render(<AssetCard {...cardProps()} />);
     await flush();
 
