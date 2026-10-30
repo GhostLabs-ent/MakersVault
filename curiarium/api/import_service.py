@@ -8,7 +8,7 @@ from urllib.request import Request
 
 from fastapi import HTTPException
 
-from asset_service import persist_asset_from_response, stream_response_to_file
+from asset_service import AssetOrigin, persist_asset_from_response, stream_response_to_file
 from config import IMPORT_HTML_MAX_BYTES, IMPORT_TIMEOUT_SECONDS, IMPORT_USER_AGENT
 from file_utils import build_import_filename, is_html_content_type, mime_from_content_type
 from import_policy import credentialed_source_for, refuse_paid_or_gated
@@ -160,13 +160,13 @@ def open_import_response(url: str, body: ImportRequest, referer: Optional[str] =
     return _resolve_import(url, body, referer, depth, [])
 
 
-def import_asset_attempt(url: str, body: ImportRequest) -> "ImportAttempt":
+def import_asset_attempt(url: str, body: ImportRequest, *, origin: Optional[AssetOrigin] = None) -> "ImportAttempt":
     """One single-file import attempt, keeping the page it read when it fails."""
     pages: List[ImportPage] = []
     try:
         resp, final_url = _resolve_import(url, body, None, 0, pages)
         with resp:
-            asset = persist_asset_from_response(resp, final_url, body)
+            asset = persist_asset_from_response(resp, final_url, body, origin=origin)
     except HTTPException as err:
         return ImportAttempt(page=pages[-1] if pages else None, error=err)
     return ImportAttempt(asset=asset, page=pages[-1] if pages else None)
@@ -188,10 +188,17 @@ def download_zip_attempt(url: str, body: ImportRequest) -> "ZipAttempt":
     return ZipAttempt(tmp_path=tmp_path, filename=filename, mime=mime, page=pages[-1] if pages else None)
 
 
-def import_asset_from_url(url: str, body: ImportRequest, referer: Optional[str] = None, depth: int = 0):
+def import_asset_from_url(
+    url: str,
+    body: ImportRequest,
+    referer: Optional[str] = None,
+    depth: int = 0,
+    *,
+    origin: Optional[AssetOrigin] = None,
+):
     resp, final_url = open_import_response(url, body, referer=referer, depth=depth)
     with resp:
-        return persist_asset_from_response(resp, final_url, body)
+        return persist_asset_from_response(resp, final_url, body, origin=origin)
 
 
 def _write_import_temp(resp, final_url: str, body: ImportRequest) -> tuple[Path, str, str]:

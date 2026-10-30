@@ -10,6 +10,7 @@ from sqlmodel import Session, select
 
 from asset_file_service import managed_asset_file_path
 from asset_service import (
+    AssetOrigin,
     cleanup_asset,
     create_asset_record,
     ensure_model_thumbnail,
@@ -89,7 +90,13 @@ def resolve_zip_folder_id(session: Session, base_folder_id: Optional[str], entry
     return target_id
 
 
-def extract_zip_entries_to_assets(zip_path: Path, selections: List[str], body: ImportZipExtractRequest) -> tuple[List[Asset], List[str]]:
+def extract_zip_entries_to_assets(
+    zip_path: Path,
+    selections: List[str],
+    body: ImportZipExtractRequest,
+    *,
+    origin: Optional[AssetOrigin] = None,
+) -> tuple[List[Asset], List[str]]:
     normalized = [normalize_zip_entry_path(name) for name in selections]
     ordered: List[str] = []
     seen = set()
@@ -146,7 +153,9 @@ def extract_zip_entries_to_assets(zip_path: Path, selections: List[str], body: I
             mime = mime_from_content_type("", filename)
             asset: Optional[Asset] = None
             try:
-                asset = create_asset_record(filename, mime, body.title, body.notes, body.tags, target_folder_id)
+                asset = create_asset_record(
+                    filename, mime, body.title, body.notes, body.tags, target_folder_id, origin=origin
+                )
                 created_ids.append(asset.id)
                 dest = managed_asset_path(asset)
                 dest.parent.mkdir(parents=True, exist_ok=True)

@@ -1140,6 +1140,7 @@ export default function ProjectLanding({
                           ` · ${asset.supporting_file_count} supporting ${
                             asset.supporting_file_count === 1 ? "file" : "files"
                           }`}
+                        {asset.created_by && ` · Added by ${asset.created_by}`}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-1.5">

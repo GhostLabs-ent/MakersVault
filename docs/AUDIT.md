@@ -67,11 +67,12 @@ could honestly reconstruct.
 
 ## The action taxonomy
 
-`audit.ACTIONS` holds exactly these 46 strings. Action names are stable and
+`audit.ACTIONS` holds exactly these 47 strings. Action names are stable and
 `namespace.verb`; a reader of a row does not need the code to know what it means.
 
 | Action | Route(s) that emit it | `target` | `detail` | Failure |
 |---|---|---|---|---|
+| `asset.create` | `POST /upload`; `POST /import`; `POST /import/project`; `POST /import/zip` (one row per created asset) | the new asset id, so `GET /audit?target=<id>` finds it | `{"via", "name"}` | fail-closed: staged in the same transaction as the insert |
 | `asset.delete` | `DELETE /asset/{asset_id}`; `POST /assets/batch/delete` (one row per asset) | asset id | `{"filename"}` | fail-closed |
 | `asset.rename` | `POST /asset/{asset_id}/rename`; `POST /asset/{asset_id}/meta` (only when the name changes) | asset id | `{"from", "to"}` names | fail-closed |
 | `asset.move` | `POST /asset/{asset_id}/folder`; `POST /assets/batch/folder` (one row per asset) | asset id | `{"folder_id"}` (new folder, or `null` for the root) | fail-closed |
@@ -165,6 +166,7 @@ change more than one fact or act on more than one target:
 * `POST /assets/batch/delete` - one `destructive.snapshot_*` row, then one
   `asset.delete` per asset.
 * `POST /assets/batch/folder` - one `asset.move` per moved asset.
+* `POST /import/zip` - one `asset.create` per extracted entry.
 * `PATCH /users/{user_id}` - one row per changed field. Changing role and
   disabling in the same request writes `user.role_change` and `user.disable`.
 * `PATCH /folder/{folder_id}` - renaming and reparenting in the same request
@@ -188,7 +190,7 @@ The rule `assert_audit_coverage()` enforces: **every route in
 `permissions.ROUTE_PERMISSIONS` whose method is not `GET` must be in
 `ROUTE_ACTIONS` or in `EXEMPT_ROUTES` with a non-empty reason.** `GET` routes are
 out of scope by construction: they change nothing. The matrix has 90 routes, 36
-of them `GET`; the remaining 54 split into 36 audited keys and 18 exempt keys.
+of them `GET`; the remaining 54 split into 40 audited keys and 14 exempt keys.
 
 The guard also refuses stale keys (an entry for a route that no longer exists), a
 key in both tables, an action that is not in `ACTIONS`, and an exemption without
@@ -199,12 +201,8 @@ Exempt routes and why:
 
 | Route | Reason |
 |---|---|
-| `POST /upload` | creates an asset; not destructive or administrative |
-| `POST /import` | creates an asset from a URL |
-| `POST /import/project` | creates a project and imports files from a URL |
 | `POST /import/inspect` | outbound fetch, no mutation |
 | `POST /import/zip/entries` | outbound fetch, no mutation |
-| `POST /import/zip` | creates assets from a zip |
 | `POST /asset/{asset_id}/files` | uploads a supporting file |
 | `POST /asset/{asset_id}/thumbnail-generated` | derived cache artifact |
 | `POST /asset/{asset_id}/tags` | metadata edit; rename and move are the audited edits |
@@ -218,16 +216,43 @@ Exempt routes and why:
 | `POST /download/zip` | streams a temp zip; stores nothing |
 | `POST /file-grants` | mints a short-lived read-only file grant; mutates nothing |
 
-The classes behind those rows: **creation** (an upload, an import, a new folder -
-the object that gets created can be destroyed later, and that destruction is what
-is recorded), **derived artifacts** (a thumbnail is a cache; losing it costs a
-regeneration), **outbound fetch** (the two `/import` inspectors read a remote URL
-and write nothing), **metadata that is not rename or move** (tags are a label
-list, not identity or location), **session-token bookkeeping** (`/logout` revokes
-a token; the surface worth watching is the credential check on `POST /login`),
-and **credential minting** (`/file-grants` signs a 60-second read-only URL for
-one existing file; it writes no row, changes no row and grants nothing a viewer
-could not already read).
+The classes behind those rows: **derived artifacts** (a thumbnail is a cache;
+losing it costs a regeneration), **outbound fetch** (the two `/import` inspectors
+read a remote URL and write nothing), **metadata that is not rename or move** (tags
+are a label list, not identity or location), **session-token bookkeeping**
+(`/logout` revokes a token; the surface worth watching is the credential check on
+`POST /login`), and **credential minting** (`/file-grants` signs a 60-second
+read-only URL for one existing file; it writes no row, changes no row and grants
+nothing a viewer could not already read). Creating a folder or a project stays
+exempt for the original reason: the object that gets created can be destroyed
+later, and `folder.delete` or `project.delete` is what is recorded. **Creating an
+asset is not exempt any more (Mf-0u1y): it is its own audited class**, so the
+`asset.create` row is what says a file arrived, when, and through which door. Three
+decisions about that class are the ones a reviewer has to sign off on.
+
+**Scan and mount import write no per-asset rows.** They are background work with no
+route and no actor - the same reason the scheduler's `snapshot.schedule.skipped` and
+`snapshot.schedule.failed` are actions without a route - and a 100k-file scan inside
+one daemon-thread batch would flood an append-only log. `library.scan.start` plus
+the `import_run` row already record the batch. What records the individual file is
+the `created_via` column: it reads `scan` or `mount-import` on every row those paths
+write, so the asset itself still says which door it came through.
+
+**A create row records that the insert committed, not that the bytes landed.**
+Creation commits before the bytes are streamed, so a mid-stream 413, or a 409 for a
+foreign file whose partial copy is cleaned up afterwards, leaves a create row whose
+`target` no longer resolves. `asset.delete` rows already reference gone assets by
+design, and deferring the write until the bytes land would be strictly worse: it
+would leave an asset with no creation row at all, the one shape this log cannot
+explain.
+
+**Anonymous is `(NULL, via)`, not a sentinel string.** With app authentication
+disabled the request has no principal, so the row reads `created_by IS NULL` with a
+real `created_via`, and the audit actor is the documented disabled actor `local`
+(see "Who is recorded"). Rows written before migration 014 read `(NULL, NULL)`,
+which is deliberately distinguishable from an anonymous creation. `added_by` can
+never match an anonymous row, because NULL never equals a string. A literal
+`"anonymous"` sentinel was rejected: it would collide with a real username.
 
 `POST /refresh` is no longer exempt, but it is audited only on the two paths
 that decide something: `session.refresh_graced` when a superseded token is
@@ -471,8 +496,8 @@ administration).
 | Parameter | Type | Semantics |
 |---|---|---|
 | `actor` | string | exact match, case-insensitive (both sides lowered, value stripped) |
-| `action` | string | exact match, case-sensitive - one of the 46 names above |
-| `target` | string | case-sensitive substring match; `%`, `_` and `\` are escaped, so it is a literal substring |
+| `action` | string | exact match, case-sensitive - one of the 47 names above |
+| `target` | string | case-sensitive substring match; `%`, `_` and `\` are escaped, so it is a literal substring. An asset id also returns that asset's `asset.create` row, because creation's target is the new id |
 | `since` | string | `created_at >= value` |
 | `until` | string | `created_at <= value` |
 | `limit` | int, 1..200, default 50 | page size |
@@ -524,7 +549,8 @@ unchanged - but it does change what `actor_role` can say: it is whatever
 a contribute action that *is* audited records it. A supporting-file rename
 (`asset.file.rename`, `PATCH /asset/{asset_id}/files/{file_id}`) by a
 contributor writes `actor_role = "contributor"`, not `"editor"`. `POST /upload`
-emits nothing (it is exempt), so an upload alone is not the row to look for.
+emits `asset.create`, so the same holds for an upload: the creation row's actor names
+the role in force when the request came in.
 
 ## Scope and follow-ups
 

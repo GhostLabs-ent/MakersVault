@@ -10,12 +10,13 @@ from fastapi.testclient import TestClient
 from sqlalchemy import event
 from sqlmodel import Session, select
 
+import audit
 import library_scan
 import main
 from db import STORAGE, engine
 from library_scan import scan_storage_root
 from migrations import run_migrations
-from models import Asset, Folder
+from models import Asset, AuditEvent, Folder
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -92,6 +93,25 @@ def test_scan_registers_files_where_they_lie(library_root):
         names = {f.name for f in session.exec(select(Folder)).all()}
     assert {"Props", "Gears", "Loose"} <= names
     assert found["Props/Gears/gear.stl"].folder_id is not None
+
+
+def test_a_scan_stamps_the_scan_door_and_no_actor(library_root):
+    """A scan is background work: no principal, and no audit row for a creation."""
+    rel = "Loose/attributed.stl"
+    _write(rel, b"solid attributed\n")
+    library_root.append(rel)
+
+    scan_storage_root()
+
+    row = _assets_by_path()[rel]
+    assert (row.created_by, row.created_via) == (None, "scan")
+    with Session(engine) as session:
+        events = list(
+            session.exec(
+                select(AuditEvent).where(AuditEvent.action == audit.ASSET_CREATE, AuditEvent.target == row.id)
+            )
+        )
+    assert events == []
 
 
 def test_scan_is_idempotent(library_root):

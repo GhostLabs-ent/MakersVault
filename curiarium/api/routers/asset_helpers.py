@@ -27,6 +27,7 @@ def apply_asset_filters(
     project_id: Optional[str] = None,
     not_in_project: bool = False,
     creator: Optional[str] = None,
+    added_by: Optional[str] = None,
 ):
     if q:
         qlike = f"%{q}%"
@@ -47,6 +48,13 @@ def apply_asset_filters(
         cleaned_creator = creator.strip()
         if cleaned_creator:
             stmt = stmt.where(func.lower(Asset.creator) == cleaned_creator.lower())
+    # Same contract as `creator`: an exact, case-insensitive match on the stored
+    # uploader snapshot, and a blank chip means "no filter" rather than a 400.
+    # NULL never equals a string, so anonymous assets are never matched by any name.
+    if added_by is not None:
+        cleaned_added_by = added_by.strip()
+        if cleaned_added_by:
+            stmt = stmt.where(func.lower(Asset.created_by) == cleaned_added_by.lower())
     if project_id:
         stmt = stmt.where(Asset.id.in_(select(ProjectAsset.asset_id).where(ProjectAsset.project_id == project_id)))
     if not_in_project:

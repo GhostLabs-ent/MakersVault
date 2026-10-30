@@ -376,6 +376,28 @@ describe("ProjectLanding files", () => {
     expect(within(files).getByText("2.0 KB · PNG")).toBeTruthy();
   });
 
+  it("appends the uploader to the member meta line and leaves it out when unset", async () => {
+    listProjectAssetsMock.mockResolvedValue({
+      items: [
+        { ...members[0], created_by: "Ada", created_via: "upload" },
+        { ...members[1], created_by: null, created_via: "upload" },
+        { ...members[2], created_by: "Ada", created_via: "zip-import", supporting_file_count: 2 },
+      ],
+      hasMore: false,
+    });
+    renderLanding();
+    await screen.findByText("Body");
+
+    const files = screen.getByRole("region", { name: "Files" });
+    expect(within(files).getByText("2.0 KB · STL · Added by Ada")).toBeTruthy();
+    // No uploader means no dangling separator, byte-identical to the old line.
+    expect(within(files).getByText("1.0 KB · JPG")).toBeTruthy();
+    // The supporting-file suffix keeps its place: bytes · type · supporting · added by.
+    expect(
+      within(files).getByText("2.0 KB · PNG · 2 supporting files · Added by Ada"),
+    ).toBeTruthy();
+  });
+
   it("removes a file from the project after confirming, then refreshes", async () => {
     const onAssetsChanged = vi.fn();
     removeProjectAssetsMock.mockResolvedValue({ removed: ["a2"], skipped: [], failed: [] });

@@ -908,6 +908,24 @@
           }
         },
         {
+          "description": "Exact uploader, case-insensitive",
+          "in": "query",
+          "name": "added_by",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Exact uploader, case-insensitive",
+            "title": "Added By"
+          }
+        },
+        {
           "description": "Optional sort key; omitted keeps the default order",
           "in": "query",
           "name": "sort",

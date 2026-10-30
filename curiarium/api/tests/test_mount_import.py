@@ -13,12 +13,13 @@ import pytest
 from sqlalchemy import event
 from sqlmodel import Session, select
 
+import audit
 import library_scan
 import mount_import
 from db import engine
 from library_scan import scan_storage_root
 from migrations import run_migrations
-from models import AppConfig, Asset, Folder, ImportRun
+from models import AppConfig, Asset, AuditEvent, Folder, ImportRun
 from settings_service import set_mount_import_enabled
 
 
@@ -121,6 +122,30 @@ def _reference_row(mount: Path, rel_path: str) -> Optional[Asset]:
         if asset.source_path == source:
             return asset
     return None
+
+
+@pytest.mark.parametrize("copy_files", [True, False], ids=["copy", "reference"])
+def test_mount_rows_are_stamped_as_mount_imports_with_no_actor(
+    mount_and_storage, monkeypatch: pytest.MonkeyPatch, copy_files: bool
+) -> None:
+    """A mount import is background work: no principal, and no creation event."""
+    mount, _storage = mount_and_storage
+    monkeypatch.setattr(mount_import, "MOUNT_IMPORT_COPY", copy_files)
+    _write(mount, "a/part.stl")
+
+    _require(mount_import.scan_mount_imports())
+
+    rows = [asset for asset in _asset_rows() if asset.filename == "part.stl"]
+    assert len(rows) == 1, [asset.filename for asset in rows]
+    row = rows[0]
+    assert (row.created_by, row.created_via) == (None, "mount-import")
+    with Session(engine) as session:
+        events = list(
+            session.exec(
+                select(AuditEvent).where(AuditEvent.action == audit.ASSET_CREATE, AuditEvent.target == row.id)
+            )
+        )
+    assert events == []
 
 
 # --- copy mode mirrors the tree ----------------------------------------------

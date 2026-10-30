@@ -84,7 +84,8 @@ def multipart_form_openapi(*text_fields: str) -> dict:
 
 
 @router.post("/upload", response_model=AssetOut, openapi_extra=multipart_form_openapi("title", "notes", "tags", "folder_id"))
-async def upload(request: Request, _: Optional[AuthContext] = Depends(require_contribute)):
+async def upload(request: Request, context: Optional[AuthContext] = Depends(require_contribute)):
+    origin = asset_service.AssetOrigin.for_principal(request, context, "upload")
     staging = asset_service.new_staging_path()
     asset: Optional[Asset] = None
     try:
@@ -98,6 +99,7 @@ async def upload(request: Request, _: Optional[AuthContext] = Depends(require_co
             staged.fields.get("notes"),
             tags,
             staged.fields.get("folder_id"),
+            origin=origin,
         )
         dest = managed_asset_path(asset)
         dest.parent.mkdir(parents=True, exist_ok=True)

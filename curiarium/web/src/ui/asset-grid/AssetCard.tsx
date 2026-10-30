@@ -547,9 +547,10 @@ const AssetCard = React.memo(function AssetCard({
           )}
         </div>
         <div className="text-[11px] truncate text-subtle" title={item.filename}>{item.filename}</div>
-        {(item.creator || item.collection) && (
+        {(item.creator || item.collection || item.created_by) && (
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
             {item.creator && <span>By {item.creator}</span>}
+            {item.created_by && <span>Added by {item.created_by}</span>}
             {item.collection && <span>Collection (legacy): {item.collection}</span>}
           </div>
         )}

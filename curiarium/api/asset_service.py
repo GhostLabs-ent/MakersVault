@@ -6,12 +6,13 @@ import os
 import re
 import tempfile
 import threading
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
 from uuid import uuid4
 from zipfile import BadZipFile, ZipFile
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from PIL import Image
 from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
@@ -20,6 +21,7 @@ from sqlmodel import Session, select
 import audit
 import folder_paths
 from asset_file_service import delete_all_asset_files
+from auth import AuthContext
 from config import IMPORT_MAX_BYTES, MOUNT_IMPORT_PATH
 from db import STORAGE, THUMBS, engine
 from file_utils import build_import_filename, mime_from_content_type, sanitize_filename
@@ -689,6 +691,31 @@ def backfill_embedded_thumbnails() -> None:
         ensure_model_thumbnail(asset.id, src)
 
 
+@dataclass(frozen=True)
+class AssetOrigin:
+    """Where one asset row came from: the username snapshot, the path that made it,
+    and the audit context that row records under.
+
+    `for_principal` is the ONE place that answers "is there a principal on this
+    request?" for asset attribution, so a future auth-mode change edits this seam
+    instead of every creation route. It is an explicit value, not a contextvar:
+    the scan (a raw threading.Thread), the import paths (anyio.to_thread and its
+    task groups) and the request handlers do not share contextvar semantics.
+    """
+
+    created_by: Optional[str] = None
+    created_via: str = "system"
+    audit_ctx: Optional[audit.AuditContext] = None
+
+    @classmethod
+    def for_principal(cls, request: Request, context: Optional[AuthContext], created_via: str) -> "AssetOrigin":
+        return cls(
+            created_by=None if context is None else context.username,
+            created_via=created_via,
+            audit_ctx=audit.context_for(request, context),
+        )
+
+
 def create_asset_record(
     filename: str,
     mime: str,
@@ -697,7 +724,16 @@ def create_asset_record(
     tags: List[str],
     folder_id: Optional[str],
     source_path: Optional[str] = None,
+    *,
+    origin: Optional[AssetOrigin] = None,
 ) -> Asset:
+    """Insert one asset row and stamp who added it and through which door.
+
+    `origin=None` means nobody on a request path made this row: it honestly
+    records (NULL, 'system') and writes no audit row (`audit.stage` no-ops on a
+    None context).
+    """
+    origin = origin or AssetOrigin()
     with Session(engine) as s:
         name = unique_model_name(s, title or model_name_from_filename(filename), folder_id)
         asset = Asset(
@@ -710,12 +746,17 @@ def create_asset_record(
             tags_json=json.dumps([t.strip() for t in tags if t.strip()]),
             folder_id=folder_id,
             source_path=source_path,
+            created_by=origin.created_by,
+            created_via=origin.created_via,
         )
         asset.storage_path = render_storage_path(asset, s)
         # Rollback expires the instance, so every value the conflict classifier
         # needs is captured here.
         storage_path = asset.storage_path
         s.add(asset)
+        # Same session, same transaction, before the commit: fail-closed, and the
+        # audit row's target IS the asset id, so GET /audit?target=<id> finds it.
+        audit.stage(s, origin.audit_ctx, audit.asset_create_event(asset.id, origin.created_via, name))
         try:
             s.commit()
         except IntegrityError:
@@ -788,7 +829,7 @@ def stream_response_to_file(resp, dest: Path) -> int:
     return size
 
 
-def persist_asset_from_response(resp, final_url: str, body: ImportRequest) -> Asset:
+def persist_asset_from_response(resp, final_url: str, body: ImportRequest, *, origin: Optional[AssetOrigin] = None) -> Asset:
     content_length = resp.headers.get("Content-Length")
     if content_length:
         try:
@@ -799,7 +840,7 @@ def persist_asset_from_response(resp, final_url: str, body: ImportRequest) -> As
 
     filename = build_import_filename(final_url, resp.headers, body.filename)
     mime = mime_from_content_type(resp.headers.get("Content-Type", ""), filename)
-    asset = create_asset_record(filename, mime, body.title, body.notes, body.tags, body.folder_id)
+    asset = create_asset_record(filename, mime, body.title, body.notes, body.tags, body.folder_id, origin=origin)
     dest = managed_asset_path(asset)
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:

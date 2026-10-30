@@ -12,11 +12,20 @@ __all__ = [
   "AssetMetaUpdate",
   "AssetOut",
   "AssetRename",
+  "CreatedVia",
   "DownloadRequest",
   "PreparedPrintOut",
   "SnapshotNoticeOut",
   "TagUpdate",
 ]
+
+
+# The closed set of creation doors (Mf-0u1y). A Literal, not a free string: an
+# unknown vocabulary value fails loudly at the response boundary instead of
+# quietly teaching clients a new spelling. A typing alias reports `typing` as its
+# `__module__`, so pin the real owner for the schemas-barrel ownership guard.
+CreatedVia = Literal["upload", "link-import", "zip-import", "mount-import", "scan", "system"]
+CreatedVia.__module__ = __name__
 
 
 class AssetCreate(BaseModel):
@@ -79,6 +88,8 @@ class AssetOut(BaseModel):
   prepared_print: Optional[PreparedPrintOut] = None
   slicer_url: Optional[str] = None
   slicer_filename: Optional[str] = None
+  created_by: Optional[str] = None
+  created_via: Optional[CreatedVia] = None
 
 
 class DownloadRequest(BaseModel):

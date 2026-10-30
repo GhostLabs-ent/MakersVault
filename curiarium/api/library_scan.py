@@ -447,8 +447,14 @@ def _prepared_metadata(path: Path, filename: str) -> Optional[str]:
     return json.dumps(metadata) if metadata else None
 
 
-def build_asset(root: Path, rel_path: str, size: int) -> Asset:
-    """Build the whole row up front, so the write phase needs no extra reads."""
+def build_asset(root: Path, rel_path: str, size: int, created_via: str = "scan") -> Asset:
+    """Build the whole row up front, so the write phase needs no extra reads.
+
+    A scan has no actor - it is background work with no request and no user - so
+    `created_by` stays NULL and only the door is stamped. `created_via` is a
+    parameter rather than a hardcoded "scan" because mount import reuses this
+    builder for the same walk: the caller names its own door.
+    """
     file_path = Path(rel_path)
     filename = file_path.name
     name = file_path.stem or filename
@@ -461,6 +467,8 @@ def build_asset(root: Path, rel_path: str, size: int) -> Asset:
         # the whole point of the scan: this row points at the real file
         storage_path=rel_path,
         prepared_metadata_json=_prepared_metadata(root / rel_path, filename),
+        created_by=None,
+        created_via=created_via,
     )
 
 

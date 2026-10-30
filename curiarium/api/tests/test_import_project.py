@@ -192,7 +192,7 @@ def stub_attempt(monkeypatch: pytest.MonkeyPatch, attempt: ImportAttempt | ZipAt
     """Answer every attempt seam with `attempt`, recording each call's URL."""
     calls: list[str] = []
 
-    def resolve(url: str, body) -> ImportAttempt | ZipAttempt:
+    def resolve(url: str, body, *, origin=None) -> ImportAttempt | ZipAttempt:
         calls.append(url)
         return attempt
 
@@ -671,9 +671,9 @@ def test_a_garbage_stored_source_does_not_break_an_unrelated_import(monkeypatch:
 # --- route wiring -----------------------------------------------------------
 
 
-def test_the_route_is_contribute_and_audit_exempt() -> None:
+def test_the_route_is_contribute_and_audited() -> None:
     assert permissions.ROUTE_PERMISSIONS[("POST", "/import/project")] == permissions.CONTRIBUTE
-    assert ("POST", "/import/project") in audit.EXEMPT_ROUTES
+    assert audit.ROUTE_ACTIONS[("POST", "/import/project")] == (audit.ASSET_CREATE,)
 
 
 def test_the_route_answers_with_the_project_and_the_gate(monkeypatch: pytest.MonkeyPatch) -> None:
