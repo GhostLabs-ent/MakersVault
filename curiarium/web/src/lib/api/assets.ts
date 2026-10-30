@@ -6,6 +6,17 @@ import { apiBase } from "./baseUrl";
 import { primeListGrants } from "./grantPriming";
 import { UnauthorizedError, assertOk, readErrorMessage } from "./http";
 
+/**
+ * `deleteAsset`'s 404: someone else already deleted the row, so the grid treats
+ * it as done rather than resurrecting a phantom card.
+ */
+export class AssetNotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AssetNotFoundError";
+  }
+}
+
 export type Asset = {
   id: string;
   name: string;
@@ -220,7 +231,7 @@ export async function listCreators(params: {
   return res.json();
 }
 
-export async function setTags(id: string, tags: string[]) {
+export async function setTags(id: string, tags: string[]): Promise<Asset> {
   const res = await fetch(`${apiBase()}/asset/${id}/tags`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
@@ -347,7 +358,7 @@ export async function updateAssetMeta(id: string, payload: {
   title?: string | null;
   notes?: string | null;
   creator?: string | null;
-}) {
+}): Promise<Asset> {
   const res = await fetch(`${apiBase()}/asset/${id}/meta`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
@@ -372,6 +383,9 @@ export async function deleteAsset(id: string, confirmName: string): Promise<Asse
     headers: authHeaders(),
   });
   if (res.status === 401) throw new UnauthorizedError();
+  if (res.status === 404) {
+    throw new AssetNotFoundError(await readErrorMessage(res, "Delete asset failed"));
+  }
   if (!res.ok) {
     // Surface the server's 400 (mismatched confirm_name) detail in the dialog.
     throw new Error(await readErrorMessage(res, "Delete asset failed"));
@@ -425,7 +439,7 @@ export async function renameAsset(id: string, filename: string) {
   return res.json();
 }
 
-export async function updateAssetFolder(id: string, folder_id: string | null) {
+export async function updateAssetFolder(id: string, folder_id: string | null): Promise<Asset> {
   const res = await fetch(`${apiBase()}/asset/${id}/folder`, {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),

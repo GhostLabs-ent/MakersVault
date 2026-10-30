@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 import { type Asset, type BatchMetaChange, UnauthorizedError, deleteAsset } from "../../lib/api";
+import { AssetNotFoundError } from "../../lib/api/assets";
+import { dropIds } from "../../lib/bulkUi";
 import { chunkRows, colsForWidth } from "../../lib/virtualGrid";
 import { previewQueue } from "../../lib/previewQueue";
 import { EngravingSettings, PreviewSettings, ResolvedTheme, SlicerSettings, engraverLabelFor, slicerLabelFor } from "../../lib/settings";
@@ -196,6 +198,12 @@ export default function AssetGrid({
     engravingSettings,
     selectedIds,
     bulkSetTags,
+    offset,
+    setOffset,
+    setAllTags,
+    folderId,
+    activeTags,
+    activeCreator,
     onRequestDelete: setDeleteTargets,
     onAddToProject: openProjectPicker,
   });
@@ -213,12 +221,29 @@ export default function AssetGrid({
       return { failed };
     }
     const [asset] = targets;
+    // One row, reconciled like a batch of one: the optimistic drop rewinds the
+    // cursor by exactly the row that left the loaded window, and a failure puts
+    // both back from the snapshot without a refetch.
+    const before = items;
+    const startOffset = offset;
+    const dropped = before.some(item => item.id === asset.id) ? 1 : 0;
+    setItems(dropIds(before, [asset.id]));
+    setOffset(Math.max(0, startOffset - dropped));
     try {
       await deleteAsset(asset.id, asset.filename);
-      await refresh();
       return { failed: [] };
     } catch (err) {
-      if (err instanceof UnauthorizedError) onUnauthorized?.();
+      if (err instanceof UnauthorizedError) {
+        onUnauthorized?.();
+        // No rollback: the session is gone and the delete may still have applied.
+        return { failed: [{ id: asset.id, message: "You were signed out. The delete may still have been applied." }] };
+      }
+      if (err instanceof AssetNotFoundError) {
+        // Already gone server-side: the row is correctly absent, keep the rewind.
+        return { failed: [] };
+      }
+      setItems(before);
+      setOffset(startOffset);
       return { failed: [{ id: asset.id, message: errorMessage(err, "Delete failed.") }] };
     }
   });
