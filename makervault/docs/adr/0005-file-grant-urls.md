@@ -355,9 +355,20 @@ access log and uvicorn's access log, and drops the canary from the smoke test.
 
 Rolling back re-opens MV-SEC-007 and returns the access-log leak, so a rollback
 must re-open the finding and name a new owner rather than assume the exposure
-went away. There is nothing else to unwind: no migration runs, no row is
-written, and a grant that outlives the rollback (at most 60 seconds) is simply
-never checked again.
+went away. Beyond the two later commits named below, there is nothing else to
+unwind: no migration runs, no row is written, and a grant that outlives the
+rollback (at most 60 seconds) is simply never checked again.
+
+Two later commits are part of the shipped design and are not undone by that
+revert, so a full rollback names them too. `Mf-c80i` silenced the nginx error
+log (`error_log /dev/null;`, the `$upstream_addr`/`$upstream_status` access
+fields and the dead-upstream canary); reverting it restores request-time error
+text and the request line that carries the query with it, which re-opens
+MV-SEC-007 on the error-log side. `Mf-1vxh` added the client re-mint
+(`useFileGrants`, `FileDownloadLink` and their call sites); reverting it returns
+every deferred interaction to the fetch-time grant, so a page left idle for more
+than 60 seconds goes back to unsigned file URLs and 401s. Neither commit touches
+the database, the migrations or the wire format.
 
 ## Verification
 

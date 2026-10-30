@@ -952,7 +952,7 @@ The initial required ADR queue is:
 1. Canonical development and production deployment manifests.
 2. SQLite schema versioning and migration mechanism.
 3. Secure first-run single-admin configuration.
-4. File-scoped browser-to-bridge handoff grants. Decided in ADR 0004 and implemented in ticket `M3-7bb7`: `POST /file-grants` mints 60-second, single-path, read-only `?sig=` grants that replace the session JWT in file URLs and in the `makersvault-slicer://` handoff, and the access-log token leak is closed (query-free nginx format, `--no-access-log` on uvicorn, a smoke canary). ADR 0005 supersedes 0004 for the implemented design; 0004's import-cookie and `localStorage` decisions still stand.
+4. File-scoped browser-to-bridge handoff grants. Decided in ADR 0004 and implemented in ticket `M3-7bb7`: `POST /file-grants` mints 60-second, single-path, read-only `?sig=` grants that replace the session JWT in file URLs and in the `makersvault-slicer://` handoff, and the log leak is closed (query-free nginx format, request-time error logging disabled with `error_log /dev/null` because nginx has no error-log format, `--no-access-log` on uvicorn, and live plus dead-upstream smoke canaries). `Mf-c80i` closed the error-log half, which `M3-7bb7`'s access-log fix left open. ADR 0005 supersedes 0004 for the implemented design; 0004's import-cookie and `localStorage` decisions still stand.
 5. Preview budgets and persisted preview state.
 6. Content identity and duplicate-suggestion semantics.
 7. Artifact/revision metadata and attachment ownership.
