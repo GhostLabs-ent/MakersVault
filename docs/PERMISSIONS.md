@@ -206,8 +206,8 @@ are in
 
 ## The route matrix
 
-Paths are FastAPI templates exactly as declared. 82 routes: 8 public, 27 read,
-32 write, 15 admin.
+Paths are FastAPI templates exactly as declared. 90 routes: 9 public, 33 read,
+32 write, 16 admin.
 
 The collection/instance templates are deliberately asymmetric: the collection is
 `/projects` while one project is `/project/{project_id}`, exactly like `/folders`
@@ -225,6 +225,7 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | GET    | `/auth/oidc/start` | begins the Authorization Code + PKCE flow (503 when auth is disabled) |
 | GET    | `/auth/oidc/callback` | IdP redirect target; parks a single-use handoff code (503 when auth is disabled) |
 | POST   | `/auth/oidc/exchange` | the only mutation: provisions/links, opens a session, writes the audit row (503 when auth is disabled) |
+| POST   | `/mfa/verify` | trades the five-minute challenge `/login` minted for the real token pair; it runs before a session exists, so it cannot carry a bearer token (503 when auth is disabled) |
 
 ### read (any authenticated role, viewers included)
 
@@ -233,6 +234,12 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | GET    | `/me`                                  | own profile |
 | GET    | `/me/sessions`                         | own active sessions; ownership scoping is a data constraint |
 | DELETE | `/me/sessions/{session_id}`            | revoke one of your own sessions; a foreign id is a 404, never a 403 |
+| GET    | `/mfa`                                 | own two-factor status (enrolled, recovery codes left, policy, `can_enrol`) |
+| POST   | `/mfa/enrol`                           | mints a candidate TOTP secret; persists nothing, sudo-gated by the body password |
+| POST   | `/mfa/confirm`                         | stores the seed the caller proved they can use and returns ten recovery codes once |
+| POST   | `/mfa/step-up`                         | proves a code for the *current* session; the one route an admin who did not come through `/login` needs |
+| DELETE | `/mfa`                                 | disables two-factor for the caller; refused while the admin policy depends on it |
+| POST   | `/mfa/recovery-codes`                  | replaces the caller's ten recovery codes; the plaintext is returned once |
 | GET    | `/library/scan`                        | status poll every client uses; no secrets |
 | GET    | `/imports/runs`                         | mount-import history; same disclosure class as scan errors |
 | GET    | `/imports/runs/{run_id}`                | one run with its bounded per-file errors |
@@ -302,6 +309,7 @@ vs `/folder/{folder_id}`. Match on the template, not on the noun.
 | GET    | `/audit`                       | reading the audit trail is administration |
 | GET    | `/settings/mount-import`       | settings namespace is admin-only |
 | POST   | `/settings/mount-import`       | mutates settings |
+| POST   | `/settings/mfa`                | the MFA policy decides what every admin route demands, so changing it is administration |
 | GET    | `/settings/storage`            | settings namespace is admin-only |
 | POST   | `/settings/storage`            | storage template governs every future upload |
 | POST   | `/users`                       | user administration |
@@ -352,7 +360,67 @@ still proves the client is deleting exactly the rows it showed the user.
   `permissions.authorize` treats `None` as "no authentication on this
   deployment", so every route stays open exactly as it was before authorization
   existed. `/login`, `/refresh` and `/logout` answer 503 in that mode, and so do
-  `/me` and the `/users` routes.
+  `/me`, the `/users` routes and all eight `/mfa*` routes.
+
+## Multi-factor authentication
+
+Two-factor is TOTP (RFC 6238: HMAC-SHA1, six digits, thirty-second steps) and it
+is self-service: every `/mfa*` route is READ, because it acts on the caller's own
+account exactly like `/me/sessions`, while the admin-wide policy is one ADMIN
+route. The design and its threat model are in
+[ADR 0008](../makervault/docs/adr/0008-mfa-totp-enrolment.md).
+
+**The policy.** `mfa_require_admin` is an appconfig setting, `false` by default,
+and `POST /settings/mfa` (`{"require_admin": true|false}`) is the only way to
+change it; the change is audited as `settings.mfa_require_admin.update`, even
+when the value is unchanged. While it is on, `permissions.enforce_admin_mfa` runs
+after the ordinary rank check in `authorize()` and refuses an ADMIN call unless
+the *session* carries `sessions.mfa_verified_at`. A viewer or editor never
+reaches it: they are refused by the rank check first, with the ordinary 403.
+
+**The 403 and its header.** Both "this session has not stepped up" and "this
+account has no factor" answer 403 `"Multi-factor authentication required"` -
+deliberately not the `"Administrator access required"` string, because the
+caller *is* an admin and the session is the problem. The second case adds
+`X-MFA-Enrolment-Required: 1`, which is the client's cue to show an enrol-now
+panel rather than a dead end. The eight `/mfa*` routes are READ, not ADMIN, so
+they stay reachable from the very session that just received the 403: the header
+would be useless if the fix required the permission being denied.
+
+**Step-up.** `POST /mfa/step-up` proves a code against the caller's own seed and
+sets `mfa_verified_at` on the *current* session. This is what an OIDC login
+needs: an SSO exchange opens a session without a marker and never passes through
+the `/login` challenge, but it is not exempt from the policy either - the IdP
+authenticated a person, it did not prove a second factor to this application.
+A password login on an enrolled account is already `mfa_ok` because `/login`
+returns a challenge and `/mfa/verify` opens the session with the marker set.
+
+**Break-glass is exempt.** `permissions.enforce_admin_mfa` returns for
+`context.kind == sessions.BREAK_GLASS_KIND` before it reads the policy. The
+break-glass principal has `user_id = None`, so there is nowhere to store a seed,
+and gating the bootstrap path on a secret that needs a user row is circular.
+
+**No lockout is reachable through the switch.** Enabling the policy is a 409
+unless the calling session is already `mfa_ok` *and* the caller's account is
+enrolled (`"Enrol two-factor authentication and step up before turning this
+policy on"`), so the admin who flips it can satisfy it. `DELETE /mfa` is a 409
+for an admin while the policy is on
+(`"An administrator with the MFA policy on cannot disable two-factor
+authentication"`), so the factor cannot be removed from under the policy;
+turning the policy off is the way out, and that call is itself an admin route, so
+it needs an `mfa_ok` session - the same precondition, which an enrolled admin can
+re-establish through `/login` at any time. Both guards are code, not prose.
+
+**Enrolment is sudo-gated.** `POST /mfa/enrol`, `POST /mfa/confirm`,
+`DELETE /mfa` and `POST /mfa/recovery-codes` carry the caller's password and
+re-check it, so a wrong password is a 403 and a hijacked session cannot plant or
+swap a second factor; while an account is enrolled, enrolment is a 409. An
+SSO-only account (`password_hash IS NULL`) is a 409: its credential lives at the
+IdP, so there is no local password to confirm - and, consequently, no local
+seed to enrol. `POST /mfa/verify` is the one new public route, because it runs
+before a session exists; it is throttled per challenge subject by a second
+`LoginThrottle` instance, so TOTP guesses cannot lock the password login out and
+vice versa.
 
 ## Changing roles and accounts
 
@@ -478,7 +546,6 @@ sessions stay valid.
 ## Non-goals (owned by other tickets)
 
 * Mf-arm6 - per-asset ownership (editors act on all assets until then).
-* Mf-lg02 - MFA.
 
 ## Migrations
 
@@ -502,3 +569,14 @@ permission column. It appends two nullable columns to `sessions` —
 generation grace window in ADR 0007; the session routes themselves needed no
 schema change, because `device`, `user_agent` and `client_ip` have been recorded
 since migration 005.
+
+Migration 012 (`mfa_totp`) belongs to Mf-lg02 and adds no permission column
+either. It appends three nullable columns to `users` — `totp_secret` (AES-256-GCM
+ciphertext under an `AUTH_SECRET` subkey; NULL means not enrolled),
+`totp_enrolled_at` and `totp_last_step` (the counter of the last accepted TOTP
+code) —
+one nullable column to `sessions` (`mfa_verified_at`, the per-session proof the
+admin policy reads), and a `mfa_recovery_codes` table with a unique
+`(user_id, code_hmac)` index. Every object is `IF NOT EXISTS`/`_add_column`
+guarded, so re-applying 012 is harmless. The schema and the reasoning are in
+[ADR 0008](../makervault/docs/adr/0008-mfa-totp-enrolment.md).

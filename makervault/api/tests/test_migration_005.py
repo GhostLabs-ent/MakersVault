@@ -143,7 +143,10 @@ def test_fresh_database_reaches_the_latest_schema(tmp_path: Path) -> None:
     assert run_migrations(database_engine) == MIGRATIONS[-1].version
 
     assert shipped_ledger_entries(database_engine) == SHIPPED_LEDGER
-    assert set(table_columns(database_engine, "users")) == USERS_COLUMNS
+    # A subset for the same reason as `sessions` below: later append-only
+    # migrations add columns to `users` (012 adds the TOTP enrolment state),
+    # and this test is about 005 still shipping every column it promised.
+    assert USERS_COLUMNS.issubset(set(table_columns(database_engine, "users")))
     # A subset, not equality: later append-only migrations add columns to
     # `sessions` (011 adds the rotation history), and this test is about 005
     # still shipping every column it promised, not about freezing the table.

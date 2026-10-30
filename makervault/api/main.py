@@ -50,6 +50,7 @@ from routers import (
     folders,
     imports,
     library,
+    mfa,
     projects,
     settings,
     snapshots,
@@ -75,6 +76,7 @@ API_ROUTERS = (
     snapshots.router,
     library.router,
     auth_users.router,
+    mfa.router,
     audit_log.router,
     uploads.router,
     imports.router,
@@ -107,6 +109,7 @@ async def lifespan(_app: FastAPI):
     # (and is not exempt with a reason) is a bug that must not reach production.
     audit.assert_audit_coverage()
     login_throttle_module.limiter.reset()
+    login_throttle_module.mfa_limiter.reset()
     run_migrations(engine)
     # A row left `running` belongs to a previous process that died before it
     # could finish. This runs before the mount thread, so it cannot catch ours.

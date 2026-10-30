@@ -25,7 +25,7 @@ router = APIRouter()
 
 
 @router.post("/login", response_model=LoginResponse)
-def login(body: LoginRequest, request: Request):
+def login(body: LoginRequest, request: Request, response: Response):
     if not auth.AUTH_ENABLED:
         raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
     client_host = request.client.host if request.client else "unknown"
@@ -39,6 +39,27 @@ def login(body: LoginRequest, request: Request):
             headers={"Retry-After": str(retry_after)},
         )
     with Session(engine) as s:
+        # A stored second factor turns one credential check into a two-step
+        # login: this route decides, so `auth.login` keeps its single job of
+        # opening a session. Nothing is written on the challenge path - no
+        # session exists yet, and `mfa.verify.succeeded` is the row that records
+        # the completed login, so `login.succeeded` stays "a login finished".
+        user = accounts.get_user_by_username(s, body.username)
+        if (
+            user is not None
+            and not user.disabled
+            and auth.mfa_required(user)
+            and accounts.verify_password(user.password_hash, body.password)
+        ):
+            challenge = auth.create_mfa_challenge(user, username=user.username)
+            login_throttle_module.limiter.record_success(username)
+            # The *full* `LoginResponse` shape, with only `mfa_required` and
+            # `mfa_token` set: one model for both outcomes means the OpenAPI
+            # document and the runtime body cannot disagree, and a client never
+            # has to guess which body it got. The header is set through the
+            # injected `Response`, the idiom every `/mfa*` handler uses.
+            response.headers["Cache-Control"] = "no-store"
+            return LoginResponse(mfa_required=True, mfa_token=challenge)
         result = auth.login(
             s,
             body.username,

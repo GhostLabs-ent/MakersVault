@@ -3,6 +3,10 @@ from typing import Optional
 from sqlmodel import Session
 
 from db import engine
+
+# `mfa` imports `auth` only, and `auth` imports neither this module nor `db`, so
+# the key constant can live with the TOTP code it names without a cycle.
+from mfa import MFA_REQUIRE_ADMIN_KEY
 from models import AppConfig
 
 MOUNT_IMPORT_ENABLED_KEY = "mount_import_enabled"
@@ -75,3 +79,12 @@ def get_storage_template() -> str:
 
 def set_storage_template(value: str, *, session: Optional[Session] = None) -> None:
     set_setting(STORAGE_TEMPLATE_KEY, value, session=session)
+
+
+def get_mfa_require_admin(default: bool = False) -> bool:
+    """Whether admins must prove a second factor; owned here so the key has one home."""
+    return get_bool_setting(MFA_REQUIRE_ADMIN_KEY, default)
+
+
+def set_mfa_require_admin(value: bool, *, session: Optional[Session] = None) -> None:
+    set_bool_setting(MFA_REQUIRE_ADMIN_KEY, value, session=session)

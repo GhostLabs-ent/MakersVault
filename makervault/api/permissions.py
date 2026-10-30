@@ -39,9 +39,14 @@ from typing import Callable, Optional, Sequence
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.routing import APIRoute
+from sqlmodel import Session
 
 import accounts
+import mfa
+import sessions
+import settings_service
 from auth import AuthContext, require_auth, require_auth_or_file_grant
+from db import engine
 
 PUBLIC = "public"
 READ = "read"
@@ -69,6 +74,13 @@ DENY_DETAIL = {
     ADMIN: "Administrator access required",
 }
 
+# A distinct detail from `DENY_DETAIL[ADMIN]`: the caller is already an admin,
+# the *session* just has not proved a second factor yet. One message covers
+# both "step up" and "you have no factor at all"; the header distinguishes the
+# latter so the client can offer the self-service enrolment routes.
+MFA_REQUIRED_DETAIL = "Multi-factor authentication required"
+MFA_ENROLMENT_HEADER = "X-MFA-Enrolment-Required"
+
 
 def level_for_role(role: Optional[str]) -> str:
     """The level a role may use; an unknown or blank role gets the least (PUBLIC).
@@ -95,6 +107,36 @@ def authorize(request: Request, context: Optional[AuthContext], level: str) -> N
         return
     if LEVEL_RANK[level_for_role(context.role)] < LEVEL_RANK[level]:
         raise HTTPException(status_code=403, detail=DENY_DETAIL[level])
+    # After the rank check on purpose: a viewer still gets the plain 403, and
+    # only a real admin is asked whether this session has a second factor.
+    if level == ADMIN:
+        enforce_admin_mfa(context)
+
+
+def enforce_admin_mfa(context: AuthContext) -> None:
+    """Require an MFA-ok session for an admin action while the policy is on.
+
+    Break-glass is exempt: it has no user row, so there is nowhere to store a
+    seed and gating the bootstrap path on one would be circular. The policy is
+    an appconfig setting (an audited admin route toggles it), read once per
+    admin request; when it is off this costs one primary-key SELECT.
+
+    A session that never showed a factor is 403. The reason is the same single
+    string in both cases, but a not-yet-enrolled account also gets
+    `X-MFA-Enrolment-Required`, because there is nothing to step up to and the
+    READ-level `/mfa*` routes stay reachable for exactly that path.
+    """
+    if context.kind == sessions.BREAK_GLASS_KIND:
+        return
+    if not settings_service.get_mfa_require_admin():
+        return
+    with Session(engine) as db:
+        session_row = sessions.get(db, context.session_id)
+        user = accounts.get_user(db, context.user_id)
+    if mfa.mfa_ok(session_row):
+        return
+    headers = {} if mfa.user_is_enrolled(user) else {MFA_ENROLMENT_HEADER: "1"}
+    raise HTTPException(status_code=403, detail=MFA_REQUIRED_DETAIL, headers=headers)
 
 
 def require_permission(level: str, authenticate: Callable = require_auth) -> Callable:
@@ -147,6 +189,10 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("GET", "/auth/oidc/start"): PUBLIC,
     ("GET", "/auth/oidc/callback"): PUBLIC,
     ("POST", "/auth/oidc/exchange"): PUBLIC,
+    # MFA verification runs before a session exists: it trades the short-lived
+    # challenge minted by `/login` for the real token pair, so it is public in
+    # the same sense `/login` is. It is throttled on the challenge's subject.
+    ("POST", "/mfa/verify"): PUBLIC,
     # read: any authenticated principal, including viewers.
     ("GET", "/me"): READ,
     # A viewer must be able to list and sign out their own devices, so both
@@ -156,6 +202,16 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     # else's session exists.
     ("GET", "/me/sessions"): READ,
     ("DELETE", "/me/sessions/{session_id}"): READ,
+    # The MFA self-service routes act on the caller's own account, exactly like
+    # `/me/sessions`, so they are READ: a viewer must be able to enrol, step up
+    # and read their own status. The admin policy is what gates *other* admin
+    # routes, not this surface; every one of these 503s when auth is off.
+    ("GET", "/mfa"): READ,
+    ("POST", "/mfa/enrol"): READ,
+    ("POST", "/mfa/confirm"): READ,
+    ("POST", "/mfa/step-up"): READ,
+    ("DELETE", "/mfa"): READ,
+    ("POST", "/mfa/recovery-codes"): READ,
     ("GET", "/library/scan"): READ,
     ("GET", "/imports/runs"): READ,
     ("GET", "/imports/runs/{run_id}"): READ,
@@ -232,6 +288,9 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("GET", "/audit"): ADMIN,
     ("GET", "/settings/mount-import"): ADMIN,
     ("POST", "/settings/mount-import"): ADMIN,
+    # The MFA policy decides what every admin route demands, so changing it is
+    # administration itself.
+    ("POST", "/settings/mfa"): ADMIN,
     ("GET", "/settings/storage"): ADMIN,
     ("POST", "/settings/storage"): ADMIN,
     # Reading the retention policy that bounds every snapshot is administration.

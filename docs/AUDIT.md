@@ -67,7 +67,7 @@ could honestly reconstruct.
 
 ## The action taxonomy
 
-`audit.ACTIONS` holds exactly these 37 strings. Action names are stable and
+`audit.ACTIONS` holds exactly these 46 strings. Action names are stable and
 `namespace.verb`; a reader of a row does not need the code to know what it means.
 
 | Action | Route(s) that emit it | `target` | `detail` | Failure |
@@ -109,6 +109,15 @@ could honestly reconstruct.
 | `session.refresh_graced` | `POST /refresh` (only when a superseded token is presented inside the 60-second grace window) | session id | `{"client_ip"}` | fail-closed |
 | `session.refresh_replayed` | `POST /refresh` (only when a previous-generation token is presented after the window; the session is revoked in the same transaction) | session id | `{"client_ip"}` | fail-closed |
 | `session.prune` | no route emits it; written by `session_prune.run_once` | `"session_prune"` | `{"count"}` | fail-closed; a failed tick is logged and the thread continues |
+| `mfa.enrol.start` | `POST /mfa/enrol` | the real username | `{"stage": "start"}` | fail-closed |
+| `mfa.enrol` | `POST /mfa/confirm` | the real username | `{"recovery_codes": 10}` | fail-closed |
+| `mfa.verify.succeeded` | `POST /mfa/verify` (a TOTP code) | the user id | `{"kind", "method", "client_ip"}` | fail-closed |
+| `mfa.verify.failed` | `POST /mfa/verify` (a wrong code, or an unknown/disabled account) | the user id | `{"method", "reason", "client_ip"}` | fail-closed; committed before the 401 |
+| `mfa.recovery_code.used` | `POST /mfa/verify` (a recovery code instead of a TOTP code) | the user id | `{"kind", "method", "client_ip"}` | fail-closed |
+| `mfa.step_up` | `POST /mfa/step-up` | session id | `{"username"}` | fail-closed |
+| `mfa.disable` | `DELETE /mfa` | the real username | `{"recovery_codes_deleted"}` | fail-closed |
+| `mfa.recovery_codes.regenerate` | `POST /mfa/recovery-codes` | the real username | `{"count": 10}` | fail-closed |
+| `settings.mfa_require_admin.update` | `POST /settings/mfa` | `"mfa_require_admin"` | `{"from", "to"}` booleans | fail-closed |
 
 The snapshot actions are route actions now that `POST /snapshots` and
 `DELETE /snapshots/{name}` exist. Those two routes hand the provider an audit
@@ -178,8 +187,8 @@ snapshot: the trash keeps it restorable, so it stays `asset.delete` alone.
 The rule `assert_audit_coverage()` enforces: **every route in
 `permissions.ROUTE_PERMISSIONS` whose method is not `GET` must be in
 `ROUTE_ACTIONS` or in `EXEMPT_ROUTES` with a non-empty reason.** `GET` routes are
-out of scope by construction: they change nothing. The matrix has 82 routes, 35
-of them `GET`; the remaining 47 split into 29 audited keys and 18 exempt keys.
+out of scope by construction: they change nothing. The matrix has 90 routes, 36
+of them `GET`; the remaining 54 split into 36 audited keys and 18 exempt keys.
 
 The guard also refuses stale keys (an entry for a route that no longer exists), a
 key in both tables, an action that is not in `ACTIONS`, and an exemption without
@@ -229,6 +238,19 @@ nothing. The replay row and the revoke it describes are committed before the
 handler raises its 401, so the failure is a fact in the log rather than a
 rolled-back exception. Neither row ever carries a token or a hash.
 
+`POST /mfa/verify` is the other public route with a decision to record, and it
+also commits an outcome before it rejects. A completed second factor writes
+`mfa.verify.succeeded` (or `mfa.recovery_code.used`) in the new session's own
+transaction, so the login and its record are one fact; a failed one stages
+`mfa.verify.failed`, **commits**, and only then raises its 401. That order is
+load-bearing and deliberate, not an accident: an `HTTPException` unwinds the
+request's session, so raising first would roll the failure row back with the
+attempt and leave a rejected login invisible. The row carries the method, a
+frozen reason and the client IP - never the code, the seed or a digest of
+either. `POST /mfa/step-up` writes on success only (`mfa.step_up`, target the
+session id): `mfa.verify.failed` belongs to `/mfa/verify`, and a failed step-up
+has no decision to record because the session already exists.
+
 ## A request that changes nothing writes nothing
 
 The log records what happened, not what was asked. These requests return success
@@ -250,6 +272,15 @@ The services compare against the pre-change values they already hold
 and stage zero events when nothing differs.
 `tests/test_audit_log.py::test_no_op_requests_write_nothing` pins the rename,
 move, same-role and tags-only cases.
+
+**`POST /settings/mfa` is the one deliberate exception.** It stages
+`settings.mfa_require_admin.update` unconditionally, even when `from` and `to`
+are the same, because that row is an explicit policy assertion - an admin saying
+"this deployment requires two-factor" - rather than a record of a changed
+column. `POST /login` has the same precedent: an explicit decision is recorded
+even though the request changed no state. The audit sweep depends on it: every
+non-`GET` route must be able to produce its row, and a policy route that silently
+wrote nothing on a re-send would be indistinguishable from one that failed.
 
 ## Failure semantics
 
@@ -440,7 +471,7 @@ administration).
 | Parameter | Type | Semantics |
 |---|---|---|
 | `actor` | string | exact match, case-insensitive (both sides lowered, value stripped) |
-| `action` | string | exact match, case-sensitive - one of the 37 names above |
+| `action` | string | exact match, case-sensitive - one of the 46 names above |
 | `target` | string | case-sensitive substring match; `%`, `_` and `\` are escaped, so it is a literal substring |
 | `since` | string | `created_at >= value` |
 | `until` | string | `created_at <= value` |

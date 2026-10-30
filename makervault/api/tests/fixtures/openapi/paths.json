@@ -2607,6 +2607,273 @@
       "summary": "Revoke My Session"
     }
   },
+  "/mfa": {
+    "delete": {
+      "operationId": "disable_mfa_mfa_delete",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MfaPasswordRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Disable Mfa"
+    },
+    "get": {
+      "operationId": "get_mfa_status_mfa_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaStatusOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Get Mfa Status"
+    }
+  },
+  "/mfa/confirm": {
+    "post": {
+      "operationId": "confirm_enrolment_mfa_confirm_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MfaConfirmRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaConfirmOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Confirm Enrolment"
+    }
+  },
+  "/mfa/enrol": {
+    "post": {
+      "operationId": "start_enrolment_mfa_enrol_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MfaEnrolRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaEnrolOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Start Enrolment"
+    }
+  },
+  "/mfa/recovery-codes": {
+    "post": {
+      "operationId": "regenerate_recovery_codes_mfa_recovery_codes_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MfaPasswordRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaRecoveryCodesOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Regenerate Recovery Codes"
+    }
+  },
+  "/mfa/step-up": {
+    "post": {
+      "operationId": "step_up_mfa_step_up_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MfaStepUpRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaStepUpOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Step Up"
+    }
+  },
+  "/mfa/verify": {
+    "post": {
+      "operationId": "verify_mfa_mfa_verify_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MfaVerifyRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginResponse"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Verify Mfa"
+    }
+  },
   "/project/{project_id}": {
     "delete": {
       "operationId": "delete_project_project__project_id__delete",
@@ -3135,6 +3402,49 @@
         }
       ],
       "summary": "Revoke User Session"
+    }
+  },
+  "/settings/mfa": {
+    "post": {
+      "operationId": "update_mfa_policy_settings_mfa_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MfaPolicyUpdate"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaPolicyOut"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Update Mfa Policy"
     }
   },
   "/settings/mount-import": {

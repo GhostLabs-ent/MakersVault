@@ -164,3 +164,7 @@ class LoginThrottle:
 
 
 limiter = LoginThrottle()
+# A second, independent bucket table for TOTP/recovery-code guesses. Sharing
+# `limiter` would let a spray of wrong TOTP codes lock the password login out
+# (and vice versa), which is a denial-of-service lever, not a defence.
+mfa_limiter = LoginThrottle()

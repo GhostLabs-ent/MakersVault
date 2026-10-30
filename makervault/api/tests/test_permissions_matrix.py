@@ -42,6 +42,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.routing import APIRoute, iter_route_contexts
 from fastapi.testclient import TestClient
 from httpx import Response
+from jwt import PyJWTError
 from PIL import Image
 from sqlmodel import Session, delete, select
 
@@ -54,6 +55,7 @@ import import_runs
 import library_scan
 import login_throttle as login_throttle_module
 import main
+import mfa
 import permissions
 import settings_service
 import snapshots
@@ -61,7 +63,7 @@ import storage_capabilities
 from config import MOUNT_IMPORT_COPY, MOUNT_IMPORT_ENABLED
 from db import engine
 from migrations import run_migrations
-from models import AppConfig, Asset, AssetFile, Folder, ImportRun, Project, ProjectAsset, User, UserSession
+from models import AppConfig, Asset, AssetFile, Folder, ImportRun, MfaRecoveryCode, Project, ProjectAsset, User, UserSession
 
 ADMIN_USERNAME = "root"
 ADMIN_PASSWORD = "root-password-1"
@@ -117,6 +119,16 @@ DISABLED_503_KEYS = {
     ("DELETE", "/me/sessions/{session_id}"),
     ("GET", "/users/{user_id}/sessions"),
     ("DELETE", "/sessions/{session_id}"),
+    # MFA (Mf-lg02): every one of the eight 503s when auth is off, for the same
+    # reason - an MFA endpoint that kept answering would be a second door.
+    ("GET", "/mfa"),
+    ("POST", "/mfa/enrol"),
+    ("POST", "/mfa/confirm"),
+    ("POST", "/mfa/verify"),
+    ("POST", "/mfa/step-up"),
+    ("DELETE", "/mfa"),
+    ("POST", "/mfa/recovery-codes"),
+    ("POST", "/settings/mfa"),
 }
 
 
@@ -158,6 +170,9 @@ class Ids:
 
 def truncate_accounts() -> None:
     with Session(engine) as db:
+        # Children first: the foreign keys are enforced, and a recovery-code row
+        # would otherwise keep its account alive.
+        db.execute(delete(MfaRecoveryCode))
         db.execute(delete(UserSession))
         db.execute(delete(User))
         db.commit()
@@ -912,6 +927,92 @@ def call_delete_session(client: TestClient, headers: dict[str, str], ids: Ids, m
     return client.delete(f"/sessions/{PLACEHOLDER_USER_ID}", headers=headers)
 
 
+# The eight MFA routes (Mf-lg02). These sweeps ask one question - may this role
+# reach the route - so no spec here enrols anybody: an enrolled admin would turn
+# `/login` into a challenge and every later spec under this fixture would be a
+# different test. That is also why `/mfa/confirm` sends a *correct* password and a
+# code that cannot match: the handler answers 400 (a bad enrolment request), never
+# the 401/403 the admin sweep forbids, and nothing is stored.
+CALLER_PASSWORDS = {
+    ADMIN_USERNAME: ADMIN_PASSWORD,
+    EDITOR_USERNAME: EDITOR_PASSWORD,
+    VIEWER_USERNAME: VIEWER_PASSWORD,
+}
+PROBE_SEED = bytes(mfa.SECRET_BYTES)
+
+
+def caller_password(headers: dict[str, str]) -> str:
+    """The calling account's password, because the sudo gate re-checks it.
+
+    One call spec runs under three roles and the token is what names the caller,
+    so this reads the account off the token instead of assuming the admin.
+    """
+    token = headers.get("Authorization", "").partition("Bearer ")[2]
+    if not token:
+        return ""
+    try:
+        username = str(auth.decode_access_token(token).get("username") or "")
+    except PyJWTError:
+        return ""
+    return CALLER_PASSWORDS.get(username, "")
+
+
+def never_valid_code(secret: bytes = PROBE_SEED) -> str:
+    """Six digits that cannot match `secret` anywhere in the skew window."""
+    step = mfa.current_step()
+    accepted = {
+        mfa.totp_at(secret, step + offset)
+        for offset in range(-mfa.TOTP_SKEW_STEPS, mfa.TOTP_SKEW_STEPS + 1)
+    }
+    candidate = 0
+    while f"{candidate:06d}" in accepted:
+        candidate += 1
+    return f"{candidate:06d}"
+
+
+def call_mfa_status(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    return client.get("/mfa", headers=headers)
+
+
+def call_mfa_enrol(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    return client.post("/mfa/enrol", json={"password": caller_password(headers)}, headers=headers)
+
+
+def call_mfa_confirm(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    body = {
+        "password": caller_password(headers),
+        "secret": mfa.base32_secret(PROBE_SEED),
+        "code": never_valid_code(),
+    }
+    return client.post("/mfa/confirm", json=body, headers=headers)
+
+
+def call_mfa_verify(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    # Not a signed challenge: 400, the "unparseable token" answer. A *valid*
+    # challenge with a *wrong* code is a 401, which this sweep must never see.
+    return client.post("/mfa/verify", json={"mfa_token": "not-a-challenge", "code": "123456"}, headers=headers)
+
+
+def call_mfa_step_up(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    return client.post("/mfa/step-up", json={"code": "123456"}, headers=headers)
+
+
+def call_mfa_disable(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    return client.request("DELETE", "/mfa", json={"password": caller_password(headers)}, headers=headers)
+
+
+def call_mfa_recovery_codes(
+    client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch
+) -> Response:
+    return client.post("/mfa/recovery-codes", json={"password": caller_password(headers)}, headers=headers)
+
+
+def call_mfa_policy(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    # Pin the shipped value rather than flipping it: turning the policy on would
+    # 403 every later admin route in this sweep.
+    return client.post("/settings/mfa", json={"require_admin": False}, headers=headers)
+
+
 CALLS: dict[tuple[str, str], CallSpec] = {
     ("GET", "/health"): call_health,
     ("POST", "/login"): call_login,
@@ -924,6 +1025,14 @@ CALLS: dict[tuple[str, str], CallSpec] = {
     ("GET", "/me"): call_me,
     ("GET", "/me/sessions"): call_list_own_sessions,
     ("DELETE", "/me/sessions/{session_id}"): call_delete_own_session,
+    ("GET", "/mfa"): call_mfa_status,
+    ("POST", "/mfa/enrol"): call_mfa_enrol,
+    ("POST", "/mfa/confirm"): call_mfa_confirm,
+    ("POST", "/mfa/verify"): call_mfa_verify,
+    ("POST", "/mfa/step-up"): call_mfa_step_up,
+    ("DELETE", "/mfa"): call_mfa_disable,
+    ("POST", "/mfa/recovery-codes"): call_mfa_recovery_codes,
+    ("POST", "/settings/mfa"): call_mfa_policy,
     ("GET", "/library/scan"): call_scan_status,
     ("GET", "/file/{asset_id}/{name}"): call_file,
     ("GET", "/asset/{asset_id}/files"): call_supporting_files,
@@ -1066,6 +1175,18 @@ EXPECTED_STATUS: dict[tuple[str, str], int] = {
     ("PATCH", "/users/{user_id}"): 200,
     ("GET", "/users/{user_id}/sessions"): 200,
     ("DELETE", "/sessions/{session_id}"): 404,
+    # MFA (Mf-lg02): none of these enrols the caller, so none can flip `/login`
+    # into a challenge mid-sweep. 400 for a bad enrolment request or an
+    # unparseable challenge, 409 while the account has no factor, 200 for the
+    # status read and for writing the policy back to its shipped value.
+    ("GET", "/mfa"): 200,
+    ("POST", "/mfa/enrol"): 200,
+    ("POST", "/mfa/confirm"): 400,
+    ("POST", "/mfa/verify"): 400,
+    ("POST", "/mfa/step-up"): 409,
+    ("DELETE", "/mfa"): 409,
+    ("POST", "/mfa/recovery-codes"): 409,
+    ("POST", "/settings/mfa"): 200,
     ("GET", "/audit"): 200,
     ("POST", "/trash/purge"): 200,
     ("GET", "/snapshots"): 200,
@@ -1208,10 +1329,10 @@ def test_a_route_declared_on_the_app_instead_of_a_router_is_caught() -> None:
 
 
 def test_the_matrix_is_the_documented_size() -> None:
-    """The matrix is pinned at 82 routes; a new route means updating this and docs/PERMISSIONS.md."""
+    """The matrix is pinned at 90 routes; a new route means updating this and docs/PERMISSIONS.md."""
     counts = {level: len(keys_at(level)) for level in (permissions.PUBLIC, permissions.READ, permissions.WRITE, permissions.ADMIN)}
-    assert len(permissions.ROUTE_PERMISSIONS) == 82, counts
-    assert counts == {permissions.PUBLIC: 8, permissions.READ: 27, permissions.WRITE: 32, permissions.ADMIN: 15}, counts
+    assert len(permissions.ROUTE_PERMISSIONS) == 90, counts
+    assert counts == {permissions.PUBLIC: 9, permissions.READ: 33, permissions.WRITE: 32, permissions.ADMIN: 16}, counts
 
 
 def test_every_guarded_route_has_a_call_spec() -> None:
@@ -1397,5 +1518,13 @@ def test_the_503_set_is_exactly_the_documented_endpoints() -> None:
         ("DELETE", "/me/sessions/{session_id}"),
         ("GET", "/users/{user_id}/sessions"),
         ("DELETE", "/sessions/{session_id}"),
+        ("GET", "/mfa"),
+        ("POST", "/mfa/enrol"),
+        ("POST", "/mfa/confirm"),
+        ("POST", "/mfa/verify"),
+        ("POST", "/mfa/step-up"),
+        ("DELETE", "/mfa"),
+        ("POST", "/mfa/recovery-codes"),
+        ("POST", "/settings/mfa"),
     }
     assert DISABLED_503_KEYS <= set(permissions.ROUTE_PERMISSIONS)

@@ -607,6 +607,59 @@ def _migration_011_session_rotation_history(conn: Connection) -> None:
     )
 
 
+def _migration_012_mfa_totp(conn: Connection) -> None:
+    """Two-factor enrolment state (Mf-lg02).
+
+    `users.totp_secret` is a nullable TEXT blob: the seed has to be fed to HMAC
+    to check a code, so it cannot be hashed, and it is stored as AES-256-GCM
+    ciphertext under an `AUTH_SECRET` subkey so a database copy alone cannot
+    mint codes. NULL means not enrolled.
+
+    `users.totp_last_step` is the INTEGER counter of the last accepted TOTP
+    code, not an ISO timestamp: `mfa.matching_step` returns the code's own
+    counter, so burning that value makes "accept this code exactly once" a
+    single guarded `UPDATE ... WHERE totp_last_step < ?`, and a re-presentation
+    of that code loses in every wall-clock bucket, even under concurrency. An
+    absent/older value always loses to a newer counter, which is why the guard
+    never needs to go backwards.
+
+    Recovery codes are their own table rather than a JSON blob on `users` for
+    the same reason: one row per code lets single use be one guarded UPDATE
+    (`used_at IS NULL`) instead of a read-modify-write that two requests could
+    interleave. The unique `(user_id, code_hmac)` index keeps the set a set.
+
+    `sessions.mfa_verified_at` lives per session, not on the user: two-factor
+    is proven once per login, so a fresh password or OIDC login must start
+    without the marker and be upgraded by `POST /mfa/step-up`. A per-user flag
+    would let a second device inherit a factor it never presented.
+
+    Columns are added through `_add_column` (guarded by `PRAGMA table_info`)
+    and every table/index uses `IF NOT EXISTS`, so re-applying 012 is harmless,
+    like 004-011.
+    """
+    _add_column(conn, "users", "totp_secret", "TEXT")
+    _add_column(conn, "users", "totp_enrolled_at", "VARCHAR")
+    _add_column(conn, "users", "totp_last_step", "INTEGER")
+    _add_column(conn, "sessions", "mfa_verified_at", "INTEGER")
+    conn.exec_driver_sql(
+        """CREATE TABLE IF NOT EXISTS mfa_recovery_codes (
+            id VARCHAR NOT NULL PRIMARY KEY,
+            user_id VARCHAR NOT NULL,
+            code_hmac VARCHAR NOT NULL,
+            created_at VARCHAR NOT NULL,
+            used_at INTEGER,
+            FOREIGN KEY(user_id) REFERENCES users(id))"""
+    )
+    conn.exec_driver_sql(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_mfa_recovery_codes_user_hmac "
+        "ON mfa_recovery_codes(user_id, code_hmac)"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS idx_mfa_recovery_codes_user_id "
+        "ON mfa_recovery_codes(user_id)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "initial_schema", _migration_001_initial_schema),
     Migration(2, "nested_folders_and_mount_sources", _migration_002_nested_folders_and_mount_sources),
@@ -619,6 +672,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(9, "asset_file_order", _migration_009_asset_file_order),
     Migration(10, "oidc_identities", _migration_010_oidc_identities),
     Migration(11, "session_rotation_history", _migration_011_session_rotation_history),
+    Migration(12, "mfa_totp", _migration_012_mfa_totp),
 )
 
 

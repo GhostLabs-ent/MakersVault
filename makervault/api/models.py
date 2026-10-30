@@ -61,6 +61,12 @@ class User(SQLModel, table=True):
   password_hash: Optional[str] = None
   role: str = Field(default="viewer")
   disabled: int = Field(default=0)
+  # Migration 012: the TOTP seed is AES-256-GCM ciphertext (base64), never a
+  # digest, because HOTP must feed the raw seed to HMAC. `totp_last_step` is the
+  # last matched TOTP counter burned, so one guarded UPDATE enforces single use.
+  totp_secret: Optional[str] = None
+  totp_enrolled_at: Optional[str] = None
+  totp_last_step: Optional[int] = None
   created_at: str
   updated_at: str
 
@@ -85,6 +91,9 @@ class UserSession(SQLModel, table=True):
   # a hash that has already been replaced.
   previous_refresh_token_hash: Optional[str] = None
   rotated_at: Optional[int] = None
+  # Migration 012: per-session, not per-user, so a password or OIDC login is
+  # born without a second factor and step-up upgrades exactly this session.
+  mfa_verified_at: Optional[int] = None
 
 
 # audit_events is created by migration 006; this class only describes it for
@@ -104,6 +113,18 @@ class AuditEvent(SQLModel, table=True):
   request_id: str
   method: str
   path: str
+
+
+# mfa_recovery_codes is created by migration 012; this class only describes it
+# for typed queries and must never create the table itself. One row per code is
+# what makes "consume once" a single guarded UPDATE instead of a JSON rewrite.
+class MfaRecoveryCode(SQLModel, table=True):
+  __tablename__ = "mfa_recovery_codes"
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  user_id: str = Field(foreign_key="users.id", index=True)
+  code_hmac: str
+  created_at: str
+  used_at: Optional[int] = None
 
 
 # project and project_asset are created by migration 007; these classes only

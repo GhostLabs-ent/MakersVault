@@ -64,6 +64,14 @@ FILE_GRANT_MAX_TTL_SECONDS = 300
 # cache key, `inline` selects the preview disposition on one route.
 FILE_GRANT_QUERY_KEYS = frozenset({"v", "inline"})
 KIND_FILE_GRANT = "file_grant"
+# The MFA challenge is a terser, narrower credential than an access token: it
+# proves "this password was correct" for five minutes and nothing else. It is
+# signed with its own subkey so a challenge can never verify as an access token
+# (`decode_access_token` uses `AUTH_SECRET` itself) nor as a file grant, which
+# is why `require_auth` needs no extra check to reject one.
+MFA_TOKEN_TYPE = "mfa"
+MFA_TOKEN_TTL_SECONDS = 300
+MFA_TOKEN_KEY_INFO = b"makervault/mfa-challenge/v1"
 # A viewer is the least role, so the rank ladder keeps a grant read-only if it
 # ever reaches a dependency it was not meant to.
 ROLE_FILE_GRANT = "viewer"
@@ -223,6 +231,61 @@ def decode_file_grant(token: str) -> dict:
   if lifetime > FILE_GRANT_MAX_TTL_SECONDS:
     raise InvalidTokenError("file grant lifetime exceeds the maximum")
   return payload
+
+
+def mfa_token_key() -> bytes:
+  """Derive the challenge-signing subkey, domain-separated like the grant key.
+
+  Sharing `AUTH_SECRET` itself would make a challenge and an access token the
+  same format with a different `typ` string; deriving a subkey means neither
+  can ever verify as the other, whatever the claims say.
+  """
+  return hmac.new(AUTH_SECRET.encode("utf-8"), MFA_TOKEN_KEY_INFO, hashlib.sha256).digest()
+
+
+def create_mfa_challenge(user, *, username: str) -> str:
+  """Sign a five-minute "password already checked" ticket for one account.
+
+  `auth.login` deliberately does not mint or consume this: it opens sessions,
+  and a challenge exists precisely because no session should exist yet.
+  """
+  now = int(time.time())
+  payload = {
+    "sub": user.id,
+    "typ": MFA_TOKEN_TYPE,
+    "username": username,
+    "iat": now,
+    "exp": now + MFA_TOKEN_TTL_SECONDS,
+  }
+  return jwt.encode(payload, mfa_token_key(), algorithm=AUTH_ALGO)
+
+
+def decode_mfa_challenge(token: str) -> dict:
+  """Verify a challenge's signature and lifetime and demand `typ == mfa`.
+
+  Raises `jwt.InvalidTokenError` (so callers catch `PyJWTError`) rather than
+  returning a payload a caller could mistake for a session.
+  """
+  payload = jwt.decode(
+    token,
+    mfa_token_key(),
+    algorithms=[AUTH_ALGO],
+    options={"require": ["sub", "typ", "iat", "exp"]},
+  )
+  if payload.get("typ") != MFA_TOKEN_TYPE:
+    raise InvalidTokenError("not an mfa challenge")
+  return payload
+
+
+def mfa_required(user) -> bool:
+  """True when this account must complete a second factor after a password.
+
+  A stored seed alone is not enough: an SSO-only account has no local password
+  to check first, so its identity provider owns the second factor and the
+  challenge check must not fire. Kept here (not imported from `mfa`, which
+  imports this module) so `auth.login` can stay completely untouched.
+  """
+  return bool(user is not None and user.totp_secret and user.password_hash)
 
 
 def login(

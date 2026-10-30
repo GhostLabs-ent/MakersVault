@@ -1,5 +1,13 @@
 import React from "react";
-import { getOidcStatus, login, oidcStartUrl, ssoErrorCopy } from "../lib/api";
+import {
+  getOidcStatus,
+  isMfaChallenge,
+  login,
+  mfaVerify,
+  oidcStartUrl,
+  ssoErrorCopy,
+  type MfaChallenge,
+} from "../lib/api";
 import { ResolvedTheme } from "../lib/settings";
 
 type Props = {
@@ -30,6 +38,12 @@ export default function Login({ onSuccess, apiUp, theme, ssoError }: Props) {
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  // The outstanding second-factor challenge, if `/login` asked for one. It lives
+  // here and nowhere else: not in localStorage, not in the URL. A challenge is
+  // a bearer credential for one code attempt, so persisting it would survive
+  // the tab and the history entry that a reload or a shared link exposes.
+  const [challenge, setChallenge] = React.useState<MfaChallenge | null>(null);
+  const [code, setCode] = React.useState("");
   // SSO is racked only once the API confirms it: a deployment without an IdP
   // must not offer a button that dead-ends at a 503.
   const [ssoEnabled, setSsoEnabled] = React.useState(false);
@@ -54,6 +68,13 @@ export default function Login({ onSuccess, apiUp, theme, ssoError }: Props) {
     setLoading(true);
     try {
       const res = await login(username, password);
+      if (isMfaChallenge(res)) {
+        // Not a failure: the password was right and the API wants the second
+        // factor before it issues anything worth storing.
+        setChallenge(res);
+        setCode("");
+        return;
+      }
       onSuccess(res.token, res.expires_in, res.refresh_token ?? "");
     } catch (err) {
       console.error(err);
@@ -67,6 +88,35 @@ export default function Login({ onSuccess, apiUp, theme, ssoError }: Props) {
     }
   };
 
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!challenge) return;
+    setError(null);
+    setLoading(true);
+    try {
+      // The input is uppercased on entry, so a recovery code typed in lowercase
+      // still matches the stored form.
+      const res = await mfaVerify(challenge.mfa_token, code.trim().toUpperCase());
+      onSuccess(res.token, res.expires_in, res.refresh_token ?? "");
+    } catch (err) {
+      console.error(err);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Verification failed");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** Back to the password form: the challenge is dropped, never reused. */
+  const cancelChallenge = () => {
+    setChallenge(null);
+    setCode("");
+    setError(null);
+  };
+
   return (
     <div className="w-full max-w-md rounded-xl border border-panel bg-panel-soft p-6 shadow-xl backdrop-blur">
       <div className="mb-6 text-center space-y-3">
@@ -77,7 +127,9 @@ export default function Login({ onSuccess, apiUp, theme, ssoError }: Props) {
             className="max-h-40 w-auto"
           />
         </div>
-        <p className="text-sm text-muted">Sign in to continue</p>
+        <p className="text-sm text-muted">
+          {challenge ? "Two-factor authentication" : "Sign in to continue"}
+        </p>
       </div>
       {apiUp === false && (
         <div className="mb-4 rounded-md bg-red-100 text-red-900 dark:bg-red-900/30 dark:text-red-100 px-3 py-2 text-sm">
@@ -89,47 +141,89 @@ export default function Login({ onSuccess, apiUp, theme, ssoError }: Props) {
           {error}
         </div>
       )}
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium">Username</label>
-          <input
-            value={username}
-            onChange={e => setUsername(e.target.value)}
-            className="px-3 py-2 rounded-md border border-panel-strong bg-panel-strong"
-            autoComplete="username"
-            required
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium">Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            className="px-3 py-2 rounded-md border border-panel-strong bg-panel-strong"
-            autoComplete="current-password"
-            required
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full px-3 py-2 rounded-md bg-accent font-medium disabled:opacity-60"
-        >
-          {loading ? "Signing in..." : "Sign in"}
-        </button>
-        {ssoEnabled && (
-          // Secondary, not `bg-accent`: the local password form stays the
-          // primary path and the only one that works offline.
+      {challenge ? (
+        <form className="space-y-4" onSubmit={handleVerify}>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium" htmlFor="login-mfa-code">
+              Authentication code
+            </label>
+            {/* Recovery codes are letters, digits and dashes, so the pattern is
+                not digits-only: a `[0-9]*` pattern would make the browser refuse
+                to submit the very recovery code this step also accepts. */}
+            <input
+              id="login-mfa-code"
+              value={code}
+              onChange={e => setCode(e.target.value.toUpperCase())}
+              className="px-3 py-2 rounded-md border border-panel-strong bg-panel-strong"
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              pattern="[0-9A-Za-z-]*"
+              autoFocus
+              required
+            />
+            <p className="text-xs text-muted">
+              Enter the 6-digit code from your authenticator app, or one of your recovery codes.
+            </p>
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full px-3 py-2 rounded-md bg-accent font-medium disabled:opacity-60"
+          >
+            {loading ? "Verifying..." : "Verify"}
+          </button>
           <button
             type="button"
-            onClick={() => window.location.assign(oidcStartUrl())}
-            className="w-full px-3 py-2 rounded-md border border-panel-strong bg-panel-strong font-medium"
+            onClick={cancelChallenge}
+            disabled={loading}
+            className="w-full px-3 py-2 rounded-md border border-panel-strong bg-panel-strong font-medium disabled:opacity-60"
           >
-            Sign in with SSO
+            Back
           </button>
-        )}
-      </form>
+        </form>
+      ) : (
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Username</label>
+            <input
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              className="px-3 py-2 rounded-md border border-panel-strong bg-panel-strong"
+              autoComplete="username"
+              required
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="px-3 py-2 rounded-md border border-panel-strong bg-panel-strong"
+              autoComplete="current-password"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full px-3 py-2 rounded-md bg-accent font-medium disabled:opacity-60"
+          >
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
+          {ssoEnabled && (
+            // Secondary, not `bg-accent`: the local password form stays the
+            // primary path and the only one that works offline.
+            <button
+              type="button"
+              onClick={() => window.location.assign(oidcStartUrl())}
+              className="w-full px-3 py-2 rounded-md border border-panel-strong bg-panel-strong font-medium"
+            >
+              Sign in with SSO
+            </button>
+          )}
+        </form>
+      )}
       {/* Only the frozen copy table above can reach here; the API's own error
           detail is never rendered. */}
       {ssoMessage && (

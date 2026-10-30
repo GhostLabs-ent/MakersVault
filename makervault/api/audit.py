@@ -95,6 +95,18 @@ SESSION_REFRESH_REPLAYED = "session.refresh_replayed"
 # ACTIONS-only, like the scheduler's pair: `session_prune.run_once` is a
 # background thread with no route, so no ROUTE_ACTIONS tuple may name it.
 SESSION_PRUNE = "session.prune"
+# MFA (Mf-lg02). Every one of these is a decision an operator may want to read
+# back: the seed was minted, the factor was confirmed, a factor was presented
+# (or failed), a recovery code was spent, or the admin policy moved.
+MFA_ENROL_START = "mfa.enrol.start"
+MFA_ENROL = "mfa.enrol"
+MFA_VERIFY_SUCCEEDED = "mfa.verify.succeeded"
+MFA_VERIFY_FAILED = "mfa.verify.failed"
+MFA_RECOVERY_CODE_USED = "mfa.recovery_code.used"
+MFA_STEP_UP = "mfa.step_up"
+MFA_DISABLE = "mfa.disable"
+MFA_RECOVERY_CODES_REGENERATE = "mfa.recovery_codes.regenerate"
+SETTINGS_MFA_REQUIRE_ADMIN_UPDATE = "settings.mfa_require_admin.update"
 
 ACTIONS: frozenset[str] = frozenset({
     ASSET_DELETE,
@@ -134,6 +146,15 @@ ACTIONS: frozenset[str] = frozenset({
     SESSION_REFRESH_GRACED,
     SESSION_REFRESH_REPLAYED,
     SESSION_PRUNE,
+    MFA_ENROL_START,
+    MFA_ENROL,
+    MFA_VERIFY_SUCCEEDED,
+    MFA_VERIFY_FAILED,
+    MFA_RECOVERY_CODE_USED,
+    MFA_STEP_UP,
+    MFA_DISABLE,
+    MFA_RECOVERY_CODES_REGENERATE,
+    SETTINGS_MFA_REQUIRE_ADMIN_UPDATE,
 })
 
 
@@ -332,6 +353,15 @@ ROUTE_ACTIONS: dict[tuple[str, str], tuple[str, ...]] = {
     ("POST", "/refresh"): (SESSION_REFRESH_GRACED, SESSION_REFRESH_REPLAYED),
     ("DELETE", "/me/sessions/{session_id}"): (SESSION_REVOKE,),
     ("DELETE", "/sessions/{session_id}"): (SESSION_ADMIN_REVOKE,),
+    # MFA (Mf-lg02). `/mfa/verify` can write a success, a recovery-code use or
+    # a committed failure row; the router picks exactly one per request.
+    ("POST", "/mfa/enrol"): (MFA_ENROL_START,),
+    ("POST", "/mfa/confirm"): (MFA_ENROL,),
+    ("POST", "/mfa/verify"): (MFA_VERIFY_SUCCEEDED, MFA_VERIFY_FAILED, MFA_RECOVERY_CODE_USED),
+    ("POST", "/mfa/step-up"): (MFA_STEP_UP,),
+    ("DELETE", "/mfa"): (MFA_DISABLE,),
+    ("POST", "/mfa/recovery-codes"): (MFA_RECOVERY_CODES_REGENERATE,),
+    ("POST", "/settings/mfa"): (SETTINGS_MFA_REQUIRE_ADMIN_UPDATE,),
 }
 
 # Mutating routes that are deliberately NOT audited, each with the reason. The
