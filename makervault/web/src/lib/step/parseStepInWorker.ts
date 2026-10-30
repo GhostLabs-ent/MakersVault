@@ -3,12 +3,12 @@ import { PreviewQueue } from "../previewQueue";
 import {
   STEP_INLINE_FALLBACK_BYTES,
   STEP_MAX_BYTES,
-  STEP_SIZE_WARN_BYTES,
   StepParseError,
   type StepGeometryPayload,
   type StepWorkerRequest,
   type StepWorkerResponse,
 } from "./protocol";
+import { resetStepBudgetsForTests, resolveStepBudgets } from "./stepConfig";
 
 export type WorkerLike = {
   onmessage: ((event: MessageEvent<unknown>) => void) | null;
@@ -47,12 +47,31 @@ type PendingRequest = {
  * STEP gets its own queue rather than sharing `previewQueue`: a single occt
  * parse can hold the worker for a minute or more, and letting that block the
  * shared preview lanes would starve every cheap STL/OBJ/thumbnail job.
+ *
+ * Built on first use from the resolved budgets, so a build-time `VITE_STEP_*`
+ * override is what the first STEP preview actually gets, and no queue exists
+ * in a session that never opens a STEP file.
  */
-const defaultQueue = new PreviewQueue({
-  maxPending: 2,
-  jobBudgetMs: 120_000,
-  sessionBudgetMs: 300_000,
-});
+let defaultQueue: PreviewQueue | null = null;
+
+function getDefaultQueue(): PreviewQueue {
+  if (defaultQueue) return defaultQueue;
+  const budgets = resolveStepBudgets();
+  defaultQueue = new PreviewQueue({
+    maxPending: budgets.maxPending,
+    jobBudgetMs: budgets.jobBudgetMs,
+    sessionBudgetMs: budgets.sessionBudgetMs,
+  });
+  return defaultQueue;
+}
+
+/**
+ * Test-only handle on the default queue: its stats are how a build-time budget
+ * override becomes observable, since nothing else exposes the queue.
+ */
+export function getDefaultStepQueueForTests(): PreviewQueue {
+  return getDefaultQueue();
+}
 
 let worker: WorkerLike | null = null;
 let nextRequestId = 1;
@@ -65,11 +84,14 @@ const pending = new Map<number, PendingRequest>();
  */
 let brokenReason: string | null = null;
 
-function discardWorker(): void {
+function discardWorker(reason: Error = new StepAbortError()): void {
   const current = worker;
   // Null it first so a second discard (abort plus reset, say) cannot terminate
   // the same worker twice or resurrect it.
   worker = null;
+  // Every request still waiting lost its reply along with the worker, so it
+  // fails now instead of hanging until its own budget runs out.
+  failAllPending(reason);
   if (!current) return;
   current.onmessage = null;
   current.onerror = null;
@@ -97,9 +119,10 @@ function describeFailure(event: unknown): string {
 }
 
 function markWorkerBroken(event: unknown): void {
+  // Set the reason before the discard: a respawn on the way out would turn one
+  // bad file into an endless crash loop.
   brokenReason = describeFailure(event);
-  discardWorker();
-  failAllPending(new StepParseError(brokenReason));
+  discardWorker(new StepParseError(brokenReason));
 }
 
 function handleWorkerMessage(event: MessageEvent<unknown>): void {
@@ -171,6 +194,9 @@ function runJob(
     const request: StepWorkerRequest = { id, bytes: transfer };
 
     const onAbort = (): void => {
+      // Drop our own entry before the discard so the failure below is what
+      // carries this caller's precision (caller abort, or its own job budget),
+      // while every other waiter gets the generic abort from the discard.
       pending.delete(id);
       // The job is already inside the worker, so the only way to stop it is to
       // drop the worker; the next request pays one cold start.
@@ -203,7 +229,7 @@ function runJob(
 
 export function stepSizeNotice(
   bytes: number,
-  warnBytes: number = STEP_SIZE_WARN_BYTES,
+  warnBytes: number = resolveStepBudgets().sizeWarnBytes,
 ): string | null {
   if (bytes <= warnBytes) return null;
   return `Large STEP file (${formatBytes(bytes)}) - parsing may take a moment`;
@@ -236,7 +262,7 @@ export async function parseStepInWorker(
     throw new StepParseError("STEP preview requires a Web Worker for files over 4 MB");
   }
 
-  const queue = options.queue ?? defaultQueue;
+  const queue = options.queue ?? getDefaultQueue();
   const createWorker = options.createWorker ?? createDefaultWorker;
   const callerSignal = options.signal;
 
@@ -252,9 +278,14 @@ export async function parseStepInWorker(
 }
 
 export function resetStepWorkerForTests(): void {
-  discardWorker();
-  failAllPending(new StepParseError("STEP worker reset"));
+  discardWorker(new StepParseError("STEP worker reset"));
   nextRequestId = 1;
   brokenReason = null;
-  defaultQueue.reset();
+  // `reset()` settles queued-but-never-started jobs, then both the queue and
+  // the budget memo behind it are dropped so the next build reads the test's
+  // own `VITE_STEP_*` values instead of the previous test's.
+  const dropped = defaultQueue;
+  defaultQueue = null;
+  dropped?.reset();
+  resetStepBudgetsForTests();
 }
