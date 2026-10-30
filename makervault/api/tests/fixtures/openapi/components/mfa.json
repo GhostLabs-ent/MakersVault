@@ -1,0 +1,229 @@
+{
+  "MfaConfirmOut": {
+    "properties": {
+      "recovery_codes": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Recovery Codes",
+        "type": "array"
+      }
+    },
+    "required": [
+      "recovery_codes"
+    ],
+    "title": "MfaConfirmOut",
+    "type": "object"
+  },
+  "MfaConfirmRequest": {
+    "properties": {
+      "code": {
+        "title": "Code",
+        "type": "string"
+      },
+      "password": {
+        "title": "Password",
+        "type": "string"
+      },
+      "secret": {
+        "title": "Secret",
+        "type": "string"
+      }
+    },
+    "required": [
+      "password",
+      "secret",
+      "code"
+    ],
+    "title": "MfaConfirmRequest",
+    "type": "object"
+  },
+  "MfaEnrolOut": {
+    "properties": {
+      "algorithm": {
+        "title": "Algorithm",
+        "type": "string"
+      },
+      "digits": {
+        "title": "Digits",
+        "type": "integer"
+      },
+      "otpauth_uri": {
+        "title": "Otpauth Uri",
+        "type": "string"
+      },
+      "period": {
+        "title": "Period",
+        "type": "integer"
+      },
+      "secret": {
+        "title": "Secret",
+        "type": "string"
+      }
+    },
+    "required": [
+      "secret",
+      "otpauth_uri",
+      "digits",
+      "period",
+      "algorithm"
+    ],
+    "title": "MfaEnrolOut",
+    "type": "object"
+  },
+  "MfaEnrolRequest": {
+    "properties": {
+      "password": {
+        "title": "Password",
+        "type": "string"
+      }
+    },
+    "required": [
+      "password"
+    ],
+    "title": "MfaEnrolRequest",
+    "type": "object"
+  },
+  "MfaPasswordRequest": {
+    "description": "The sudo gate every mutating self-service route requires.",
+    "properties": {
+      "password": {
+        "title": "Password",
+        "type": "string"
+      }
+    },
+    "required": [
+      "password"
+    ],
+    "title": "MfaPasswordRequest",
+    "type": "object"
+  },
+  "MfaPolicyOut": {
+    "properties": {
+      "require_admin": {
+        "title": "Require Admin",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "require_admin"
+    ],
+    "title": "MfaPolicyOut",
+    "type": "object"
+  },
+  "MfaPolicyUpdate": {
+    "additionalProperties": false,
+    "properties": {
+      "require_admin": {
+        "title": "Require Admin",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "require_admin"
+    ],
+    "title": "MfaPolicyUpdate",
+    "type": "object"
+  },
+  "MfaRecoveryCodesOut": {
+    "properties": {
+      "recovery_codes": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Recovery Codes",
+        "type": "array"
+      }
+    },
+    "required": [
+      "recovery_codes"
+    ],
+    "title": "MfaRecoveryCodesOut",
+    "type": "object"
+  },
+  "MfaStatusOut": {
+    "description": "The caller's own second-factor state, plus the deployment policy.\n\n`can_enrol` is false for an enrolled account and for an SSO-only one (no\nlocal password to confirm): the client uses it to decide whether to offer the\nenrolment panel at all.",
+    "properties": {
+      "can_enrol": {
+        "title": "Can Enrol",
+        "type": "boolean"
+      },
+      "enrolled": {
+        "title": "Enrolled",
+        "type": "boolean"
+      },
+      "enrolled_at": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Enrolled At"
+      },
+      "recovery_codes_remaining": {
+        "title": "Recovery Codes Remaining",
+        "type": "integer"
+      },
+      "require_admin": {
+        "title": "Require Admin",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "enrolled",
+      "enrolled_at",
+      "recovery_codes_remaining",
+      "require_admin",
+      "can_enrol"
+    ],
+    "title": "MfaStatusOut",
+    "type": "object"
+  },
+  "MfaStepUpOut": {
+    "properties": {
+      "mfa_verified": {
+        "title": "Mfa Verified",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "mfa_verified"
+    ],
+    "title": "MfaStepUpOut",
+    "type": "object"
+  },
+  "MfaStepUpRequest": {
+    "properties": {
+      "code": {
+        "title": "Code",
+        "type": "string"
+      }
+    },
+    "required": [
+      "code"
+    ],
+    "title": "MfaStepUpRequest",
+    "type": "object"
+  },
+  "MfaVerifyRequest": {
+    "properties": {
+      "code": {
+        "title": "Code",
+        "type": "string"
+      },
+      "mfa_token": {
+        "title": "Mfa Token",
+        "type": "string"
+      }
+    },
+    "required": [
+      "mfa_token",
+      "code"
+    ],
+    "title": "MfaVerifyRequest",
+    "type": "object"
+  }
+}

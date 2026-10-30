@@ -22,6 +22,16 @@ vi.mock("../lib/api", () => ({
   updateStorageSettings: vi.fn(),
 }));
 
+// The section is stubbed: its own flows are covered in MfaSection.test.tsx, so
+// this file only proves Settings routes the card to it and passes the role.
+vi.mock("./settings/MfaSection", async () => {
+  const react = await import("react");
+  return {
+    default: ({ role }: { role?: string | null }) =>
+      react.createElement("div", { "data-testid": "mfa-section" }, `role:${role ?? "none"}`),
+  };
+});
+
 import Settings from "./settings/Settings";
 import { getMountImportSettings, getStorageSettings, listSessions, updateStorageSettings } from "../lib/api";
 import type { AppSettings } from "../lib/settings";
@@ -213,5 +223,20 @@ describe("Settings sessions", () => {
 
     expect(await screen.findByText("Devices signed in to this account.")).toBeTruthy();
     expect(listSessionsMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("Settings two-factor", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("opens the two-factor section and hands it the role", async () => {
+    render(<Settings settings={settings} onChange={() => {}} role="editor" />);
+
+    // The card is not admin-gated: any account may enrol itself.
+    fireEvent.click(await screen.findByRole("button", { name: /Two-factor authentication/ }));
+
+    expect((await screen.findByTestId("mfa-section")).textContent).toBe("role:editor");
   });
 });

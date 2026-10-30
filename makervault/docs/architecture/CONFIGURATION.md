@@ -357,9 +357,10 @@ These are per-browser and are not server `AppConfig` values; the optional
 ## Server `AppConfig` settings
 
 The current database-backed settings are mounted-import enable/copy behavior, the
-managed-storage template, and snapshot retention. These settings are shared by
-the instance. Mounted import run history is a table (`import_run`), not an
-`AppConfig` value, so it is bounded separately and never parsed as a setting.
+managed-storage template, snapshot retention and the admin-wide MFA policy. These
+settings are shared by the instance. Mounted import run history is a table
+(`import_run`), not an `AppConfig` value, so it is bounded separately and never
+parsed as a setting.
 
 Snapshot retention is the policy of the snapshot provider layer. The provider
 resolves it once, at construction, and applies it only to the snapshots that
@@ -386,6 +387,35 @@ and cannot be switched off. The snapshot being created is never pruned, a name
 the layer did not write is never pruned, and the policy refuses what it cannot
 honour: `snapshot_keep_daily` is non-negative, the other three keys are positive,
 so a refused stored value is an error rather than a silently replaced default.
+
+### The MFA policy
+
+Two-factor is TOTP (`makervault/api/mfa.py`), enrolled per account and proved per
+session, and the admin-wide policy is `mfa_require_admin`: an appconfig boolean
+that defaults to `false` and that nothing in the environment can change.
+
+It is deliberately **not** an environment variable. An env var would have to be
+forwarded in `docker-compose.deploy.yml`, documented in
+`makervault/api/.env.example` and `README.md`, and listed in this file, with
+`test_deploy_manifest_env.py` and `test_auth_docs.py` keeping those copies in
+step - four files of churn for a value an operator touches twice a year, if
+that. Worse, an env var could only be changed by a restart, and no restart can
+carry an audit row: switching the policy on decides what *every* admin route
+demands, and that decision has to name the admin who made it. So the only way to
+change it is `POST /settings/mfa` (ADMIN), which stores the value through
+`settings_service` and stages `settings.mfa_require_admin.update` in the same
+transaction, even when the value is unchanged. Enabling it is refused with a 409
+unless the calling session has already proved a second factor and the account is
+enrolled, so the admin who flips the switch can still use the admin routes it
+gates; the policy, the 403 and the enrolment rules are in
+[`docs/PERMISSIONS.md`](../../../docs/PERMISSIONS.md).
+
+One deployment consequence belongs here. The TOTP seed is stored as AES-256-GCM
+ciphertext under a subkey of `AUTH_SECRET` - it has to be recoverable, because
+HOTP feeds the raw seed to HMAC - so **rotating `AUTH_SECRET` makes every
+enrolled seed undecryptable**. That is consistent with rotation already
+invalidating every session and every outstanding file grant, and the remedy is
+the same: sign in again and re-enrol.
 
 ## Snapshots (ZFS)
 

@@ -4,6 +4,7 @@ import type { AppSettings } from "../../lib/settings";
 import NotPermitted from "../NotPermitted";
 import EngravingSection from "./EngravingSection";
 import ImportsSection from "./ImportsSection";
+import MfaSection from "./MfaSection";
 import NetworkSection from "./NetworkSection";
 import PreviewsSection from "./PreviewsSection";
 import SessionsSection from "./SessionsSection";
@@ -147,6 +148,16 @@ export default function Settings({
   if (section === "sessions") {
     return (
       <SessionsSection onBack={() => setSection("root")} onUnauthorized={onUnauthorized} />
+    );
+  }
+
+  if (section === "mfa") {
+    return (
+      <MfaSection
+        role={role}
+        onBack={() => setSection("root")}
+        onUnauthorized={onUnauthorized}
+      />
     );
   }
 

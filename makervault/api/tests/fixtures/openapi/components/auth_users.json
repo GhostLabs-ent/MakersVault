@@ -18,18 +18,56 @@
     "type": "object"
   },
   "LoginResponse": {
+    "description": "A completed login, or the one step of it that is still outstanding.\n\nPassword-only and OIDC logins keep their existing body (`token`, `expires_in`,\n`refresh_token`, `token_type`) and report `mfa_required: false`. When the\naccount has a second factor, the same shape is returned with only\n`mfa_required: true` and `mfa_token` set; the token fields are optional so\nthat challenge validates. The client never has to guess which body it got.",
     "properties": {
       "expires_in": {
-        "title": "Expires In",
-        "type": "integer"
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Expires In"
+      },
+      "mfa_required": {
+        "default": false,
+        "title": "Mfa Required",
+        "type": "boolean"
+      },
+      "mfa_token": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Mfa Token"
       },
       "refresh_token": {
-        "title": "Refresh Token",
-        "type": "string"
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Refresh Token"
       },
       "token": {
-        "title": "Token",
-        "type": "string"
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Token"
       },
       "token_type": {
         "default": "bearer",
@@ -37,11 +75,6 @@
         "type": "string"
       }
     },
-    "required": [
-      "token",
-      "expires_in",
-      "refresh_token"
-    ],
     "title": "LoginResponse",
     "type": "object"
   },

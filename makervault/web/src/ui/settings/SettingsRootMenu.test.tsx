@@ -54,4 +54,24 @@ describe("SettingsRootMenu", () => {
 
     expect(onOpen).toHaveBeenCalledWith("sessions");
   });
+
+  // A second factor on your own sign-in is not an admin privilege: only the
+  // deployment-wide policy inside the section is.
+  it.each(["viewer", "editor", "admin"] as const)(
+    "offers the two-factor section to a %s",
+    role => {
+      render(<SettingsRootMenu onOpen={vi.fn()} role={role} />);
+
+      expect(screen.getByRole("button", { name: /Two-factor authentication/ })).toBeTruthy();
+    },
+  );
+
+  it("opens the two-factor section", () => {
+    const onOpen = vi.fn();
+    render(<SettingsRootMenu onOpen={onOpen} role="viewer" />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Two-factor authentication/ }));
+
+    expect(onOpen).toHaveBeenCalledWith("mfa");
+  });
 });

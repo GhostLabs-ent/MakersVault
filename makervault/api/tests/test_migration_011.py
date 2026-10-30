@@ -19,7 +19,8 @@ from migrations import MIGRATIONS, applied_migrations, run_migrations
 
 SESSIONS_TABLE = "sessions"
 ROTATION_INDEX = "idx_sessions_previous_refresh_token_hash"
-# Migration 005 created these thirteen columns; 011 adds exactly two more.
+# Migration 005 created these thirteen columns; 011 adds two and 012 adds
+# `mfa_verified_at`.
 SHIPPED_SESSION_COLUMNS = {
     "id",
     "user_id",
@@ -35,7 +36,7 @@ SHIPPED_SESSION_COLUMNS = {
     "refresh_expires_at",
     "revoked_at",
 }
-ADDED_SESSION_COLUMNS = {"previous_refresh_token_hash", "rotated_at"}
+ADDED_SESSION_COLUMNS = {"previous_refresh_token_hash", "rotated_at", "mfa_verified_at"}
 
 SHIPPED_LEDGER = {
     1: "initial_schema",

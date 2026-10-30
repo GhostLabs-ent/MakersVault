@@ -57,6 +57,16 @@ export default function SettingsRootMenu({ onOpen, role = null }: Props) {
         <div className="text-lg font-semibold">Sessions</div>
         <div className="text-sm opacity-70">See the devices signed in to this account and sign them out.</div>
       </button>
+      {/* No role gate: any account may put a second factor on its own sign-in.
+          Only the deployment-wide policy inside the section is admin-only. */}
+      <button
+        className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
+        onClick={() => onOpen("mfa")}
+      >
+        <div className="text-xs uppercase tracking-wide text-muted">Security</div>
+        <div className="text-lg font-semibold">Two-factor authentication</div>
+        <div className="text-sm opacity-70">Add an authenticator code on top of your password.</div>
+      </button>
       {roleAtLeast(role, "admin") && (
         <button
           className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"

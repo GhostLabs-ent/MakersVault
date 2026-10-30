@@ -24,10 +24,21 @@ class LoginRequest(BaseModel):
 
 
 class LoginResponse(BaseModel):
-  token: str
-  expires_in: int
-  refresh_token: str
+  """A completed login, or the one step of it that is still outstanding.
+
+  Password-only and OIDC logins keep their existing body (`token`, `expires_in`,
+  `refresh_token`, `token_type`) and report `mfa_required: false`. When the
+  account has a second factor, the same shape is returned with only
+  `mfa_required: true` and `mfa_token` set; the token fields are optional so
+  that challenge validates. The client never has to guess which body it got.
+  """
+
+  token: Optional[str] = None
+  expires_in: Optional[int] = None
+  refresh_token: Optional[str] = None
   token_type: str = "bearer"
+  mfa_required: bool = False
+  mfa_token: Optional[str] = None
 
 
 class RefreshRequest(BaseModel):

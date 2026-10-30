@@ -126,8 +126,15 @@ def create(
     device: Optional[str] = None,
     user_agent: Optional[str] = None,
     client_ip: Optional[str] = None,
+    mfa_verified_at: Optional[int] = None,
 ) -> tuple[UserSession, str]:
-    """Open a session and return it with the raw refresh token (stored hashed)."""
+    """Open a session and return it with the raw refresh token (stored hashed).
+
+    `mfa_verified_at` is only set by `/mfa/verify`; a password-only or OIDC
+    login passes nothing, so those rows are born NULL and an admin policy can
+    still require a step-up. The column is per session on purpose (migration
+    012).
+    """
     now = _now()
     refresh_token = new_refresh_token()
     session_row = UserSession(
@@ -138,6 +145,7 @@ def create(
         device=device,
         user_agent=user_agent,
         client_ip=client_ip,
+        mfa_verified_at=mfa_verified_at,
         created_at=now,
         last_used_at=now,
         access_expires_at=now + access_ttl,

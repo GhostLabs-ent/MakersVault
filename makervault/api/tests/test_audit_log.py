@@ -25,6 +25,11 @@ from fastapi.testclient import TestClient
 from httpx import Response
 from sqlmodel import Session, delete, select
 
+# The MFA helpers live with the end-to-end tests, so all three modules enrol an
+# account exactly one way. Importing the names (never `*`) keeps this module's
+# own fixtures - including the cheap hasher - untouched.
+from test_mfa_api import MFA_PASSWORD, MFA_USERNAME, current_code, enrol_account, never_valid_code, step_forward
+
 import accounts
 import asset_file_service
 import asset_service
@@ -50,6 +55,7 @@ from models import (
     AssetFile,
     AuditEvent,
     Folder,
+    MfaRecoveryCode,
     OidcIdentity,
     Project,
     ProjectAsset,
@@ -78,8 +84,9 @@ RETENTION_KEYS = (
 
 def truncate_accounts() -> None:
     with Session(engine) as db_session:
-        # Identities first: they hold a foreign key onto users, and the OIDC
-        # exchange sweep provisions one.
+        # Children first: these hold foreign keys onto users, and the OIDC and
+        # MFA sweeps provision one of each.
+        db_session.execute(delete(MfaRecoveryCode))
         db_session.execute(delete(OidcIdentity))
         db_session.execute(delete(UserSession))
         db_session.execute(delete(User))
@@ -524,6 +531,93 @@ def call_delete_project(client, headers, ids, monkeypatch) -> Response:
     return client.request("DELETE", f"/project/{created.json()['id']}", headers=headers)
 
 
+# The MFA routes (Mf-lg02) are driven by a throwaway account, never the fixture
+# admin: enrolling the admin would turn `/login` into a challenge and every later
+# spec in this sweep would be a different test. The sweep's request id has to
+# travel with whichever caller makes the request, which is what these two helpers
+# are for.
+def as_caller(headers: dict[str, str], token: str) -> dict[str, str]:
+    """The sweep's request id with a different account's credentials."""
+    return {**headers, **bearer(token)}
+
+
+def request_id_only(headers: dict[str, str]) -> dict[str, str]:
+    """Just the sweep's request id: `/mfa/verify` runs before a session exists."""
+    return {key: value for key, value in headers.items() if key == REQUEST_ID_HEADER}
+
+
+def throwaway(client, ids: Ids) -> str:
+    """A fresh, un-enrolled account signed in as itself; returns its token."""
+    create_user(client, ids.admin_token, MFA_USERNAME, MFA_PASSWORD, "viewer")
+    return login(client, MFA_USERNAME, MFA_PASSWORD)["token"]
+
+
+def call_mfa_enrol(client, headers, ids, monkeypatch) -> Response:
+    token = throwaway(client, ids)
+    return client.post(
+        "/mfa/enrol",
+        json={"password": MFA_PASSWORD},
+        headers=as_caller(headers, token),
+    )
+
+
+def call_mfa_confirm(client, headers, ids, monkeypatch) -> Response:
+    token = throwaway(client, ids)
+    secret = ok(client.post("/mfa/enrol", json={"password": MFA_PASSWORD}, headers=bearer(token))).json()["secret"]
+    return client.post(
+        "/mfa/confirm",
+        json={"password": MFA_PASSWORD, "secret": secret, "code": current_code(secret)},
+        headers=as_caller(headers, token),
+    )
+
+
+def call_mfa_verify(client, headers, ids, monkeypatch) -> Response:
+    enrolled = enrol_account(client, ids.admin_token, username=MFA_USERNAME, password=MFA_PASSWORD)
+    # A recovery code rather than a TOTP one: `/mfa/confirm` already burned the
+    # counter of the code that was accepted, so replaying that same code would
+    # be a 401 in every bucket.
+    return client.post(
+        "/mfa/verify",
+        json={"mfa_token": login(client, MFA_USERNAME, MFA_PASSWORD)["mfa_token"], "code": enrolled.recovery_codes[0]},
+        headers=request_id_only(headers),
+    )
+
+
+def call_mfa_step_up(client, headers, ids, monkeypatch) -> Response:
+    enrolled = enrol_account(client, ids.admin_token, username=MFA_USERNAME, password=MFA_PASSWORD)
+    step_forward(monkeypatch)  # confirm burned the step; step-up needs a new one
+    return client.post(
+        "/mfa/step-up",
+        json={"code": current_code(enrolled.secret)},
+        headers=as_caller(headers, enrolled.token),
+    )
+
+
+def call_mfa_disable(client, headers, ids, monkeypatch) -> Response:
+    enrolled = enrol_account(client, ids.admin_token, username=MFA_USERNAME, password=MFA_PASSWORD)
+    return client.request(
+        "DELETE",
+        "/mfa",
+        json={"password": MFA_PASSWORD},
+        headers=as_caller(headers, enrolled.token),
+    )
+
+
+def call_mfa_recovery_codes(client, headers, ids, monkeypatch) -> Response:
+    enrolled = enrol_account(client, ids.admin_token, username=MFA_USERNAME, password=MFA_PASSWORD)
+    return client.post(
+        "/mfa/recovery-codes",
+        json={"password": MFA_PASSWORD},
+        headers=as_caller(headers, enrolled.token),
+    )
+
+
+def call_mfa_policy(client, headers, ids, monkeypatch) -> Response:
+    # Written back to the shipped value: an explicit policy assertion is audited
+    # even when nothing changed, and this sweep must not change the policy.
+    return client.post("/settings/mfa", json={"require_admin": False}, headers=headers)
+
+
 CALLS: dict[tuple[str, str], CallSpec] = {
     ("POST", "/login"): call_login,
     ("POST", "/refresh"): call_refresh,
@@ -554,6 +648,13 @@ CALLS: dict[tuple[str, str], CallSpec] = {
     ("DELETE", "/snapshots/{name}"): call_delete_snapshot,
     ("POST", "/snapshots/{name}/restore"): call_restore_snapshot,
     ("POST", "/snapshots/retention"): call_update_snapshot_retention,
+    ("POST", "/mfa/enrol"): call_mfa_enrol,
+    ("POST", "/mfa/confirm"): call_mfa_confirm,
+    ("POST", "/mfa/verify"): call_mfa_verify,
+    ("POST", "/mfa/step-up"): call_mfa_step_up,
+    ("DELETE", "/mfa"): call_mfa_disable,
+    ("POST", "/mfa/recovery-codes"): call_mfa_recovery_codes,
+    ("POST", "/settings/mfa"): call_mfa_policy,
 }
 
 
@@ -562,10 +663,25 @@ def route_id(key: tuple[str, str]) -> str:
 
 
 # `POST /auth/oidc/exchange` is a login, not an action taken *by* the caller: the
-# audited actor is the account the identity provider just authenticated, so the
-# sweep's shared "the admin did it" assertions describe a caller who already has a
-# session and do not apply. It is named here and asserted in its own test below.
-ACTOR_SELF_ROUTES = {("POST", "/auth/oidc/exchange")}
+# audited actor is the account the identity provider just authenticated, and
+# `/mfa/verify` and `/mfa/step-up` are the same shape - the account proved the
+# factor, so its own row is the one that makes sense. The sweep's shared "the
+# admin did it" assertions describe a caller who already has a session and do not
+# apply; each is named here with the session kind its row must carry.
+ACTOR_SELF_ROUTES = {
+    ("POST", "/auth/oidc/exchange"): sessions.OIDC_KIND,
+    ("POST", "/mfa/verify"): sessions.PASSWORD_KIND,
+    ("POST", "/mfa/step-up"): sessions.PASSWORD_KIND,
+}
+# The rest of the MFA self-service surface is driven by a throwaway account rather
+# than the fixture admin (see the call specs), so the sweep asserts that account by
+# name instead of the admin's.
+THROWAWAY_ACTOR_ROUTES = {
+    ("POST", "/mfa/enrol"),
+    ("POST", "/mfa/confirm"),
+    ("DELETE", "/mfa"),
+    ("POST", "/mfa/recovery-codes"),
+}
 
 
 def test_the_call_table_covers_every_audited_route() -> None:
@@ -588,7 +704,11 @@ def test_every_audited_route_emits_one_of_its_actions(client, ids, key, monkeypa
     assert row.method == key[0]
     assert row.target
     if key in ACTOR_SELF_ROUTES:
-        assert row.actor_kind == sessions.OIDC_KIND
+        assert row.actor_kind == ACTOR_SELF_ROUTES[key]
+        return
+    if key in THROWAWAY_ACTOR_ROUTES:
+        assert row.actor == MFA_USERNAME
+        assert row.actor_kind == sessions.PASSWORD_KIND
         return
     assert row.actor == ADMIN_USERNAME
     assert row.actor_user_id == ids.admin_id
@@ -633,6 +753,37 @@ def test_a_replayed_refresh_token_revokes_the_session_and_writes_its_own_row(
         stored = db_session.get(UserSession, sid)
         assert stored is not None and stored.revoked_at is not None
     assert client.get("/assets", headers=bearer(ids.admin_token)).status_code == 401
+
+
+def test_a_failed_mfa_verification_commits_its_row_before_the_401(client: TestClient, ids: Ids) -> None:
+    """Same precedent as the replay above: the audited outcome *is* the 401.
+
+    `mfa.verify.failed` is staged and committed before the `HTTPException`
+    unwinds the handler, so raising first would roll the row back with the
+    failed attempt and leave no trace of it.
+    """
+    enrolled = enrol_account(client, ids.admin_token, username=MFA_USERNAME, password=MFA_PASSWORD)
+    wrong = never_valid_code(enrolled.secret)
+    value = request_id_for("mfa-failed")
+
+    response = client.post(
+        "/mfa/verify",
+        json={"mfa_token": login(client, MFA_USERNAME, MFA_PASSWORD)["mfa_token"], "code": wrong},
+        headers={REQUEST_ID_HEADER: value},
+    )
+
+    assert response.status_code == 401
+    rows = events_for(value)
+    assert [row.action for row in rows] == [audit.MFA_VERIFY_FAILED]
+    row = rows[0]
+    assert row.actor == MFA_USERNAME
+    assert row.actor_user_id == enrolled.user_id
+    assert row.actor_kind == sessions.PASSWORD_KIND
+    assert row.target == enrolled.user_id
+    detail = json.loads(row.detail_json or "{}")
+    assert detail["reason"] == "invalid_code"
+    assert "client_ip" in detail
+    assert wrong not in (row.detail_json or ""), "the submitted code must never be recorded"
 
 
 # --- what the row says ---------------------------------------------------------
