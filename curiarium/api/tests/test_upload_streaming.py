@@ -473,6 +473,100 @@ def test_truncated_multipart_body_is_rejected(isolated_storage: Path) -> None:
     assert incoming_files(storage) == []
 
 
+def test_over_long_boundary_is_400_not_500(isolated_storage: Path) -> None:
+    """An over-long boundary is a 400, not an unhandled ``FormParserError``.
+
+    python-multipart raises ``FormParserError`` from the ``MultipartParser``
+    constructor once the boundary exceeds its 256-byte cap, and
+    ``FormParserError`` is the *parent* of ``MultipartParseError``: a handler that
+    catches only the subclass lets it escape as a 500. Construction happens inside
+    the guarded block, so it becomes the same 400 a malformed body gets and the
+    staging cleanup still runs.
+    """
+    storage = isolated_storage
+    before = asset_ids()
+    boundary = "b" * 300
+    body = (
+        f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="file"; filename="long-boundary.stl"\r\n'
+        "Content-Type: model/stl\r\n\r\n"
+        "solid long\n\r\n"
+        f"--{boundary}--\r\n"
+    ).encode()
+    with TestClient(main.app, raise_server_exceptions=False) as client:
+        response = client.post(
+            "/upload",
+            content=body,
+            headers={"Content-Type": f"multipart/form-data; boundary={boundary}", **auth_header(client)},
+        )
+    assert response.status_code == 400, response.text
+    assert response.json()["detail"].startswith("Malformed multipart body")
+    assert asset_ids() == before
+    assert stored_files(storage) == []
+    assert incoming_files(storage) == []
+
+
+def test_over_long_part_header_line_is_400(isolated_storage: Path) -> None:
+    """Upstream's 4224-byte per-line header cap reaches us as a 400 already.
+
+    The cap is python-multipart's own and it raises ``MultipartParseError`` from
+    ``write()``, which the existing handler translated before the boundary fix.
+    This is a guard that the wider ``FormParserError`` catch did not widen it.
+    """
+    storage = isolated_storage
+    before = asset_ids()
+    body = (
+        f"--{BOUNDARY}\r\n"
+        f"X-Filler: {'a' * 4300}\r\n"
+        'Content-Disposition: form-data; name="file"; filename="long-header.stl"\r\n'
+        "Content-Type: model/stl\r\n\r\n"
+        "solid long\n\r\n"
+        f"--{BOUNDARY}--\r\n"
+    ).encode()
+    with TestClient(main.app, raise_server_exceptions=False) as client:
+        response = client.post(
+            "/upload",
+            content=body,
+            headers=multipart_headers(auth_header(client)),
+        )
+    assert response.status_code == 400, response.text
+    assert "Maximum header size exceeded" in response.json()["detail"]
+    assert asset_ids() == before
+    assert stored_files(storage) == []
+    assert incoming_files(storage) == []
+
+
+def test_too_many_part_headers_is_400(isolated_storage: Path) -> None:
+    """Upstream's 8-headers-per-part cap reaches us as a 400 already.
+
+    As with the per-line cap, the count cap is python-multipart's own and already
+    surfaced through the caught ``MultipartParseError``; this guards it against
+    the boundary fix.
+    """
+    storage = isolated_storage
+    before = asset_ids()
+    fillers = "".join(f"X-Filler-{index}: v\r\n" for index in range(8))
+    body = (
+        f"--{BOUNDARY}\r\n"
+        f"{fillers}"
+        'Content-Disposition: form-data; name="file"; filename="many-headers.stl"\r\n'
+        "Content-Type: model/stl\r\n\r\n"
+        "solid many\n\r\n"
+        f"--{BOUNDARY}--\r\n"
+    ).encode()
+    with TestClient(main.app, raise_server_exceptions=False) as client:
+        response = client.post(
+            "/upload",
+            content=body,
+            headers=multipart_headers(auth_header(client)),
+        )
+    assert response.status_code == 400, response.text
+    assert "Maximum header count exceeded" in response.json()["detail"]
+    assert asset_ids() == before
+    assert stored_files(storage) == []
+    assert incoming_files(storage) == []
+
+
 def test_non_ascii_filename_round_trips(isolated_storage: Path) -> None:
     with TestClient(main.app, raise_server_exceptions=False) as client:
         response = client.post(

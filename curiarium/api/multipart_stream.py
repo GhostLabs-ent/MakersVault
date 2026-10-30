@@ -7,9 +7,9 @@ python-multipart's push parser itself and writes each file-part chunk to the
 staging path as it arrives, off the event loop. The caller renames the finished
 file into its final place once the rendered destination is known.
 
-The parser's own ``max_size`` is deliberately not used: python-multipart 0.0.9
-silently truncates instead of raising, so the byte counter here is the
-enforcement point and it rejects an over-cap stream while it is still arriving.
+The parser's own ``max_size`` silently truncates instead of raising, so the
+byte counter here is the enforcement point and it rejects an over-cap stream
+while it is still arriving.
 """
 
 from collections.abc import Collection
@@ -17,15 +17,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import BinaryIO, Dict, List, Optional
 
+from python_multipart.exceptions import FormParserError
+from python_multipart.multipart import MultipartParser, parse_options_header
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
-
-try:
-    from python_multipart.exceptions import MultipartParseError
-    from python_multipart.multipart import MultipartParser, parse_options_header
-except ImportError:  # python-multipart < 0.0.20 ships only `multipart`
-    from multipart.exceptions import MultipartParseError
-    from multipart.multipart import MultipartParser, parse_options_header
 
 # One write call per megabyte: storage can be a network mount, so a single huge
 # write would keep a worker thread busy for a long time without progress.
@@ -321,12 +316,18 @@ async def stream_file_part(
         charset=charset,
         allowed_content_types=allowed_content_types,
     )
-    parser = MultipartParser(options[b"boundary"], callbacks.handlers())
     try:
+        # The constructor enforces the boundary cap by raising ``FormParserError``,
+        # the *parent* of ``MultipartParseError``: untranslated it would slip past
+        # the ``write`` handler below and leave as a 500.
+        try:
+            parser = MultipartParser(options[b"boundary"], callbacks.handlers())
+        except FormParserError as exc:
+            raise MalformedMultipart(f"Malformed multipart body: {exc}") from None
         async for chunk in request.stream():
             try:
                 parser.write(chunk)
-            except MultipartParseError as exc:
+            except FormParserError as exc:
                 raise MalformedMultipart(f"Malformed multipart body: {exc}") from None
             if callbacks.sink is not None and not callbacks.sink.is_open:
                 await run_in_threadpool(callbacks.sink.open)
