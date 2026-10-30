@@ -4,7 +4,6 @@ import {
   type AssetFileLimits,
   deleteAssetFile,
   deletePreparedPrint,
-  fileUrl,
   listAssetFileLimits,
   listAssetFiles,
   renameAssetFile,
@@ -14,6 +13,8 @@ import {
 import { formatBytes } from "../../lib/format";
 import { normaliseCreator, normaliseName, normaliseNotes } from "../../lib/metadataValidation";
 import { notifyError } from "../../lib/toast";
+import { useFileGrants } from "../../lib/useFileGrants";
+import FileDownloadLink from "../FileDownloadLink";
 import TagBadge from "../TagBadge";
 import TagInput from "../TagInput";
 import AssetFilePreview from "./AssetFilePreview";
@@ -81,6 +82,14 @@ const AssetCard = React.memo(function AssetCard({
   const [previewFile, setPreviewFile] = useState<AssetFile | null>(null);
   const [preparedClearing, setPreparedClearing] = useState(false);
   const relatedInputRef = useRef<HTMLInputElement | null>(null);
+
+  // The card's own <img>/model preview re-reads the grant cache on every render,
+  // so the cache has to stay warm while the card is mounted: a card that
+  // re-renders after expiry (a selection toggle) would otherwise swap a working
+  // `src` for an unsigned one, and a remounted row (the virtualized grid keys
+  // rows by index, so scrolling out unmounts the cards) starts cold. The result
+  // is discarded: a card must never hold back its layout.
+  useFileGrants([item.url, item.thumb_url]);
 
   useEffect(() => {
     if (!editingTags) {
@@ -645,13 +654,13 @@ const AssetCard = React.memo(function AssetCard({
                           </button>
                           <div className="flex shrink-0 items-center gap-2 text-[11px]">
                             <span className="text-muted">{formatBytes(file.size)}</span>
-                            <a
+                            <FileDownloadLink
                               className="underline-offset-2 hover:underline"
-                              href={fileUrl(file.url)}
-                              download={file.filename}
+                              rel={file.url}
+                              filename={file.filename}
                             >
                               Download
-                            </a>
+                            </FileDownloadLink>
                             {canWrite && (
                               <>
                                 <button

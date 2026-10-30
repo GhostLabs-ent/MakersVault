@@ -1,6 +1,8 @@
 import { type Asset, type PreparedPrint, fileUrl } from "../../lib/api";
 import { formatBytes } from "../../lib/format";
 import type { PreviewSettings, ResolvedTheme } from "../../lib/settings";
+import { useFileGrants } from "../../lib/useFileGrants";
+import FileDownloadLink from "../FileDownloadLink";
 import LightBurnPreview from "../LightBurnPreview";
 import ModelViewer, { ModelSnapshot } from "../ModelViewer";
 import TagBadge from "../TagBadge";
@@ -165,6 +167,9 @@ export function renderPreviewContent(
 }
 
 export function AssetPreviewModal({ asset, theme, onClose }: { asset: Asset; theme: ResolvedTheme; onClose: () => void }) {
+  // Prime the preview's grants on open: a cold modal would otherwise fire an
+  // unsigned <img>/<iframe>/model request and 401.
+  const ready = useFileGrants([asset.url, asset.thumb_url]);
   const stop = (e: React.MouseEvent) => e.stopPropagation();
   return (
     <div
@@ -203,7 +208,7 @@ export function AssetPreviewModal({ asset, theme, onClose }: { asset: Asset; the
         <div className="p-4 space-y-4 overflow-auto">
           <div className="w-full h-[70vh] min-h-[400px]">
             <div className="w-full h-full rounded-lg bg-panel-soft flex items-center justify-center overflow-hidden">
-              {renderPreviewContent(asset, "modal", theme)}
+              {ready ? renderPreviewContent(asset, "modal", theme) : <p className="text-sm opacity-70">Preparing preview...</p>}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -219,13 +224,13 @@ export function AssetPreviewModal({ asset, theme, onClose }: { asset: Asset; the
             </div>
           )}
           <div className="flex gap-3">
-            <a
+            <FileDownloadLink
               className="px-3 py-2 rounded-md bg-accent text-sm"
-              href={fileUrl(asset.url)}
-              download={asset.filename}
+              rel={asset.url}
+              filename={asset.filename}
             >
               Download
-            </a>
+            </FileDownloadLink>
             <button
               className="px-3 py-2 rounded-md border border-panel-strong text-sm"
               onClick={onClose}

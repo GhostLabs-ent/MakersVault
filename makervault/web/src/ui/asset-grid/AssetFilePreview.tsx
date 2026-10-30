@@ -1,6 +1,8 @@
 import { useEffect, useId, useState, type MouseEvent, type ReactElement } from "react";
 
-import { assetFilePreviewUrl, fileUrl, type AssetFile } from "../../lib/api";
+import { assetFilePreviewUrl, type AssetFile } from "../../lib/api";
+import { useFileGrants } from "../../lib/useFileGrants";
+import FileDownloadLink from "../FileDownloadLink";
 import { extOf } from "./assetGridMeta";
 import Markdown from "../Markdown";
 
@@ -54,14 +56,16 @@ type Props = {
 
 /**
  * Read-only inline preview for one supporting file. The URL handed to the
- * iframe/image/fetch carries the current auth token (`assetFilePreviewUrl`),
- * so no credential ever needs to be copied into markup by hand.
+ * iframe/image/fetch carries a short-lived file grant, minted by
+ * `useFileGrants` before the first request — an unsigned URL would 401.
  */
 export default function AssetFilePreview({ assetId, file, onClose }: Props): ReactElement {
   const titleId = useId();
   const kind = previewKind(file);
   const isMarkdown = kind === "text" && ["md", "markdown"].includes(extOf(file.filename));
   const tooLarge = kind === "text" && file.size > MAX_INLINE_TEXT_BYTES;
+  // Prime before the fetch/iframe/image goes out, so none of them is unsigned.
+  const ready = useFileGrants([file.url]);
 
   const [text, setText] = useState<string | null>(null);
   const [textError, setTextError] = useState<string | null>(null);
@@ -76,7 +80,7 @@ export default function AssetFilePreview({ assetId, file, onClose }: Props): Rea
   }, [onClose]);
 
   useEffect(() => {
-    if (kind !== "text" || tooLarge) return;
+    if (kind !== "text" || tooLarge || !ready) return;
     const controller = new AbortController();
     let cancelled = false;
     setTextLoading(true);
@@ -100,7 +104,7 @@ export default function AssetFilePreview({ assetId, file, onClose }: Props): Rea
       cancelled = true;
       controller.abort();
     };
-  }, [assetId, file.url, kind, tooLarge]);
+  }, [assetId, file.url, kind, tooLarge, ready]);
 
   const stop = (event: MouseEvent) => event.stopPropagation();
 
@@ -169,13 +173,13 @@ export default function AssetFilePreview({ assetId, file, onClose }: Props): Rea
             {file.filename}
           </h2>
           <div className="flex shrink-0 items-center gap-2">
-            <a
+            <FileDownloadLink
               className="rounded-md border border-panel-strong px-3 py-1 text-sm"
-              href={fileUrl(file.url)}
-              download={file.filename}
+              rel={file.url}
+              filename={file.filename}
             >
               Download
-            </a>
+            </FileDownloadLink>
             <button
               type="button"
               className="rounded-md border border-panel-strong px-3 py-1 text-sm"
@@ -186,7 +190,9 @@ export default function AssetFilePreview({ assetId, file, onClose }: Props): Rea
             </button>
           </div>
         </div>
-        <div className="flex min-h-0 flex-1 justify-center overflow-auto p-4">{renderBody()}</div>
+        <div className="flex min-h-0 flex-1 justify-center overflow-auto p-4">
+          {ready ? renderBody() : <p className="text-sm opacity-70">Preparing preview...</p>}
+        </div>
       </div>
     </div>
   );

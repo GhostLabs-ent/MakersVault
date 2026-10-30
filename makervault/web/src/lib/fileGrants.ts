@@ -44,8 +44,8 @@ type CachedGrant = {
 /** The server's TTL, used only when a response omits `expires_at`. */
 const FALLBACK_TTL_MS = 60_000;
 
-/** Re-mint this long before expiry, so a render cannot race the deadline. */
-const FRESH_MARGIN_MS = 5_000;
+/** Re-mint this long before expiry, so a render cannot race the deadline; the lead time `./useFileGrants` schedules by. */
+export const GRANT_FRESH_MARGIN_MS = 5_000;
 
 /** The server rejects a batch larger than this. */
 const MAX_BATCH_SIZE = 50;
@@ -73,6 +73,11 @@ let flushPromise: Promise<void> | null = null;
 /** Injects the transport `./api/grants.ts` owns (`mintFileGrants`); `null` disables minting. */
 export function configureGrantMinter(next: GrantMinter | null): void {
   minter = next;
+}
+
+/** True once `configureGrantMinter` has installed a transport (`./api/grants` does at import). */
+export function hasGrantMinter(): boolean {
+  return minter !== null;
 }
 
 function splitRel(rel: string): { path: string; query: string } {
@@ -138,7 +143,7 @@ function isFresh(rel: string, now: number): boolean {
     cache.delete(rel);
     return false;
   }
-  return entry.exp > now + FRESH_MARGIN_MS;
+  return entry.exp > now + GRANT_FRESH_MARGIN_MS;
 }
 
 /**
@@ -278,7 +283,7 @@ export function useGrantedFileUrl(src: string | undefined): string | undefined {
       timer = setTimeout(() => {
         evictGrant(rel);
         void resolve();
-      }, Math.max(exp - Date.now() - FRESH_MARGIN_MS, 0));
+      }, Math.max(exp - Date.now() - GRANT_FRESH_MARGIN_MS, 0));
     };
     void resolve();
     return () => {

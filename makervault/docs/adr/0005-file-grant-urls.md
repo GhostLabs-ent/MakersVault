@@ -9,7 +9,8 @@ MV-SEC-007 file-URL design and its interim risk acceptance. ADR 0004's
 import-cookie decision (MV-SEC-017) and its `localStorage` risk acceptance
 (MV-SEC-008) still stand.
 
-**Implementation:** ticket `M3-7bb7`; error-log closure in `Mf-c80i`.
+**Implementation:** ticket `M3-7bb7`; error-log closure in `Mf-c80i`;
+deferred-interaction re-mint in `Mf-1vxh`.
 
 ## Context
 
@@ -125,15 +126,19 @@ Verified facts at the time of this decision:
    before returning, so grants exist before the first render; a markdown image
    stored as an `/api/...` path resolves per viewer through
    `useGrantedFileUrl`. `fileUrl` and `assetFilePreviewUrl` stay synchronous: a
-   cache hit yields the signed URL, a miss yields the plain joined URL and the
-   server answers 401. The transport is injected from `api.ts`
-   (`configureGrantMinter(mintFileGrants)`) so the module has no import cycle,
-   and with no minter — a test that mocks `api.ts` — everything degrades to a
-   miss. `downloadAsset` keeps sending `authHeaders()`: a real fetch need not
-   spend a URL credential. The two `window.location.href` OS handoffs
-   (`web/src/ui/asset-grid/useAssetActions.ts`, `web/src/ui/ProjectLanding.tsx`)
-   `await primeGrants([...])` before navigating, so `makersvault-slicer://open?url=...`
-   carries a 60-second grant instead of a session JWT.
+   cache hit yields the signed URL and a miss yields the plain joined URL, which
+   is why the surfaces that render one on a deferred interaction — the grid's
+   cards, the two preview dialogs and the three download links — re-mint on
+   interaction (item 10) instead of relying on the fetch-time prime alone. The
+   transport is injected from `api.ts` (`configureGrantMinter(mintFileGrants)`)
+   so the module has no import cycle, and with no minter — a test that mocks
+   `api.ts` — everything degrades to a miss. `downloadAsset` keeps sending
+   `authHeaders()`: a real fetch need not spend a URL credential. The two
+   `window.location.href` OS handoffs
+   (`web/src/ui/asset-grid/useAssetActions.ts`,
+   `web/src/ui/ProjectLanding.tsx`) `await primeGrants([...])` before
+   navigating, so `makersvault-slicer://open?url=...` carries a 60-second grant
+   instead of a session JWT.
 
 8. **Both nginx logs stop recording the query, and the smoke test proves it.**
    `web/nginx.conf` declares `log_format makervault` in `http` context and binds
@@ -167,6 +172,37 @@ Verified facts at the time of this decision:
    as `token=`, pinned by `main_test.go`. The old parameter stays in the
    redaction set because an old client, a saved link or an old log line may still
    contain one.
+
+10. **The client re-mints on interaction and never extends a grant.**
+    `FILE_GRANT_TTL_SECONDS` is unchanged at 60: the fix for `Mf-1vxh` is that
+    the client stops relying on the fetch-time prime alone.
+    `web/src/lib/useFileGrants.ts` primes what a mounted component needs,
+    re-mints each grant five seconds before it expires (a re-mint buys its own
+    60 seconds; the old grant is left to expire), then repaints only where it
+    must. A re-mint that fails is retried every ten seconds rather than
+    disarming the keeper, because an outage spanning an expiry would otherwise
+    leave a mounted element stale until it is next remounted — the same broken
+    link this decision removes. A mint that fails on the first attempt for these
+    paths still leaves the plain URL, as it always has. Its two variants differ
+    in exactly that: `useFileGrants` leaves the render alone unless a grant it
+    was missing has arrived, because re-rendering an `<img src>` with a new
+    `sig` re-downloads bytes the browser already holds and would make a mounted
+    `ModelViewer` re-fetch and re-parse its model every minute;
+    `useLiveFileGrants` re-renders on every scheduled re-mint (a failed one
+    repaints the same href) and exists for markup that holds the URL string
+    itself — `web/src/ui/FileDownloadLink.tsx`, the component all three
+    `<a download>` surfaces now use (the preview dialog, the supporting-file
+    dialog and the card's supporting-file row). The
+    virtualized grid needed the mount prime because `AssetGridBody` keys rows by
+    index: a row that scrolls out unmounts its cards and a row that scrolls back
+    remounts them with a cold cache, and a card that merely re-renders after the
+    minute (a selection toggle) would otherwise swap a working `src` for an
+    unsigned one. The two preview dialogs additionally gate their body on the
+    first mint (`Preparing preview...`), so an open after the window never fires
+    an unsigned request at all. `useGrantedFileUrl` keeps its own timer for
+    persisted markdown images. With no minter configured — a test that mocks
+    `web/src/lib/api` wholesale — everything degrades to a no-op and nothing is
+    scheduled.
 
 ## Consequences
 
@@ -214,11 +250,26 @@ Residual risks, stated plainly:
   Mitigations: the byte responses carry `Cache-Control` (`private,
   max-age=86400` on `/file/...`, `private, max-age=31536000, immutable` on
   `/thumb/...`), so a rendered image does not need to re-fetch; priming means
-  the first paint already has a fresh grant; `evictGrant(rel)` is the
-  invalidation seam for a URL that has expired or 401'd — nothing calls it
-  automatically today, so a stale element stays broken until the next fetch
-  re-primes and re-renders. A long-lived page that never re-fetches will show
-  broken images after a minute.
+  the first paint already has a fresh grant; and every deferred interaction
+  (a remounted grid row, a preview dialog opened late, a download link
+  clicked minutes after the list fetch) re-mints on mount and again five
+  seconds before each expiry (decision 10), so an element that is already
+  on screen is no longer left holding an unsigned URL. The lifetime is not
+  widened anywhere: an element that outlives its grant is refreshed, never
+  extended. `evictGrant(rel)` stays the invalidation seam for a URL that
+  expired before it could be refreshed; nothing calls it automatically
+  outside `useGrantedFileUrl`'s own timer.
+- **Surfaces the re-mint does not cover yet.** Decision 10 covers the asset
+  grid, the two preview dialogs and the three download links — the deferred
+  interactions `Mf-1vxh` names. A file URL rendered by `ProjectLanding`'s
+  gallery and hero cover, `ProjectSidebar`, `ProjectView` or
+  `ImagePickerDialog` still resolves through `fileUrl` at render with no
+  refresh, so a page left idle for more than a minute can still show an
+  unsigned thumbnail there and get a 401. The harm there is not only a blank
+  image: `ProjectLanding` wraps each gallery thumbnail in a `target="_blank"`
+  anchor to the full file, so clicking one of those stale links navigates to a
+  URL that 401s. Each is a one-line adoption of `useFileGrants`; they are named
+  here so the gap is tracked rather than rediscovered.
 - **An async handoff.** Both OS handoffs now `await` a mint before navigating.
   A mint that fails (401, 400, offline) leaves the plain URL, exactly as a
   grant-less render would, and the OS handler sees a 401 rather than a token.
@@ -317,6 +368,18 @@ Web:
   unprimed or evicted path renders the plain join, `?inline=1` resolves its own
   grant, the session token is never appended even when signed in, and
   `renderFileUrl` is gone.
+- `web/src/ui/deferredFileGrants.test.tsx` — advances the clock past
+  `FILE_GRANT_TTL_SECONDS` and exercises each deferred interaction: a
+  virtualized-grid row remount (unmount then remount a card), a card that
+  re-renders while mounted after the minute, a preview dialog opened after the
+  grant expired, and all three `<a download>` links as they re-mint; it also
+  pins that the slicer handoff re-mints at click time.
+- `web/src/lib/useFileGrants.test.ts` — the mount prime (cold and warm), the
+  silent refresh (the cache stays warm, the component does not repaint), the
+  live variant's re-render, the no-minter degradation (nothing scheduled), the
+  failed-mint settle, the ten-second retry that heals a renewal which failed
+  across an expiry, the per-rels-key gate (a swapped asset is not painted
+  unsigned), and that two consumers of one rel coalesce into one mint.
 
 Ops:
 
