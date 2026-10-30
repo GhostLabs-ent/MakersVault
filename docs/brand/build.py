@@ -44,7 +44,7 @@ GOLD = ("#c5a059", "#f3e5ab", "#ffd700")
 VARIANTS = {
     # variant: (wordmark top, mid, bottom, plate mid-stop)
     "dark":         ("#f3e5ab", "#e8c874", "#b76eff", "#0b0316"),
-    "light":        ("#5a189a", "#7b2cbf", "#b76eff", "#efe9f8"),
+    "light":        ("#5a189a", "#7b2cbf", "#b76eff", "#0b0316"),
     "neon-green":   ("#eaffd0", "#7bff5c", "#39d353", "#04120a"),
     "neon-blue":    ("#e6fbff", "#4cc9f0", "#4895ef", "#04101a"),
     "neon-purple":  ("#f6e9ff", "#b76eff", "#8a4bd6", "#0d0418"),

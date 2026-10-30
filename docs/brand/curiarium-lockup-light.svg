@@ -5,7 +5,7 @@
   <defs>
     <radialGradient id="space-bg" cx="50%" cy="50%" r="75%">
       <stop offset="0%" stop-color="#140727"/>
-      <stop offset="60%" stop-color="#efe9f8"/>
+      <stop offset="60%" stop-color="#0b0316"/>
       <stop offset="100%" stop-color="#040108"/>
     </radialGradient>
     <linearGradient id="arcane-purple" x1="0%" y1="0%" x2="100%" y2="100%">
