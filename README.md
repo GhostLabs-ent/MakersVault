@@ -20,8 +20,8 @@ Curiarium is a private, self-hosted home for a 3D-printing library: browse STLs,
 into **projects**, hand files straight to your slicer, and let the thing protect itself
 with a trash, filesystem snapshots and a full audit trail.
 
-It is built for one household — a few people sharing a printer or two — not for publishing.
-Nothing here is a storefront, and the app never fetches anything you have to pay for.
+It is built for one household — a few people sharing a printer or two — rather than for
+publishing.
 
 ## What it does
 
