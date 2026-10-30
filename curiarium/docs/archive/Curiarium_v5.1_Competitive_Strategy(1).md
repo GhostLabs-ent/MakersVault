@@ -1,5 +1,11 @@
 # Curiarium Competitive Strategy and v5.1 Direction
 
+> **Historical document — kept for provenance, not as a description of the
+> current system.** Written for upstream's v5.1 gate process before this fork
+> diverged; its counts, schema versions, roadmap and scope are stale. The
+> authoritative documents are listed in [../README.md](../README.md).
+
+
 ## Executive decision
 
 Curiarium should not compete by becoming a smaller printer-management platform.

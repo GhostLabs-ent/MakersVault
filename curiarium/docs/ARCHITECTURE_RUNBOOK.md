@@ -1,5 +1,10 @@
 # Curiarium Architecture and Delivery Runbook
 
+> **Scope:** this runbook describes the current system. Environment
+> variables are in [architecture/CONFIGURATION.md](architecture/CONFIGURATION.md);
+> historical gate documents are under [archive/](archive/) and listed in
+> [README.md](README.md).
+
 **Status:** Governing working document
 
 **Baseline date:** 2026-08-14

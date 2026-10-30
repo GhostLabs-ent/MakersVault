@@ -106,7 +106,7 @@ Verified facts at the time of this decision:
   (`:98,153-160`), and stripped on cross-origin redirect
   (`api/safe_http.py:45,160-161`). They are never persisted server-side and
   never logged, pinned by `api/tests/test_import_policy.py:230-248` and `:251`.
-- `curiarium/docs/security/GATE_0_REVALIDATION.md` records MV-SEC-007 and
+- `curiarium/docs/archive/security/GATE_0_REVALIDATION.md` (historical) records MV-SEC-007 and
   MV-SEC-008 as `CONFIRMED`, but has no row at all for the import cookies, and
   the cookie machinery post-dates that review (Mf-vesa, landed `baf2b78`). This
   ADR adds MV-SEC-017 for them.

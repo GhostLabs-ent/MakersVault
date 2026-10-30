@@ -1,5 +1,11 @@
 # Gate 0 Evidence Review
 
+> **Historical document — kept for provenance, not as a description of the
+> current system.** Written for upstream's v5.1 gate process before this fork
+> diverged; its counts, schema versions, roadmap and scope are stale. The
+> authoritative documents are listed in [../README.md](../README.md).
+
+
 **Gate:** 0 — Establish the reproducible baseline and safety harness
 
 **Status:** Evidence review; immutable baseline committed and locally verified;

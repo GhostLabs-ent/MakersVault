@@ -1,62 +1,104 @@
+<p align="center">
+  <img width="520" alt="Curiarium" src="docs/brand/curiarium-lockup.png" />
+</p>
 
-<img width="520" alt="Curiarium" src="docs/brand/curiarium-lockup.png" />
+<p align="center">
+  <em>A self-hosted vault for 3D print files, models and the references that go with them.</em>
+</p>
 
-<sub>Mark and wordmark are generated from one source: <code>docs/brand/build.py</code> (SVG in, every icon and theme variant out).</sub>
+<p align="center">
+  <img alt="status" src="https://img.shields.io/badge/status-pre--release-orange" />
+  <img alt="version" src="https://img.shields.io/badge/version-5.2.0--rc.1-blue" />
+  <img alt="licence" src="https://img.shields.io/badge/licence-MIT-green" />
+  <img alt="images" src="https://img.shields.io/badge/images-ghcr.io%2Finsanemal-2496ed" />
+</p>
 
-![Status](https://img.shields.io/badge/status-Beta%20release-brightgreen)
-![Version](https://img.shields.io/badge/version-5.2.0--rc.1-blue)
-![License](https://img.shields.io/github/license/insanemal/curiarium)
+---
 
+Curiarium is a private, self-hosted home for a 3D-printing library: browse STLs, STEP and
+3MF in the browser, organise them in folders that are real directories, group anything
+into **projects**, hand files straight to your slicer, and let the thing protect itself
+with a trash, filesystem snapshots and a full audit trail.
 
-<h1>Curiarium</h1>
-<p><em>Curiarium is a fork of <a href="https://github.com/GhostLabs-ent/MakersVault">MakersVault</a> by VincentCinque and GhostLabs-ent, MIT licensed, substantially reworked (see <a href="NOTICE">NOTICE</a>).</em></p>
-<p>Curiarium is a home for all your 3D print files and creative images/illustrations. Tired of having basic folders on your desktop filled with 3D print files with inconsistent names? Tired of having to load a 3D print file into your slicer just to see what it is? Look no further. Create folders, tag your files, and preview them in 3D directly in your browser. Curiarium is fully self-hostable using Docker and accessible through your web browser for ease of use and deployment.</p> <h2>Curiarium Home Screen</h2>
+It is built for one household — a few people sharing a printer or two — not for publishing.
+Nothing here is a storefront, and the app never fetches anything you have to pay for.
 
-<img width="1898" height="940" alt="Screenshot 2025-12-31 093628" src="https://github.com/user-attachments/assets/5d1b62d7-73ce-4dff-b1f5-001195ea2ff2" />
+## What it does
 
+**Library and storage**
 
-<h2>Tech Stack</h2>
-<ul>
-  <li>Frontend: React + TypeScript (Vite), Tailwind CSS, three.js, occt-import-js.</li>
-  <li>Backend: FastAPI (Python), SQLModel, SQLite.</li>
-  <li>Slicer Bridge: Go (custom protocol handler).</li>
-  <li>Deployment: Docker, Docker Compose.</li>
-</ul>
+| | |
+|---|---|
+| **Folders are directories** | A folder *is* a directory under the storage root. Create, rename, move and delete in the UI and the filesystem follows; `DELETE` moves the subtree to trash, never unlinks blind. |
+| **Rescan for files you copied in** | `rsync`/`cp` files into the storage root, press **Rescan storage folder**, and they are registered where they already sit — no import dance, no re-templating. |
+| **Nothing disappears quietly** | A file removed behind the app's back is flagged *missing* (with a date) rather than vanishing from the library. Reference imports whose source is gone are flagged too, never deleted. |
+| **Storage template** | New files land in a configurable layout (`{folder}/{model}/{filename}` by default). Files are only ever moved by an explicit rename or folder move — retagging does not rearrange your disk. |
 
-<h2>Road Map</h2>
-<h4>Version 5.2 (in progress — current prerelease 5.2.0-rc.1)</h4>
-<ul>
-  <li>Bounded, cached previews that cannot freeze the library.</li>
-  <li>Visible bulk organization workflows and clearer folder navigation.</li>
-  <li>Observable mounted-library imports.</li>
-  <li>Secure deployment defaults and tested upgrade/recovery guidance.</li>
-  <li>Polish for metadata, supporting files, prepared-print summaries, LightBurn, and the local bridge.</li>
-</ul>
-<p>Multi-user accounts, MFA, SSO, and the full Project/Artifact/Revision architecture are deliberately deferred. See <a href="curiarium/docs/V5.1_SCOPE.md">the v5.1 release contract</a> and <a href="curiarium/docs/ARCHITECTURE_RUNBOOK.md">architecture runbook</a>.</p>
+**Organisation**
 
-<h2>Versioning</h2>
-<p><code>curiarium/api/version.py</code> holds the product version and is the single source of truth. <code>curiarium/web/package.json</code> and <code>curiarium/web/package-lock.json</code> mirror that literal because npm needs it in the manifest; all three are compared by <code>curiarium/scripts/check_version.py</code>, which <code>make verify-version</code> runs as part of the verify gates and which fails on any drift.</p>
-<ul>
-  <li>The version is reported by <code>GET /health</code>, published as the OpenAPI <code>info.version</code>, and shown in Settings.</li>
-  <li>Releases are tagged <code>vX.Y.Z</code>; prereleases are tagged <code>vX.Y.Z-rc.N</code>.</li>
-  <li>This fork's release line starts from upstream's v5.1.2 beta, so the v5.1 docs under <code>curiarium/docs/</code> describe that earlier contract.</li>
-</ul>
+| | |
+|---|---|
+| **Folders, tags, notes** | Tree folders, free-form tags, per-asset notes, creator/collection facets, sorting and search. |
+| **Projects** | A project is a named collection of arbitrary assets from anywhere in the library. An asset can be in none, one or many. Project pages carry a rendered markdown description, a gallery, licence/provenance and a print-settings block, with the files underneath. |
+| **Bulk operations** | Select many, then tag, move, delete or download as one request with per-item failure reporting. |
+| **Two browse modes** | *Files* (folder browser) and *Projects* (collections), persisted per browser. |
 
-<h2>Getting Started</h2>
-<p>Curiarium is deployable using Docker pull or Docker Compose. Images are published to GHCR on every push to <code>main</code>:
-<code>ghcr.io/insanemal/curiarium-api</code> and <code>ghcr.io/insanemal/curiarium-web</code> — tagged <code>edge</code> for the tip, <code>sha-&lt;short&gt;</code> per commit (pin this for reproducibility), and semver tags from <code>v*</code> git tags.</p>
-<h3>Docker Compose</h3>
+**Preview and inspection**
+
+| | |
+|---|---|
+| **3D previews** | STL, OBJ, STEP/STP and 3MF render in the browser; STEP runs in a session-long worker with abort, so a heavy file cannot freeze the library. |
+| **Cached thumbnails** | Generated only as cards approach the viewport (or on demand, or off — your choice), then saved server-side so other browsers skip the work. |
+| **LightBurn** | `.lbrn`/`.lbrn2` previews with layer colours and per-layer toggles, parsed off the main thread with a size guard. |
+| **Prepared-print summaries** | Printer, material, nozzle and estimated time read out of 3MF or an attached print file. |
+| **Supporting files** | Attach PDFs, notes, whatever, per model — renamable, reorderable, previewable, included in ZIPs, with size and count limits. |
+
+**Safety**
+
+| | |
+|---|---|
+| **Trash** | Folder and asset deletes move bytes to `.trash`; purge is a separate, explicit action. Restore is copy-back from the trash or a snapshot, then rescan. |
+| **Filesystem snapshots** | If the storage volume supports them (CephFS `.snap`, ZFS via delegated rights, BTRFS via an opt-in privileged sidecar) Curiarium takes a snapshot before destructive operations, keeps a retention window, and exposes browse/restore. Your database is *not* covered unless it lives on a snapshottable volume. |
+| **Audit log** | Every destructive or administrative action is recorded in an append-only table enforced by database triggers, with request ids. |
+| **Signed file URLs** | File links carry short-lived, file-scoped grants signed separately from the session token. Session tokens are never accepted in a URL, and neither nginx log records query strings. |
+
+**Access**
+
+| | |
+|---|---|
+| **Users and roles** | Local accounts (argon2id) with `admin` / `editor` / `viewer`, enforced by a per-route permission matrix that refuses to boot if a route is unclassified. |
+| **OIDC single sign-on** | Authorization Code + PKCE, `state`/`nonce` validated, identity bound to a unique `(issuer, subject)`, allow-lists that compose with AND. Claims can grant at most `editor` — **OIDC can never mint an admin**. |
+| **MFA** | TOTP enrolment with recovery codes, and a policy that can require MFA for admins. |
+| **Sessions** | List your sessions (device, IP, last seen), revoke any of them; revocation is immediate because the access token is bound to a live session row. Multi-tab refresh uses a grace window and treats replays as a compromise signal. |
+| **Throttling and headers** | Per-username login backoff, plus HSTS/CSP/`X-Content-Type-Options`/`Referrer-Policy`/`Permissions-Policy`/frame policy from the web container, all configurable. |
+
+**Getting files in and out**
+
+| | |
+|---|---|
+| **Uploads** | Drag, drop, pick files or a whole folder; a bounded queue with per-file progress, retry and cancel; bodies are streamed to the storage path (no `/tmp` double-write), default cap 4 GB. |
+| **Link imports** | MakerWorld, Printables and Thingiverse: public page and public downloads only, with SSRF-hardened, IP-pinned fetching. Account-gated content is yours to supply, by design. |
+| **Mounted-library import** | Point at a directory, choose copy or reference mode, and watch a run history with counts, per-file errors and interruption status. |
+| **ZIP in and out** | Inspect a ZIP before importing, keep only what you want; download a selection, a folder or a project with an `ATTRIBUTION.txt` naming source, creator and licence. |
+| **Open in Slicer** | A small Go bridge registers `curiarium-slicer://` and `curiarium-engrave://` handlers so the browser can hand a file to the slicer installed on your own machine. |
+
+## Quick start
+
+Images are published to GHCR on every push to `main` — no local build, no clone.
 
 ```bash
-cd curiarium
+git clone --depth 1 https://github.com/insanemal/curiarium.git
+cd curiarium/curiarium
+cp api/.env.example .env      # then edit the marked lines
 docker compose -f docker-compose.deploy.yml up -d
 ```
 
-<p><code>curiarium/docker-compose.deploy.yml</code> is the canonical production manifest. <code>curiarium/docker-compose.yml</code> is the canonical local source-build manifest. The historical <code>docker-deploy.yml</code> filename is retained only as a compatibility alias.</p>
-<p><strong>Security notice:</strong> the current beta authentication defaults are suitable only for a trusted local test deployment. Do not expose the current build directly to the Internet. The API refuses to start if <code>AUTH_PASSWORD</code> or <code>AUTH_SECRET</code> are still the published sample values; set your own in <code>.env</code>. Repeated failed logins are throttled with an escalating account lockout: this is a deliberate single-admin tradeoff, so anyone who can reach the login form can temporarily lock you out — change the default <code>AUTH_USERNAME</code> and, if the instance is publicly reachable, put it behind a proxy or network policy that restricts who can POST to the login endpoint. The web container also sends HSTS, CSP, <code>X-Content-Type-Options</code>, Referrer-Policy, frame, and Permissions-Policy headers on every response; they are configurable (or disableable) through the <code>SECURITY_HEADERS_*</code> variables for proxy setups that own those headers themselves.</p>
+Open <http://localhost:5173>.
 
-<h3>Setting up the .env file</h3>
-<p>Create a <strong>.env</strong> file in the same folder as <code>docker-compose.yml</code>. Start with this baseline:</p>
+### Setting up the .env file
+
+Copy `curiarium/api/.env.example` to `curiarium/.env` and edit the marked lines. A
+working baseline:
 
 ```yaml
 PUID=1000
@@ -64,313 +106,145 @@ PGID=1000
 API_IMAGE=ghcr.io/insanemal/curiarium-api:edge
 WEB_IMAGE=ghcr.io/insanemal/curiarium-web:edge
 FILE_STORAGE=/app/storage
-DB_URL=sqlite:///./curiarium.db
+DB_URL=sqlite:////app/data/app.db
 API_PORT=8000
+WEB_PORT=5173
 PUBLIC_URL=
 CORS_ORIGINS=
 VITE_API_URL=
 VITE_ALLOWED_HOSTS=
 AUTH_USERNAME=admin
 AUTH_PASSWORD=replace-with-a-strong-password
-AUTH_SECRET=replace-with-random-secret
+AUTH_SECRET=replace-with-a-long-random-string
 AUTH_ACCESS_TOKEN_TTL=900
 AUTH_REFRESH_TTL_SECONDS=2592000
-AUTH_ALLOW_INSECURE_DEFAULTS=0
+MAX_UPLOAD_MB=4096
 IMPORT_MOUNT_PATH=/imports
-IMPORT_MOUNT_PATH_HOST=/path/to/imports
 IMPORT_MOUNT_EXTS=stl,3mf,step,stp,obj,svg,png,jpg,jpeg,webp,bmp,lbrn,lbrn2,zip
-IMPORT_MOUNT_INCLUDE_HIDDEN=false
-IMPORT_MOUNT_ON_STARTUP=true
-LOGIN_THROTTLE_ENABLED=true
-LOGIN_MAX_FAILURES=5
-LOGIN_FAILURE_WINDOW_SECONDS=900
-LOGIN_LOCKOUT_SECONDS=300
-LOGIN_MAX_LOCKOUT_SECONDS=3600
-SECURITY_HEADERS_ENABLED=true
-SECURITY_HEADERS_HSTS=
-SECURITY_HEADERS_CSP=
-SECURITY_HEADERS_REFERRER_POLICY=
-SECURITY_HEADERS_FRAME_OPTIONS=
-SECURITY_HEADERS_PERMISSIONS_POLICY=
-SECURITY_HEADERS_CONTENT_TYPE_OPTIONS=
+IMPORT_MOUNT_ON_STARTUP=false
 ```
 
-<p>An empty <code>SECURITY_HEADERS_*</code> value means "keep the built-in default"; the literal value <code>off</code> omits that one header; <code>SECURITY_HEADERS_ENABLED=false</code> disables all of them (useful when an external proxy already sends its own headers).</p>
+`PUID`/`PGID` make the containers run as your user so the mounted volumes stay
+writable. `PUBLIC_URL` is the only value that matters behind a reverse proxy; leave
+`VITE_API_URL` empty there. The full inventory, including OIDC and snapshot knobs, is in
+[CONFIGURATION.md](curiarium/docs/architecture/CONFIGURATION.md).
 
-<p><strong>Authentication and sessions:</strong> an access token is a 15-minute JWT (<code>AUTH_ACCESS_TOKEN_TTL</code>, default <code>900</code>) bound to a live server-side session row, so signing out, revoking the session, or disabling the user locks it out on the very next request. The refresh token is an opaque value the server stores only as a sha256 hash; each refresh rotates it once and it expires after 30 days (<code>AUTH_REFRESH_TTL_SECONDS</code>, default <code>2592000</code>). The <code>AUTH_USERNAME</code>/<code>AUTH_PASSWORD</code> environment admin is break-glass only: it is rejected as soon as a real user account exists, so a real account always wins over the published sample credentials. <code>AUTH_TOKEN_TTL</code> is deprecated and ignored; it is still read only so an old <code>.env</code> keeps starting. <strong>SSO/OIDC login is opt-in and off by default</strong> (<code>OIDC_ENABLED=false</code>); enabling it keeps local password login working, a half-configured SSO setup refuses to boot, and claims can never grant <code>admin</code> — a newly provisioned SSO user is a <code>viewer</code>, and the only escalation a claim set can produce is <code>editor</code> via <code>OIDC_EDITOR_GROUPS</code>. The ten <code>OIDC_*</code> keys, the fail-closed boot rules and the derived <code>${PUBLIC_URL}/auth/oidc/callback</code> redirect URI are documented in <a href="curiarium/api/.env.example"><code>.env.example</code></a>, <a href="curiarium/docs/architecture/CONFIGURATION.md">the configuration inventory</a> and <a href="curiarium/docs/adr/0006-oidc-sso-flow-and-role-policy.md">ADR 0006</a>.</p>
 
-<p>For direct/LAN mode, set <code>VITE_API_URL</code> to a browser-reachable API URL (for example, <code>http://10.0.0.160:8000</code>).</p>
 
-<h3>Reverse Proxy Support (Any Provider)</h3>
-<p>Curiarium is reverse-proxy agnostic. Nginx Proxy Manager, Traefik, Nginx, Caddy, HAProxy, and Apache all work.</p>
-<p><strong>Recommended single-host route:</strong></p>
-<ul>
-  <li>Send all paths for <code>curiarium.example</code> to <code>web:5173</code>.</li>
-  <li>The web container serves the UI and proxies <code>/api/*</code> internally to <code>api:8000</code>.</li>
-</ul>
-<p>A second public API hostname is optional, not required. See <a href="curiarium/docs/architecture/REVERSE_PROXY.md">the reverse-proxy topology guide</a>.</p>
+Image tags: `edge` (tip of `main`), `sha-<short>` (pin this for reproducible
+deploys), and semver tags from `v*` git tags. Pin a `sha-` tag if you want an
+upgrade to be a decision rather than a side effect.
 
-<h4>Recommended flow for proxied setups</h4>
-<p>Start containers:</p>
+**First login.** Three ways in, in priority order:
+
+1. **Local users** — create them in Settings → Users, or via `POST /users` as an admin.
+2. **OIDC** — set `OIDC_ENABLED` and friends; see [CONFIGURATION.md](curiarium/docs/architecture/CONFIGURATION.md).
+3. **Break-glass** — `AUTH_USERNAME` / `AUTH_PASSWORD` from the environment work **only while
+   the users table is empty**. Create a user and they stop working; that is deliberate.
+
+The API refuses to start with the published sample credentials (`super-secret` /
+`changeme-secret`) unless you explicitly set `AUTH_ALLOW_INSECURE_DEFAULTS=1`.
+
+**Where your data lives**
+
+| Volume | Contents |
+|---|---|
+| `curiarium_storage` | managed model files, thumbnails, supporting files, `.trash`, `.incoming` staging |
+| `curiarium_db` | `curiarium.db` (SQLite) |
+
+Both are named volumes in the deploy manifest; point them anywhere with
+`FILE_STORAGE` and `DB_URL`. Putting the **database on a network filesystem is not
+supported** — SQLite wants a local disk, and the container relies on WAL.
+
+## Configuration
+
+Everything lives in `.env`; the full inventory with owners and defaults is in
+[CONFIGURATION.md](curiarium/docs/architecture/CONFIGURATION.md). The knobs people
+actually touch:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `PUBLIC_URL` | — | Public origin, e.g. `https://vault.example.com`. The web container derives `<PUBLIC_URL>/api` from it. |
+| `CORS_ORIGINS` | — | Comma-separated extra origins for direct/LAN access. |
+| `AUTH_USERNAME` / `AUTH_PASSWORD` | — | Break-glass admin, only while no user exists. |
+| `AUTH_ACCESS_TOKEN_TTL` | `900` | Access-token lifetime (seconds). Refresh tokens live 30 days and are revocable. |
+| `MAX_UPLOAD_MB` | `4096` | Direct upload cap. Your reverse proxy needs a matching body limit. |
+| `IMPORT_MAX_MB` / `IMPORT_ZIP_MAX_MB` | `512` / `2048` | Remote import size and cumulative ZIP budget. |
+| `ASSET_FILE_MAX_MB` / `_TOTAL_MAX_MB` / `_MAX_COUNT` | see example | Supporting-file limits. |
+| `SNAPSHOT_*` | off | Snapshot policy per destructive operation, retention and the optional daily schedule. |
+
+## Behind a reverse proxy
+
+One hostname is enough. Send **all paths** to the web container (port 5173); it serves
+the UI and proxies `/api/*` to the API container over the compose network. Set
+`PUBLIC_URL` to the public origin and leave `VITE_API_URL` empty. TLS terminates at
+your proxy. Details, including the header/body-size requirements, are in
+[REVERSE_PROXY.md](curiarium/docs/architecture/REVERSE_PROXY.md).
+
+## Backup, restore, upgrade
+
+Snapshots cover *files*. The database needs its own copy, and an upgrade is only
+safe with both. The procedure — snapshot, stop, back up DB + storage, upgrade, verify,
+roll back — is in [ARCHITECTURE_RUNBOOK.md](curiarium/docs/ARCHITECTURE_RUNBOOK.md).
+Short version: back up `curiarium.db` and the storage volume together, and never
+upgrade one without the other.
+
+## Architecture
+
+```
+browser ──► web container (nginx :5173) ──/api/*──► api container (FastAPI :8000)
+                     │                                       │
+                 static bundle                        SQLite (local disk)
+                                                      storage root (files, trash,
+                                                      thumbs, supporting files)
+```
+
+* `curiarium/api` — FastAPI, 18 routers, SQLModel, versioned migrations (currently **12**),
+  per-route permission matrix, append-only audit, snapshot providers, import resolvers.
+* `curiarium/web` — React 18 + Vite + Tailwind, virtualised grid, single-flight preview
+  queue, upload queue, project pages.
+* `curiarium/slicer-bridge` — Go protocol handler for slicer handoff (per-machine install).
+* `curiarium/scripts` — verification scripts: container smoke, wave planner, version guard.
+
+The design decisions live as ADRs in [`curiarium/docs/adr/`](curiarium/docs/adr/); the
+operational detail is in the [architecture runbook](curiarium/docs/ARCHITECTURE_RUNBOOK.md).
+
+## Development
 
 ```bash
-docker compose -f docker-compose.deploy.yml up -d
+make verify-fast   # ~90 s: ruff + API tests, eslint + tsc + vitest, go test
+make verify        # full gate: images, container smoke, compose validation
 ```
 
-<ol>
-  <li>Bring the stack up with Docker Compose.</li>
-  <li>Configure one reverse-proxy host that sends all paths to the web service.</li>
-  <li>Set <code>PUBLIC_URL</code> in <code>.env</code> (for example, <code>https://curiarium.example.com</code>) and restart.</li>
-  <li>Open Curiarium at your public domain.</li>
-</ol>
-<p>When served on standard proxy ports (80/443), Curiarium automatically calls the API at <code>&lt;current-origin&gt;/api</code>.</p>
-
-<h4>Environment values when using a reverse proxy</h4>
-<ul>
-  <li>Set <code>PUBLIC_URL</code> to your public domain URL.</li>
-  <li>Leave <code>VITE_API_URL</code> empty unless you intentionally want a non-default API target.</li>
-  <li>Set <code>CORS_ORIGINS</code> as needed for direct/LAN access or additional origins.</li>
-</ul>
-<p>Example:</p>
-
-```yaml
-PUBLIC_URL=https://curiarium.example.com
-CORS_ORIGINS=https://curiarium.example.com,http://10.0.0.160:5173
-VITE_API_URL=
-VITE_ALLOWED_HOSTS=
-```
-
-<p><strong>Running as non-root:</strong> set <code>PUID</code> and <code>PGID</code> to your host user/group IDs (defaults to 1000). Containers create a matching user at startup so volume mounts stay writable.</p>
-<p><strong>Keeping API internal:</strong> with the recommended single-host topology, the external proxy does not need an API route. You may remove the API's published host port after verifying bridge and diagnostic requirements; the web container still reaches <code>api:8000</code> on the Compose network.</p>
-
-<h4>Quick troubleshooting</h4>
-<ul>
-  <li>Login fails with CORS error: add the public domain to <code>CORS_ORIGINS</code>.</li>
-  <li>UI loads but API calls 404 under <code>/api</code>: forward the path unchanged to the web container and let its Nginx proxy reach the API.</li>
-  <li>LetsEncrypt HTTP-01 challenge fails and returns app HTML: make sure external port 80 points to your reverse proxy (not directly to Curiarium).</li>
-  <li>Public login fails while LAN/direct works: clear/avoid hardcoded private-IP <code>VITE_API_URL</code> for proxied access.</li>
-</ul>
-
-<p>Change the default credentials in <code>.env</code> before exposing the app publicly.</p>
-
-<h2>Contributing</h2> 
-<p>Contributions are always welcome, whether it be bug fixes or feature improvements. For large changes, please open a discussion first!</p> <h2>Feature Requests and Bug Reporting</h2> <p>For bug reports or feature improvement requests, please open an issue or start a discussion thread.</p> 
-<h2>Features, UI Walkthrough, and Supported File Types</h2> 
-<h3>Supported File Types</h3> <p>Curiarium supports the following file types:</p>
-<h3>3D Print Files:</h3> 
-<ul> 
-  <li>STL</li> 
-  <li>STEP</li> 
-  <li>OBJ</li> 
-  <li>3MF</li> 
-  <li>STP</li> 
-</ul> 
-<h3>Image Types:</h3> 
-<ul> 
-  <li>SVG</li> 
-  <li>PNG</li> 
-  <li>JPG</li> 
-  <li>WEBP</li> 
-  <li>BMP</li> 
-</ul> 
-<h3>Other File Types</h3>
-<p>Most other file types (docx, ppt, pdf, zip, etc.) are supported, but they will not render a preview. Curiarium is mainly designed for 3D printing files, CAD, and artistic illustrations. If you need a document-focused solution, other tools may be more suitable. That said, feel free to request features if needed!</p>
-<h3>Feature List</h3> 
-<p>Curiarium is intentionally kept simple to remain user-friendly while still being feature-rich for its purpose:</p> 
-<ul> 
-  <li>Create and delete folders.</li> 
-  <li>Tag any document uploaded to Curiarium.</li>
-  <li>Sort, search, and rename documents.</li>
-  <li>Add notes to documents.</li>
-  <li>Toggle between light and dark mode for better viewing of differently colored 3D models.</li>
-  <li>Create username and password for added security when running behind a reverse proxy.</li>
-  <li>Move or delete files from within the application.</li>
-  <li>Trash-backed deletes: removed files wait in <code>.trash</code> until you empty it.</li>
-  <li>Drag and drop upload.</li> 
-  <li>Customization Themes.</li>
-  <li>Open in Slicer (Beta).</li>
-  <li>Import from link (MakerWorld, Thingiverse, and Printables).</li>
-  <li>Batch tagging and batch deleting.</li>
-  <li>Search at mount point for eligible file types.</li>
-  <li>Robust handling of .zip imports.</li>	
-</ul> 
-
-<h2>UI and Feature Walkthrough</h2>
-<p><strong>NOTE:</strong> For initial install instructions refer to the Getting Started section.</p>
-<h3>Logging in for the First Time</h3> 
-
-<img width="1906" height="932" alt="Screenshot 2025-12-31 094250" src="https://github.com/user-attachments/assets/a8804762-8ea4-4187-adc7-1312993d8d2d" />
-
-
-<p>Log in using the default password set in the .env file, or a custom password if configured (recommended).</p>
-<h3>Landing Page / All Items</h3> 
-
-<img width="1913" height="941" alt="Screenshot 2025-12-31 094437" src="https://github.com/user-attachments/assets/e0fe9bb1-812e-45c5-a1dc-c0dc790b8be6" />
-
-
-<h2>Uploading Files</h2>
-<p>Curiarium supports both single-file, batch uploads, and drag and drop. To upload a file, click the Upload button in the top-right corner. To upload a folder, use the Upload Folder button and select the entire folder. This action can also be performed by utilizing the drag and drop function </p> 
-
-<img width="1912" height="936" alt="Screenshot 2025-12-31 100124" src="https://github.com/user-attachments/assets/ef14d95e-fb73-4f38-a8b9-2bbb0391c326" />
-
-
-<p><strong>NOTE:</strong> Depending on the number and size of the files, upload and preview generation may take some time. Please be patient.</p> 
-
-<h3>Uploading Single/Multiple Files</h3>
-
-<img width="1912" height="936" alt="Screenshot 2025-12-31 100124" src="https://github.com/user-attachments/assets/fbfbea6b-0851-490d-803b-5b12fb320623" />
-
-
-<h3>Dragging and Dropping to Upload</h3>
-<p>Files that are dragged and dropped to upload will be placed in whatever folder is currently selected. For example: You are clicked into the folder "3D prints" and drag files into Curiarium, it will upload to that location.</p>
-
-<img width="1914" height="935" alt="Screenshot 2025-12-31 100230" src="https://github.com/user-attachments/assets/4a4abbbf-ee7c-4872-b6ec-306c36b6d846" />
-
-
-<h3>Importing via Link (Beta)</h3>
-<p>The currently supported 3D printing repository sites are:
-	<ul>
-		<li>MakerWorld</li>
-		<li>Printables</li>
-		<li>Thingiverse</li>
-	</ul>
-In the future there are plans to add support for more websites, but in this current release only the three listed will function. The root link from the respective repository can be used to import any models. Most models will import as a .zip file. When a zip file is imported a pop-up will appear prompting to either save as a zip or unzip and save. Unzip and save allows the user to select which files to keep and which to discard. This helps to ensure that unecessary "read-me" files aren't uploaded.
-</p>
-
-<p>A link import can also go straight into a project. It either creates a project from the model page - the source URL, creator and licence are read from the page - or adds the files to an existing project you pick. Importing the same model page twice reuses that project instead of making a duplicate. Paid or account-gated models import their details only: no files are downloaded, and you attach the files yourself once you have them.</p>
-
-<img width="4400" height="2129" alt="Import_From_Link" src="https://github.com/user-attachments/assets/515f0e95-72e7-4ea3-81ba-3d8023f4cff3" />
-
-<img width="1913" height="937" alt="Screenshot 2025-12-31 101451" src="https://github.com/user-attachments/assets/a397fd46-d808-46b3-b83f-d1e025be8608" />
-
-<img width="1907" height="932" alt="Screenshot 2025-12-31 101512" src="https://github.com/user-attachments/assets/84983739-6730-4155-9027-f601c7ae7bca" />
-
-<img width="1903" height="934" alt="Screenshot 2025-12-31 101923" src="https://github.com/user-attachments/assets/cfb322a0-f155-4b2e-b1c5-264fef84ae9c" />
-
-<h2>Model Rendering, Tagging, and Adding Notes</h2>
-<p>Curiarium uses static 3D preview images in each tile to keep folder browsing fast. To view a fully interactive 3D preview, double-click the tile. In the pop-up window, you can rotate and inspect the 3D model interactively by clicking and holding with your mouse and dragging.</p>
-
-<img width="1911" height="938" alt="Screenshot 2025-12-31 102102" src="https://github.com/user-attachments/assets/78b326af-d805-4054-a658-56751e9b125c" />
-
-
-<p>Individual files can be renamed by double-clicking the Name field. The file extension (STL, STEP, 3MF, etc.) is preserved even if removed by mistake, and typing the extension along with the name no longer doubles it: "widget.stl" stays "widget.stl" instead of becoming "widget.stl.stl".</p>
-<p>The creator is editable inline on the card with server-side validation: surrounding whitespace is trimmed, internal runs collapse to one space, values are capped at 120 characters and control characters are rejected, while unicode, punctuation and apostrophes are fine. Creator is a first-class facet too: the library can filter on an exact creator (case-insensitive) and sort by name, size or creator, and creator plus notes can be changed for a whole selection from the batch action bar.</p>
-
-<img width="323" height="498" alt="Screenshot 2025-12-31 102311" src="https://github.com/user-attachments/assets/1fea58d9-705c-4fa0-87b0-3008a562906f" />
-
-<h3>Tagging Files and Adding to Folders</h3> 
-<p>To begin organizing files, click “New” at the top left to create a new folder. To create a sub folder click the "..." next to the newly created folder and select "+ Subfolder". </p>
-
-<img width="4400" height="2156" alt="New_folder" src="https://github.com/user-attachments/assets/67b2fadd-ccc8-423f-af02-8778ca8b1e07" />
-
-<img width="1907" height="932" alt="Screenshot 2025-12-31 102622" src="https://github.com/user-attachments/assets/4f87cdbe-f6d4-4276-a9dc-294b51f8eae5" />
-
-
-<p>After creating a folder, assign files to it using the dropdown menu in each file tile. Alternatively, click the folder and then upload files directly — uploaded files will automatically be placed in the current folder.</p>
-
-<img width="1910" height="930" alt="Screenshot 2025-12-31 102708" src="https://github.com/user-attachments/assets/e1eae91e-e40a-4768-b13c-fe530a1055a9" />
-
-<img width="1909" height="935" alt="Screenshot 2025-12-31 102733" src="https://github.com/user-attachments/assets/0d46b249-45a9-4521-b6be-d69136a91f00" />
-
-<p>When entering tags, typing a comma will close the current tag and allow you to enter the next. Example: typing “3D Print,” will create a tag named “3D Print”.</p> 
-
-<img width="1890" height="933" alt="Screenshot 2025-12-31 102944" src="https://github.com/user-attachments/assets/418c9d71-1970-4755-808f-e5e633a27386" />
-
-<p>To sort by tags, click the matching tag tab at the top of the page. The sorting dropdown next to the search bar allows sorting by name, size, file type, and folder (ascending or descending).</p>
-
-<img width="1913" height="933" alt="Screenshot 2025-12-31 103028" src="https://github.com/user-attachments/assets/74ff7329-4856-4f55-8fe2-fc65846bdd42" />
-
-
-<h3>Batch Tagging and Deleting</h3>
-<p>The batch tagging and batch deleting feature utilizes the available select button on each individual render tile. Simply select as many models as needed and applying a tag to one will apply the tag to all selected. The same logic applies to batch deleting: select the models and use the single delete button on any tile, which opens one confirmation for the whole selection. </p>
-<p>Selecting one or more models also reveals a bulk action bar above the grid. It applies to exactly the models that are selected and offers move to folder, add tags, remove tags, download as a single ZIP, and deletion to the server&rsquo;s trash behind an explicit confirmation. Each action is one batched request rather than one per model, shows progress while it runs, and lists any per-model failures inline; the models that succeeded stay changed and nothing is retried automatically.</p>
-<h3>Deleting is recoverable</h3>
-<p>Deleting a model or a folder never frees the bytes straight away. The files are moved into a <code>.trash</code> folder inside the storage root first, and a single model&rsquo;s delete asks you to type the file name before it runs. The library record and its thumbnail go immediately; the model&rsquo;s bytes stay in <code>.trash</code> until someone runs <strong>Empty trash</strong> in Settings &rarr; Storage. Restoring is file-level. A deleted model sits at <code>.trash/&lt;entry&gt;/.assets/&lt;asset id&gt;/&lt;filename&gt;</code>, with its supporting and prepared files under <code>.trash/&lt;entry&gt;/.bundles/&lt;asset id&gt;</code>: move that file back into the folder it came from and rescan the storage folder, and it is re-registered as a new library record (its metadata is not). Moving the entry itself into the storage root does nothing, because the scanner skips the dot-directories it contains. A deleted folder&rsquo;s own files sit directly inside <code>.trash/&lt;entry&gt;/</code>, so rename that directory back inside the storage root and rescan; members whose file was stored outside it are under the same <code>.assets</code>/<code>.bundles</code> carve-outs. Files that are mounted from outside the storage folder are references: deleting one removes only its library record, never the file on disk.</p>
-<h4>Batch Tagging</h4>
-
-<img width="1892" height="930" alt="Screenshot 2025-12-31 103532" src="https://github.com/user-attachments/assets/20b104e6-53ad-4019-b6e7-252a5e3a2cbf" />
-
-<img width="1893" height="937" alt="Screenshot 2025-12-31 103556" src="https://github.com/user-attachments/assets/de1baffc-1baa-42ca-a705-50ac686aae0e" />
-
-<h4>Batch Deleting</h4>
-
-<img width="1895" height="938" alt="Screenshot 2025-12-31 103647" src="https://github.com/user-attachments/assets/7f8709f0-9a1f-4159-b48f-229fbf266c84" />
-
-<img width="1895" height="941" alt="Screenshot 2025-12-31 103704" src="https://github.com/user-attachments/assets/68ca12f3-a52f-493a-8e0b-c3b273d43dc6" />
-
-
-<h2>Open in Slicer (Beta)</h2>
-<p>To utilize the open in slicer setting, first it is necessary to select the Slicer that you would like to use from Settings (near the bottom left corner) then select the sub-menu "Open in Slicer" </p>
-
-<img width="4405" height="2189" alt="Settings" src="https://github.com/user-attachments/assets/65a173d7-5b62-4b4b-8f92-73257648b3a7" />
-
-<img width="4400" height="2147" alt="OpeninSlicer" src="https://github.com/user-attachments/assets/38e7321b-53ef-43ad-ac96-3ceccc7c6c41" />
-
-<p>In the Open in Slicer Settings sub-menu there are many different supported Slicers (listed in the below image). </p>
-
-<img width="1911" height="930" alt="Screenshot 2025-12-31 105732" src="https://github.com/user-attachments/assets/653a5411-75eb-46b8-9945-2be4fbe6dcf0" />
-
-
-<p>Once the appropriate slicer is selected, note that the "Open in Slicer" button on each individual 3D model render tile is updated according to the selection.</p>
-
-<img width="317" height="485" alt="Screenshot 2025-12-31 110033" src="https://github.com/user-attachments/assets/486bde87-eb24-4ab0-b2d3-a1b56b78f114" />
-
-
-<h2>Slicer Bridge</h2>
-<p>For the Open in Slicer function to work, a standalone executable will need to be installed (supported for Windows and Linux). The bridge will need to be installed on any standalone machine, with the slicer installed. Example: You host Curiarium on a Ubuntu Server but utilize the slicer on a Window's Laptop, the slicer bridge will need to be installed only once on the windows Laptop. Curiarium is then accessed via the web browser from the Windows laptop, Open in Slicer button is clicked and the model is loaded into the Slicer of your choice.</p>
-
-<a href="https://github.com/insanemal/curiarium/tree/main/curiarium/slicer-bridge">The Slicer Bridge can be downloaded here.</a>
-
-<h2>Model Bundles</h2>
-<p>Each model can include visible supporting files such as assembly PDFs, text notes, and other documentation. Expand <strong>Supporting files</strong> on a model card to add, download, remove, rename, or reorder them. Renaming changes only the label the file is listed under: the stored file is never moved or rewritten, so a download keeps working. New uploads join the end of the list and the order can be changed at any time. A PDF, an image (PNG, JPEG, GIF, WebP, BMP), or a text file previews inline in the browser; anything else is offered as a download only, and an SVG is always a download so it can never run as this site. Three limits apply per model - the size of each supporting file, the total size of its supporting files, and how many there are - and all three are configurable with <code>ASSET_FILE_MAX_MB</code>, <code>ASSET_FILE_TOTAL_MAX_MB</code>, and <code>ASSET_FILE_MAX_COUNT</code>; an upload that would cross a limit is refused before it is stored. Supporting documents are included when models are downloaded as a ZIP, in the list's order and under their renamed labels; when two members would land on the same name the later one gets a <code> (2)</code> suffix, so every entry extracts.</p>
-<p>Prepared print files are handled as internal model data rather than shown as downloadable attachments. When Curiarium finds prepared data in a 3MF or an added print file, the card shows the printer, material, nozzle size, slicer, and estimated time when detected, and treats any fact the file does not carry as unknown. <strong>Open in Slicer</strong> hands the supplied prepared file to the configured slicer; Curiarium never slices a model, sends it to a printer, or starts a print.</p>
-
-<h2>Settings</h2>
-<p>The settings page is available from the button at the bottom-left of the app. Sub-menus include Open in Slicer, Reverse Proxy, Themes, Storage Structure, and Imports.</p>
-<h3>Themes</h3>
-
-<img width="4405" height="2189" alt="Settings" src="https://github.com/user-attachments/assets/87eb158a-d2d3-48ce-a4ec-2a6e80955c99" />
-
-
-<p>The currently available themes are: System default, light, dark, neon green, neon purple, and neon blue. The themes change page accents as well as the background color.</p>
-
-<h3>Model Previews</h3>
-<p>Curiarium automatically uses embedded 3MF thumbnail artwork when available. Missing previews are generated only when their cards approach the visible area, one at a time, and are saved to the server so other browsers do not need to render them again.</p>
-<p>The Model Previews setting offers <strong>Automatic</strong>, <strong>On demand</strong>, and <strong>Disabled</strong> modes. Saved or embedded thumbnails are always displayed. Interactive 3D viewing remains available when card generation is disabled.</p>
-
-<h3>Storage Structure</h3>
-<p>Managed files can be organized with a configurable path template. The default is <code>{folder}/{model}/{filename}</code>. The tokens the settings picker offers are <code>{folder}</code>, <code>{tags}</code>, <code>{creator}</code>, <code>{model}</code>, <code>{name}</code>, <code>{filename}</code>, and <code>{id}</code>. The template must contain <code>{filename}</code> in its final path segment.</p>
-<p><code>{collection}</code> is deprecated. Templates that already contain it keep working and render <code>Uncollected</code> for new files, but collections are no longer offered anywhere in the UI; use Projects to group files. Existing managed files are never moved because of this change.</p>
-<p>Model names are unique inside each Curiarium folder. Renaming a model renames the stored file while preserving its extension, and the inline editor strips one typed extension when it matches the stored file, so a rename cannot double the extension. The path template applies only to new uploads and imports; existing files are never moved because of a template change. Use <strong>Rescan storage folder</strong> to register files you copied into the storage folder with another tool.</p>
-<p>Upstream issue #27 is addressed: unique-per-folder name editing that renames the file, a configurable storage template, tags, and a validated creator are all available, while collections are retired in favour of Projects per ADR 0003.</p>
-
-<h2>Imports Settings</h2>
-<p>Mounted imports now keep a run history in the API. Settings → Imports shows the latest attempt with live progress and its errors, and the API exposes the newest 50 at <code>GET /imports/runs</code>; a run left unfinished by a restart is marked interrupted. Skipped runs (missing path, mount overlapping storage) say why they did nothing. Only mounted imports are recorded; storage rescans remain log-only.</p>
-<p>MakerWorld limits anonymous downloads (currently 5). Import from Link uses that anonymous access, so a few imports can exhaust the allowance. The optional session cookie field in the import settings exists only to lift that anonymous rate limit for free, public models. It is a rate-limit workaround, not a way to reach anything else.</p>
-
-<p>Curiarium never downloads paid or account-gated files. Files that need a purchase or a signed-in account are supplied by you: download them yourself, then upload the files (or a zip of them) so they are attached to the model. Pointing the importer at a recognised paid or checkout URL is refused with that instruction before any request is made to the site.</p>
-
-<p><strong>Storage:</strong> by default the cookie is kept in this tab and forgotten when the tab closes. Tick <strong>Remember import cookies on this device</strong> to keep it in this browser instead. Your browser only ever sends this value to your own Curiarium API.</p>
-
-<p><strong>Server side:</strong> the API attaches the cookie to an outbound request only when it is fetching from makerworld.com (or a subdomain) or thingiverse.com, drops it on a cross-origin redirect, and never logs the value. An operator can instead (or additionally) set <code>MAKERWORLD_COOKIE</code> or <code>THINGIVERSE_COOKIE</code> for the API process; the same host restriction applies.</p>
-
-<p><strong>NOTE: Never share this value with anyone, and avoid storing it anywhere that someone else can easily reach.</strong></p>
-
-<h3>Finding the Cookie Session Header</h3>
-<p><strong>Chrome / Edge</strong></p>
-<ol>
-  <li>Sign in to makerworld.com or thingiverse.com.</li>
-  <li>Open DevTools (F12 or Ctrl+Shift+I) and go to the Network tab.</li>
-  <li>Reload the page to capture requests.</li>
-  <li>Click a request to the site (Type: document or fetch/xhr).</li>
-  <li>In Headers -&gt; Request Headers, copy the value of <code>Cookie</code> (everything after <code>Cookie:</code>).</li>
-</ol>
-<p><strong>Firefox</strong></p>
-<ol>
-  <li>Sign in to makerworld.com or thingiverse.com.</li>
-  <li>Open DevTools (F12), choose Network, and reload the page.</li>
-  <li>Select a request to the site and open the Headers panel.</li>
-  <li>Under Request Headers, copy the <code>Cookie</code> value (right-click -&gt; Copy Value).</li>
-</ol>
-<p><strong>Examples:</strong> MakerWorld cookies often include <code>mw_session</code> and <code>mw_token</code>. Thingiverse cookies often include <code>cf_clearance</code> and <code>PHPSESSID</code>.</p>
-<p><strong>Tip:</strong> Cookies expire. If imports fail later, repeat these steps to refresh the cookie.</p>
+`make verify-fast` needs a repo-local `.venv` (see
+[DEVELOPMENT.md](curiarium/docs/DEVELOPMENT.md)) and `npm ci` once. `make verify` is
+the gate that certifies a batch; it must pass before anything is pushed as done.
+
+Start with [AGENTS.md](AGENTS.md) if you are an AI agent or a new contributor — it maps
+the repo, the gates and the guardrails in one read. The ticket loop this project is built
+with is described in [docs/TICKET_WORKFLOW.md](docs/TICKET_WORKFLOW.md).
+
+## Project status — honestly
+
+Working and tested (API **1841** tests, web **1037**): folders-as-directories, scanning,
+trash, projects, snapshots (CephFS/ZFS providers, BTRFS via sidecar), users/roles, OIDC,
+MFA, sessions, signed grants, audit, imports, previews, uploads, ZIP in/out, slicer handoff.
+
+Known gaps, so nobody is surprised:
+
+* **Not yet exercised against a real CephFS mount** end-to-end by the test suite; the
+  integration test is gated behind `SNAPSHOT_INTEGRATION=1` and is a manual procedure.
+* **OIDC admin is intentionally impossible** — an admin must be created locally.
+* **No per-user ownership** of assets; it is a shared household library.
+* **Slicer bridge binaries are not published** as releases; build from source with Go.
+* **Screenshots are missing** from this README until they can be regenerated from the
+  current UI (the old ones were upstream's and are gone).
+* Dependency majors (Tailwind 4, React 19, vite 7) are deliberately deferred.
+
+## Licence and attribution
+
+MIT. Curiarium is a fork of [MakersVault](https://github.com/GhostLabs-ent/MakersVault)
+by VincentCinque and GhostLabs-ent; their copyright notice is retained in
+[LICENSE](LICENSE) and the fork relationship, rework summary and trademark position are
+recorded in [NOTICE](NOTICE). Upstream work is ported by hand, one change at a time —
+the two trees diverged deliberately and are not merged.

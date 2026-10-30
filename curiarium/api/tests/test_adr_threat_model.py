@@ -30,7 +30,7 @@ CURIARIUM_ROOT = API_ROOT.parent
 
 ADR_DIR = CURIARIUM_ROOT / "docs" / "adr"
 RUNBOOK_PATH = CURIARIUM_ROOT / "docs" / "ARCHITECTURE_RUNBOOK.md"
-GATE_0_PATH = CURIARIUM_ROOT / "docs" / "security" / "GATE_0_REVALIDATION.md"
+GATE_0_PATH = CURIARIUM_ROOT / "docs" / "archive" / "security" / "GATE_0_REVALIDATION.md"
 
 # Every test below guards the ADR and/or one of the two host-only docs, so the
 # whole module is host-only. All three paths are absent inside the API image

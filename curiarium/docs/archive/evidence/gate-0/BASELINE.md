@@ -1,5 +1,11 @@
 # Gate 0 Baseline Record
 
+> **Historical document — kept for provenance, not as a description of the
+> current system.** Written for upstream's v5.1 gate process before this fork
+> diverged; its counts, schema versions, roadmap and scope are stale. The
+> authoritative documents are listed in [../README.md](../README.md).
+
+
 **Gate status:** Evidence review; remote CI pending
 
 **Captured:** 2026-08-13; immutable baseline established 2026-08-14

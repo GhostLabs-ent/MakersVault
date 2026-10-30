@@ -1,5 +1,11 @@
 # Curiarium Roadmap
 
+> **Historical document — kept for provenance, not as a description of the
+> current system.** Written for upstream's v5.1 gate process before this fork
+> diverged; its counts, schema versions, roadmap and scope are stale. The
+> authoritative documents are listed in [../README.md](../README.md).
+
+
 This roadmap expresses sequencing, not promised dates. Reliability and migration
 safety take priority over reaching a named architectural milestone quickly.
 
