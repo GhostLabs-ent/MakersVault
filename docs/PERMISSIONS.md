@@ -425,7 +425,9 @@ mode, not of the `AUTH_USERNAME`/`AUTH_PASSWORD` pair.
 In `oidc` mode `/login` answers **401, never 503**: the break-glass bootstrap door
 is genuinely open there, so "auth is not configured" would be a lie. The route
 matrix's `(503 when auth is disabled)` wording holds for `off` and for the legacy
-default with a blank pair, which is exactly when auth is disabled.
+default with a blank pair. One row is broader: `POST /mfa/verify` answers 503 in
+`oidc` mode too, because its gate is `AUTH_ENABLED and password_login_allowed()` - a
+mode that refuses password sign-in will not spend a password challenge either.
 
 ## Multi-factor authentication
 

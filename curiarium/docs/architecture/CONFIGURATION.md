@@ -114,11 +114,13 @@ break-glass is accepted again. The boot cannot detect this state, because both
 `auth.validate_auth_configuration()` and `oidc.validate_oidc_configuration()` run
 before `run_migrations` and must not read the database.
 
-**Migrating a pair-only deployment straight to `oidc` locks the local admin out.**
-That mode refuses password sign-in for user rows, and SSO can only provision a
-non-admin (`sso_error=no_admin_bootstrap`), so there is no way to create the first
-admin. The documented path is `both` -> sign in through SSO -> promote that
-account to `admin` -> then `oidc`.
+**Migrating to `oidc` with accounts already present locks the local admins out.**
+That mode refuses password sign-in for user rows, break-glass is closed as soon as
+the users table is non-empty, and SSO can only provision a non-admin
+(`sso_error=no_admin_bootstrap`), so an existing local `admin` row can never sign in
+again. With an *empty* users table the break-glass pair still bootstraps the first
+admin (the row above), so the trap is flipping the mode on a deployment that already
+has accounts.
 
 **Modes gate login paths, not live sessions.** Existing `PASSWORD_KIND` sessions
 and their 30-day refresh tokens keep working across a mode flip; a token already
@@ -132,7 +134,10 @@ To move a pair-only deployment to a mode, in order:
    set.
 2. **Create the real administrator** (Settings -> Users, or `POST /users`) while
    break-glass is still valid.
-3. **Set `AUTH_MODE=both`** (or `oidc` once SSO is configured) and restart.
+3. **Set `AUTH_MODE=both`** and restart. Not `oidc` yet: that mode refuses the
+   password you just created the admin with, and break-glass is closed while that
+   row exists. Reach `oidc` only after an SSO account has been promoted to `admin`
+   (see the paragraph above).
 4. **Delete `AUTH_USERNAME` and `AUTH_PASSWORD`.** A real admin row now exists, so
    break-glass was already closed.
 5. **Confirm `/health` still reports `auth_required: true` and `/login` still

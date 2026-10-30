@@ -30,8 +30,9 @@ Verified facts at the time of this decision:
 
 - The authorization contract is `permissions.ROUTE_PERMISSIONS`, enforced by
   dependency declaration and checked at boot by
-  `permissions.assert_routes_classified`. Ranks are `public` < `read` < `write`
-  < `admin` (`permissions.LEVEL_RANK`), and `accounts.DEFAULT_ROLE` is
+  `permissions.assert_routes_classified`. Ranks are `public` < `read` <
+  `contribute` < `write` < `admin` (`permissions.LEVEL_RANK`; `contribute` added
+  by `Mf-01f0`), and `accounts.DEFAULT_ROLE` is
   `viewer`, so an account created without an explicit role is read-only.
 - `users.role` is re-read on every request (`sessions.role_for`), never trusted
   from the token, so **the stored row is the authority** for what an account may
@@ -94,9 +95,9 @@ Verified facts at the time of this decision:
    `preferred_username` or `email` is display material at most — it is never
    looked up, and it never selects a row.
 
-4. **Claims can produce a `viewer`, and at most an `editor`.**
+4. **Claims can produce a `viewer`, and at most an `editor`.** *(Provisioned role superseded by the Mf-sg2t amendment below: it is `oidc.default_role()`, not a hard-coded `viewer`.)*
    A newly provisioned SSO account is created through `accounts.create_sso_user`
-   with `role=accounts.DEFAULT_ROLE` (`viewer`) and `password_hash=None`, so it
+   with `role=oidc.default_role()` (`OIDC_DEFAULT_ROLE`, default `viewer`) and `password_hash=None`, so it
    can never be replayed against `POST /login` and it has no local credential to
    steal. The single escalation is `editor`: a principal whose groups (the claim
    named by `OIDC_GROUPS_CLAIM`, default `groups`) intersect
@@ -108,8 +109,8 @@ Verified facts at the time of this decision:
    accepted set is **derived** as every role in `accounts.ROLES` except `admin`
    (`oidc.claim_grantable_roles()`), with `admin` refused at boot exactly like
    `OIDC_ADMIN_GROUPS` — while an `editor` group match still wins over that
-   default. This **supersedes the provisioned-role enumerations elsewhere in this
-   record**: Decision 7 ("an OIDC-provisioned user is a `viewer` or an `editor`")
+   default. This **supersedes the provisioned-role enumerations in this
+   record**: the paragraph above (now marked), Decision 7 ("an OIDC-provisioned user is a `viewer` or an `editor`")
    and the threat-table row about first-provisioning lockout are stale in letter
    only, because both arguments are about which roles a claim can reach and
    neither depends on the default being `viewer`. The *Superseding conditions*
@@ -231,7 +232,9 @@ Verified facts at the time of this decision:
     `OIDC_ENABLED` is true, and it refuses when any of `OIDC_ISSUER`,
     `OIDC_CLIENT_ID` or `OIDC_CLIENT_SECRET` is missing; when both allow-lists
     are empty; when `OIDC_ISSUER` is not `https://`; when `OIDC_ADMIN_GROUPS` is
-    non-empty; when the auth mode leaves SSO no door; and when `PUBLIC_URL` is
+    non-empty; when the auth mode leaves SSO no door (`AUTH_ENABLED` false, or
+    `AUTH_MODE=local`); when `OIDC_DEFAULT_ROLE` is `admin`; when it names a role
+    a first sign-in may not be provisioned with; and when `PUBLIC_URL` is
     empty.
     Each refusal names the variable at fault. A partially
     configured sign-in path that silently authenticates nobody is a support
@@ -334,7 +337,7 @@ Costs paid deliberately:
   the flow is single-worker by construction (decision 15). SSO is therefore
   correct only for a single uvicorn process; multiple workers need a shared
   store first, and that is a real piece of work rather than a flag.
-- **One more thing an operator can misconfigure into a boot failure.** Six
+- **One more thing an operator can misconfigure into a boot failure.** Nine
   distinct half-configurations refuse to start. That is the point, but it moves
   the failure to deploy time rather than to first login.
 
@@ -375,8 +378,8 @@ Residual risks, stated plainly:
   existed, or routing the write through the start limiter — is a follow-up,
   not part of this decision.
 
-Deliberately out of scope: no change to `AUTH_*` semantics, no change to the
-break-glass rule, no change to the login throttle, no change to the file-grant
+Deliberately out of scope **for `Mf-4c24`**: no change to `AUTH_*` semantics, no change to the
+break-glass rule (both later amended by `Mf-k35g` — decisions 1 and 14), no change to the login throttle, no change to the file-grant
 path, no MFA (`Mf-lg02`), no per-asset ownership (`Mf-arm6`), no session
 management UI (`Mf-7op4`), no logout propagation to the IdP (signing out of
 Curiarium revokes the local session and leaves the IdP session alone), and no
@@ -428,6 +431,11 @@ opted in is in: the four routes stay in the matrix and answer 503, local login,
 break-glass and the file-grant path are unchanged, and no flow can start. Because
 the switch is a boot-validated environment key, this needs a restart and nothing
 else.
+
+In `AUTH_MODE=oidc`, `OIDC_ENABLED=false` alone refuses the boot instead
+(`auth.validate_auth_configuration()`: that mode then has no login path), so an
+`oidc` deployment must also move the mode back to `both`/`local`/`auto` in the same
+restart.
 
 That is enough for an incident, but it is not a code rollback. A full revert of
 the `Mf-4c24` commit removes `api/oidc.py` and `api/routers/oidc.py`, drops the

@@ -378,14 +378,15 @@ authentication is the code revert.
   table with its two indexes, that re-applying 012 is idempotent, and that a v11
   database upgrades without touching existing rows.
 - `tests/test_permissions_matrix.py` sweeps all eight new routes for the 90-route
-  matrix (9 public / 33 read / 32 write / 16 admin) and for the 503 set when auth
-  is disabled.
+  matrix (9 public / 33 read / 19 contribute / 13 write / 16 admin — the `write`
+  bucket was split by `Mf-01f0`) and for the 503 set when auth
+  is disabled or the mode refuses password sign-in (`AUTH_MODE=oidc`).
 - `tests/test_audit_log.py` sweeps the seven audited routes with throwaway users
   (never the fixture admin, so `/login` never flips to a challenge mid-sweep) and
   has a dedicated 401 test asserting the `mfa.verify.failed` row survives the
   rejection.
-- `tests/test_snapshots.py` pins `len(audit.ACTIONS) == 46`,
-  `len(audit.ROUTE_ACTIONS) == 36` and the route-coverage sentence in
+- `tests/test_snapshots.py` pins `len(audit.ACTIONS) == 47`,
+  `len(audit.ROUTE_ACTIONS) == 40` and the route-coverage sentence in
   `docs/AUDIT.md`.
 - The web side is covered by `src/ui/settings/MfaQrCode.test.tsx` (an `<svg>` is
   built from the URI and no network call is made), `MfaSection.test.tsx`,

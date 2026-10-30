@@ -201,7 +201,7 @@ browser ──► web container (nginx :5173) ──/api/*──► api containe
                                                       thumbs, supporting files)
 ```
 
-* `curiarium/api` — FastAPI, 18 routers, SQLModel, versioned migrations (currently **13**),
+* `curiarium/api` — FastAPI, 18 routers, SQLModel, versioned migrations (currently **14**),
   per-route permission matrix, append-only audit, snapshot providers, import resolvers.
 * `curiarium/web` — React 18 + Vite + Tailwind, virtualised grid, single-flight preview
   queue, upload queue, project pages.
