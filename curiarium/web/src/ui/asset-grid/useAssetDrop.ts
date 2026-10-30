@@ -5,8 +5,8 @@ import type { Uploader } from "../useUpload";
 
 type AssetDropOptions = {
   isProject: boolean;
-  /** Read-only roles get no drop handling: a drop here is an upload. */
-  canWrite: boolean;
+  /** Roles below contributor get no drop handling: a drop here is an upload. */
+  canContribute: boolean;
   uploader: Uploader;
   dropTargetName: string;
 };
@@ -29,7 +29,7 @@ export type AssetDropApi = {
  */
 export function useAssetDrop({
   isProject,
-  canWrite,
+  canContribute,
   uploader,
   dropTargetName,
 }: AssetDropOptions): AssetDropApi {
@@ -43,9 +43,10 @@ export function useAssetDrop({
   };
 
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
-    // Uploads always target a files folder, and projects have none. A viewer
-    // cannot upload at all, so it must not even see the drag affordance.
-    if (!canWrite || isProject || !isFileDrag(e)) return;
+    // Uploads always target a files folder, and projects have none. A role
+    // below contributor cannot upload at all, so it must not even see the drag
+    // affordance.
+    if (!canContribute || isProject || !isFileDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
     dragDepth.current += 1;
@@ -53,13 +54,13 @@ export function useAssetDrop({
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    if (!canWrite || isProject || !isFileDrag(e)) return;
+    if (!canContribute || isProject || !isFileDrag(e)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "copy";
   };
 
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    if (!canWrite || isProject || !isFileDrag(e)) return;
+    if (!canContribute || isProject || !isFileDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
     dragDepth.current -= 1;
@@ -70,7 +71,7 @@ export function useAssetDrop({
   };
 
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
-    if (!canWrite || isProject || !isFileDrag(e)) return;
+    if (!canContribute || isProject || !isFileDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
     dragDepth.current = 0;
@@ -85,7 +86,7 @@ export function useAssetDrop({
     }
   };
 
-  const showDropOverlay = canWrite && !isProject && (dragActive || dropUploading);
+  const showDropOverlay = canContribute && !isProject && (dragActive || dropUploading);
   const dropMessage = dropUploading
     ? `Uploading to ${dropTargetName}...`
     : `Drop files or folders to upload to ${dropTargetName}`;

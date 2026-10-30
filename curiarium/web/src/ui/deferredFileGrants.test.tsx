@@ -150,7 +150,8 @@ const STL_ASSET: Asset = {
 function cardProps(overrides: Partial<AssetCardProps> = {}): AssetCardProps {
   return {
     item: PNG_ASSET,
-    canWrite: false,
+    canContribute: false,
+    canDelete: false,
     onSaveTags: vi.fn(),
     onSaveDetails: vi.fn(),
     onRename: vi.fn(),

@@ -65,8 +65,12 @@ import MarkdownEditor from "./project-editor/MarkdownEditor";
 import TagBadge from "./TagBadge";
 
 type Props = {
-  /** Required, not defaulted: the compiler is what keeps the gating airtight. */
-  canWrite: boolean;
+  /**
+   * Contribute and delete capabilities of the current role, required, not
+   * defaulted: the compiler is what keeps the gating airtight.
+   */
+  canContribute: boolean;
+  canDelete: boolean;
   project: Project;
   assetsVersion: number;
   /** App splices the returned row into its project list. */
@@ -166,7 +170,8 @@ const USER_SUPPLIED_FILES = "user-supplied";
  * their own.
  */
 export default function ProjectLanding({
-  canWrite,
+  canContribute,
+  canDelete,
   project,
   assetsVersion,
   onProjectUpdated,
@@ -196,7 +201,7 @@ export default function ProjectLanding({
     onAttached: onAssetsChanged,
     onUnauthorized,
   });
-  const attachDrop = useAttachDrop(attacher.attach, canWrite);
+  const attachDrop = useAttachDrop(attacher.attach, canContribute);
 
   // --- Members (the project's files) --------------------------------------
 
@@ -555,10 +560,10 @@ export default function ProjectLanding({
       event.preventDefault();
       return;
     }
-    if (canWrite && draft) {
+    if (canContribute && draft) {
       // Escape while editing must never bubble up as "close the project":
-      // ProjectView bails on `defaultPrevented`. A viewer has no editor to
-      // cancel, so a stale draft from a demotion must not prompt for one.
+      // ProjectView bails on `defaultPrevented`. A role below contributor has no
+      // editor to cancel, so a stale draft from a demotion must not prompt for one.
       event.preventDefault();
       requestCancelEdit();
     }
@@ -662,7 +667,7 @@ export default function ProjectLanding({
 
   // A demotion mid-edit must not leave the editor on screen, so the edit mode
   // is derived from the capability rather than from `draft` alone.
-  const editing = canWrite && draft !== null;
+  const editing = canContribute && draft !== null;
   const sourceLabel = project.source_url ? sourceHostLabel(project.source_url) : null;
   const shownTags = allTags.slice(0, MAX_TAG_CHIPS);
   const extraTagCount = allTags.length - shownTags.length;
@@ -811,7 +816,7 @@ export default function ProjectLanding({
                       </span>
                     )}
                   </div>
-                  {canWrite && (
+                  {canContribute && (
                     <button
                       type="button"
                       aria-label={`Use ${asset.name} as cover`}
@@ -865,7 +870,7 @@ export default function ProjectLanding({
               <Download className="h-4 w-4" aria-hidden="true" />
               {downloadingZip ? "Preparing…" : "Download all as ZIP"}
             </button>
-            {canWrite && (
+            {canContribute && (
               <>
                 <button type="button" className={BUTTON_SECONDARY} onClick={() => void openPicker()}>
                   <Plus className="h-4 w-4" aria-hidden="true" />
@@ -886,7 +891,7 @@ export default function ProjectLanding({
                 Open in {slicerLabel}
               </button>
             )}
-            {canWrite && (
+            {canDelete && (
               <button type="button" className={BUTTON_DANGER} onClick={requestDeleteProject}>
                 <Trash2 className="h-4 w-4" aria-hidden="true" />
                 Delete
@@ -992,9 +997,9 @@ export default function ProjectLanding({
           <p className="mt-3 text-sm text-muted">
             Imported details only — the files for this model are gated behind an
             account or a purchase, so they were not downloaded.
-            {/* Only an editor can act on it: telling a viewer to use "Attach
-                files" points at a control they cannot see. */}
-            {canWrite && ' Use "Attach files" to add the files you downloaded yourself.'}
+            {/* Only a contributor can act on it: telling a role below that to use
+                "Attach files" points at a control they cannot see. */}
+            {canContribute && ' Use "Attach files" to add the files you downloaded yourself.'}
           </p>
         )}
 
@@ -1044,7 +1049,7 @@ export default function ProjectLanding({
         ) : (
           <div className="mt-2 rounded-lg border border-dashed border-panel-strong px-4 py-8 text-center">
             <p className="text-sm text-muted">No description yet.</p>
-            {canWrite && (
+            {canContribute && (
               <button
                 type="button"
                 onClick={() => startEdit("description")}
@@ -1076,7 +1081,7 @@ export default function ProjectLanding({
               </span>
             )}
             {/* One control only: the empty state shows its own, below. */}
-            {canWrite && members.length > 0 && <AttachFilesControl attacher={attacher} />}
+            {canContribute && members.length > 0 && <AttachFilesControl attacher={attacher} />}
           </div>
         </div>
 
@@ -1091,7 +1096,7 @@ export default function ProjectLanding({
         ) : members.length === 0 ? (
           <div className="mt-2 rounded-lg border border-dashed border-panel-strong px-4 py-8 text-center">
             <p className="text-sm text-muted">This project has no files yet.</p>
-            {canWrite && (
+            {canContribute && (
               <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
                 <button
                   type="button"
@@ -1159,7 +1164,11 @@ export default function ProjectLanding({
                       >
                         <Download className="h-4 w-4" aria-hidden="true" />
                       </button>
-                      {canWrite && (
+                      {/* Deleting a member only removes the join row, not the
+                          asset: `DELETE /project/{project_id}/assets` is a
+                          CONTRIBUTE route server-side, so this stays
+                          canContribute on purpose. Do not "fix" it. */}
+                      {canContribute && (
                         <>
                           <button
                             type="button"

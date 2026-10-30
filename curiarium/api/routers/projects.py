@@ -10,7 +10,7 @@ import project_service
 from auth import AuthContext
 from db import engine
 from models import Asset, ProjectAsset
-from permissions import require_read, require_write
+from permissions import require_contribute, require_read, require_write
 from routers.asset_helpers import apply_asset_filters, apply_asset_order, asset_page, require_asset_ids
 from routers.presenters import project_to_out, to_out
 from schemas import (
@@ -44,7 +44,7 @@ def list_projects(_: Optional[AuthContext] = Depends(require_read)):
 
 
 @router.post("/projects", response_model=ProjectOut, status_code=201)
-def create_project(body: ProjectIn, _: Optional[AuthContext] = Depends(require_write)):
+def create_project(body: ProjectIn, _: Optional[AuthContext] = Depends(require_contribute)):
     with Session(engine) as s:
         project = project_service.create_project(
             s,
@@ -66,7 +66,7 @@ def update_project(
     project_id: str,
     body: ProjectUpdate,
     request: Request,
-    context: Optional[AuthContext] = Depends(require_write),
+    context: Optional[AuthContext] = Depends(require_contribute),
 ):
     with Session(engine) as s:
         project = project_service.update_project(
@@ -129,7 +129,7 @@ def list_project_assets(
 def add_project_assets(
     project_id: str,
     body: ProjectAssetsRequest,
-    _: Optional[AuthContext] = Depends(require_write),
+    _: Optional[AuthContext] = Depends(require_contribute),
 ):
     """Add memberships; unknown asset ids are reported per id (200 partial)."""
     asset_ids = require_asset_ids(body.asset_ids)
@@ -141,7 +141,7 @@ def add_project_assets(
 def remove_project_assets(
     project_id: str,
     body: ProjectAssetsRequest,
-    _: Optional[AuthContext] = Depends(require_write),
+    _: Optional[AuthContext] = Depends(require_contribute),
 ):
     """Remove memberships; assets and files are never touched.
 

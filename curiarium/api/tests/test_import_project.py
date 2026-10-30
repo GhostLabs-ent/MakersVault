@@ -671,8 +671,8 @@ def test_a_garbage_stored_source_does_not_break_an_unrelated_import(monkeypatch:
 # --- route wiring -----------------------------------------------------------
 
 
-def test_the_route_is_write_and_audit_exempt() -> None:
-    assert permissions.ROUTE_PERMISSIONS[("POST", "/import/project")] == permissions.WRITE
+def test_the_route_is_contribute_and_audit_exempt() -> None:
+    assert permissions.ROUTE_PERMISSIONS[("POST", "/import/project")] == permissions.CONTRIBUTE
     assert ("POST", "/import/project") in audit.EXEMPT_ROUTES
 
 

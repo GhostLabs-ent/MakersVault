@@ -174,10 +174,22 @@ const assets: Asset[] = [
   },
 ];
 
-function renderGrid(canWrite: boolean) {
+type Capabilities = { canContribute: boolean; canDelete: boolean };
+
+/**
+ * A contributor may upload, tag, organise, reorder and relabel supporting
+ * files, but may destroy nothing and cannot rename or move the asset itself.
+ */
+const CONTRIBUTOR: Capabilities = { canContribute: true, canDelete: false };
+/** An editor holds both capabilities. */
+const EDITOR: Capabilities = { canContribute: true, canDelete: true };
+/** A viewer holds neither. */
+const VIEWER: Capabilities = { canContribute: false, canDelete: false };
+
+function renderGrid({ canContribute, canDelete }: Capabilities) {
   const utils = render(
     <>
-      <AssetGrid canWrite={canWrite} theme="dark" />
+      <AssetGrid canContribute={canContribute} canDelete={canDelete} theme="dark" />
       <Toaster />
     </>,
   );
@@ -261,11 +273,16 @@ function rectOf(top: number, height: number): DOMRect {
 }
 
 /** Real scroll container with the one measurement jsdom cannot provide. */
-function renderVirtualHarness(canWrite: boolean): HTMLDivElement {
+function renderVirtualHarness({ canContribute, canDelete }: Capabilities): HTMLDivElement {
   const scrollerRef = createRef<HTMLDivElement>();
   render(
     <div ref={scrollerRef} data-testid="asset-scroller">
-      <AssetGrid canWrite={canWrite} theme="dark" scrollElementRef={scrollerRef} />
+      <AssetGrid
+        canContribute={canContribute}
+        canDelete={canDelete}
+        theme="dark"
+        scrollElementRef={scrollerRef}
+      />
     </div>,
   );
   const scroller = scrollerRef.current;
@@ -337,7 +354,7 @@ describe("AssetGrid role capability", () => {
 
   describe("viewer", () => {
     it("hides every per-card write control and keeps the read surfaces", async () => {
-      renderGrid(false);
+      renderGrid(VIEWER);
       await screen.findByText("Calibration cube");
 
       const card = cardFor("a1");
@@ -372,7 +389,7 @@ describe("AssetGrid role capability", () => {
     });
 
     it("keeps the missing-file banner but not its repair controls", async () => {
-      renderGrid(false);
+      renderGrid(VIEWER);
       await screen.findByText("Lost model");
 
       const card = cardFor("m3");
@@ -382,7 +399,7 @@ describe("AssetGrid role capability", () => {
     });
 
     it("keeps the prepared-print summary but drops its clear action", async () => {
-      renderGrid(false);
+      renderGrid(VIEWER);
       await screen.findByText("Prepared spool");
 
       const card = cardFor("b2");
@@ -391,7 +408,7 @@ describe("AssetGrid role capability", () => {
     });
 
     it("leaves the card name as plain text when it is double-clicked", async () => {
-      renderGrid(false);
+      renderGrid(VIEWER);
       const name = await screen.findByText("Calibration cube");
 
       fireEvent.doubleClick(name);
@@ -403,7 +420,7 @@ describe("AssetGrid role capability", () => {
     });
 
     it("shows the bulk bar without any of its write actions", async () => {
-      renderGrid(false);
+      renderGrid(VIEWER);
       await screen.findByText("Calibration cube");
 
       const boxes = screen.getAllByRole("checkbox", { name: "Select" });
@@ -433,7 +450,7 @@ describe("AssetGrid role capability", () => {
 
   describe("editor", () => {
     it("offers every write control a viewer loses", async () => {
-      renderGrid(true);
+      renderGrid(EDITOR);
       await screen.findByText("Calibration cube");
 
       const card = cardFor("a1");
@@ -458,7 +475,7 @@ describe("AssetGrid role capability", () => {
     });
 
     it("drops the open tag editor when the role is demoted mid-edit", async () => {
-      const { rerender } = renderGrid(true);
+      const { rerender } = renderGrid(EDITOR);
       await screen.findByText("Calibration cube");
 
       fireEvent.click(within(cardFor("a1")).getByRole("button", { name: "Edit tags" }));
@@ -468,7 +485,7 @@ describe("AssetGrid role capability", () => {
 
       rerender(
         <>
-          <AssetGrid canWrite={false} theme="dark" />
+          <AssetGrid canContribute={false} canDelete={false} theme="dark" />
           <Toaster />
         </>,
       );
@@ -481,9 +498,123 @@ describe("AssetGrid role capability", () => {
     });
   });
 
+  // The persona this ticket exists for, and the only one that proves the split:
+  // an editor holds both capabilities and a viewer holds neither, so both pass
+  // whatever the gate does; a contributor is where contribute and delete differ.
+  describe("contributor", () => {
+    /**
+     * Destroys and asset-level moves stay WRITE in the API matrix, so no
+     * contributor path may reach one of these; `createFolder`, tags, metadata
+     * and supporting-file reorder/rename are contribute and may fire.
+     */
+    const destructiveMocks = [
+      deleteAsset,
+      batchDeleteAssets,
+      batchMoveAssets,
+      updateAssetFolder,
+      deleteAssetFile,
+      deletePreparedPrint,
+      startLibraryScan,
+    ].map(api => vi.mocked(api));
+
+    it("keeps the upload, tag, details and project surfaces an editor has", async () => {
+      renderGrid(CONTRIBUTOR);
+      await screen.findByText("Calibration cube");
+
+      const card = cardFor("a1");
+      for (const name of ["Add files", "Edit tags", "Add to project…"]) {
+        expect(within(card).getByRole("button", { name })).toBeTruthy();
+      }
+
+      await expandSupportingFiles(card);
+      // Opening the list and its preview is a read, so both stay.
+      expect(within(card).getByRole("button", { name: "Preview notes.pdf" })).toBeTruthy();
+      // Reorder and the display-only rename are contribute in the API matrix
+      // (`PUT /asset/{id}/files/order`, `PATCH /asset/{id}/files/{file_id}`):
+      // they never touch the bytes, so a contributor keeps them.
+      for (const name of [/Move notes.pdf up/, /Move notes.pdf down/, "Rename"]) {
+        expect(within(card).getByRole("button", { name })).toBeTruthy();
+      }
+
+      // The details editor opens and is interactive, not just visible.
+      fireEvent.click(within(card).getByRole("button", { name: "Expand" }));
+      fireEvent.click(within(card).getByRole("button", { name: "Edit details" }));
+      expect(within(card).getByRole("button", { name: "Save" })).toBeTruthy();
+      expect(within(card).getByPlaceholderText("Designer or source")).toBeTruthy();
+      fireEvent.click(within(card).getByRole("button", { name: "Cancel" }));
+
+      // The tag editor opens too: its Save button only exists while it is open.
+      fireEvent.click(within(card).getByRole("button", { name: "Edit tags" }));
+      expect(within(card).getByRole("button", { name: "Save" })).toBeTruthy();
+    });
+
+    it("loses the destroy controls a viewer also lacks", async () => {
+      renderGrid(CONTRIBUTOR);
+      await screen.findByText("Calibration cube");
+
+      const card = cardFor("a1");
+      expect(within(card).queryByRole("button", { name: "Delete" })).toBeNull();
+      expect(folderSelectIn(card)).toBeNull();
+
+      await expandSupportingFiles(card);
+      // `DELETE /asset/{id}/files/{file_id}` is WRITE, so Remove goes even
+      // though the reorder and rename buttons beside it stay.
+      expect(within(card).queryByRole("button", { name: "Remove" })).toBeNull();
+
+      const missing = cardFor("m3");
+      expect(within(missing).queryByRole("button", { name: "Re-scan" })).toBeNull();
+      expect(within(missing).queryByRole("button", { name: "Forget entry" })).toBeNull();
+
+      expect(within(cardFor("b2")).queryByRole("button", { name: "Clear" })).toBeNull();
+    });
+
+    it("leaves the card name as plain text when it is double-clicked", async () => {
+      renderGrid(CONTRIBUTOR);
+      const name = await screen.findByText("Calibration cube");
+
+      fireEvent.doubleClick(name);
+
+      // Renaming the asset is a write: no rename mode, no input in place of
+      // the text. (The supporting-file display rename is contribute and is
+      // covered by the surface test above.)
+      expect(screen.getByText("Calibration cube")).toBeTruthy();
+      expect(screen.queryByDisplayValue("Calibration cube")).toBeNull();
+    });
+
+    it("reaches no destructive endpoint from the surface it is offered", async () => {
+      renderGrid(CONTRIBUTOR);
+      await screen.findByText("Calibration cube");
+
+      const card = cardFor("a1");
+      fireEvent.click(within(card).getByRole("button", { name: "Add files" }));
+      fireEvent.click(within(card).getByRole("button", { name: "Add to project…" }));
+
+      const boxes = screen.getAllByRole("checkbox", { name: "Select" });
+      fireEvent.click(boxes[0]);
+      fireEvent.click(boxes[1]);
+
+      const bar = within(screen.getByTestId("bulk-action-bar"));
+      for (const name of ["Add tags", "Remove tags", "Edit metadata…", "Add to project…"]) {
+        expect(bar.getByRole("button", { name })).toBeTruthy();
+      }
+      for (const name of ["Move", "Delete"]) {
+        expect(bar.queryByRole("button", { name })).toBeNull();
+      }
+      expect(bar.queryByRole("combobox", { name: "Target folder" })).toBeNull();
+
+      // A contribute route, so the batch tag call is allowed to fire; the
+      // destroy routes are not.
+      fireEvent.click(bar.getByRole("button", { name: "Add tags" }));
+
+      for (const mock of destructiveMocks) {
+        expect(mock).not.toHaveBeenCalled();
+      }
+    });
+  });
+
   describe("no write is reachable", () => {
     it("calls no write endpoint for any click or file drop a viewer can make", async () => {
-      const { container } = renderGrid(false);
+      const { container } = renderGrid(VIEWER);
       await screen.findByText("Calibration cube");
       const root = container.firstElementChild as HTMLElement;
 
@@ -512,7 +643,7 @@ describe("AssetGrid role capability", () => {
     });
 
     it("shows the drop overlay to an editor, so the viewer assertion is not vacuous", async () => {
-      const { container } = renderGrid(true);
+      const { container } = renderGrid(EDITOR);
       await screen.findByText("Calibration cube");
 
       fireEvent.dragEnter(container.firstElementChild as HTMLElement, fileDrag());
@@ -526,14 +657,14 @@ describe("AssetGrid role capability", () => {
       const total = 2000;
       listAssetsMock.mockResolvedValue({ items: makeSyntheticBatch(total), hasMore: false });
 
-      const editorScroller = renderVirtualHarness(true);
+      const editorScroller = renderVirtualHarness(EDITOR);
       await screen.findByText("Asset 1");
       stubGridRect(editorScroller);
       const editorRows = mountedRowIndexes();
       const editorCards = cardCount();
       cleanup();
 
-      const viewerScroller = renderVirtualHarness(false);
+      const viewerScroller = renderVirtualHarness(VIEWER);
       await screen.findByText("Asset 1");
       stubGridRect(viewerScroller);
       const viewerRows = mountedRowIndexes();

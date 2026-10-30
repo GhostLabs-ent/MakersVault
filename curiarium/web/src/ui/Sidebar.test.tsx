@@ -423,12 +423,47 @@ describe("Sidebar write controls by role", () => {
     expect(within(menu).getByText("Delete")).toBeTruthy();
   });
 
-  it("offers the empty state's create button only to an editor", async () => {
+  // The persona the split exists for: creating is a contribute while renaming
+  // and destroying are not, so one flag cannot describe this role.
+  it("a contributor keeps the create surfaces and loses rename and delete", async () => {
+    render(<Sidebar selectedId={null} onSelect={vi.fn()} role="contributor" />);
+    await screen.findByText("Keep");
+
+    expect(screen.getByTitle("New folder")).toBeTruthy();
+
+    const menu = folderMenu("Keep");
+    expect(within(menu).getByText("Download ZIP")).toBeTruthy();
+    expect(within(menu).getByText("Subfolder")).toBeTruthy();
+    expect(within(menu).queryByText(/Rename & edit/)).toBeNull();
+    expect(within(menu).queryByText("Delete")).toBeNull();
+
+    // The contribute action still works, and it never turns into the edit
+    // dialog: that dialog's only trigger is gone from the menu.
+    fireEvent.click(within(menu).getByText("Subfolder"));
+    expect(await screen.findByRole("dialog", { name: "Create folder" })).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: "Edit folder" })).toBeNull();
+  });
+
+  it("opens the create dialog for a contributor", async () => {
+    render(<Sidebar selectedId={null} onSelect={vi.fn()} role="contributor" />);
+    await screen.findByText("Keep");
+
+    fireEvent.click(screen.getByTitle("New folder"));
+
+    const dialog = await screen.findByRole("dialog", { name: "Create folder" });
+    expect(within(dialog).getByRole("button", { name: "Create" })).toBeTruthy();
+  });
+
+  it("offers the empty state's create button to every role that may contribute", async () => {
     listFoldersMock.mockResolvedValue([]);
-    const { unmount } = render(<Sidebar selectedId={null} onSelect={vi.fn()} role="viewer" />);
+    let { unmount } = render(<Sidebar selectedId={null} onSelect={vi.fn()} role="viewer" />);
 
     await screen.findByText("No folders yet");
     expect(screen.queryByRole("button", { name: "Create your first folder" })).toBeNull();
+
+    unmount();
+    ({ unmount } = render(<Sidebar selectedId={null} onSelect={vi.fn()} role="contributor" />));
+    expect(await screen.findByRole("button", { name: "Create your first folder" })).toBeTruthy();
 
     unmount();
     render(<Sidebar selectedId={null} onSelect={vi.fn()} role="editor" />);
@@ -452,6 +487,23 @@ describe("Sidebar write controls by role", () => {
 
   it("an editor's drop on a folder row shows the target and uploads there", async () => {
     render(<Sidebar selectedId={null} onSelect={vi.fn()} role="editor" />);
+    await screen.findByText("Keep");
+
+    const row = treeRow("f1");
+    const dataTransfer = makeDrop([new File(["content"], "dropped.stl")]);
+    fireEvent.dragOver(row, { dataTransfer });
+    expect(row.className).toContain("is-drop-target");
+
+    fireEvent.drop(row, { dataTransfer });
+
+    await waitFor(() => expect(uploadEntriesMock).toHaveBeenCalledTimes(1));
+    expect(uploadEntriesMock.mock.calls[0][1]).toBe("f1");
+  });
+
+  // Dropping files creates assets, which is a contribute: the contributor
+  // persona must keep the drop target the editor has.
+  it("a contributor's drop on a folder row shows the target and uploads there", async () => {
+    render(<Sidebar selectedId={null} onSelect={vi.fn()} role="contributor" />);
     await screen.findByText("Keep");
 
     const row = treeRow("f1");

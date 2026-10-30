@@ -67,7 +67,8 @@ function Harness({ initial }: { initial: Project[] }) {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   return (
     <ProjectView
-      canWrite
+      canContribute
+      canDelete
       projects={projects}
       selectedProjectId={selectedProjectId}
       onOpenProject={setSelectedProjectId}

@@ -27,8 +27,10 @@ import { useAssetSorting } from "./useAssetSorting";
 import { useBulkActions } from "./useBulkActions";
 
 type Props = {
-  /** Write capability of the current role: a viewer keeps the read surfaces only. */
-  canWrite: boolean;
+  /** Contribute capability: upload, import, tag, organise. Required, no default. */
+  canContribute: boolean;
+  /** Delete capability: destroy, rename and move. Required, no default. */
+  canDelete: boolean;
   folderId?: string | null;
   /** When set, the grid shows this project's assets and hides all folder chrome. */
   projectId?: string | null;
@@ -58,7 +60,8 @@ function errorMessage(err: unknown, fallback: string): string {
 }
 
 export default function AssetGrid({
-  canWrite,
+  canContribute,
+  canDelete,
   folderId,
   projectId,
   projectName,
@@ -329,7 +332,7 @@ export default function AssetGrid({
     handleDragOver,
     handleDragLeave,
     handleDrop,
-  } = useAssetDrop({ isProject, canWrite, uploader, dropTargetName });
+  } = useAssetDrop({ isProject, canContribute, uploader, dropTargetName });
 
   // Single source of truth for card props so the virtualized flat grid and the
   // grouped rows render exactly the same cards. All callbacks are stable, so
@@ -338,7 +341,8 @@ export default function AssetGrid({
     <AssetCard
       key={item.id}
       item={item}
-      canWrite={canWrite}
+      canContribute={canContribute}
+      canDelete={canDelete}
       onSaveTags={onSaveTags}
       onSaveDetails={onSaveDetails}
       onRename={onRename}
@@ -401,7 +405,8 @@ export default function AssetGrid({
         />
       )}
       <BulkActionBar
-        canWrite={canWrite}
+        canContribute={canContribute}
+        canDelete={canDelete}
         count={selectedIds.size}
         folderOptions={folderOptions}
         showFolderControls={!isProject}
@@ -420,7 +425,7 @@ export default function AssetGrid({
         onSelectAll={selectAllLoaded}
         onDismissFailures={dismissBulkFailures}
       />
-      {!isProject && canWrite && uploader.modal}
+      {!isProject && canContribute && uploader.modal}
       <AssetToolbar
         isProject={isProject}
         loading={loading}

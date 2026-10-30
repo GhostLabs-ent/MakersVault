@@ -66,7 +66,7 @@ publishing.
 
 | | |
 |---|---|
-| **Users and roles** | Local accounts (argon2id) with `admin` / `editor` / `viewer`, enforced by a per-route permission matrix that refuses to boot if a route is unclassified. |
+| **Users and roles** | Local accounts (argon2id) with `admin` / `editor` / `contributor` / `viewer`: a contributor may upload and organise the library but never destroy or rename it, while deletes and renames stay editor-and-up. Enforced by a per-route permission matrix that refuses to boot if a route is unclassified. |
 | **OIDC single sign-on** | Authorization Code + PKCE, `state`/`nonce` validated, identity bound to a unique `(issuer, subject)`, allow-lists that compose with AND. Claims can grant at most `editor` — **OIDC can never mint an admin**. |
 | **MFA** | TOTP enrolment with recovery codes, and a policy that can require MFA for admins. |
 | **Sessions** | List your sessions (device, IP, last seen), revoke any of them; revocation is immediate because the access token is bound to a live session row. Multi-tab refresh uses a grace window and treats replays as a compromise signal. |

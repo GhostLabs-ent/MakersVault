@@ -7,7 +7,8 @@ import BulkActionBar, { BulkActionBarProps } from "./BulkActionBar";
 
 function renderBar(overrides: Partial<BulkActionBarProps> = {}) {
   const props: BulkActionBarProps = {
-    canWrite: true,
+    canContribute: true,
+    canDelete: true,
     count: 3,
     folderOptions: [
       { id: null, name: "Unassigned" },
@@ -201,20 +202,16 @@ describe("BulkActionBar", () => {
 describe("BulkActionBar role capability", () => {
   afterEach(cleanup);
 
-  const WRITE_CONTROLS = [
-    "Move",
-    "Add tags",
-    "Remove tags",
-    "Edit metadata…",
-    "Add to project…",
-    "Delete",
-  ];
+  /** Tag, metadata and project actions are CONTRIBUTE routes. */
+  const CONTRIBUTE_CONTROLS = ["Add tags", "Remove tags", "Edit metadata…", "Add to project…"];
+  /** Moving and deleting are WRITE routes, so they need the narrower capability. */
+  const DELETE_CONTROLS = ["Move", "Delete"];
   const READ_CONTROLS = ["Download zip", "Select all", "Clear"];
 
   it("offers every bulk write action to an editor", () => {
-    renderBar({ canWrite: true });
+    renderBar({ canContribute: true, canDelete: true });
 
-    for (const name of WRITE_CONTROLS) {
+    for (const name of [...CONTRIBUTE_CONTROLS, ...DELETE_CONTROLS]) {
       expect(screen.getByRole("button", { name })).toBeTruthy();
     }
     expect(screen.getByRole("combobox", { name: "Target folder" })).toBeTruthy();
@@ -224,14 +221,37 @@ describe("BulkActionBar role capability", () => {
     }
   });
 
+  // An editor (both capabilities) and a viewer (neither) pass with shared
+  // controls, so neither proves the split; a contributor is the only role
+  // where the two capabilities differ.
+  it("keeps every contribute action and drops the move and delete actions for a contributor", () => {
+    renderBar({ canContribute: true, canDelete: false });
+
+    expect(screen.getByText("3 selected")).toBeTruthy();
+    for (const name of CONTRIBUTE_CONTROLS) {
+      expect(screen.getByRole("button", { name })).toBeTruthy();
+    }
+    expect(screen.getByRole("textbox", { name: "Tags" })).toBeTruthy();
+
+    for (const name of DELETE_CONTROLS) {
+      expect(screen.queryByRole("button", { name })).toBeNull();
+    }
+    expect(screen.queryByRole("combobox", { name: "Target folder" })).toBeNull();
+
+    // Reads are never capability-gated.
+    for (const name of READ_CONTROLS) {
+      expect(screen.getByRole("button", { name })).toBeTruthy();
+    }
+  });
+
   it("keeps only the download, selection and clearing controls for a viewer", () => {
-    renderBar({ canWrite: false });
+    renderBar({ canContribute: false, canDelete: false });
 
     expect(screen.getByText("3 selected")).toBeTruthy();
     for (const name of READ_CONTROLS) {
       expect(screen.getByRole("button", { name })).toBeTruthy();
     }
-    for (const name of WRITE_CONTROLS) {
+    for (const name of [...CONTRIBUTE_CONTROLS, ...DELETE_CONTROLS]) {
       expect(screen.queryByRole("button", { name })).toBeNull();
     }
     expect(screen.queryByRole("combobox", { name: "Target folder" })).toBeNull();
@@ -240,7 +260,8 @@ describe("BulkActionBar role capability", () => {
 
   it("still reports what already happened, dismissible, to a viewer", () => {
     const { props } = renderBar({
-      canWrite: false,
+      canContribute: false,
+      canDelete: false,
       requestError: "Bulk delete failed.",
       failures: [{ id: "b2", code: "conflict", status: 409, error: "Storage path exists" }],
       failureLabels: [{ id: "b2", label: "spool-holder.stl", message: "Storage path exists" }],

@@ -29,7 +29,7 @@ from asset_service import new_staging_path, resolve_asset_file, save_thumb
 from auth import AuthContext
 from db import engine
 from models import Asset, AssetFile
-from permissions import require_file_read, require_read, require_write
+from permissions import require_contribute, require_file_read, require_read, require_write
 from routers.presenters import asset_file_to_out, to_out
 from routers.uploads import CLIENT_CLOSED_REQUEST, multipart_form_openapi
 from schemas import (
@@ -87,7 +87,7 @@ def reorder_supporting_files_route(
     asset_id: str,
     body: AssetFileOrderUpdate,
     request: Request,
-    context: Optional[AuthContext] = Depends(require_write),
+    context: Optional[AuthContext] = Depends(require_contribute),
 ):
     rows = reorder_supporting_files(
         asset_id,
@@ -138,7 +138,7 @@ def rename_supporting_file_route(
     file_id: str,
     body: AssetFileRename,
     request: Request,
-    context: Optional[AuthContext] = Depends(require_write),
+    context: Optional[AuthContext] = Depends(require_contribute),
 ):
     record = rename_supporting_file(
         asset_id,
@@ -318,7 +318,7 @@ GENERATED_THUMBNAIL_TYPES = frozenset({"image/png", "image/jpeg", "image/webp"})
 async def save_generated_thumbnail(
     asset_id: str,
     request: Request,
-    _: Optional[AuthContext] = Depends(require_write),
+    _: Optional[AuthContext] = Depends(require_contribute),
 ):
     staging = new_staging_path()
     # Read the cap as a module global at call time: tests shrink it to prove the

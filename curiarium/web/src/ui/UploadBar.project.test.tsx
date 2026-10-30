@@ -98,7 +98,7 @@ function renderUploadBar() {
   const onProjectImported = vi.fn();
   render(
     <>
-      <UploadBar canWrite onUploaded={onUploaded} onProjectImported={onProjectImported} />
+      <UploadBar canContribute onUploaded={onUploaded} onProjectImported={onProjectImported} />
       <Toaster />
     </>,
   );

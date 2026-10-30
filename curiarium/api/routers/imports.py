@@ -10,7 +10,7 @@ import seams
 from auth import AuthContext
 from file_utils import build_import_filename, mime_from_content_type
 from import_policy import refuse_paid_or_gated
-from permissions import require_write
+from permissions import require_contribute
 from project_import import import_into_project
 from routers.presenters import import_project_to_out, to_out
 from schemas import (
@@ -30,7 +30,7 @@ router = APIRouter()
 
 
 @router.post("/import", response_model=AssetOut)
-def import_from_link(body: ImportRequest, _: Optional[AuthContext] = Depends(require_write)):
+def import_from_link(body: ImportRequest, _: Optional[AuthContext] = Depends(require_contribute)):
     # Before normalize_import_url: normalization resolves DNS, so the refusal must
     # precede it to keep a paid/gated URL off the network entirely.
     refuse_paid_or_gated(body.url)
@@ -40,7 +40,7 @@ def import_from_link(body: ImportRequest, _: Optional[AuthContext] = Depends(req
 
 
 @router.post("/import/project", response_model=ImportProjectOut)
-def import_link_into_project(body: ImportProjectRequest, _: Optional[AuthContext] = Depends(require_write)):
+def import_link_into_project(body: ImportProjectRequest, _: Optional[AuthContext] = Depends(require_contribute)):
     # Before normalize_import_url: normalization resolves DNS, so the refusal must
     # precede it to keep a paid/gated URL off the network entirely.
     refuse_paid_or_gated(body.url)
@@ -49,7 +49,7 @@ def import_link_into_project(body: ImportProjectRequest, _: Optional[AuthContext
 
 
 @router.post("/import/inspect", response_model=ImportInspectOut)
-def inspect_import_link(body: ImportRequest, _: Optional[AuthContext] = Depends(require_write)):
+def inspect_import_link(body: ImportRequest, _: Optional[AuthContext] = Depends(require_contribute)):
     refuse_paid_or_gated(body.url)
     url = seams.normalize_import_url(body.url)
     resp, final_url = seams.open_import_response(url, body)
@@ -61,7 +61,7 @@ def inspect_import_link(body: ImportRequest, _: Optional[AuthContext] = Depends(
 
 
 @router.post("/import/zip/entries", response_model=ImportZipEntriesOut)
-def list_import_zip_entries(body: ImportZipEntriesRequest, _: Optional[AuthContext] = Depends(require_write)):
+def list_import_zip_entries(body: ImportZipEntriesRequest, _: Optional[AuthContext] = Depends(require_contribute)):
     refuse_paid_or_gated(body.url)
     url = seams.normalize_import_url(body.url)
     tmp_path, filename, _ = seams.download_import_to_temp(url, body)
@@ -80,7 +80,7 @@ def list_import_zip_entries(body: ImportZipEntriesRequest, _: Optional[AuthConte
 
 
 @router.post("/import/zip", response_model=ImportZipResult)
-def import_zip_entries(body: ImportZipExtractRequest, _: Optional[AuthContext] = Depends(require_write)):
+def import_zip_entries(body: ImportZipExtractRequest, _: Optional[AuthContext] = Depends(require_contribute)):
     refuse_paid_or_gated(body.url)
     url = seams.normalize_import_url(body.url)
     tmp_path, filename, _ = seams.download_import_to_temp(url, body)

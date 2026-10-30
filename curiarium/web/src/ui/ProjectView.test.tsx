@@ -7,7 +7,8 @@ import type { Project } from "../lib/api";
 
 /** The props the landing page is contractually handed by `ProjectView`. */
 type LandingProps = {
-  canWrite: boolean;
+  canContribute: boolean;
+  canDelete: boolean;
   project: Project;
   assetsVersion: number;
   onProjectUpdated: (project: Project) => void;
@@ -77,7 +78,8 @@ type Props = ComponentProps<typeof ProjectView>;
 
 function viewProps(overrides: Partial<Props> = {}): Props {
   return {
-    canWrite: true,
+    canContribute: true,
+    canDelete: true,
     projects,
     selectedProjectId: null,
     onOpenProject: vi.fn(),
@@ -216,16 +218,20 @@ describe("ProjectView", () => {
     expect(landing.onUnauthorized).toBe(onUnauthorized);
   });
 
-  it("forwards canWrite to the landing page for each role", () => {
+  it("forwards the contribute and delete capabilities to the landing page for each role", () => {
     const { rerender } = render(
       <ProjectView {...viewProps({ selectedProjectId: "p1" })} />,
     );
-    expect(landingState.received?.canWrite).toBe(true);
+    expect(landingState.received?.canContribute).toBe(true);
+    expect(landingState.received?.canDelete).toBe(true);
 
     rerender(
-      <ProjectView {...viewProps({ canWrite: false, selectedProjectId: "p1" })} />,
+      <ProjectView
+        {...viewProps({ canContribute: false, canDelete: false, selectedProjectId: "p1" })}
+      />,
     );
-    expect(landingState.received?.canWrite).toBe(false);
+    expect(landingState.received?.canContribute).toBe(false);
+    expect(landingState.received?.canDelete).toBe(false);
   });
 
   it("closes via the Back button", () => {

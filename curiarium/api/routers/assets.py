@@ -27,7 +27,7 @@ from asset_service import (
 from auth import AuthContext
 from db import engine
 from models import Asset, Folder, Project, ProjectAsset
-from permissions import require_read, require_write
+from permissions import authorize_metadata_edit, require_contribute, require_read, require_write
 from routers.asset_helpers import apply_asset_filters, apply_asset_order, asset_page, require_asset_ids
 from routers.presenters import to_out
 from schemas import (
@@ -230,7 +230,7 @@ def download_zip(body: DownloadRequest, background: BackgroundTasks, _: Optional
 def batch_set_tags(
     body: BatchTagsRequest,
     request: Request,
-    context: Optional[AuthContext] = Depends(require_write),
+    context: Optional[AuthContext] = Depends(require_contribute),
 ):
     asset_ids = require_asset_ids(body.asset_ids)
     add_tags = [t.strip() for t in body.add_tags if t and t.strip()]
@@ -267,7 +267,7 @@ def batch_move_to_folder(
 def batch_update_meta(
     body: BatchMetaRequest,
     request: Request,
-    context: Optional[AuthContext] = Depends(require_write),
+    context: Optional[AuthContext] = Depends(require_contribute),
 ):
     """Set creator/notes on every id, with the batch partial-success contract.
 
@@ -315,7 +315,7 @@ def batch_delete_assets(
 
 
 @router.post("/asset/{asset_id}/tags", response_model=AssetOut)
-def set_tags(asset_id: str, body: TagUpdate, _: Optional[AuthContext] = Depends(require_write)):
+def set_tags(asset_id: str, body: TagUpdate, _: Optional[AuthContext] = Depends(require_contribute)):
     with Session(engine) as s:
         a = s.get(Asset, asset_id)
         if not a:
@@ -332,8 +332,14 @@ def update_asset_meta(
     asset_id: str,
     body: AssetMetaUpdate,
     request: Request,
-    context: Optional[AuthContext] = Depends(require_write),
+    context: Optional[AuthContext] = Depends(require_contribute),
 ):
+    # Edits notes/creator/collection, or renames when `name`/`title` is present.
+    # The route declares CONTRIBUTE, so a rename field escalates to WRITE here
+    # through `authorize_metadata_edit`, before the 404 lookup. Deliberately a
+    # comment and not a docstring: a handler docstring is served as the OpenAPI
+    # description, and this ticket does not move the checked-in contract.
+    authorize_metadata_edit(request, context, body.model_fields_set)
     with Session(engine) as s:
         a = s.get(Asset, asset_id)
         if not a:

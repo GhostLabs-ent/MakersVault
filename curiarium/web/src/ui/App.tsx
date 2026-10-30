@@ -202,14 +202,14 @@ export default function App() {
 
   const role = useSessionRole({ token, authRequired, onUnauthorized: handleUnauthorized });
 
-  // WRITE capability, derived exactly once and threaded down as a required
-  // prop. It is the same rank helper the nav already uses, so there is one
-  // threshold in one place (`roleAtLeast`), not a second opinion per surface.
-  // `role` is null until `/me` answers and stays null when the API forbids
-  // `/me`, so an unknown role has no write access: fail closed. The API is
-  // still the gate; this only stops a viewer being shown controls whose
-  // requests the server refuses.
-  const canWrite = roleAtLeast(role, "editor");
+  // Two capabilities, not one: a contributor may upload, import, tag and
+  // organise, while destroy/rename/move stays editor-only. Mirrors the
+  // API's CONTRIBUTE / WRITE split. `role` is null until `/me` answers and
+  // stays null when the API forbids `/me`, so an unknown role has neither: fail
+  // closed. The API is still the gate; this only stops a viewer or contributor
+  // being shown controls whose requests the server refuses.
+  const canContribute = roleAtLeast(role, "contributor");
+  const canDelete = roleAtLeast(role, "editor");
 
   const handleFoldersChanged = React.useCallback(() => {
     setFolderVersion(v => v + 1);
@@ -480,7 +480,7 @@ export default function App() {
             {/* Uploads always land in a files folder, so projects mode hides the bar. */}
             {activeView === "library" && mode === "files" && (
               <UploadBar
-                canWrite={canWrite}
+                canContribute={canContribute}
                 folderId={folderId}
                 makerworldCookie={settings.makerworld.cookie}
                 thingiverseCookie={settings.thingiverse.cookie}
@@ -511,7 +511,8 @@ export default function App() {
         {activeView === "library" && visitedModes.files && (
           <div hidden={mode !== "files"}>
             <AssetGrid
-              canWrite={canWrite}
+              canContribute={canContribute}
+              canDelete={canDelete}
               folderId={folderId}
               foldersVersion={folderVersion}
               assetsVersion={assetsVersion}
@@ -529,7 +530,8 @@ export default function App() {
         {activeView === "library" && visitedModes.projects && (
           <div hidden={mode !== "projects"}>
             <ProjectView
-              canWrite={canWrite}
+              canContribute={canContribute}
+              canDelete={canDelete}
               projects={projects}
               selectedProjectId={openProjectId}
               onOpenProject={handleOpenProject}
@@ -577,10 +579,11 @@ export default function App() {
         />
       )}
       {/* Fixed-position sibling of the layout: it never affects App's layout.
-          Gated too: its only action is a retry, which is a write. A demotion to
-          viewer while an upload is still running would otherwise leave a
-          visible button whose click is refused with a raw 403. */}
-      {canWrite && (
+          Gated too: its only action is a retry of an upload, which is a
+          contribute. A demotion below contributor while an upload is still
+          running would otherwise leave a visible button whose click is refused
+          with a raw 403. */}
+      {canContribute && (
         <UploadQueuePanel onUploaded={handleAssetsChanged} onUnauthorized={handleUnauthorized} />
       )}
     </div>
