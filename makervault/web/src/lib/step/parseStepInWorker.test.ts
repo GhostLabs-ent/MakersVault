@@ -5,7 +5,9 @@ vi.mock("./readStep", () => ({
 }));
 
 import { formatBytes } from "../format";
+import { PreviewQueue } from "../previewQueue";
 import {
+  getDefaultStepQueueForTests,
   parseStepInWorker,
   resetStepWorkerForTests,
   StepAbortError,
@@ -79,6 +81,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
   FakeWorker.instances = [];
 });
@@ -242,6 +245,135 @@ describe("parseStepInWorker", () => {
     await rejection;
 
     expect(instance.terminate).toHaveBeenCalledTimes(1);
+  });
+
+  it("serves the modal path and the snapshot path from one worker", async () => {
+    vi.stubGlobal("Worker", FakeWorker);
+    // The snapshot generator owns its own queue; the worker is module scope, so
+    // the two paths must end up on one instance and both wait for one reply.
+    const snapshotQueue = new PreviewQueue({
+      maxPending: 2,
+      jobBudgetMs: 120_000,
+      sessionBudgetMs: 300_000,
+    });
+    const modalGeometry = sampleGeometry();
+    const snapshotGeometry = sampleGeometry();
+
+    const modal = parseStepInWorker(smallStepFile());
+    const snapshot = parseStepInWorker(smallStepFile(), { queue: snapshotQueue });
+
+    expect(FakeWorker.instances).toHaveLength(1);
+    const shared = FakeWorker.instances[0];
+    expect(shared.messages).toHaveLength(2);
+    expect(shared.messages[0].message.id).not.toBe(shared.messages[1].message.id);
+
+    shared.respond({ id: shared.messages[0].message.id, ok: true, geometry: modalGeometry });
+    shared.respond({ id: shared.messages[1].message.id, ok: true, geometry: snapshotGeometry });
+
+    await expect(modal).resolves.toBe(modalGeometry);
+    await expect(snapshot).resolves.toBe(snapshotGeometry);
+    expect(FakeWorker.instances).toHaveLength(1);
+    expect(shared.terminate).not.toHaveBeenCalled();
+  });
+
+  it("fails the other caller the moment one abort discards the shared worker", async () => {
+    vi.stubGlobal("Worker", FakeWorker);
+    // `PreviewQueue` is strictly single-flight, so a second job on the default
+    // queue would only be parked and would cold-start after the discard. Two
+    // live pendings need two queues, and this injection is what makes the proof
+    // non-vacuous.
+    const snapshotQueue = new PreviewQueue({
+      maxPending: 2,
+      jobBudgetMs: 120_000,
+      sessionBudgetMs: 300_000,
+    });
+    const controller = new AbortController();
+    const geometry = sampleGeometry();
+
+    const aborted = parseStepInWorker(smallStepFile(), { signal: controller.signal });
+    const other = parseStepInWorker(smallStepFile(), { queue: snapshotQueue });
+
+    expect(FakeWorker.instances).toHaveLength(1);
+    const shared = FakeWorker.instances[0];
+    expect(shared.messages).toHaveLength(2);
+
+    let abortedSettled = false;
+    let otherSettled = false;
+    void aborted.then(
+      () => {
+        abortedSettled = true;
+      },
+      () => {
+        abortedSettled = true;
+      },
+    );
+    void other.then(
+      () => {
+        otherSettled = true;
+      },
+      () => {
+        otherSettled = true;
+      },
+    );
+
+    // No timer advance: the second caller fails because the worker went away,
+    // not because either queue's job budget ran out.
+    controller.abort();
+    await vi.waitFor(() => {
+      expect(otherSettled).toBe(true);
+    });
+    await expect(aborted).rejects.toBeInstanceOf(StepAbortError);
+    await expect(other).rejects.toBeInstanceOf(StepAbortError);
+    expect(abortedSettled).toBe(true);
+    expect(shared.terminate).toHaveBeenCalledTimes(1);
+    expect(snapshotQueue.getStats()).toMatchObject({ active: 0, queued: 0, timedOut: 0 });
+
+    // Nothing of the old worker is left behind: the next request pays exactly
+    // one cold start, and the failed request is not replayed onto it.
+    const next = parseStepInWorker(smallStepFile());
+    await vi.waitFor(() => {
+      expect(FakeWorker.instances).toHaveLength(2);
+    });
+    const replacement = FakeWorker.instances[1];
+    expect(replacement.messages).toHaveLength(1);
+
+    replacement.respond({ id: replacement.messages[0].message.id, ok: true, geometry });
+    await expect(next).resolves.toBe(geometry);
+  });
+
+  it("builds the default queue from the resolved session budget", () => {
+    vi.stubEnv("VITE_STEP_SESSION_BUDGET_MS", "9000");
+    // The queue is built lazily, so the stub only takes effect after the memo
+    // and the queue are both dropped.
+    resetStepWorkerForTests();
+
+    expect(getDefaultStepQueueForTests().getStats().budgetMs).toBe(9000);
+  });
+
+  it("times a job out at the configured job budget", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("Worker", FakeWorker);
+    vi.stubEnv("VITE_STEP_JOB_BUDGET_MS", "5000");
+    resetStepWorkerForTests();
+
+    const promise = parseStepInWorker(smallStepFile());
+    expect(FakeWorker.instances).toHaveLength(1);
+
+    let outcome: string | null = null;
+    void promise.then(
+      () => {
+        outcome = "resolved";
+      },
+      (error: unknown) => {
+        outcome = error instanceof StepTimeoutError ? "timed out" : "failed";
+      },
+    );
+
+    await vi.advanceTimersByTimeAsync(4_999);
+    expect(outcome).toBeNull();
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(outcome).toBe("timed out");
   });
 });
 

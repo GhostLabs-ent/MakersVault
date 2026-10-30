@@ -243,6 +243,18 @@ policy is what bounds the count.
 | `VITE_API_URL` | empty in production | Browser-reachable API URL written to `runtime-config.js`; source build defaults to localhost. |
 | `VITE_ALLOWED_HOSTS` | empty | Vite-only host policy during source development/preview. It does not configure Nginx. |
 | `PUBLIC_URL` | empty | When set and `VITE_API_URL` is empty, runtime API URL becomes `<PUBLIC_URL>/api`. |
+| `VITE_STEP_SIZE_WARN_MB` | `20` | Size above which the viewer shows the "Large STEP file" notice, in MiB (multiplied by 1048576 when it is read). |
+| `VITE_STEP_JOB_BUDGET_MS` | `120000` | Wall-clock budget for a single STEP parse before it is abandoned as timed out. |
+| `VITE_STEP_SESSION_BUDGET_MS` | `300000` | Cumulative STEP parse time after which further STEP previews are skipped for the session. |
+| `VITE_STEP_MAX_PENDING` | `2` | STEP jobs allowed to wait behind the running parse; beyond that a request is dropped. |
+
+The four `VITE_STEP_*` values are read by `web/src/lib/step/stepConfig.ts` and
+baked into the bundle at build time. Unlike `VITE_API_URL` there is no
+`runtime-config.js` path (`web/40-runtime-config.sh` only writes the API URL), so
+they cannot be changed from the container environment or from Compose: changing
+one means rebuilding the web image. A value that is missing, non-numeric, zero or
+negative falls back to the default above, and the fallback is per field, so one
+unparseable variable leaves the other three overrides in force.
 
 ## Web security header settings
 
