@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
 
 import { PREVIEW_MAX_ATTEMPTS, PREVIEW_RETRY_MS, PREVIEW_SETTLE_MS, PreviewQueue } from "../lib/previewQueue";
+import { snapshotCache } from "../lib/snapshotCache";
 import { ModelSnapshot } from "./ModelViewer";
 
 type SnapshotJobSpy = (
@@ -95,6 +96,8 @@ function deferred<T>() {
 
 beforeEach(() => {
   observers.length = 0;
+  // The snapshot cache is a module-level singleton shared across tests.
+  snapshotCache.clear();
   vi.useFakeTimers();
   vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
 });
@@ -217,6 +220,70 @@ describe("ModelSnapshot preview budget", () => {
 
     expect(maxLive).toBe(1);
     expect(queue.getStats().completed).toBe(2);
+  });
+});
+
+describe("ModelSnapshot snapshot cache", () => {
+  it("never caches a preview that arrives after its card unmounted", async () => {
+    const queue = new PreviewQueue();
+    const first = deferred<string>();
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const jobSpy = vi.fn(() => first.promise);
+    const view = render(renderCards("unmount", queue, jobSpy, 1));
+
+    fireIntersections();
+    await settleDwell();
+    expect(jobSpy).toHaveBeenCalledTimes(1);
+    expect(queue.getStats().started).toBe(1);
+
+    view.unmount();
+    await act(async () => {
+      first.resolve("data:image/png;base64,CC==");
+      await Promise.resolve();
+    });
+
+    expect(snapshotCache.size()).toBe(0);
+    expect(snapshotCache.has("/api/assets/unmount-0/file")).toBe(false);
+    expect(consoleWarn).not.toHaveBeenCalled();
+  });
+
+  it("serves a second card for the same asset from the cache without re-running the job", async () => {
+    const queue = new PreviewQueue();
+    const jobSpy = vi.fn(async () => "data:image/png;base64,DD==");
+    const cards = (count: number) => (
+      <div>
+        {Array.from({ length: count }, (_, index) => (
+          <ModelSnapshot
+            key={index}
+            url="/api/assets/cached-0/file"
+            ext="stl"
+            theme="light"
+            queue={queue}
+            job={jobSpy}
+          />
+        ))}
+      </div>
+    );
+
+    const view = render(cards(1));
+    fireIntersections();
+    await settleDwell();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(jobSpy).toHaveBeenCalledTimes(1);
+    expect(snapshotCache.get("/api/assets/cached-0/file")).toBe("data:image/png;base64,DD==");
+
+    // A second card for the same asset is hydrated from the cache, not the queue.
+    view.rerender(cards(2));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(jobSpy).toHaveBeenCalledTimes(1);
+    expect(snapshotCache.size()).toBe(1);
+    expect(screen.getAllByAltText("Preview")).toHaveLength(2);
   });
 });
 

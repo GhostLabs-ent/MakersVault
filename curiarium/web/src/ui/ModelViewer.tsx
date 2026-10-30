@@ -4,6 +4,8 @@ import { uploadGeneratedThumbnail } from "../lib/api";
 import { PREVIEW_MAX_ATTEMPTS, PREVIEW_RETRY_MS, PREVIEW_SETTLE_MS, previewQueue } from "../lib/previewQueue";
 import type { PreviewQueue, PreviewQueueStats } from "../lib/previewQueue";
 import { ResolvedTheme } from "../lib/settings";
+import { snapshotCache } from "../lib/snapshotCache";
+import { acquireSnapshotRenderer } from "../lib/snapshotRenderer";
 import { buildStepGroup } from "../lib/step/buildStepGroup";
 import { parseStepInWorker, stepSizeNotice } from "../lib/step/parseStepInWorker";
 import { STEP_MAX_BYTES } from "../lib/step/protocol";
@@ -309,38 +311,6 @@ function ensureNotCancelled(signal?: AbortSignal) {
   if (signal?.aborted) throw new PreviewCancelledError();
 }
 
-const snapshotCache = new Map<string, string>();
-let snapshotRenderer: THREE.WebGLRenderer | null = null;
-let snapshotLock: Promise<void> = Promise.resolve();
-
-function createSnapshotRenderer() {
-  const renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    alpha: true,
-    preserveDrawingBuffer: true,
-  });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  return renderer;
-}
-
-async function acquireSnapshotRenderer() {
-  let release!: () => void;
-  const wait = snapshotLock;
-  snapshotLock = snapshotLock.then(() => new Promise<void>(resolve => (release = resolve)));
-  await wait;
-  snapshotRenderer = createSnapshotRenderer();
-  const renderer = snapshotRenderer;
-  const unlock = () => {
-    try {
-      renderer.forceContextLoss?.();
-      renderer.dispose();
-    } catch {}
-    snapshotRenderer = null;
-    release();
-  };
-  return { renderer, release: unlock };
-}
-
 export function ModelSnapshot({
   url,
   ext,
@@ -414,6 +384,8 @@ export function ModelSnapshot({
           handleNoResult(before);
           return;
         }
+        // Only after the abort check: a job whose card unmounted must never
+        // write a snapshot that nothing is going to show.
         snapshotCache.set(cacheKey, image);
         setSnapshot(image);
         setState("idle");
