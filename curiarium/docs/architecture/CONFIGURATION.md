@@ -21,7 +21,7 @@ disclosed in the rows below: `ASSET_FILE_MAX_MB` is forwarded empty so it keeps
 following `IMPORT_MAX_MB` (the cap in force is the smaller of the two), the
 deprecated `AUTH_TOKEN_TTL` is not forwarded at all because it is a no-op, and
 the `SNAPSHOT_BTRFS_SIDECAR_*` keys are forwarded nowhere because they belong to
-the opt-in sidecar and its override, not to the shipped manifests. The ten
+the opt-in sidecar and its override, not to the shipped manifests. The eleven
 `OIDC_*` keys ARE forwarded, each with its code default as the fallback, so
 `OIDC_ENABLED` defaults to `false` and every other OIDC key defaults to empty or
 to the value in the table below; an unconfigured deployment is therefore
@@ -101,8 +101,9 @@ answering 503 just as `/login` does when auth is disabled.
 | `OIDC_GROUPS_CLAIM` | `groups` | Which `id_token`/userinfo claim carries group membership. |
 | `OIDC_ALLOWED_GROUPS` | empty | CSV allow-list of groups. Empty means this axis restricts nothing; a boot with **both** allow-lists empty is refused. |
 | `OIDC_ALLOWED_DOMAINS` | empty | CSV allow-list of email domains. Empty means this axis restricts nothing. When both lists are set, a principal must satisfy both. |
-| `OIDC_EDITOR_GROUPS` | empty | CSV of groups that grant `editor`. This is the only escalation a claim set can produce. |
+| `OIDC_EDITOR_GROUPS` | empty | CSV of groups that grant `editor`: the highest a *claim set* can produce. |
 | `OIDC_ADMIN_GROUPS` | empty | Must stay empty. A non-empty value refuses the boot: claims can never grant `admin`. |
+| `OIDC_DEFAULT_ROLE` | `viewer` | The role a **first** SSO sign-in is provisioned with: **any non-admin role**, derived from `accounts.ROLES` minus `admin` at call time (`oidc.claim_grantable_roles()`) rather than from a second hardcoded list, so a role added there is accepted without editing this row. Applied at provisioning only, so an existing account's `users.role` is never rewritten. `admin` is refused at boot, exactly like `OIDC_ADMIN_GROUPS`. |
 
 The redirect URI is not a setting. It is derived as
 `${PUBLIC_URL}/auth/oidc/callback`, which is why `PUBLIC_URL` becomes
@@ -112,11 +113,21 @@ load-bearing the moment SSO is on and why the boot validator refuses
 **The boot validator fails closed.** Importing `config` refuses to start on a
 partial configuration (any of issuer, client id or client secret missing while
 the others are set), on a boot where neither allow-list is populated, on a
-non-`https` issuer, on a non-empty `OIDC_ADMIN_GROUPS`, on `OIDC_ENABLED` with
-`AUTH_ENABLED=false`, and on `OIDC_ENABLED` with an empty `PUBLIC_URL`. A
-half-configured sign-in path that quietly authenticates nobody is a support
-ticket; the interesting failure is the one that authenticates everybody, so the
-answer is to not boot.
+non-`https` issuer, on a non-empty `OIDC_ADMIN_GROUPS`, on
+`OIDC_DEFAULT_ROLE=admin` (and on any value that names no grantable role), on
+`OIDC_ENABLED` with `AUTH_ENABLED=false`, and on
+`OIDC_ENABLED` with an empty `PUBLIC_URL`. A half-configured sign-in path that
+quietly authenticates nobody is a support ticket; the interesting failure is the
+one that authenticates everybody, so the answer is to not boot.
+
+**`OIDC_DEFAULT_ROLE` is provisioning-only.** It is read once, when the account
+is created, and never applied again to that account: a re-login returns the
+stored `users.role` unchanged. A role set with `PATCH /users/{user_id}` therefore
+survives every later sign-in, and an `editor` group match still wins over a lower
+default at provisioning time. The accepted set is **derived**, not enumerated:
+`oidc.claim_grantable_roles()` returns every role in `accounts.ROLES` except
+`admin` at call time, so a role added to that tuple is accepted without a second
+list to maintain here or in the validator.
 
 **The two allow-lists compose with AND.** With `OIDC_ALLOWED_GROUPS` and
 `OIDC_ALLOWED_DOMAINS` both set, a principal must be in a listed group *and*
@@ -134,6 +145,90 @@ that cannot see each other's state and the flow would fail at random. A shared
 store (a table with an expiry, or Redis) is a prerequisite for multiple workers,
 not a follow-up. The design and its residual risks are in
 [ADR 0006](../adr/0006-oidc-sso-flow-and-role-policy.md).
+
+### Cosmos Cloud as the provider
+
+These are Cosmos Cloud's own figures, taken from its published discovery document
+and its source. They are recorded because the operator-facing advice for
+self-hosted OIDC and what Cosmos actually emits disagree in three places, and each
+disagreement shows up here as a boot refusal or a login that stalls.
+
+- **`OIDC_ISSUER` is the bare origin, not the discovery URL.** Set
+  `https://<cosmos-host>` — no path, no trailing slash. The API fetches discovery
+  from `<issuer>/.well-known/openid-configuration` itself, so an operator who
+  pastes the discovery URL into `OIDC_ISSUER` gets a doubled `/.well-known/` path
+  and a login that cannot start.
+- **Scopes** are `openid profile email` (the `OIDC_SCOPES` default), and PKCE
+  `S256` is supported.
+- **The client must be CONFIDENTIAL, registered with a secret.** Cosmos
+  advertises `none` among its `token_endpoint_auth_methods_supported`, so the
+  common self-hosted "public client plus PKCE" advice looks correct — but
+  `oidc.validate_oidc_configuration()` refuses an empty `OIDC_CLIENT_SECRET`, so
+  that choice is a **boot refusal**, not a login failure.
+- **Cosmos emits no `groups` claim in any version, and there is no UI, API or
+  Terraform field that adds one.** Its discovery advertises `claims_supported` =
+  `aud, email, email_verified, exp, iat, iss, locale, name, sub` and
+  `scopes_supported` = `openid, offline, profile, email, address, phone`. With
+  the default `OIDC_GROUPS_CLAIM=groups`, **`OIDC_EDITOR_GROUPS` is inert on
+  Cosmos**, so `OIDC_DEFAULT_ROLE` is the only reliable lever: a household whose
+  Cosmos users should be able to upload sets `OIDC_DEFAULT_ROLE=contributor` (or
+  `editor`) and every provisioned account lands at that level.
+- **Do not set `OIDC_ALLOWED_GROUPS` against Cosmos.** The claim is absent, so
+  every login would be refused by the group axis. Use `OIDC_ALLOWED_DOMAINS`.
+- **A caveat, to be verified rather than assumed.** Cosmos does emit a singular
+  `role` claim with the values `admin` / `user`, which its discovery document does
+  not advertise. That makes a coarse, two-bucket mapping possible —
+  `OIDC_GROUPS_CLAIM=role` with `OIDC_EDITOR_GROUPS=admin` lands Cosmos
+  administrators as `editor` and everybody else at `OIDC_DEFAULT_ROLE` — but it is
+  coarse, it is **not** the Pro "groups" feature, and it must be confirmed from a
+  decoded `id_token` of the operator's own realm before anything depends on it.
+  How to confirm it: decode an `id_token` (`jwt decode`, or jwt.io) and/or call
+  `/oauth2/userinfo`, and trust the decoded token over the discovery document —
+  that document both advertises claims Cosmos never emits (`email_verified`,
+  `locale`) and hides claims it does emit (`role`, `preferred_username`).
+- **The redirect URI is matched literally.** The code derives
+  `${PUBLIC_URL}/auth/oidc/callback`, and `PUBLIC_URL` is the origin browsers
+  reach this deployment at - on the household install that is the Cosmos host -
+  so register exactly `${PUBLIC_URL}/auth/oidc/callback` with Cosmos. Cosmos
+  compares redirect URIs by literal string, comma-separated with no spaces.
+  `${PUBLIC_URL}/api/auth/oidc/callback` is **not** what the code sends.
+- **Operational caveat: nothing in front may hide the callback path.** The bundled
+  web Nginx proxies only `/api/` (`curiarium/web/nginx.conf:81-84`), so
+  `/auth/oidc/callback` would be served by the SPA and the login would stall
+  silently. The front proxy must forward `/auth/` to the API, or `PUBLIC_URL`
+  must be an origin that does. That gap is **deferred** to the existing deployment
+  tickets `Mf-lh1z` / `Mf-60nl` and is not fixed here, because changing the
+  callback path or the proxy is a route-shape decision that amends
+  [ADR 0006](../adr/0006-oidc-sso-flow-and-role-policy.md) decision 13 and can
+  invalidate IdP clients operators have already registered.
+
+### Bootstrap sequence
+
+The order below is enforced by the code, not a preference.
+
+1. **Deploy with a break-glass admin and SSO on.** Set `AUTH_USERNAME` /
+   `AUTH_PASSWORD` to a strong environment admin **and** `OIDC_ENABLED=1`.
+   `OIDC_ENABLED` with auth disabled is a fail-closed boot condition, so the
+   environment admin is not optional.
+2. **Sign in as break-glass and create a real admin** (Settings → Users, or
+   `POST /users`). Break-glass is hard-rejected and its sessions are revoked as
+   soon as the first `users` row exists, so create the administrator you will
+   actually use in this step.
+3. **Only then do Cosmos users provision on their first SSO login**, each at
+   `OIDC_DEFAULT_ROLE`. Grant more later with `PATCH /users/{user_id}`; a claim
+   never rewrites a stored role.
+
+Skipping step 2 fails closed and says so. With **zero admin user rows**,
+`POST /auth/oidc/exchange` answers **HTTP 409** with the detail
+`An administrator must sign in locally before SSO can create accounts` — the
+client renders that as `sso_error=no_admin_bootstrap` — and it writes no `users`
+row and no `oidc_identities` row. The reason is that
+`accounts.count_enabled_admins()` counts **user rows**, while break-glass is a
+**session kind**, so a working break-glass login does not satisfy it. Recovery is
+the missing step: sign in as break-glass (still valid while the users table is
+empty), create the admin, then retry the SSO sign-in **from the start** — the
+refused exchange consumed the handoff code, so the flow has to be restarted
+rather than resumed.
 
 ## Login throttle settings
 

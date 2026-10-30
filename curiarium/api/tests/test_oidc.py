@@ -188,6 +188,7 @@ def configure(
     allowed_domains: str = "",
     editor_groups: str = "editors",
     admin_groups: str = "",
+    default_role: str = accounts.DEFAULT_ROLE,
     public_url: str = PUBLIC_URL,
 ) -> None:
     monkeypatch.setattr(config, "OIDC_ENABLED", enabled)
@@ -200,6 +201,7 @@ def configure(
     monkeypatch.setattr(config, "OIDC_ALLOWED_DOMAINS", allowed_domains)
     monkeypatch.setattr(config, "OIDC_EDITOR_GROUPS", editor_groups)
     monkeypatch.setattr(config, "OIDC_ADMIN_GROUPS", admin_groups)
+    monkeypatch.setattr(config, "OIDC_DEFAULT_ROLE", default_role)
     monkeypatch.setenv("PUBLIC_URL", public_url)
 
 
@@ -457,6 +459,104 @@ def test_a_principal_outside_the_editor_groups_is_a_viewer(
         assert user.password_hash is None
 
 
+@pytest.mark.parametrize("role", sorted(set(accounts.ROLES) - {accounts.ADMIN_ROLE}))
+def test_the_configured_default_role_is_what_a_first_login_earns(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, role: str
+) -> None:
+    """Every non-admin role is defaultable, because the accepted set is derived.
+
+    Parametrised over `accounts.ROLES` minus `admin` rather than a literal
+    viewer|contributor|editor tuple: a fifth role added there is exercised here
+    automatically, and nothing has to be updated in two places.
+    """
+    configure(monkeypatch, allowed_groups="staff", editor_groups="editors", default_role=role)
+    provider = install_provider(monkeypatch, claims_overrides={"groups": ["staff"]})
+    bootstrap_admin(client)
+
+    exchanged = complete_login(client, provider)
+
+    assert exchanged.status_code == 200, exchanged.text
+    payload = decode_access_token(exchanged.json()["token"])
+    assert payload["role"] == role
+    with Session(engine) as db:
+        user = db.get(User, payload["sub"])
+        assert user is not None
+        assert user.role == role
+        assert user.password_hash is None
+
+
+def test_an_editor_group_match_beats_a_lower_default(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    configure(
+        monkeypatch,
+        allowed_groups="editors",
+        editor_groups="editors",
+        default_role=accounts.CONTRIBUTOR_ROLE,
+    )
+    provider = install_provider(monkeypatch, claims_overrides={"groups": ["editors"]})
+    bootstrap_admin(client)
+
+    exchanged = complete_login(client, provider)
+
+    assert exchanged.status_code == 200, exchanged.text
+    assert decode_access_token(exchanged.json()["token"])["role"] == accounts.EDITOR_ROLE
+
+
+def test_the_grantable_set_is_the_role_list_minus_admin(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The set is derived, so there is no second tuple to forget to update."""
+    configure(monkeypatch)
+
+    grantable = oidc.claim_grantable_roles()
+    assert accounts.ADMIN_ROLE not in grantable
+    assert grantable | {accounts.ADMIN_ROLE} == set(accounts.ROLES)
+
+
+def test_a_promoted_role_survives_the_next_login(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The default is applied at provisioning only; a later PATCH must win.
+
+    Proven through the API the ticket names - `PATCH /users/{user_id}`, with its
+    last-admin invariant and its `user.role_change` audit row - not by mutating
+    the row in a Session, which would prove nothing about the endpoint.
+    """
+    configure(
+        monkeypatch,
+        allowed_groups="staff",
+        editor_groups="editors",
+        default_role=accounts.DEFAULT_ROLE,
+    )
+    provider = install_provider(monkeypatch, claims_overrides={"groups": ["staff"]})
+    admin = bootstrap_admin(client)
+
+    first = complete_login(client, provider)
+    assert first.status_code == 200, first.text
+    user_id = decode_access_token(first.json()["token"])["sub"]
+    users_before = user_count()
+    with Session(engine) as db:
+        identities_before = len(db.exec(select(OidcIdentity)).all())
+
+    promoted = client.patch(
+        f"/users/{user_id}",
+        json={"role": accounts.CONTRIBUTOR_ROLE},
+        headers=bearer(admin["token"]),
+    )
+    assert promoted.status_code == 200, promoted.text
+    assert promoted.json()["role"] == accounts.CONTRIBUTOR_ROLE
+
+    second = complete_login(client, provider)
+
+    assert second.status_code == 200, second.text
+    assert decode_access_token(second.json()["token"])["role"] == accounts.CONTRIBUTOR_ROLE
+    with Session(engine) as db:
+        assert len(db.exec(select(User)).all()) == users_before
+        stored = db.get(User, user_id)
+        assert stored is not None
+        assert stored.role == accounts.CONTRIBUTOR_ROLE
+        assert len(db.exec(select(OidcIdentity)).all()) == identities_before
+
+
 def test_relogin_does_not_create_a_second_account_or_rewrite_the_role(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -490,7 +590,7 @@ def test_relogin_does_not_create_a_second_account_or_rewrite_the_role(
 
 
 def test_a_claim_can_never_grant_admin(monkeypatch: pytest.MonkeyPatch) -> None:
-    configure(monkeypatch, editor_groups="editors")
+    configure(monkeypatch, editor_groups="editors", default_role=accounts.EDITOR_ROLE)
 
     for claims in (
         {"groups": ["anything"]},
@@ -514,6 +614,8 @@ def test_a_claim_can_never_grant_admin(monkeypatch: pytest.MonkeyPatch) -> None:
         ("empty_allow_lists", "OIDC_ALLOWED_GROUPS"),
         ("non_https_issuer", "OIDC_ISSUER"),
         ("admin_groups", "OIDC_ADMIN_GROUPS"),
+        ("default_role_admin", "OIDC_DEFAULT_ROLE"),
+        ("default_role_unknown", "OIDC_DEFAULT_ROLE"),
         ("auth_disabled", "AUTH_ENABLED"),
         ("empty_public_url", "PUBLIC_URL"),
     ],
@@ -532,6 +634,10 @@ def test_validate_refuses_partial_or_fail_open_configuration(
         monkeypatch.setattr(config, "OIDC_ISSUER", "http://idp.example.com")
     elif case == "admin_groups":
         monkeypatch.setattr(config, "OIDC_ADMIN_GROUPS", "admin")
+    elif case == "default_role_admin":
+        monkeypatch.setattr(config, "OIDC_DEFAULT_ROLE", accounts.ADMIN_ROLE)
+    elif case == "default_role_unknown":
+        monkeypatch.setattr(config, "OIDC_DEFAULT_ROLE", "wizard")
     elif case == "auth_disabled":
         monkeypatch.setattr(auth, "AUTH_ENABLED", False)
     elif case == "empty_public_url":
@@ -554,6 +660,9 @@ def test_a_complete_configuration_validates_and_disabled_needs_nothing(
     monkeypatch.setattr(config, "OIDC_ALLOWED_GROUPS", "")
     monkeypatch.setattr(config, "OIDC_ALLOWED_DOMAINS", "")
     monkeypatch.setattr(config, "OIDC_ADMIN_GROUPS", "")
+    # A garbage default with SSO off proves the check sits inside the disabled
+    # early return instead of refusing to boot an unused feature.
+    monkeypatch.setattr(config, "OIDC_DEFAULT_ROLE", "wizard")
     monkeypatch.delenv("PUBLIC_URL", raising=False)
 
     assert oidc.validate_oidc_configuration() is None
@@ -788,18 +897,55 @@ def test_a_rejection_audits_the_reason_but_no_secret_material(
 def test_provisioning_is_refused_when_no_enabled_admin_exists(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    configure(monkeypatch)
-    provider = install_provider(monkeypatch)
+    """The forced bootstrap order, from a genuinely empty users table.
+
+    Break-glass is a SESSION kind, not a user row, and `count_enabled_admins`
+    counts rows - so the footgun is a deployment that has a working break-glass
+    login and still cannot provision an SSO account. Proven here as the operator
+    meets it: a 409 with a fixed detail, no rows written, and then the same SSO
+    subject admitted once a real admin exists.
+
+    The first handoff code is CONSUMED by the refused exchange (the router's
+    rollback cannot un-pop the in-memory handoff dict) and `POST /users` revokes
+    the break-glass sessions in the same transaction, so the second attempt
+    starts the flow over rather than reusing either.
+    """
+    configure(
+        monkeypatch,
+        allowed_groups="staff",
+        editor_groups="editors",
+        default_role=accounts.CONTRIBUTOR_ROLE,
+    )
+    provider = install_provider(monkeypatch, claims_overrides={"groups": ["staff"]})
+
+    glass = client.post("/login", json=BREAK_GLASS)
+    assert glass.status_code == 200, glass.text
+
     state, _ = start_login(client, provider)
-
-    # The callback still verifies and parks a handoff; the mutation is refused.
     handoff = sso_code_from(callback(client, state=state))
-    exchanged = client.post("/auth/oidc/exchange", json={"code": handoff})
+    refused = client.post("/auth/oidc/exchange", json={"code": handoff})
 
-    assert exchanged.status_code == 409
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["detail"] == (
+        "An administrator must sign in locally before SSO can create accounts"
+    )
     with Session(engine) as db:
         assert db.exec(select(User)).all() == []
         assert db.exec(select(OidcIdentity)).all() == []
+
+    # The operator creates the admin they will actually use, then SSO admits people.
+    bootstrap_admin(client)
+    admitted = complete_login(client, provider)
+
+    assert admitted.status_code == 200, admitted.text
+    payload = decode_access_token(admitted.json()["token"])
+    assert payload["role"] == accounts.CONTRIBUTOR_ROLE
+    with Session(engine) as db:
+        assert len(db.exec(select(User)).all()) == 2
+        stored = db.get(User, payload["sub"])
+        assert stored is not None
+        assert stored.role == accounts.CONTRIBUTOR_ROLE
+        assert len(db.exec(select(OidcIdentity)).all()) == 1
 
 
 # --- secret hygiene (AC-8) --------------------------------------------------

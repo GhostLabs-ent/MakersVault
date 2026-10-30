@@ -169,3 +169,10 @@ OIDC_ALLOWED_DOMAINS = os.getenv("OIDC_ALLOWED_DOMAINS", "").strip()
 # be refused at boot rather than silently ignored.
 OIDC_EDITOR_GROUPS = os.getenv("OIDC_EDITOR_GROUPS", "").strip()
 OIDC_ADMIN_GROUPS = os.getenv("OIDC_ADMIN_GROUPS", "").strip()
+# The role a first SSO sign-in earns. The accepted set is derived in
+# `oidc.claim_grantable_roles()` - every role in `accounts.ROLES` except `admin` -
+# so a new role becomes defaultable the moment it lands there. `admin` is refused
+# at boot, exactly like `OIDC_ADMIN_GROUPS`, because a first sign-in must never
+# earn it. The value is applied once, at provisioning: a stored role is never
+# rewritten by a later sign-in.
+OIDC_DEFAULT_ROLE = os.getenv("OIDC_DEFAULT_ROLE", "viewer").strip()

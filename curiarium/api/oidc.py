@@ -364,6 +364,16 @@ def validate_oidc_configuration() -> None:
             "OIDC_ADMIN_GROUPS is set: a claim must never grant admin, so remove it and "
             "create the administrator locally instead"
         )
+    if default_role() == accounts.ADMIN_ROLE:
+        problems.append(
+            "OIDC_DEFAULT_ROLE is 'admin': a first sign-in must never earn admin, so "
+            "remove it and create the administrator locally instead"
+        )
+    elif default_role() not in claim_grantable_roles():
+        problems.append(
+            f"OIDC_DEFAULT_ROLE is {config.OIDC_DEFAULT_ROLE!r}: it must name a role a "
+            f"first sign-in may be provisioned with, one of {sorted(claim_grantable_roles())}"
+        )
     if not public_url():
         problems.append(
             "OIDC_ENABLED requires PUBLIC_URL: the redirect URI is derived from it "
@@ -608,6 +618,28 @@ def evaluate_allow_list(claims: dict) -> Optional[str]:
     return None
 
 
+def claim_grantable_roles() -> frozenset[str]:
+    """Roles a first sign-in may be provisioned with, derived from the role list.
+
+    `admin` is excluded structurally by subtracting `accounts.ADMIN_ROLE`, not by
+    a second hard-coded tuple: adding a role to `accounts.ROLES` makes it
+    defaultable here and nowhere else, and this is the single place to exclude a
+    future role if that policy changes.
+    """
+    return frozenset(accounts.ROLES) - {accounts.ADMIN_ROLE}
+
+
+def default_role() -> str:
+    """The configured first-login role, resolved to a usable role.
+
+    One resolver, shared by the boot validator and the flow: an empty or blank
+    value resolves to `accounts.DEFAULT_ROLE` in both, so a configuration can
+    never pass the validator and then provision something else. Reading it
+    lazily also lets a test set it without a restart, like `public_url()`.
+    """
+    return (config.OIDC_DEFAULT_ROLE or "").strip().lower() or accounts.DEFAULT_ROLE
+
+
 def role_for_claims(claims: dict) -> str:
     """The most a claim can grant is `editor`.
 
@@ -617,7 +649,7 @@ def role_for_claims(claims: dict) -> str:
     """
     if set(groups_from(claims)) & editor_groups():
         return accounts.EDITOR_ROLE
-    return accounts.DEFAULT_ROLE
+    return default_role()
 
 
 def preferred_username(claims: dict) -> str:
@@ -713,12 +745,14 @@ def provision_or_link(session: Session, handoff: _Handoff) -> User:
         return user
 
     # Provisioning is refused unless an enabled administrator already exists. An
-    # SSO-provisioned viewer empties the break-glass path, so without this guard
+    # SSO-provisioned account empties the break-glass path, so without this guard
     # a deployment could reach zero administrators with no way back in.
     if accounts.count_enabled_admins(session) == 0:
         raise NoAdminBootstrap("no enabled administrator exists")
 
-    role = accounts.EDITOR_ROLE if handoff.role == accounts.EDITOR_ROLE else accounts.DEFAULT_ROLE
+    # The parked handoff role is re-validated here, never trusted: a handoff
+    # carrying a role this deployment may not provision collapses to `viewer`.
+    role = handoff.role if handoff.role in claim_grantable_roles() else accounts.DEFAULT_ROLE
     user = accounts.create_sso_user(
         session,
         username=_free_username(session, handoff.username),
