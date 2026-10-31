@@ -6,6 +6,8 @@ nothing ever touches a real library. The database is shared for the whole test
 session, so rows created here are removed again at teardown.
 """
 
+import errno
+import logging
 import os
 import re
 import time
@@ -379,6 +381,116 @@ def test_failed_row_delete_restores_moves_and_keeps_rows(
     trash = storage / ".trash"
     remaining = list(trash.iterdir()) if trash.exists() else []
     assert remaining == []
+
+
+# --- failures are logged, and a permission failure says why (Mf-c2gw) -------
+
+
+# The API image runs pytest as root, and root passes every DAC check, so a real
+# `chmod`/foreign owner cannot reproduce the live refusal here. The live failure
+# was a kernel EACCES on the rename itself, so the tests inject exactly that at
+# the syscall boundary: same exception type, same errno, same "nothing was
+# moved" aftermath, and the repo's own code path regardless of uid.
+#
+# `trash_service.os` IS the process-wide `os` module, so every fake below
+# delegates to the real function for paths it does not own.
+
+
+def test_a_directory_owned_by_another_account_is_a_logged_409(
+    isolated_storage: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog,
+) -> None:
+    """The live 500 (Mf-c2gw): bytes exist, rename refused, nothing logged.
+
+    A scan registers a directory somebody else created, so the folder row points
+    at bytes the API user cannot rename. The delete must say so - a 409 naming
+    the ownership remedy, not "no rows were changed" - and must leave a
+    traceback behind, because the original bug was diagnosable and unlogged.
+    """
+    storage = isolated_storage
+    real_rename = os.rename
+
+    def refuse_the_folder(source, destination, *args, **kwargs):
+        if str(source) == str(storage / "Scanned"):
+            raise PermissionError(errno.EACCES, "Permission denied", str(source), None, str(destination))
+        return real_rename(source, destination, *args, **kwargs)
+
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        # A scan-created folder: the row carries the directory path it stands for.
+        folder_id = insert_folder_row("Scanned", storage_path="Scanned")
+        write_placeholder_file(storage / "Scanned" / "model.stl", b"model bytes")
+        asset_id = insert_asset_row("model", folder_id, "Scanned/model.stl", size=11)
+        before = storage_state(storage)
+
+        monkeypatch.setattr(trash_service.os, "rename", refuse_the_folder)
+        with caplog.at_level(logging.ERROR, logger=trash_service.log.name):
+            response = client.delete(f"/folder/{folder_id}?confirm_name=Scanned", headers=headers)
+
+    assert response.status_code == 409, response.text
+    detail = response.json()["detail"]
+    # The relative path and the remedy, never the container's absolute path.
+    assert "Scanned" in detail
+    assert str(storage) not in detail
+    assert "CHOWN_MODE=recursive" in detail
+    assert "PUID:PGID" in detail
+
+    # One traceback, with the cause and the folder it belonged to.
+    assert "Folder delete failed for folder" in caplog.text
+    assert folder_id in caplog.text
+    assert "PermissionError" in caplog.text
+
+    # A refused delete changes nothing.
+    assert read_folder(folder_id) is not None
+    assert read_asset(asset_id) is not None
+    after = {key: value for key, value in storage_state(storage).items() if not key.startswith(".trash")}
+    assert after == {key: value for key, value in before.items() if not key.startswith(".trash")}
+
+
+def test_the_entry_is_undone_when_the_mtime_stamp_fails(
+    isolated_storage: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog,
+) -> None:
+    """A failure after the rename must not strand the subtree in the trash.
+
+    ``os.utime`` runs on the freshly renamed entry and `purge(older_than_days)`
+    reads that mtime, so the stamp stays fatal on purpose. Fatal only works if
+    the rename is already recorded in the undo list: recorded afterwards, this
+    failure leaves the folder inside `.trash` (bytes gone from the library) while
+    the caller is told no rows were changed. The injected error is EIO rather
+    than EACCES on purpose: only the permission errnos become a 409, and a
+    mid-operation I/O fault must stay the logged 500 it is.
+    """
+    storage = isolated_storage
+    real_utime = os.utime
+
+    def refuse_the_stamp(path, *args, **kwargs):
+        if str(path).startswith(str(storage / ".trash")):
+            raise OSError(errno.EIO, "Input/output error", str(path))
+        return real_utime(path, *args, **kwargs)
+
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        parent = created_folder(client, headers, "Parent")
+        write_placeholder_file(storage / "Parent" / "model.stl", b"model bytes")
+        asset_id = insert_asset_row("model", parent["id"], "Parent/model.stl", size=11)
+
+        monkeypatch.setattr(trash_service.os, "utime", refuse_the_stamp)
+        with caplog.at_level(logging.ERROR, logger=trash_service.log.name):
+            response = client.delete(f"/folder/{parent['id']}?confirm_name=Parent", headers=headers)
+
+    assert response.status_code == 500, response.text
+    assert "no rows were changed" in response.json()["detail"]
+    assert "Folder delete failed for folder" in caplog.text
+
+    # Bytes back in the library, rows intact, no entry left behind.
+    assert (storage / "Parent" / "model.stl").read_bytes() == b"model bytes"
+    assert read_folder(parent["id"]) is not None
+    assert read_asset(asset_id) is not None
+    trash = storage / ".trash"
+    assert (list(trash.iterdir()) if trash.exists() else []) == []
 
 
 # --- reference assets -------------------------------------------------------

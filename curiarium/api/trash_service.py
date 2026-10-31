@@ -51,6 +51,7 @@ read separately from ``STORAGE``: after a monkeypatch it is not necessarily
 ``<STORAGE>/thumbs``.
 """
 
+import errno
 import logging
 import os
 import shutil
@@ -267,8 +268,15 @@ def _move_to_trash(
             # TOCTOU: someone replaced the freshly named entry with a link.
             raise HTTPException(status_code=409, detail="Trash entry path is a symlink")
         os.rename(source, entry)
-        os.utime(entry)
+        # Recorded before the mtime stamp: from here the bytes are displaced, so
+        # every later failure (the stamp, a carve-out move, the commit) has to be
+        # able to rename the subtree back. Appending afterwards would strand it in
+        # `.trash` while the caller was told nothing had changed. The stamp stays
+        # fatal because `purge(older_than_days=...)` reads the entry's mtime: an
+        # entry that could not be stamped keeps the source directory's old mtime
+        # and would be purged early.
         moves.append((entry, source))
+        os.utime(entry)
 
     for asset in assets:
         if asset.is_reference:
@@ -385,15 +393,48 @@ def _delete_rows(session: Session, assets: List[Asset], subtree: List[Folder]) -
 
 # Delete ---------------------------------------------------------
 
+# Errnos that mean "this account may not change that directory", not "the server
+# broke". A read-only mount is the same operator problem as a foreign owner;
+# everything else (EIO, EUCLEAN, a lost connection) stays a 500.
+_PERMISSION_ERRNOS = frozenset({errno.EACCES, errno.EPERM, errno.EROFS})
+
+
+def _is_permission_failure(error: BaseException) -> bool:
+    """Whether a failed delete failed because this process may not move the bytes."""
+    return isinstance(error, OSError) and error.errno in _PERMISSION_ERRNOS
+
+
+def _permission_detail(subject: str, relative: Optional[str], error: OSError) -> str:
+    """The 409 detail for a folder or asset this process may not rename (Mf-c2gw).
+
+    The path is storage-relative on purpose: the absolute path is deployment
+    layout, and it travels in the logged traceback instead of the response.
+    """
+    return (
+        f"Cannot move {subject} into the trash: {error.strerror or 'permission denied'} "
+        f"({relative or 'the storage directory'}). The API user (PUID:PGID) may not rename "
+        "it: another account owns it, or the volume is mounted read-only. Content placed in "
+        "storage by anything other than the API must be owned by the API's PUID:PGID, or the "
+        "deployment must run with CHOWN_MODE=recursive."
+    )
+
 
 def trash_folder(session: Session, folder: Folder, *, audit_ctx: Optional[audit.AuditContext]) -> dict:
     """Move a folder's subtree into the trash, then delete its rows.
 
     Order is fixed: move bytes, commit rows, only then unlink thumbnails. A
-    failure while moving or committing reverses every move and reports a 500,
-    so the caller never sees a partial delete. Emptied ancestor directories are
-    deliberately left alone: an emptied parent still owns a Folder row, so
-    pruning it would desynchronise database and disk.
+    failure while moving or committing reverses every move, logs the cause and
+    reports it, so the caller never sees a partial delete and an operator never
+    sees a silent one. Emptied ancestor directories are deliberately left alone:
+    an emptied parent still owns a Folder row, so pruning it would
+    desynchronise database and disk.
+
+    A permission failure is a 409, not a 500 (Mf-c2gw): the bytes exist but this
+    process may not rename them, and no retry changes that. It is the ordinary
+    shape of a scanned folder whose directory somebody else created - the API
+    runs as PUID:PGID and `CHOWN_MODE=minimal` never repairs the tree below the
+    storage root - so the detail names the remedy instead of hiding behind
+    "no rows were changed".
 
     The audit row joins the row-delete transaction, so a failed audit insert is
     a failed commit: the moves are undone and the folder survives. The counts in
@@ -420,6 +461,13 @@ def trash_folder(session: Session, folder: Folder, *, audit_ctx: Optional[audit.
     asset_ids = [asset.id for asset in assets]
     asset_bytes = sum(int(asset.size or 0) for asset in assets)
     now = datetime.now(timezone.utc)
+    # Captured before the transaction: a rollback expires `folder`, and reading
+    # one of its attributes in the failure path would emit a lazy SELECT there,
+    # or raise if the failure was the connection itself.
+    folder_id = folder.id
+    folder_label = folder.name
+    folder_count = len(subtree)
+    asset_count = len(assets)
 
     entry: Optional[Path] = None
     moves: list[tuple[Path, Path]] = []
@@ -432,8 +480,8 @@ def trash_folder(session: Session, folder: Folder, *, audit_ctx: Optional[audit.
             audit_ctx,
             audit.Event(
                 audit.FOLDER_DELETE,
-                folder.id,
-                {"name": folder.name, "folders": len(subtree), "assets": len(assets), "bytes": asset_bytes},
+                folder_id,
+                {"name": folder_label, "folders": folder_count, "assets": asset_count, "bytes": asset_bytes},
             ),
         )
         session.commit()
@@ -441,7 +489,26 @@ def trash_folder(session: Session, folder: Folder, *, audit_ctx: Optional[audit.
         session.rollback()
         _undo_moves(moves)
         if isinstance(error, HTTPException):
+            # A refusal, not a fault: 404/409 control flow writes no traceback.
             raise
+        # Nothing logged this before Mf-c2gw, so a live 500 with a clean
+        # rollback left no evidence anywhere: the operator could not tell a
+        # permission problem from a lost write.
+        log.exception(
+            "Folder delete failed for folder %s %r (storage_path=%r): %d folder(s), %d asset(s), "
+            "%d byte(s); every move was undone and no row changed",
+            folder_id,
+            folder_label,
+            relative or None,
+            folder_count,
+            asset_count,
+            asset_bytes,
+        )
+        if _is_permission_failure(error):
+            raise HTTPException(
+                status_code=409,
+                detail=_permission_detail(f"the folder {folder_label!r}", relative, error),
+            ) from error
         raise HTTPException(status_code=500, detail="Folder delete failed; no rows were changed") from error
 
     # Only after the rows are gone: a thumbnail for a row that still exists is
@@ -492,9 +559,12 @@ def trash_asset(session: Session, asset: Asset, *, audit_ctx: Optional[audit.Aud
 
     Same fixed order as `trash_folder`: move bytes, commit rows, only then
     unlink the thumbnail and rmdir directories the move emptied. A failure
-    while moving or committing reverses every move and reports a 500, so the
-    caller never sees a partial delete; the empty entry is pruned because a
-    failed delete must leave the filesystem exactly as it found it.
+    while moving or committing reverses every move, logs the cause and reports
+    it, so the caller never sees a partial delete and an operator never sees a
+    silent one; the empty entry is pruned because a failed delete must leave the
+    filesystem exactly as it found it. A permission failure is a 409 for the
+    same reason as in `trash_folder`, and it covers the same live shape: an
+    asset a scan registered inside a directory somebody else created.
 
     A file that is missing, outside the root, or a symlink is not moved, yet
     the row is still deleted: otherwise a row whose bytes are gone could never
@@ -512,6 +582,9 @@ def trash_asset(session: Session, asset: Asset, *, audit_ctx: Optional[audit.Aud
     supporting_count = int(asset.supporting_file_count or 0)
     file_count = 0 if asset.is_reference else 1 + supporting_count
     asset_bytes = 0 if asset.is_reference else int(asset.size or 0)
+    # Captured before the transaction: a rollback expires `asset`, and the
+    # failure path must not read it.
+    asset_relative = asset.storage_path or f"{asset_id}/{filename}"
     now = datetime.now(timezone.utc)
 
     entry: Optional[Path] = None
@@ -540,6 +613,22 @@ def trash_asset(session: Session, asset: Asset, *, audit_ctx: Optional[audit.Aud
         _prune_empty_entry(entry)
         if isinstance(error, HTTPException):
             raise
+        # Same blindness the folder delete had (Mf-c2gw), and the same fix. This
+        # log line is the operator's only trace on the bulk-delete path: its
+        # ``_failure`` turns an HTTPException into a per-item failure without
+        # logging it, and every failure out of here is an HTTPException.
+        log.exception(
+            "Asset delete failed for asset %s %r (storage_path=%r); every move was undone "
+            "and no row changed",
+            asset_id,
+            filename,
+            asset_relative,
+        )
+        if _is_permission_failure(error):
+            raise HTTPException(
+                status_code=409,
+                detail=_permission_detail(f"asset {filename!r}", asset_relative, error),
+            ) from error
         raise HTTPException(status_code=500, detail="Asset delete failed; no rows were changed") from error
 
     try:

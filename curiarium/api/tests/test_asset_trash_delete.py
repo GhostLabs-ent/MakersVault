@@ -10,6 +10,8 @@ database is shared for the whole test session, so rows created here are removed
 again at teardown.
 """
 
+import errno
+import logging
 import os
 import re
 from pathlib import Path
@@ -455,6 +457,56 @@ def test_failed_commit_restores_the_moves_and_keeps_the_row(
     trash = storage / ".trash"
     remaining = list(trash.iterdir()) if trash.exists() else []
     assert remaining == []
+
+
+def test_a_file_owned_by_another_account_is_a_logged_409(
+    isolated_storage: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog,
+) -> None:
+    """The folder bug's asset-shaped twin (Mf-c2gw): refused and unlogged.
+
+    A scan registers a file inside a directory somebody else created, so the API
+    user cannot rename it. The rename failure must be a 409 naming the ownership
+    remedy and it must be logged. This test drives the single-asset route; the
+    bulk delete calls the same service and reports the 409 per item, without
+    logging it, so this log line is the operator's only trace there too.
+
+    The image runs pytest as root, where a real chmod/foreign owner cannot
+    refuse anything, so the kernel's EACCES is injected at the syscall instead.
+    `trash_service.os` is the process-wide `os` module, so the fake delegates
+    every other rename to the real one.
+    """
+    storage = isolated_storage
+    real_rename = os.rename
+    target = (storage / "shelf" / "model.stl").resolve()
+
+    def refuse_the_file(source, destination, *args, **kwargs):
+        if Path(source).resolve() == target:
+            raise PermissionError(errno.EACCES, "Permission denied", str(source), None, str(destination))
+        return real_rename(source, destination, *args, **kwargs)
+
+    with TestClient(app) as client:
+        headers = auth_header(client)
+        write_placeholder_file(storage / "shelf" / "model.stl", b"model bytes")
+        asset_id = insert_asset_row("Model", "shelf/model.stl", size=11)
+
+        monkeypatch.setattr(trash_service.os, "rename", refuse_the_file)
+        with caplog.at_level(logging.ERROR, logger=trash_service.log.name):
+            response = client.delete(f"/asset/{asset_id}?confirm_name=model.stl", headers=headers)
+
+    assert response.status_code == 409, response.text
+    detail = response.json()["detail"]
+    assert "shelf/model.stl" in detail
+    assert str(storage) not in detail
+    assert "CHOWN_MODE=recursive" in detail
+
+    assert "Asset delete failed for asset" in caplog.text
+    assert asset_id in caplog.text
+    assert "PermissionError" in caplog.text
+
+    assert (storage / "shelf" / "model.stl").read_bytes() == b"model bytes"
+    assert read_asset(asset_id) is not None
 
 
 def test_a_delete_that_loses_the_race_is_a_404_not_a_fabricated_success(

@@ -33,7 +33,7 @@ that keeps these forwards and fallbacks honest is
 
 | Variable | Current default | Owner and effect |
 |---|---|---|
-| `PUID`, `PGID` | `1000` | API entrypoint; runtime file ownership. |
+| `PUID`, `PGID` | `1000` | API entrypoint; runtime file ownership. Content written into storage by anything other than the API must be owned by this user, or the API cannot move or delete it - see below. |
 | `CHOWN_MODE` | `minimal` | API entrypoint; `recursive` opts into a full data-tree ownership repair. |
 | `FILE_STORAGE` | `./storage` in code; `/app/storage` in Compose | Managed primary, thumbnail, and bundle root. |
 | `DB_URL` | `sqlite:///./curiarium.db` in code | SQLAlchemy database URL; Compose uses `/app/data/curiarium.db`. |
@@ -49,6 +49,29 @@ that keeps these forwards and fallbacks honest is
 | `CORS_ORIGINS` | derived or localhost | Comma-separated browser origins accepted by API CORS middleware. |
 | `API_PORT` | `8000` | Published API port. |
 | `WEB_PORT` | `5173` | Published web port. |
+
+### Ownership of files that arrive from outside the API
+
+A library that is filled by `rsync`, a mount copy, or a scan over a directory
+somebody else created holds bytes the API did not write. `CHOWN_MODE=minimal`
+(the default) only makes `/app/storage` and `/app/data` writable by `PUID:PGID`;
+it never repairs the tree below them, on purpose, because a recursive chown of a
+large library is slow to run on every container start.
+
+That is fine for reading - a scan and a streamed download only need read access -
+but not for the two operations that move a directory: rename and delete. The
+API's `PUID:PGID` needs write and execute on the parent of the folder it moves
+and on `.trash` (execute on every ancestor of both, and write+execute on the
+storage root when `.trash` has to be created), **plus write on the directory
+being moved itself**: a directory renamed into another directory has its `..`
+entry rewritten, and the kernel requires write permission on the directory for
+that, not only on its old and new parents. A `0755` directory owned by another
+account is therefore enough to make its delete impossible.
+
+A folder delete of such a directory answers `409` with the reason and the remedy
+(`Mf-c2gw`; before that it answered a logged-nowhere `500`). The fix is
+operator-side: run one `chown -R PUID:PGID` over the library, or set
+`CHOWN_MODE=recursive`.
 
 ## Authentication and sessions
 
