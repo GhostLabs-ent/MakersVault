@@ -105,7 +105,7 @@ services:
       - /dev/zfs:/dev/zfs
     env_file:
       - /mnt/tank/configs/curiarium/.env
-    image: curiarium-api-zfs:local
+    image:  ghcr.io/insanemal/curiarium-api:edge-zfs
     restart: unless-stopped
     volumes:
       - bind:
