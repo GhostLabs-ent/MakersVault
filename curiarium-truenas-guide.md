@@ -33,8 +33,8 @@ Step 4. Open the Permissions tab for the `data` dataset and select `Edit`.
 
 Set the following permissions:
 
-- User = `apps`
-- Group = `apps`
+- User = `netdata`
+- Group = `docker`
 - Untick the Other read/write permissions
 - Tick `Apply permissions recursively`
 
