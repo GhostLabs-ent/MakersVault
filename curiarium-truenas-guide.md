@@ -101,12 +101,18 @@ In the name field enter `curiarium`, then paste the following into the `Custom C
 services:
   api:
     container_name: c_api
+    devices:
+      - /dev/zfs:/dev/zfs
     env_file:
       - /mnt/tank/configs/curiarium/.env
-    image: ghcr.io/insanemal/curiarium-api:edge
+    image: curiarium-api-zfs:local
     restart: unless-stopped
     volumes:
-      - /mnt/tank/configs/curiarium/c:/app/storage
+      - bind:
+          propagation: rslave
+        source: /mnt/tank/configs/curiarium/storage
+        target: /app/storage
+        type: bind
       - /mnt/tank/configs/curiarium/data:/app/data
   web:
     container_name: curiarium_web
@@ -118,6 +124,7 @@ services:
     ports:
       - '5173:5173'
     restart: unless-stopped
+
 ```
 
 ### Application Running within Truenas
