@@ -14,7 +14,8 @@ What is authoritative, what is historical, and what to read when.
 | [../docs/PERMISSIONS.md](../docs/PERMISSIONS.md) | The role matrix, per route |
 | [../docs/AUDIT.md](../docs/AUDIT.md) | Which actions are audited and why some are exempt |
 | [../docs/TICKET_WORKFLOW.md](../docs/TICKET_WORKFLOW.md) | How work is gated and landed |
-| [../AGENTS.md](../AGENTS.md) | Repo map, commands, guardrails — start here |
+| [../CONTRIBUTING.md](../CONTRIBUTING.md) | For a new contributor: where documents and figures go, ADR rules, the gates — start here |
+| [../AGENTS.md](../AGENTS.md) | Repo map, commands, guardrails |
 | [../README.md](../README.md) | What the product is, quick start, configuration highlights |
 
 ### Architecture decision records
@@ -52,6 +53,7 @@ of the current system, and their counts, schemas and roadmap are stale.
 
 | Path | Contents |
 |---|---|
+| [../docs/images/](../docs/images/README.md) | Documentation figures, by topic — naming, sizes and the redaction rules a public repository requires |
 | [../docs/brand/](file://../docs/brand/) | Brand sources: the AI reference, the originally supplied SVG, generated SVGs, and `build.py` which regenerates every asset |
 | [../curiarium/api/tests/fixtures/prepared/](file://../curiarium/api/tests/fixtures/prepared/) | Fixtures for the prepared-print parser tests |
 | [../curiarium/slicer-bridge/README.md](../curiarium/slicer-bridge/README.md) | Bridge installation and protocol |

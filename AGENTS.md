@@ -14,16 +14,16 @@ one or two printers.
 ## Repository layout
 
 ```
-curiarium/api/            FastAPI backend (18 routers, SQLModel, versioned migrations)
+curiarium/api/            FastAPI backend (19 routers, SQLModel, versioned migrations)
   routers/                one module per feature surface; main.py is only app wiring
-  migrations.py           append-only schema ledger (currently 12) - see ADRs 0002
+  migrations.py           append-only schema ledger (currently 14) - see ADRs 0002
   permissions.py          ROUTE_PERMISSIONS matrix; refuses to boot on an unclassified route
   audit.py                append-only audit actions; refuses to boot on uncovered mutations
   snapshots.py            snapshot providers: CephFS .snap, ZFS, BTRFS sidecar, null
   mfa.py / oidc.py / sessions.py / accounts.py   identity surface
   safe_http.py            no-redirect, IP-pinned HTTP client for all outbound fetches
   multipart_stream.py     streams uploads straight to storage (no /tmp spool)
-  tests/                  ~1841 tests; conftest pins the environment
+  tests/                  ~1994 tests; conftest pins the environment
 curiarium/web/            React 18 + Vite + Tailwind
   src/ui/asset-grid/      the virtualised grid, cards, preview queue
   src/ui/settings/        settings sections
@@ -32,7 +32,7 @@ curiarium/web/            React 18 + Vite + Tailwind
 curiarium/slicer-bridge/  Go protocol handler (curiarium-slicer://, curiarium-engrave://)
 curiarium/scripts/        container-smoke.sh, wave_plan.py, check_version.py
 curiarium/docs/           ADRs, CONFIGURATION, ARCHITECTURE_RUNBOOK, DEVELOPMENT, archive/
-docs/                     TICKET_WORKFLOW.md, PERMISSIONS.md, AUDIT.md, brand/
+docs/                     TICKET_WORKFLOW.md, PERMISSIONS.md, AUDIT.md, images/, brand/
 .tickets/                 local ticket store (gitignored, tk)
 ```
 
@@ -111,6 +111,7 @@ Artifacts the loop writes are gitignored: `.tickets/`, `.plans/`, `.lanes/`.
 
 | Question | Document |
 |---|---|
+| New here — where do docs and screenshots go? | [CONTRIBUTING.md](CONTRIBUTING.md) |
 | What does every setting do? | [curiarium/docs/architecture/CONFIGURATION.md](curiarium/docs/architecture/CONFIGURATION.md) |
 | How is it put together, and how do I recover it? | [curiarium/docs/ARCHITECTURE_RUNBOOK.md](curiarium/docs/ARCHITECTURE_RUNBOOK.md) |
 | Why is it like this? | [curiarium/docs/adr/](curiarium/docs/adr/) |
