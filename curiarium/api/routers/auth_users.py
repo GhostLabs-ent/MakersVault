@@ -11,12 +11,23 @@ import accounts
 import audit
 import auth
 import login_throttle as login_throttle_module
+import oidc
 import sessions
 from auth import AuthContext
 from db import engine
-from models import User
+from models import OidcIdentity, User
 from permissions import require_admin, require_read
-from schemas import LoginRequest, LoginResponse, MeOut, RefreshRequest, SessionOut, UserCreate, UserOut, UserUpdate
+from schemas import (
+    LoginRequest,
+    LoginResponse,
+    MeOut,
+    PasswordResetRequest,
+    RefreshRequest,
+    SessionOut,
+    UserCreate,
+    UserOut,
+    UserUpdate,
+)
 
 log = logging.getLogger(__name__)
 AUTH_NOT_CONFIGURED = "Authentication is not configured on the server"
@@ -182,13 +193,25 @@ def me(context: Optional[AuthContext] = Depends(require_read)):
     )
 
 
-def user_out(user: User) -> UserOut:
+def user_out(user: User, identity: Optional[OidcIdentity] = None) -> UserOut:
+    """One account as an administrator sees it: the credential and the binding.
+
+    `auth_source` answers "can this account sign in with a password" - `sso` is
+    exactly `password_hash is None`, the test `routers/mfa.py` uses. It says
+    nothing about `identity`, which answers the other question: whether the
+    account is bound to a provider. An `allow_sso` reset makes an account both
+    (a local password *and* a binding), so neither field may stand in for the
+    other. No hash is read out or serialised here.
+    """
     return UserOut(
         id=user.id,
         username=user.username,
         email=user.email,
         role=user.role,
         disabled=bool(user.disabled),
+        auth_source="sso" if user.password_hash is None else "local",
+        oidc_issuer=identity.issuer if identity is not None else None,
+        oidc_subject=identity.subject if identity is not None else None,
         created_at=user.created_at,
         updated_at=user.updated_at,
     )
@@ -311,7 +334,8 @@ def list_users(_: Optional[AuthContext] = Depends(require_admin)):
         raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
     with Session(engine) as s:
         users = accounts.list_users(s)
-    return [user_out(user) for user in users]
+        identities = oidc.identities_by_user_id(s)
+    return [user_out(user, identities.get(user.id)) for user in users]
 
 
 @router.patch("/users/{user_id}", response_model=UserOut)
@@ -337,6 +361,84 @@ def update_user(user_id: str, body: UserUpdate, request: Request, context: Optio
                 audit.Event(action, user.username, {"from": previous_disabled, "to": bool(user.disabled)})
             )
         audit.stage(s, audit.context_for(request, context), *events)
-        result = user_out(user)
+        result = user_out(user, oidc.identities_by_user_id(s).get(user.id))
         s.commit()
     return result
+
+
+@router.post("/users/{user_id}/password", status_code=204)
+def reset_user_password(
+    user_id: str,
+    body: PasswordResetRequest,
+    request: Request,
+    context: Optional[AuthContext] = Depends(require_admin),
+):
+    """Replace an account's password without knowing the old one (Mf-bj51).
+
+    204 and never a body: `UserOut` is not the response type, so there is no
+    serialiser a password could leak through. Two 409s guard the two doors that
+    are shut by construction - `disabled`, and a NULL hash from
+    `create_sso_user` - and each has a request flag that opens it deliberately,
+    because the audit row must say which door the operator meant to open.
+    """
+    if not auth.AUTH_ENABLED:
+        raise HTTPException(status_code=503, detail=AUTH_NOT_CONFIGURED)
+    with Session(engine) as s:
+        user = accounts.get_user(s, user_id)
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        # Snapshot before the write: the row is in the session's identity map and
+        # `set_password` mutates it in place, so the audit detail read afterwards
+        # would describe the state the reset produced, not the one it found.
+        was_disabled = bool(user.disabled)
+        had_local_password = user.password_hash is not None
+        if was_disabled and not body.allow_disabled:
+            raise HTTPException(
+                status_code=409,
+                detail="this account is disabled; re-enable it before resetting its password",
+            )
+        if not had_local_password and not body.allow_sso:
+            # Mirrors `routers/mfa.py`'s SSO refusal. `accounts.create_sso_user`
+            # leaves the hash NULL on purpose so the identity provider is the
+            # only door; `allow_sso` is the deliberate escape hatch for the day
+            # the provider is down.
+            raise HTTPException(
+                status_code=409,
+                detail="this account signs in with SSO; give it a local password only if the identity provider is unavailable",
+            )
+        try:
+            accounts.set_password(s, user, body.password)
+        except accounts.AccountError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=str(exc)) from None
+        # A reset changes neither `role` nor `disabled`, so
+        # `accounts.count_enabled_admins()` cannot move and a literal mirror of
+        # `accounts.LastAdmin` here would be unreachable code. The lockout this
+        # route can actually cause is losing the session you are typing in, so
+        # the caller's own session is spared while every other one - a
+        # compromised member device above all - dies with the old password.
+        current_session_id = context.session_id if context is not None else None
+        sessions_revoked = 0
+        for row in sessions.list_for_user(s, user_id=user.id, username=user.username):
+            if row.id == current_session_id:
+                continue
+            sessions.revoke(s, row)
+            sessions_revoked += 1
+        audit.stage(
+            s,
+            audit.context_for(request, context),
+            audit.Event(
+                audit.USER_PASSWORD_RESET,
+                user.username,
+                {
+                    "user_id": user.id,
+                    "sessions_revoked": sessions_revoked,
+                    "reset_disabled": bool(body.allow_disabled and was_disabled),
+                    "granted_local_login": bool(body.allow_sso and not had_local_password),
+                },
+            ),
+        )
+        s.commit()
+        if context is not None:
+            # Usernames only: no password, no hash, no length, no prefix.
+            log.warning("Password reset for account %r by %r", user.username, context.username)
+    return Response(status_code=204)

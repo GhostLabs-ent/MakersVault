@@ -722,6 +722,22 @@ def find_identity(session: Session, *, issuer_value: str, subject: str) -> Optio
     return session.exec(statement).first()
 
 
+def identities_by_user_id(session: Session) -> dict[str, OidcIdentity]:
+    """Every bound provider identity, keyed by account id.
+
+    One query, not one per account: the users list is admin-only and small, but a
+    join in the router would put the table's shape in two places. The unique
+    (issuer, subject) index is still the only binding key; this is a read.
+
+    One identity per account is today's structural invariant, not the table's:
+    `provision_or_link` is the only insert path and it mints a fresh account for
+    every unseen `(issuer, subject)` pair. A future "link a second provider" flow
+    would make this dict keep an arbitrary one of the rows, so it would have to
+    become a list rather than silently overwrite.
+    """
+    return {identity.user_id: identity for identity in session.exec(select(OidcIdentity)).all()}
+
+
 def _free_username(session: Session, preferred: str) -> str:
     """A free username for a new account; a collision never links two accounts.
 

@@ -132,8 +132,8 @@ To move a pair-only deployment to a mode, in order:
 1. **Upgrade with `AUTH_MODE` unset.** Behaviour is identical to the old
    pair-only rule: auth is on iff `AUTH_USERNAME` and `AUTH_PASSWORD` are both
    set.
-2. **Create the real administrator** (Settings -> Users, or `POST /users`) while
-   break-glass is still valid.
+2. **Create the real administrator** in Settings -> Users while break-glass is
+   still valid (`POST /users`, as an admin, for a scripted deployment).
 3. **Set `AUTH_MODE=both`** and restart. Not `oidc` yet: that mode refuses the
    password you just created the admin with, and break-glass is closed while that
    row exists. Reach `oidc` only after an SSO account has been promoted to `admin`
@@ -294,13 +294,25 @@ The order below is enforced by the code, not a preference.
    row: SSO cannot create it (`no_admin_bootstrap`). `OIDC_ENABLED` with an auth
    mode that leaves SSO no door is a fail-closed boot condition, so the pair -
    or an `AUTH_MODE` that forces auth on - is not optional.
-2. **Sign in as break-glass and create a real admin** (Settings → Users, or
-   `POST /users`). Break-glass is hard-rejected and its sessions are revoked as
-   soon as the first `users` row exists, so create the administrator you will
-   actually use in this step.
+2. **Sign in as break-glass and create a real admin in Settings → Users**
+   (`POST /users` for a scripted deployment), giving that account `admin` while
+   you are there: a claim can never do it. Break-glass is hard-rejected and its
+   sessions are revoked as soon as the first `users` row exists, so create the
+   administrator you will actually use in this step.
 3. **Only then do Cosmos users provision on their first SSO login**, each at
-   `OIDC_DEFAULT_ROLE`. Grant more later with `PATCH /users/{user_id}`; a claim
-   never rewrites a stored role.
+   `OIDC_DEFAULT_ROLE`. Grant more later in Settings → Users, or with
+   `PATCH /users/{user_id}` from a script; a claim never rewrites a stored role.
+
+An admin also resets a member's password in Settings → Users, or from a script
+with `POST /users/{user_id}/password` (admin-only, 204, no body), and that
+account's other sessions are signed out in the same transaction — the session
+doing the reset survives when the admin is resetting their own. Two exceptions
+are deliberate, and the screen offers each as a checkbox with its reason: a
+disabled account only takes a new password when the reset says it is reopening a
+closed account (`allow_disabled`), and an SSO account has no local password at
+all, because the identity provider is its only door, so giving it one is a
+fallback for an outage (`allow_sso`). Both flags appear in the
+`user.password_reset` audit row as `reset_disabled` and `granted_local_login`.
 
 Skipping step 2 fails closed and says so. With **zero admin user rows**,
 `POST /auth/oidc/exchange` answers **HTTP 409** with the detail

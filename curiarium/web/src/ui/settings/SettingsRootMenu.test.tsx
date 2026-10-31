@@ -36,6 +36,33 @@ describe("SettingsRootMenu", () => {
     expect(screen.queryByRole("button", { name: /Storage Structure/ })).toBeNull();
   });
 
+  it("offers the users section to an admin", () => {
+    render(<SettingsRootMenu onOpen={vi.fn()} role="admin" />);
+
+    expect(screen.getByRole("button", { name: /Users/ })).toBeTruthy();
+  });
+
+  it.each(["viewer", "editor"] as const)("hides the users section from a %s", role => {
+    render(<SettingsRootMenu onOpen={vi.fn()} role={role} />);
+
+    expect(screen.queryByRole("button", { name: /Users/ })).toBeNull();
+  });
+
+  it("hides the users section while the role is unknown", () => {
+    render(<SettingsRootMenu onOpen={vi.fn()} />);
+
+    expect(screen.queryByRole("button", { name: /Users/ })).toBeNull();
+  });
+
+  it("opens the users section", () => {
+    const onOpen = vi.fn();
+    render(<SettingsRootMenu onOpen={onOpen} role="admin" />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Users/ }));
+
+    expect(onOpen).toHaveBeenCalledWith("users");
+  });
+
   // Revoking your own devices is a read-level action, so no role gate here.
   it.each(["viewer", "editor", "admin"] as const)(
     "offers the sessions section to a %s",

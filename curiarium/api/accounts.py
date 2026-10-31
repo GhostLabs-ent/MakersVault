@@ -283,3 +283,21 @@ def update_password_hash(session: Session, user: User, password: str) -> None:
     user.updated_at = _now_iso()
     session.add(user)
     session.flush()
+
+
+def set_password(session: Session, user: User, password: str) -> None:
+    """Replace a password without verifying the old one: an administrator reset.
+
+    This is the ONLY path that writes a hash it never proved: every other write
+    path is either behind a verified old password (`update_password_hash`) or
+    the account's first credential (`create_user`), so an authorization mistake
+    here has no second check behind it.
+
+    Same hash parameters as `update_password_hash` (argon2id, library defaults)
+    so the two write paths cannot drift. Callers own the transaction, the
+    authorization and the session revocation: this only writes the credential.
+    """
+    user.password_hash = hash_password(_clean_password(password))
+    user.updated_at = _now_iso()
+    session.add(user)
+    session.flush()

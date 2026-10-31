@@ -1,7 +1,7 @@
 """Per-route permission sweeps driven by `permissions.ROUTE_PERMISSIONS`.
 
 Why this file exists: Mf-2nbc enforces a level with a *per-route dependency*, and
-the only thing that keeps 82 hand-written declarations honest is a test that
+the only thing that keeps 91 hand-written declarations honest is a test that
 visits every route at every role. The sweeps below are parametrised from
 `permissions.ROUTE_PERMISSIONS`, so that table is both the documentation and the
 test plan: add a route without classifying it and
@@ -109,6 +109,9 @@ DISABLED_503_KEYS = {
     ("GET", "/users"),
     ("POST", "/users"),
     ("PATCH", "/users/{user_id}"),
+    # The password reset refuses while authentication is off, like the rest of
+    # the /users block: it needs a real caller to spare their own session.
+    ("POST", "/users/{user_id}/password"),
     # OIDC / SSO (Mf-4c24): an SSO endpoint that kept answering on an
     # auth-disabled deployment would be a second, unaudited door.
     ("GET", "/auth/oidc/status"),
@@ -783,6 +786,16 @@ def call_update_user(client: TestClient, headers: dict[str, str], ids: Ids, monk
     return client.patch(f"/users/{ids.viewer_id or PLACEHOLDER_USER_ID}", json={"disabled": True}, headers=headers)
 
 
+def call_reset_password(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
+    # The same password the fixture signed the viewer in with: a new one would
+    # stale the shared seed and revoke the sessions later sweeps rely on (A5).
+    return client.post(
+        f"/users/{ids.viewer_id or PLACEHOLDER_USER_ID}/password",
+        json={"password": VIEWER_PASSWORD},
+        headers=headers,
+    )
+
+
 def call_purge_trash(client: TestClient, headers: dict[str, str], ids: Ids, monkeypatch: pytest.MonkeyPatch) -> Response:
     # Same reason as the folder delete: the guard must not probe the host.
     snapshot_fakes.use_unavailable(monkeypatch)
@@ -1099,6 +1112,7 @@ CALLS: dict[tuple[str, str], CallSpec] = {
     ("POST", "/users"): call_create_user,
     ("GET", "/users"): call_list_users,
     ("PATCH", "/users/{user_id}"): call_update_user,
+    ("POST", "/users/{user_id}/password"): call_reset_password,
     ("GET", "/users/{user_id}/sessions"): call_list_user_sessions,
     ("DELETE", "/sessions/{session_id}"): call_delete_session,
     ("GET", "/audit"): call_list_audit,
@@ -1187,6 +1201,9 @@ EXPECTED_STATUS: dict[tuple[str, str], int] = {
     ("POST", "/users"): 201,
     ("GET", "/users"): 200,
     ("PATCH", "/users/{user_id}"): 200,
+    # 204: the reset never echoes anything, so there is no body a password
+    # could leak through.
+    ("POST", "/users/{user_id}/password"): 204,
     ("GET", "/users/{user_id}/sessions"): 200,
     ("DELETE", "/sessions/{session_id}"): 404,
     # MFA (Mf-lg02): none of these enrols the caller, so none can flip `/login`
@@ -1343,7 +1360,7 @@ def test_a_route_declared_on_the_app_instead_of_a_router_is_caught() -> None:
 
 
 def test_the_matrix_is_the_documented_size() -> None:
-    """The matrix is pinned at 90 routes - 9 public / 33 read / 19 contribute / 13 write / 16 admin.
+    """The matrix is pinned at 91 routes - 9 public / 33 read / 19 contribute / 13 write / 17 admin.
 
     A new route means updating this pin and docs/PERMISSIONS.md together. The
     per-level counts are pinned as well as the total on purpose: a route that
@@ -1353,13 +1370,13 @@ def test_the_matrix_is_the_documented_size() -> None:
         level: len(keys_at(level))
         for level in (permissions.PUBLIC, permissions.READ, permissions.CONTRIBUTE, permissions.WRITE, permissions.ADMIN)
     }
-    assert len(permissions.ROUTE_PERMISSIONS) == 90, counts
+    assert len(permissions.ROUTE_PERMISSIONS) == 91, counts
     assert counts == {
         permissions.PUBLIC: 9,
         permissions.READ: 33,
         permissions.CONTRIBUTE: 19,
         permissions.WRITE: 13,
-        permissions.ADMIN: 16,
+        permissions.ADMIN: 17,
     }, counts
 
 
@@ -1608,6 +1625,7 @@ def test_the_503_set_is_exactly_the_documented_endpoints() -> None:
         ("GET", "/users"),
         ("POST", "/users"),
         ("PATCH", "/users/{user_id}"),
+        ("POST", "/users/{user_id}/password"),
         ("GET", "/auth/oidc/status"),
         ("GET", "/auth/oidc/start"),
         ("GET", "/auth/oidc/callback"),

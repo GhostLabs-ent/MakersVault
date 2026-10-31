@@ -1,1 +1,1 @@
-export type Section = "root" | "slicer" | "engraving" | "theme" | "network" | "previews" | "storage" | "imports" | "sessions" | "mfa";
+export type Section = "root" | "slicer" | "engraving" | "theme" | "network" | "previews" | "storage" | "imports" | "sessions" | "mfa" | "users";

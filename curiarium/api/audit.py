@@ -66,6 +66,9 @@ USER_CREATE = "user.create"
 USER_ROLE_CHANGE = "user.role_change"
 USER_DISABLE = "user.disable"
 USER_ENABLE = "user.enable"
+# The admin password reset (Mf-bj51). One row for a re-credential write plus the
+# session revocations it caused; never a password or a hash.
+USER_PASSWORD_RESET = "user.password_reset"
 LIBRARY_SCAN_START = "library.scan.start"
 LOGIN_SUCCEEDED = "login.succeeded"
 # An SSO login is its own action pair rather than a `kind` on login.succeeded:
@@ -131,6 +134,7 @@ ACTIONS: frozenset[str] = frozenset({
     USER_ROLE_CHANGE,
     USER_DISABLE,
     USER_ENABLE,
+    USER_PASSWORD_RESET,
     LIBRARY_SCAN_START,
     LOGIN_SUCCEEDED,
     LOGIN_OIDC_SUCCEEDED,
@@ -361,6 +365,9 @@ ROUTE_ACTIONS: dict[tuple[str, str], tuple[str, ...]] = {
     ("POST", "/snapshots/retention"): (SETTINGS_SNAPSHOT_RETENTION_UPDATE,),
     ("POST", "/users"): (USER_CREATE,),
     ("PATCH", "/users/{user_id}"): (USER_ROLE_CHANGE, USER_DISABLE, USER_ENABLE),
+    # A sub-resource rather than a `password` field on the PATCH: one route, one
+    # action, one row (Mf-bj51).
+    ("POST", "/users/{user_id}/password"): (USER_PASSWORD_RESET,),
     ("POST", "/library/scan"): (LIBRARY_SCAN_START,),
     # Silent on the normal path, audited on the two paths that say something
     # happened: the grace window was used, or a previous-generation token was

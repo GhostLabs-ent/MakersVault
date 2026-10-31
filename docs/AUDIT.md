@@ -67,7 +67,7 @@ could honestly reconstruct.
 
 ## The action taxonomy
 
-`audit.ACTIONS` holds exactly these 47 strings. Action names are stable and
+`audit.ACTIONS` holds exactly these 48 strings. Action names are stable and
 `namespace.verb`; a reader of a row does not need the code to know what it means.
 
 | Action | Route(s) that emit it | `target` | `detail` | Failure |
@@ -93,6 +93,7 @@ could honestly reconstruct.
 | `user.role_change` | `PATCH /users/{user_id}` (only when the role changes) | username | `{"from", "to"}` roles | fail-closed |
 | `user.disable` | `PATCH /users/{user_id}` (only when `disabled` goes false -> true) | username | `{"from", "to"}` booleans | fail-closed |
 | `user.enable` | `PATCH /users/{user_id}` (only when `disabled` goes true -> false) | username | `{"from", "to"}` booleans | fail-closed |
+| `user.password_reset` | `POST /users/{user_id}/password` | username | `{"user_id", "sessions_revoked", "reset_disabled", "granted_local_login"}` - per the target's state before the write; never the password or a hash | fail-closed |
 | `library.scan.start` | `POST /library/scan` | `"library"` | none | fail-loud |
 | `login.succeeded` | `POST /login` | the real username | `{"kind", "client_ip"}` | fail-closed |
 | `login.oidc.succeeded` | `POST /auth/oidc/exchange` | the real username | `{"kind", "client_ip", "issuer"}` | fail-closed |
@@ -173,6 +174,10 @@ change more than one fact or act on more than one target:
   writes `folder.rename` and `folder.move`. Tags are not audited (see below), so
   a tags-only PATCH writes nothing.
 
+Not the other way round: a password reset (`POST /users/{user_id}/password`)
+revokes every session of the target except the caller's own, and still writes
+exactly one row - the revocations are a count in its `detail`, not one row each.
+
 `detail` is small JSON written with sorted keys and rendered as an object by
 `GET /audit`. It never holds a secret.
 
@@ -189,8 +194,8 @@ snapshot: the trash keeps it restorable, so it stays `asset.delete` alone.
 The rule `assert_audit_coverage()` enforces: **every route in
 `permissions.ROUTE_PERMISSIONS` whose method is not `GET` must be in
 `ROUTE_ACTIONS` or in `EXEMPT_ROUTES` with a non-empty reason.** `GET` routes are
-out of scope by construction: they change nothing. The matrix has 90 routes, 36
-of them `GET`; the remaining 54 split into 40 audited keys and 14 exempt keys.
+out of scope by construction: they change nothing. The matrix has 91 routes, 36
+of them `GET`; the remaining 55 split into 41 audited keys and 14 exempt keys.
 
 The guard also refuses stale keys (an entry for a route that no longer exists), a
 key in both tables, an action that is not in `ACTIONS`, and an exemption without
@@ -496,7 +501,7 @@ administration).
 | Parameter | Type | Semantics |
 |---|---|---|
 | `actor` | string | exact match, case-insensitive (both sides lowered, value stripped) |
-| `action` | string | exact match, case-sensitive - one of the 47 names above |
+| `action` | string | exact match, case-sensitive - one of the 48 names above |
 | `target` | string | case-sensitive substring match; `%`, `_` and `\` are escaped, so it is a literal substring. An asset id also returns that asset's `asset.create` row, because creation's target is the new id |
 | `since` | string | `created_at >= value` |
 | `until` | string | `created_at <= value` |

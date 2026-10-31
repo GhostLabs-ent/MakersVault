@@ -89,6 +89,16 @@ export default function SettingsRootMenu({ onOpen, role = null, username = null,
           <div className="text-sm opacity-70">Organize files with folders, model names, creators, and tags. Use Projects to group files.</div>
         </button>
       )}
+      {roleAtLeast(role, "admin") && (
+        <button
+          className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
+          onClick={() => onOpen("users")}
+        >
+          <div className="text-xs uppercase tracking-wide text-muted">Security</div>
+          <div className="text-lg font-semibold">Users</div>
+          <div className="text-sm opacity-70">Create accounts, change their roles, disable them, and reset passwords.</div>
+        </button>
+      )}
       <button
         className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
         onClick={() => onOpen("imports")}

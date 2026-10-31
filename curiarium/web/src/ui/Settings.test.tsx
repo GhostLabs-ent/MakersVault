@@ -7,19 +7,23 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 vi.mock("../lib/api", () => ({
   UnauthorizedError: class UnauthorizedError extends Error {},
   createFolder: vi.fn(),
+  createUser: vi.fn(),
   getMountImportSettings: vi.fn(),
   getLibraryScanStatus: vi.fn(),
   getStorageCapabilities: vi.fn(async () => ({ volumes: [] })),
   getStorageSettings: vi.fn(),
   getTrash: vi.fn(async () => ({ entries: [], total_size: 0 })),
   listSessions: vi.fn(async () => []),
+  listUsers: vi.fn(async () => []),
   listUserSessions: vi.fn(),
   purgeTrash: vi.fn(),
+  resetUserPassword: vi.fn(),
   revokeSession: vi.fn(),
   revokeUserSession: vi.fn(),
   startLibraryScan: vi.fn(),
   updateMountImportSettings: vi.fn(),
   updateStorageSettings: vi.fn(),
+  updateUser: vi.fn(),
 }));
 
 // The section is stubbed: its own flows are covered in MfaSection.test.tsx, so
@@ -203,6 +207,21 @@ describe("Settings role gating", () => {
 
     expect(await screen.findByText("Administrator access required.")).toBeTruthy();
     expect(screen.queryByDisplayValue("{folder}/{model}/{filename}")).toBeNull();
+  });
+
+  it("replaces the users section with a notice when the role is revalidated down", async () => {
+    const { rerender } = render(
+      <Settings settings={settings} onChange={() => {}} role="admin" />,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: /Users/ }));
+    await screen.findByText("Accounts that can sign in to this vault.");
+
+    // No URL to navigate to and the menu entry is hidden for non-admins, so a
+    // rerender is the honest test of "the role dropped while the section was open".
+    rerender(<Settings settings={settings} onChange={() => {}} role="viewer" />);
+
+    expect(await screen.findByText("Administrator access required.")).toBeTruthy();
+    expect(screen.queryByText("Accounts that can sign in to this vault.")).toBeNull();
   });
 });
 

@@ -137,7 +137,9 @@ upgrade to be a decision rather than a side effect.
 
 **First login.** Three ways in, in priority order:
 
-1. **Local users** — create them in Settings → Users, or via `POST /users` as an admin.
+1. **Local users** — create them in Settings → Users, which is also where an admin
+   changes a role, disables an account or resets a password (that account's other
+   sessions are signed out). Scripted deployments can use `POST /users` instead.
 2. **OIDC** — set `OIDC_ENABLED` and friends; see [CONFIGURATION.md](curiarium/docs/architecture/CONFIGURATION.md).
 3. **Break-glass** — `AUTH_USERNAME` / `AUTH_PASSWORD` from the environment work **only while
    both are genuinely set and the users table is empty**. Create a user and they stop working;

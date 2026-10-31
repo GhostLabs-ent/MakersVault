@@ -159,6 +159,31 @@
     "title": "OidcStatusOut",
     "type": "object"
   },
+  "PasswordResetRequest": {
+    "additionalProperties": false,
+    "description": "An administrator replacing another account's password (Mf-bj51).\n\nBoth flags open a door that was deliberately shut, so neither is the default.\nSet on the request rather than inferred from the target's state, because the\naudit row has to say which door was opened and an operator has to mean it.",
+    "properties": {
+      "allow_disabled": {
+        "default": false,
+        "title": "Allow Disabled",
+        "type": "boolean"
+      },
+      "allow_sso": {
+        "default": false,
+        "title": "Allow Sso",
+        "type": "boolean"
+      },
+      "password": {
+        "title": "Password",
+        "type": "string"
+      }
+    },
+    "required": [
+      "password"
+    ],
+    "title": "PasswordResetRequest",
+    "type": "object"
+  },
   "RefreshRequest": {
     "properties": {
       "refresh_token": {
@@ -286,7 +311,17 @@
     "type": "object"
   },
   "UserOut": {
+    "description": "One account as an administrator may see it; never a password hash.\n\n`auth_source` describes the *password credential*: `sso` is exactly\n`password_hash IS NULL` (the test `routers/mfa.py` already uses), so `local`\nmeans this account can sign in with a password. `oidc_issuer`/`oidc_subject`\ndescribe a different fact - the *binding* to a provider identity.\n\nThey are not either/or. An `allow_sso` password reset gives an\nSSO-provisioned account a local password as well, which is the operator's\nescape hatch when the identity provider is down (that is why\n`accounts.create_sso_user` refuses to mint an admin); such an account is\n`auth_source: \"local\"` *and* carries a binding, and the client renders both.",
     "properties": {
+      "auth_source": {
+        "default": "local",
+        "enum": [
+          "local",
+          "sso"
+        ],
+        "title": "Auth Source",
+        "type": "string"
+      },
       "created_at": {
         "title": "Created At",
         "type": "string"
@@ -309,6 +344,28 @@
       "id": {
         "title": "Id",
         "type": "string"
+      },
+      "oidc_issuer": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Oidc Issuer"
+      },
+      "oidc_subject": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Oidc Subject"
       },
       "role": {
         "title": "Role",

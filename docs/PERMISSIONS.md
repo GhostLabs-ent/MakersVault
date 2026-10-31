@@ -237,8 +237,8 @@ are in
 
 ## The route matrix
 
-Paths are FastAPI templates exactly as declared. 90 routes: 9 public, 33 read,
-19 contribute, 13 write, 16 admin.
+Paths are FastAPI templates exactly as declared. 91 routes: 9 public, 33 read,
+19 contribute, 13 write, 17 admin.
 
 The collection/instance templates are deliberately asymmetric: the collection is
 `/projects` while one project is `/project/{project_id}`, exactly like `/folders`
@@ -360,6 +360,7 @@ out of the library, renames a file the library owns, or rescans the volume.
 | POST   | `/users`                       | user administration |
 | GET    | `/users`                       | user administration |
 | PATCH  | `/users/{user_id}`             | user administration (including role changes) |
+| POST   | `/users/{user_id}/password`    | user administration: an administrator replacing a password is a re-credential write, and it revokes the target's other sessions |
 | GET    | `/users/{user_id}/sessions`    | session administration over another principal |
 | DELETE | `/sessions/{session_id}`       | revoking another principal's device is administration |
 | POST   | `/trash/purge`                 | destroying deleted data is irreversible |
@@ -516,6 +517,15 @@ in the same transaction as the mutation. Self-demotion is allowed as soon as
 another enabled admin exists. It is not cosmetic: once the users table is
 non-empty the break-glass env admin no longer authenticates, so a demoted last
 admin cannot be recovered through the API.
+
+**Password reset (admin only):** `POST /users/{user_id}/password` takes
+`{"password"}` and answers 204 without echoing anything. It refuses a disabled
+account (409) and an SSO account with no local password (409); the optional
+`allow_disabled` and `allow_sso` flags open each of those doors deliberately,
+and the audit row records which one was used. A reset changes neither `role` nor
+`disabled`, so the last-admin guard cannot apply to it; instead every session of
+the target is revoked except the caller's own, so the session an admin is typing
+in survives their own reset and a compromised member device does not.
 
 **Accepted risk (not fixed): a TOCTOU window on concurrent demotions.** Two
 requests that demote the last two admins can both read a count that still

@@ -1,6 +1,6 @@
 """Login, refresh and account administration contracts (Mf-avo9 split)."""
 
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
@@ -10,6 +10,7 @@ __all__ = [
   "MeOut",
   "OidcExchangeRequest",
   "OidcStatusOut",
+  "PasswordResetRequest",
   "RefreshRequest",
   "SessionOut",
   "UserCreate",
@@ -91,12 +92,43 @@ class UserUpdate(BaseModel):
     return self
 
 
+class PasswordResetRequest(BaseModel):
+  """An administrator replacing another account's password (Mf-bj51).
+
+  Both flags open a door that was deliberately shut, so neither is the default.
+  Set on the request rather than inferred from the target's state, because the
+  audit row has to say which door was opened and an operator has to mean it.
+  """
+
+  model_config = ConfigDict(extra="forbid")
+  password: str
+  allow_disabled: bool = False
+  allow_sso: bool = False
+
+
 class UserOut(BaseModel):
+  """One account as an administrator may see it; never a password hash.
+
+  `auth_source` describes the *password credential*: `sso` is exactly
+  `password_hash IS NULL` (the test `routers/mfa.py` already uses), so `local`
+  means this account can sign in with a password. `oidc_issuer`/`oidc_subject`
+  describe a different fact - the *binding* to a provider identity.
+
+  They are not either/or. An `allow_sso` password reset gives an
+  SSO-provisioned account a local password as well, which is the operator's
+  escape hatch when the identity provider is down (that is why
+  `accounts.create_sso_user` refuses to mint an admin); such an account is
+  `auth_source: "local"` *and* carries a binding, and the client renders both.
+  """
+
   id: str
   username: str
   email: Optional[str]
   role: str
   disabled: bool
+  auth_source: Literal["local", "sso"] = "local"
+  oidc_issuer: Optional[str] = None
+  oidc_subject: Optional[str] = None
   created_at: str
   updated_at: str
 

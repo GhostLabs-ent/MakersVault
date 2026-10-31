@@ -12,6 +12,7 @@ import SettingsRootMenu from "./SettingsRootMenu";
 import SlicerSection from "./SlicerSection";
 import StorageSection from "./StorageSection";
 import ThemeSection from "./ThemeSection";
+import UsersSection from "./UsersSection";
 import type { Section } from "./types";
 import { useFolderScan } from "./useFolderScan";
 import { useImportRuns } from "./useImportRuns";
@@ -141,6 +142,20 @@ export default function Settings({
         libraryScanState={libraryScan}
         onUnauthorized={onUnauthorized}
         onBack={() => setSection("root")}
+      />
+    );
+  }
+
+  if (section === "users" && !isAdmin) {
+    return <NotPermitted />;
+  }
+
+  if (section === "users") {
+    return (
+      <UsersSection
+        username={username}
+        onBack={() => setSection("root")}
+        onUnauthorized={onUnauthorized}
       />
     );
   }

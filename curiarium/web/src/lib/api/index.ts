@@ -20,3 +20,4 @@ export { type Snapshot, type SnapshotList, type SnapshotCreated, type SnapshotPr
 export { type AuthTokens, login, refreshToken, type Me, getMe, logout, type OidcStatus, type OidcExchangeResult, getOidcStatus, oidcStartUrl, exchangeOidcCode, OidcExchangeError, SSO_ERROR_COPY, ssoErrorCopy, type MfaChallenge, isMfaChallenge, MfaError, MFA_CODE_REJECTED, MFA_CHALLENGE_EXPIRED, type MfaStatus, getMfaStatus, type MfaEnrolment, mfaEnrol, type MfaRecoveryCodes, mfaConfirm, mfaDisable, mfaRegenerateRecoveryCodes, type MfaStepUpResult, mfaStepUp, type MfaPolicy, setMfaPolicy, mfaVerify } from "./auth";
 export { type AuditEvent, type AuditQuery, type AuditPage, listAuditEvents } from "./audit";
 export { type UserSession, listSessions, revokeSession, listUserSessions, revokeUserSession } from "./sessions";
+export { type User, type UserCreate, type UserPatch, type PasswordReset, listUsers, createUser, updateUser, resetUserPassword } from "./users";

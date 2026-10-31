@@ -4333,6 +4333,54 @@
       "summary": "Update User"
     }
   },
+  "/users/{user_id}/password": {
+    "post": {
+      "description": "Replace an account's password without knowing the old one (Mf-bj51).\n\n204 and never a body: `UserOut` is not the response type, so there is no\nserialiser a password could leak through. Two 409s guard the two doors that\nare shut by construction - `disabled`, and a NULL hash from\n`create_sso_user` - and each has a request flag that opens it deliberately,\nbecause the audit row must say which door the operator meant to open.",
+      "operationId": "reset_user_password_users__user_id__password_post",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "user_id",
+          "required": true,
+          "schema": {
+            "title": "User Id",
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PasswordResetRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "security": [
+        {
+          "HTTPBearer": []
+        }
+      ],
+      "summary": "Reset User Password"
+    }
+  },
   "/users/{user_id}/sessions": {
     "get": {
       "operationId": "list_user_sessions_users__user_id__sessions_get",

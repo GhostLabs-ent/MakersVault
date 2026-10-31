@@ -154,7 +154,7 @@ def test_the_docs_name_the_four_roles_and_the_capability_table() -> None:
 def test_the_docs_pin_the_matrix_size() -> None:
     """The stated size is computed from the live matrix, not a copied string.
 
-    The total is pinned at 90 the way `test_the_matrix_is_the_documented_size`
+    The total is pinned at 91 the way `test_the_matrix_is_the_documented_size`
     pins it, so a route added to only one side fails both tests with the same
     number. The per-level split is read from `ROUTE_PERMISSIONS` instead of being
     hard-coded here: the matrix test owns that pin, and repeating the numbers in
@@ -163,7 +163,7 @@ def test_the_docs_pin_the_matrix_size() -> None:
     sentence = _route_count_sentence(_lines(PERMISSIONS_PATH))
 
     declared_total = int(ROUTE_COUNT.search(sentence).group(1))
-    assert declared_total == 90, f"docs/PERMISSIONS.md states {declared_total} routes; the matrix is pinned at 90"
+    assert declared_total == 91, f"docs/PERMISSIONS.md states {declared_total} routes; the matrix is pinned at 91"
     assert declared_total == len(permissions.ROUTE_PERMISSIONS), (
         f"docs/PERMISSIONS.md states {declared_total} routes, ROUTE_PERMISSIONS has {len(permissions.ROUTE_PERMISSIONS)}"
     )

@@ -338,6 +338,8 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("POST", "/users"): ADMIN,
     ("GET", "/users"): ADMIN,
     ("PATCH", "/users/{user_id}"): ADMIN,
+    # A password reset is administration like the rest of the users block.
+    ("POST", "/users/{user_id}/password"): ADMIN,
     # Session administration over another principal: listing somebody else's
     # devices and revoking one are admin, like every other user-administration
     # route, and unlike the `/me/sessions` pair above.
