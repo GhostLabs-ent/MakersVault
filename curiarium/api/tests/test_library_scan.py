@@ -613,7 +613,9 @@ def test_folders_come_only_from_directories_that_register_files(temp_library: Pa
     # One row for the directory, even though its files span two batches.
     folders = _folders_named("fresh")
     assert len(folders) == 1
-    assert folders[0][1] is None
+    # a scanned folder IS its directory (was None while the scan wrote
+    # metadata-only rows; see test_scanning_folders_records_their_directory)
+    assert folders[0][1] == "fresh"
 
 
 def test_unreadable_3mf_still_registers_without_prepared_metadata(temp_library: Path) -> None:
@@ -739,7 +741,9 @@ def test_commit_time_batch_failure_reinserts_without_duplicates(
     # Exactly one directory row, created metadata-only by the retried attempt.
     folders = _folders_named("commit-retried")
     assert len(folders) == 1
-    assert folders[0][1] is None
+    # a scanned folder IS its directory (was None while the scan wrote
+    # metadata-only rows; see test_scanning_folders_records_their_directory)
+    assert folders[0][1] == "commit-retried"
     # One raise plus one real commit: rolled back and re-inserted, not duplicated.
     assert commit_attempts == 2
 
@@ -784,3 +788,42 @@ def test_consecutive_batch_failures_stop_the_scan(temp_library: Path, monkeypatc
         scan_storage_root()
 
     assert _library_rows("circuit/") == {}
+
+
+def test_scanning_folders_records_their_directory(library_root):
+    """A folder IS a directory, so a scanned folder must carry its path.
+
+    Live finding (2026-10-31): the first real deployment scanned 26 files into 33
+    folders and every one had storage_path NULL, because the scan reused the
+    metadata-only folder helper. Rename and delete resolve a folder's directory
+    from that column, so those folders could not be moved or removed.
+    """
+    rel = "Props/Gears/scanned.stl"
+    _write(rel, b"solid gear\n")
+    library_root.append(rel)
+
+    scan_storage_root()
+
+    with Session(engine) as session:
+        folders = {f.name: f for f in session.exec(select(Folder)).all()}
+    assert folders["Props"].storage_path == "Props"
+    assert folders["Gears"].storage_path == "Props/Gears"
+
+
+def test_rescanning_heals_a_folder_created_without_a_path(library_root):
+    """A row from the metadata-only era gains its path on the next scan."""
+    rel = "Loose/healed.stl"
+    _write(rel, b"solid x\n")
+    library_root.append(rel)
+
+    with Session(engine) as session:
+        legacy = Folder(name="Loose", tags_json="[]", parent_id=None, storage_path=None)
+        session.add(legacy)
+        session.commit()
+
+    scan_storage_root()
+
+    with Session(engine) as session:
+        healed = session.exec(select(Folder).where(Folder.name == "Loose")).first()
+    assert healed is not None
+    assert healed.storage_path == "Loose"

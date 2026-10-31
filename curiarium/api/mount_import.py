@@ -216,6 +216,9 @@ def scan_mount_imports() -> Optional[ScanState]:
             dest_root=storage_root if copy_files else None,
             prepare=prepare if copy_files else None,
             include_hidden=MOUNT_IMPORT_INCLUDE_HIDDEN,
+            # copy mode mirrors the mount into storage, so its folder rows stand
+            # for real directories; reference mode only groups what lives outside
+            folders_are_directories=bool(copy_files),
         )
         register_tree(plan, state)
         import_runs.finish_run(run_id, state, len(rejected))

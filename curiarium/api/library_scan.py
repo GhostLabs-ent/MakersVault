@@ -146,6 +146,11 @@ class TreePlan:
     dest_root: Optional[Path] = None  # copy target; None registers files in place
     prepare: Optional[Callable[[Session, List[PendingAsset], dict], None]] = None
     include_hidden: bool = False
+    # True when every folder this walk creates stands for a real directory under
+    # the storage root, so its row must carry that path (the storage scan, and
+    # mount copy mode). False for a reference walk, whose folders are grouping
+    # only: the bytes live outside storage, so there is no directory to point at.
+    folders_are_directories: bool = True
 
 
 _state = ScanState()
@@ -404,11 +409,13 @@ def resolve_dir_folder(
     There is also no unique index on ``folder(name, parent_id)``, so an unflushed
     duplicate would silently duplicate a whole branch.
 
-    ``with_storage_path=True`` is for a caller that materialises directories
-    (mount copy mode): its folder rows carry the real, unsanitised relative path
-    so that renaming or deleting such a folder can move the actual directory.
-    The storage scan leaves it False, keeping its rows metadata-only. Rows reused
-    by ``(parent_id, name)`` keep whatever ``storage_path`` they already have.
+    ``with_storage_path=True`` gives a folder row the real, unsanitised relative
+    path of the directory it stands for, which is what makes folder rename and
+    delete able to move the actual directory. Every caller that walks real
+    directories passes it - the storage scan and mount copy mode alike. Rows
+    reused by ``(parent_id, name)`` are healed: a row created before this was
+    true has ``storage_path`` NULL, and the next scan fills it in rather than
+    leaving a folder that claims to be a directory but is not.
     """
     parent_id: Optional[str] = None
     parent_key = "root"
@@ -426,6 +433,12 @@ def resolve_dir_folder(
             ).first()
             if existing:
                 folder_id = existing.id
+                if with_storage_path and not existing.storage_path:
+                    # heal a row created while the scan still wrote metadata-only
+                    # folders (found on the first real deployment, 2026-10-31)
+                    existing.storage_path = "/".join(consumed)
+                    session.add(existing)
+                    session.flush()
             else:
                 storage_path = "/".join(consumed) if with_storage_path else None
                 folder = Folder(name=name, tags_json="[]", parent_id=parent_id, storage_path=storage_path)
@@ -473,8 +486,18 @@ def build_asset(root: Path, rel_path: str, size: int, created_via: str = "scan")
 
 
 def _assign_folders(session: Session, pending: List[PendingAsset], cache: dict) -> None:
-    """Resolve every folder id before any of these assets enters the session."""
-    folder_ids = [resolve_dir_folder(session, item.rel_dir, cache) for item in pending]
+    """Resolve every folder id before any of these assets enters the session.
+
+    Whether the folder rows carry their directory path comes from the plan: a walk
+    over real directories (the storage scan, mount copy mode) says yes; a
+    reference walk, whose bytes live outside storage, says no.
+    """
+    plan = _active_plan()
+    as_directories = True if plan is None else plan.folders_are_directories
+    folder_ids = [
+        resolve_dir_folder(session, item.rel_dir, cache, with_storage_path=as_directories)
+        for item in pending
+    ]
     for item, folder_id in zip(pending, folder_ids, strict=True):
         item.asset.folder_id = folder_id
 
