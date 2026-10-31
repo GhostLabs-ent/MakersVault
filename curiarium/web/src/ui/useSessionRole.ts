@@ -3,6 +3,14 @@ import { useEffect, useState } from "react";
 import { FORBIDDEN_MESSAGE, UnauthorizedError, getMe } from "../lib/api";
 import { parseRole, readRefreshToken, readRole, storeRole, type Role } from "../lib/auth";
 
+export type SessionIdentity = {
+  role: Role | null;
+  /** `/me`'s username; null until it answers, or when auth is disabled. */
+  username: string | null;
+  /** "password" | "oidc" | "break-glass" as the API reports it. */
+  kind: string | null;
+};
+
 type Options = {
   token: string | null;
   authRequired: boolean;
@@ -17,16 +25,21 @@ type Options = {
  * With auth disabled every route is open and `/me` is a 503, so that deployment
  * reports `admin` without calling the API.
  */
-export function useSessionRole({ token, authRequired, onUnauthorized }: Options): Role | null {
-  const [role, setRole] = useState<Role | null>(() => (authRequired ? readRole() : "admin"));
+export function useSessionRole({ token, authRequired, onUnauthorized }: Options): SessionIdentity {
+  const [identity, setIdentity] = useState<SessionIdentity>(() => ({
+    role: authRequired ? readRole() : "admin",
+    username: null,
+    kind: null,
+  }));
+  const setRole = (role: Role | null) => setIdentity(previous => ({ ...previous, role }));
 
   useEffect(() => {
     if (!authRequired) {
-      setRole("admin");
+      setIdentity({ role: "admin", username: null, kind: null });
       return;
     }
     if (!token) {
-      setRole(null);
+      setIdentity({ role: null, username: null, kind: null });
       return;
     }
 
@@ -38,7 +51,7 @@ export function useSessionRole({ token, authRequired, onUnauthorized }: Options)
         if (cancelled) return;
         const next = parseRole(me.role);
         if (next) storeRole(next);
-        setRole(next);
+        setIdentity({ role: next, username: me.username ?? null, kind: me.kind ?? null });
       } catch (err) {
         if (cancelled) return;
         if (err instanceof UnauthorizedError) {
@@ -50,7 +63,7 @@ export function useSessionRole({ token, authRequired, onUnauthorized }: Options)
         }
         if (err instanceof Error && err.message === FORBIDDEN_MESSAGE) {
           // The session is valid; this account simply may not see who it is.
-          setRole(null);
+          setIdentity(previous => ({ ...previous, role: null }));
           return;
         }
         // Network blips and 5xx keep the cached role rather than hiding nav.
@@ -62,5 +75,5 @@ export function useSessionRole({ token, authRequired, onUnauthorized }: Options)
     };
   }, [token, authRequired, onUnauthorized]);
 
-  return role;
+  return identity;
 }

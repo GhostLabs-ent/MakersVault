@@ -36,6 +36,8 @@ type Props = {
   activeView?: "library" | "settings" | "audit";
   onAssetsChanged?: () => void;
   role?: Role | null;
+  username?: string | null;
+  kind?: string | null;
 };
 
 const DROP_ALL_ID = "__all";
@@ -51,6 +53,8 @@ export default function Sidebar({
   activeView = "library",
   onAssetsChanged,
   role = null,
+  username = null,
+  kind = null,
 }: Props) {
   // Derived here rather than passed in so the threshold stays in `roleAtLeast`:
   // `role` is null until `/me` answers, and an unknown role has neither
@@ -736,6 +740,8 @@ export default function Sidebar({
         onOpenSettings={onOpenSettings}
         onOpenAudit={onOpenAudit}
         role={role}
+        username={username}
+        kind={kind}
       />
       {pendingDelete && (
         <FolderDeleteDialog

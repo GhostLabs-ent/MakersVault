@@ -24,11 +24,11 @@ const onUnauthorized = vi.fn();
 function me(role: string): Me {
   return {
     id: "u1",
-    username: role,
-    email: null,
+    username: "ada",
+    email: "ada@example.test",
     role,
     disabled: false,
-    kind: "local",
+    kind: "password",
   };
 }
 
@@ -78,8 +78,10 @@ describe("useSessionRole", () => {
       useSessionRole({ token: "access-1", authRequired: true, onUnauthorized }),
     );
 
-    await waitFor(() => expect(result.current).toBe("viewer"));
+    await waitFor(() => expect(result.current.role).toBe("viewer"));
     expect(readRole()).toBe("viewer");
+    expect(result.current.username).toBe("ada");
+    expect(result.current.kind).toBe("password");
   });
 
   it("resolves an admin", async () => {
@@ -89,7 +91,7 @@ describe("useSessionRole", () => {
       useSessionRole({ token: "access-1", authRequired: true, onUnauthorized }),
     );
 
-    await waitFor(() => expect(result.current).toBe("admin"));
+    await waitFor(() => expect(result.current.role).toBe("admin"));
   });
 
   it("reports admin without calling /me when auth is disabled", async () => {
@@ -97,7 +99,7 @@ describe("useSessionRole", () => {
       useSessionRole({ token: null, authRequired: false, onUnauthorized }),
     );
 
-    expect(result.current).toBe("admin");
+    expect(result.current.role).toBe("admin");
     expect(getMeMock).not.toHaveBeenCalled();
   });
 
@@ -106,7 +108,7 @@ describe("useSessionRole", () => {
       useSessionRole({ token: null, authRequired: true, onUnauthorized }),
     );
 
-    expect(result.current).toBeNull();
+    expect(result.current.role).toBeNull();
     expect(getMeMock).not.toHaveBeenCalled();
   });
 
@@ -121,7 +123,7 @@ describe("useSessionRole", () => {
 
     await waitFor(() => expect(getMeMock).toHaveBeenCalled());
     expect(onUnauthorized).not.toHaveBeenCalled();
-    expect(result.current).toBeNull();
+    expect(result.current.role).toBeNull();
   });
 
   it("reports the session as expired on a 401 when no refresh token remains", async () => {
@@ -142,7 +144,7 @@ describe("useSessionRole", () => {
     );
 
     await waitFor(() => expect(getMeMock).toHaveBeenCalled());
-    await waitFor(() => expect(result.current).toBeNull());
+    await waitFor(() => expect(result.current.role).toBeNull());
     expect(onUnauthorized).not.toHaveBeenCalled();
   });
 
@@ -155,11 +157,11 @@ describe("useSessionRole", () => {
       { initialProps: { token: "access-1" } },
     );
 
-    await waitFor(() => expect(result.current).toBe("viewer"));
+    await waitFor(() => expect(result.current.role).toBe("viewer"));
 
     rerender({ token: "access-2" });
 
-    await waitFor(() => expect(result.current).toBe("admin"));
+    await waitFor(() => expect(result.current.role).toBe("admin"));
     expect(getMeMock).toHaveBeenCalledTimes(2);
   });
 });

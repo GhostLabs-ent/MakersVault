@@ -14,6 +14,8 @@ type Props = {
   onOpenSettings?: () => void;
   onOpenAudit?: () => void;
   role?: Role | null;
+  username?: string | null;
+  kind?: string | null;
 };
 
 /**
@@ -28,6 +30,8 @@ export default function ProjectSidebar({
   onOpenSettings,
   onOpenAudit,
   role = null,
+  username = null,
+  kind = null,
 }: Props) {
   const listRef = useRef<HTMLDivElement | null>(null);
 
@@ -137,6 +141,8 @@ export default function ProjectSidebar({
       </nav>
 
       <SidebarFooter
+        username={username}
+        kind={kind}
         activeView={activeView}
         onOpenSettings={onOpenSettings}
         onOpenAudit={onOpenAudit}

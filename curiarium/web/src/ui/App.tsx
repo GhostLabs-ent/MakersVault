@@ -200,7 +200,8 @@ export default function App() {
     notifyError("Your session has expired. Please sign in again.");
   }, [sessionExpired]);
 
-  const role = useSessionRole({ token, authRequired, onUnauthorized: handleUnauthorized });
+  const identity = useSessionRole({ token, authRequired, onUnauthorized: handleUnauthorized });
+  const role = identity.role;
 
   // Two capabilities, not one: a contributor may upload, import, tag and
   // organise, while destroy/rename/move stays editor-only. Mirrors the
@@ -435,6 +436,8 @@ export default function App() {
               onOpenAudit={() => setActiveView("audit")}
               activeView={activeView}
               role={role}
+              username={identity.username}
+              kind={identity.kind}
             />
           )}
         </div>
@@ -448,6 +451,8 @@ export default function App() {
               onOpenSettings={() => setActiveView("settings")}
               onOpenAudit={() => setActiveView("audit")}
               role={role}
+              username={identity.username}
+              kind={identity.kind}
             />
           )}
         </div>
@@ -558,6 +563,8 @@ export default function App() {
               onUnauthorized={handleUnauthorized}
               onSelectFolder={handleSelectFolder}
               role={role}
+              username={identity.username}
+              kind={identity.kind}
             />
           </React.Suspense>
         )}

@@ -30,6 +30,8 @@ type Props = {
   onSelectFolder?: (id: string | null) => void;
   /** `null` until `/me` answers; admin-only sections stay hidden until then. */
   role?: Role | null;
+  username?: string | null;
+  kind?: string | null;
 };
 
 export default function Settings({
@@ -40,6 +42,8 @@ export default function Settings({
   onUnauthorized,
   onSelectFolder,
   role = null,
+  username = null,
+  kind = null,
 }: Props) {
   const isAdmin = roleAtLeast(role, "admin");
   // The scan card starts a server-side library write, so it needs the same
@@ -52,7 +56,7 @@ export default function Settings({
   const [thingiverseEditing, setThingiverseEditing] = React.useState(!settings.thingiverse.cookie);
   const [networkDraft, setNetworkDraft] = React.useState(settings.network.publicUrl);
 
-  const libraryScan = useLibraryScan();
+  const libraryScan = useLibraryScan({ onAssetsChanged, onFoldersChanged });
   const importRuns = useImportRuns();
 
   React.useEffect(() => {
@@ -190,7 +194,9 @@ export default function Settings({
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsRootMenu onOpen={setSection} role={role} />
+      <SettingsRootMenu
+        username={username}
+        kind={kind} onOpen={setSection} role={role} />
     </div>
   );
 }

@@ -8,7 +8,15 @@ export type LibraryScanState = {
   run: () => Promise<void>;
 };
 
-export function useLibraryScan(): LibraryScanState {
+export type LibraryScanCallbacks = {
+  /** A scan registers assets and creates folders from the directory tree, so both
+   *  the grid and the sidebar must reload when it finishes. Without this the tree
+   *  stayed stale until a manual refresh (found in live testing, 2026-10-31). */
+  onAssetsChanged?: () => void;
+  onFoldersChanged?: () => void;
+};
+
+export function useLibraryScan({ onAssetsChanged, onFoldersChanged }: LibraryScanCallbacks = {}): LibraryScanState {
   const [libraryScan, setLibraryScan] = React.useState<LibraryScanStatus | null>(null);
   const [libraryScanBusy, setLibraryScanBusy] = React.useState(false);
   const [libraryScanError, setLibraryScanError] = React.useState<string | null>(null);
@@ -26,6 +34,17 @@ export function useLibraryScan(): LibraryScanState {
     const timer = window.setTimeout(refreshLibraryScan, 1500);
     return () => window.clearTimeout(timer);
   }, [libraryScan, refreshLibraryScan]);
+
+  // Fire once per completed scan, on the running -> finished transition. A scan
+  // can also finish between polls, so `finished_at` is the signal, not `running`.
+  const finishedMarker = libraryScan && !libraryScan.running ? libraryScan.finished_at : null;
+  const announced = React.useRef<number | null>(null);
+  React.useEffect(() => {
+    if (finishedMarker == null || announced.current === finishedMarker) return;
+    announced.current = finishedMarker;
+    onFoldersChanged?.();
+    onAssetsChanged?.();
+  }, [finishedMarker, onFoldersChanged, onAssetsChanged]);
 
   const runLibraryScan = async () => {
     setLibraryScanBusy(true);

@@ -4,10 +4,22 @@ import type { Section } from "./types";
 type Props = {
   onOpen: (section: Section) => void;
   role?: Role | null;
+  username?: string | null;
+  kind?: string | null;
 };
 
-export default function SettingsRootMenu({ onOpen, role = null }: Props) {
+export default function SettingsRootMenu({ onOpen, role = null, username = null, kind = null }: Props) {
+  const how = kind === "oidc" ? "single sign-on" : kind === "break-glass" ? "break-glass" : kind === "password" ? "password" : null;
   return (
+    <div className="flex flex-col gap-3">
+    {(username || role) && (
+      <div className="rounded-lg border border-panel bg-panel-soft px-4 py-3 text-sm">
+        <span className="opacity-70">Signed in as </span>
+        <strong data-testid="settings-username">{username ?? "auth disabled"}</strong>
+        {role && <span className="ml-2 rounded border border-panel-strong px-1 py-px text-[11px] uppercase tracking-wide" data-testid="settings-role">{role}</span>}
+        {how && <span className="ml-2 text-xs opacity-70">via {how}</span>}
+      </div>
+    )}
     <div className="grid gap-3 sm:grid-cols-2">
       <button
         className="text-left rounded-lg border border-panel bg-panel-soft p-4 hover:shadow"
@@ -88,6 +100,7 @@ export default function SettingsRootMenu({ onOpen, role = null }: Props) {
       <p className="col-span-full text-xs text-muted" data-testid="app-version">
         Curiarium {__APP_VERSION__}
       </p>
+    </div>
     </div>
   );
 }
